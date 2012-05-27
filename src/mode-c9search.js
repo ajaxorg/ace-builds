@@ -98,12 +98,12 @@ var C9SearchHighlightRules = function() {
     this.$rules = {
         "start" : [
             {
-                token : ["constant.numeric", "text", "text"],
-                regex : "(^\\s+[0-9]+)(:\\s*)(.+)"
-            },
-            {
                 token : ["string", "text"], // single line
                 regex : "(.+)(:$)"
+            }, 
+            {
+                token : ["constant.numeric", "text"],
+                regex : "(^\\s*[0-9]+)(:\\s*)"
             }
         ]
     };

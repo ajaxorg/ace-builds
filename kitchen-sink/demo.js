@@ -101,6 +101,7 @@ var modes = [
     new Mode("haxe", "haXe", ["hx"]),
     new Mode("html", "HTML", ["html", "htm"]),
     new Mode("java", "Java", ["java"]),
+    new Mode("diff", "Diff", ["diff", "patch"]),
     new Mode("javascript", "JavaScript", ["js"]),
     new Mode("json", "JSON", ["json"]),
     new Mode("latex", "LaTeX", ["tex"]),
@@ -109,6 +110,7 @@ var modes = [
     new Mode("liquid", "Liquid", ["liquid"]),
     new Mode("markdown", "Markdown", ["md", "markdown"]),
     new Mode("ocaml", "OCaml", ["ml", "mli"]),
+    new Mode("scad", "OpenSCAD", ["scad"]),
     new Mode("perl", "Perl", ["pl", "pm"]),
     new Mode("pgsql", "pgSQL", ["pgsql", "sql"]),
     new Mode("php", "PHP", ["php"]),
@@ -123,7 +125,8 @@ var modes = [
     new Mode("textile", "Textile", ["textile"]),
     new Mode("xml", "XML", ["xml"]),
     new Mode("sh", "SH", ["sh"]),
-    new Mode("xquery", "XQuery", ["xq"])
+    new Mode("xquery", "XQuery", ["xq"]),
+    new Mode("yaml", "YAML", ["yaml"])
 ];
 
 modesByName = {};
@@ -163,11 +166,13 @@ var docs = {
     "docs/plaintext.txt": {name: "Plain Text", prepare: makeHuge, wrapped: true},
     "docs/coffeescript.coffee": "Coffeescript",
     "docs/json.json": "JSON",
+    "docs/diff.diff": "Diff",
     "docs/css.css": "CSS",
     "docs/scss.scss": "SCSS",
     "docs/less.less": "LESS",
     "docs/html.html": "HTML",
     "docs/xml.xml": "XML",
+    "docs/yaml.yaml": "YAML",
     "docs/svg.svg": "SVG",
     "docs/php.php": "PHP",
     "docs/coldfusion.cfm": "ColdFusion",
@@ -175,6 +180,7 @@ var docs = {
     "docs/ruby.rb": "Ruby",
     "docs/perl.pl": "Perl",
     "docs/ocaml.ml": "OCaml",
+    "docs/OpenSCAD.scad": "OpenSCAD",
     "docs/lua.lua": "Lua",
     "docs/liquid.liquid": "Liquid",
     "docs/java.java": "Java",
@@ -673,13 +679,6 @@ require("ace/multi_select").MultiSelect(env.editor);
 
 
 
-
-
-/* var Editor = require("ace/editor").Editor;
-var UndoManager = require("ace/undomanager").UndoManager;
-var Renderer = require("ace/virtual_renderer").VirtualRenderer;
-var MultiSelect = require("ace/multi_select").MultiSelect; */
-
 function singleLineEditor(el) {
     var renderer = new Renderer(el);
     renderer.scrollBar.element.style.display = "none";
@@ -730,7 +729,7 @@ function singleLineEditor(el) {
     editor.setHighlightActiveLine(false);
     editor.setShowPrintMargin(false);
     editor.renderer.setShowGutter(false);
-    editor.renderer.setHighlightGutterLine(false);
+    // editor.renderer.setHighlightGutterLine(false);
     return editor;
 };
 
