@@ -1666,6 +1666,13 @@ var Document = function(text) {
         if (lines.length == 0)
             return {row: row, column: 0};
 
+        // apply doesn't work for big arrays (smallest threshold is on safari 0xFFFF)
+        // to circumvent that we have to break huge inserts into smaller chunks here
+        if (lines.length > 0xFFFF) {
+            var end = this.insertLines(row, lines.slice(0xFFFF));
+            lines = lines.slice(0, 0xFFFF);
+        }
+
         var args = [row, 0];
         args.push.apply(args, lines);
         this.$lines.splice.apply(this.$lines, args);
@@ -1677,7 +1684,7 @@ var Document = function(text) {
             lines: lines
         };
         this._emit("change", { data: delta });
-        return range.end;
+        return end || range.end;
     };
     this.insertNewLine = function(position) {
         position = this.$clipPosition(position);
@@ -2535,6 +2542,20 @@ exports.arrayRemove = function(array, value) {
 exports.escapeRegExp = function(str) {
     return str.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
 };
+
+exports.getMatchOffsets = function(string, regExp) {
+    var matches = [];
+
+    string.replace(regExp, function(str) {
+        matches.push({
+            offset: arguments[arguments.length-2],
+            length: str.length
+        });
+    });
+
+    return matches;
+};
+
 
 exports.deferredCall = function(fcn) {
 

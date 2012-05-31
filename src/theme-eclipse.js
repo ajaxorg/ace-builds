@@ -35,7 +35,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/theme/eclipse',function(require, exports, module) {
+define('ace/theme/eclipse', ['require', 'exports', 'module', 'ace/lib/dom'], function(require, exports, module) {
 
 
 exports.isDark = false;

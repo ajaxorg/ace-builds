@@ -35,7 +35,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-ace.define('ace/theme/dreamweaver',function(require, exports, module) {
+ace.define('ace/theme/dreamweaver', ['require', 'exports', 'module', 'ace/lib/dom'], function(require, exports, module) {
 exports.isDark = false;
 exports.cssClass = "ace-dreamweaver";
 exports.cssText = ".ace-dreamweaver .ace_editor {\

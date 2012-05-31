@@ -826,32 +826,41 @@ exports.addMouseWheelListener = function(el, callback) {
     exports.addListener(el, "mousewheel", listener);
 };
 
-exports.addMultiMouseDownListener = function(el, button, count, timeout, callback) {
+exports.addMultiMouseDownListener = function(el, timeouts, eventHandler, callbackName) {
     var clicks = 0;
-    var startX, startY;
+    var startX, startY, timer;
+    var eventNames = {
+        2: "dblclick",
+        3: "tripleclick",
+        4: "quadclick"
+    };
 
     var listener = function(e) {
-        clicks += 1;
+        if (exports.getButton(e) != 0) {
+            clicks = 0;
+        } else {
+            var isNewClick = Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5;
+
+            if (!timer || isNewClick)
+                clicks = 0;
+
+            clicks += 1;
+
+            if (timer)
+                clearTimeout(timer)
+            timer = setTimeout(function() {timer = null}, timeouts[clicks - 1] || 600);
+        }
         if (clicks == 1) {
             startX = e.clientX;
             startY = e.clientY;
-
-            setTimeout(function() {
-                clicks = 0;
-            }, timeout || 600);
         }
 
-        var isButton = exports.getButton(e) == button;
-        if (!isButton || Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5)
-            clicks = 0;
+        eventHandler[callbackName]("mousedown", e);
 
-        if (clicks == count) {
+        if (clicks > 4)
             clicks = 0;
-            callback(e);
-        }
-
-        if (isButton)
-            return exports.preventDefault(e);
+        else if (clicks > 1)
+            return eventHandler[callbackName](eventNames[clicks], e);
     };
 
     exports.addListener(el, "mousedown", listener);
@@ -2969,7 +2978,7 @@ var Editor = function(renderer, session) {
         }
     };
     this.onSelectionChange = function(e) {
-        var session = this.getSession();
+        var session = this.session;
 
         if (session.$selectionMarker) {
             session.removeMarker(session.$selectionMarker);
@@ -2984,12 +2993,40 @@ var Editor = function(renderer, session) {
             this.$updateHighlightActiveLine();
         }
 
-        var self = this;
-        if (this.$highlightSelectedWord && !this.$wordHighlightTimer)
-            this.$wordHighlightTimer = setTimeout(function() {
-                self.session.$mode.highlightSelection(self);
-                self.$wordHighlightTimer = null;
-            }, 30, this);
+        var re = this.$highlightSelectedWord && this.$getSelectionHighLightRegexp()
+        this.session.highlight(re);
+    };
+
+    this.$getSelectionHighLightRegexp = function() {
+        var session = this.session;
+
+        var selection = this.getSelectionRange();
+        if (selection.isEmpty() || selection.isMultiLine())
+            return;
+
+        var startOuter = selection.start.column - 1;
+        var endOuter = selection.end.column + 1;
+        var line = session.getLine(selection.start.row);
+        var lineCols = line.length;
+        var needle = line.substring(Math.max(startOuter, 0),
+                                    Math.min(endOuter, lineCols));
+
+        // Make sure the outer characters are not part of the word.
+        if ((startOuter >= 0 && /^[\w\d]/.test(needle)) ||
+            (endOuter <= lineCols && /[\w\d]$/.test(needle)))
+            return;
+
+        needle = line.substring(selection.start.column, selection.end.column);
+        if (!/^[\w\d]+$/.test(needle))
+            return;
+
+        var re = this.$search.$assembleRegExp({
+            wholeWord: true,
+            caseSensitive: true,
+            needle: needle
+        });
+
+        return re;
     };
     this.onChangeFrontMarker = function() {
         this.renderer.updateFrontMarkers();
@@ -3199,15 +3236,7 @@ var Editor = function(renderer, session) {
             return;
 
         this.$highlightSelectedWord = shouldHighlight;
-        if (shouldHighlight) {
-            this.session.getMode().highlightSelection(this);
-        } else {
-            this.session.getMode().clearSelectionHighlight(this);
-            if (this.$wordHighlightTimer) {
-                clearTimeout(this.$wordHighlightTimer);
-                this.$wordHighlightTimer = null;
-            }
-        }
+        this.$onSelectionChange();
     };
     this.getHighlightSelectedWord = function() {
         return this.$highlightSelectedWord;
@@ -3744,41 +3773,60 @@ var Editor = function(renderer, session) {
         return this.$search.getOptions();
     };
     this.find = function(needle, options, animate) {
-        this.clearSelection();
-        options = options || {};
-        options.needle = needle;
+        if (!options)
+            options = {};
+
+        if (typeof needle == "string" || needle instanceof RegExp)
+            options.needle = needle;
+        else if (typeof needle == "object")
+            oop.mixin(options, needle);
+
+        var range = this.selection.getRange();
+        if (options.needle == null) {
+            needle = this.session.getTextRange(range)
+                || this.$search.$options.needle;
+            if (!needle) {
+                range = this.session.getWordRange(range.start.row, range.start.column);
+                needle = this.session.getTextRange(range);
+            }
+            this.$search.set({needle: needle});
+        }
+
         this.$search.set(options);
-        this.$find(options.backwards, animate);
+        if (!options.start)
+            this.$search.set({start: range});
+
+        var newRange = this.$search.find(this.session);
+        if (options.preventScroll)
+            return newRange;
+        if (newRange) {
+            this.revealRange(newRange, animate);
+            return newRange;
+        }
+        // clear selection if nothing is found
+        if (options.backwards)
+            range.start = range.end;
+        else
+            range.end = range.start;
+        this.selection.setRange(range);
     };
     this.findNext = function(options, animate) {
-        options = options || {};
-        this.$search.set(options);
-        this.$find(false, animate);
+        this.find({skipCurrent: true, backwards: false}, options, animate);
     };
     this.findPrevious = function(options, animate) {
-        options = options || {};
-        this.$search.set(options);
-        this.$find(true, animate);
+        this.find(options, {skipCurrent: true, backwards: true}, animate);
     };
 
-    this.$find = function(backwards, animate) {
-        if (!this.selection.isEmpty())
-            this.$search.set({needle: this.session.getTextRange(this.getSelectionRange())});
+    this.revealRange = function(range, animate) {
+        this.$blockScrolling += 1;
+        this.session.unfold(range);
+        this.selection.setSelectionRange(range);
+        this.$blockScrolling -= 1;
 
-        if (typeof backwards != "undefined")
-            this.$search.set({backwards: backwards});
-
-        var range = this.$search.find(this.session);
-        if (range) {
-            this.$blockScrolling += 1;
-            this.session.unfold(range);
-            this.selection.setSelectionRange(range);
-            this.$blockScrolling -= 1;
-
-            var scrollTop = this.renderer.scrollTop;
-            this.renderer.scrollSelectionIntoView(range.start, range.end, 0.5);
+        var scrollTop = this.renderer.scrollTop;
+        this.renderer.scrollSelectionIntoView(range.start, range.end, 0.5);
+        if (animate != false)
             this.renderer.animateScrolling(scrollTop);
-        }
     };
     this.undo = function() {
         this.$blockScrolling++;
@@ -3878,6 +3926,20 @@ exports.arrayRemove = function(array, value) {
 exports.escapeRegExp = function(str) {
     return str.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
 };
+
+exports.getMatchOffsets = function(string, regExp) {
+    var matches = [];
+
+    string.replace(regExp, function(str) {
+        matches.push({
+            offset: arguments[arguments.length-2],
+            length: str.length
+        });
+    });
+
+    return matches;
+};
+
 
 exports.deferredCall = function(fcn) {
 
@@ -4202,12 +4264,9 @@ var MouseHandler = function(editor) {
     });
 
     var mouseTarget = editor.renderer.getMouseEventTarget();
-    event.addListener(mouseTarget, "mousedown", this.onMouseEvent.bind(this, "mousedown"));
     event.addListener(mouseTarget, "click", this.onMouseEvent.bind(this, "click"));
     event.addListener(mouseTarget, "mousemove", this.onMouseMove.bind(this, "mousemove"));
-    event.addMultiMouseDownListener(mouseTarget, 0, 2, 500, this.onMouseEvent.bind(this, "dblclick"));
-    event.addMultiMouseDownListener(mouseTarget, 0, 3, 600, this.onMouseEvent.bind(this, "tripleclick"));
-    event.addMultiMouseDownListener(mouseTarget, 0, 4, 600, this.onMouseEvent.bind(this, "quadclick"));
+    event.addMultiMouseDownListener(mouseTarget, [300, 300, 250], this, "onMouseEvent");
     event.addMouseWheelListener(editor.container, this.onMouseWheel.bind(this, "mousewheel"));
 
     var gutterEl = editor.renderer.$gutter;
@@ -4271,8 +4330,9 @@ var MouseHandler = function(editor) {
         this.y = ev.y;
 
         // do not move textarea during selection
-        var kt = this.editor.renderer.$keepTextAreaAtCursor;
-        this.editor.renderer.$keepTextAreaAtCursor = false;
+        var renderer = this.editor.renderer;
+        if (renderer.$keepTextAreaAtCursor)
+            renderer.$keepTextAreaAtCursor = null;
 
         var self = this;
         var onMouseSelection = function(e) {
@@ -4284,8 +4344,10 @@ var MouseHandler = function(editor) {
             clearInterval(timerId);
             self[self.state + "End"] && self[self.state + "End"](e);
             self.$clickSelection = null;
-            self.editor.renderer.$keepTextAreaAtCursor = kt;
-            self.editor.renderer.$moveTextAreaToCursor();
+            if (renderer.$keepTextAreaAtCursor == null) {
+                renderer.$keepTextAreaAtCursor = true;
+                renderer.$moveTextAreaToCursor();
+            }
         };
 
         var onSelectionInterval = function() {
@@ -4294,8 +4356,6 @@ var MouseHandler = function(editor) {
 
         event.capture(this.editor.container, onMouseSelection, onMouseSelectionEnd);
         var timerId = setInterval(onSelectionInterval, 20);
-
-        ev.preventDefault();
     };
 }).call(MouseHandler.prototype);
 
@@ -4845,7 +4905,7 @@ var KeyBinding = function(editor) {
 exports.KeyBinding = KeyBinding;
 });
 
-__ace_shadowed__.define('ace/edit_session', ['require', 'exports', 'module' , 'ace/config', 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/net', 'ace/lib/event_emitter', 'ace/selection', 'ace/mode/text', 'ace/range', 'ace/document', 'ace/background_tokenizer', 'ace/edit_session/folding', 'ace/edit_session/bracket_match'], function(require, exports, module) {
+__ace_shadowed__.define('ace/edit_session', ['require', 'exports', 'module' , 'ace/config', 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/net', 'ace/lib/event_emitter', 'ace/selection', 'ace/mode/text', 'ace/range', 'ace/document', 'ace/background_tokenizer', 'ace/search_highlight', 'ace/edit_session/folding', 'ace/edit_session/bracket_match'], function(require, exports, module) {
 
 
 var config = require("./config");
@@ -4858,6 +4918,7 @@ var TextMode = require("./mode/text").Mode;
 var Range = require("./range").Range;
 var Document = require("./document").Document;
 var BackgroundTokenizer = require("./background_tokenizer").BackgroundTokenizer;
+var SearchHighlight = require("./search_highlight").SearchHighlight;
 
 /**
  * new EditSession(text, mode)
@@ -5025,6 +5086,20 @@ var EditSession = function(text, mode) {
         token.start = c - token.value.length;
         return token;
     };
+
+    this.highlight = function(re) {
+        if (!this.$searchHighlight) {
+            var highlight = new SearchHighlight(null, "ace_selected_word", "text");
+            this.$searchHighlight = this.addDynamicMarker(highlight);
+        }
+        this.$searchHighlight.setRegexp(re);
+    }
+    /**
+    * EditSession.setUndoManager(undoManager)
+    * - undoManager (UndoManager): The new undo manager
+    *
+    * Sets the undo manager.
+    **/
     this.setUndoManager = function(undoManager) {
         this.$undoManager = undoManager;
         this.$deltas = [];
@@ -5160,7 +5235,8 @@ var EditSession = function(text, mode) {
             type : type || "line",
             renderer: typeof type == "function" ? type : null,
             clazz : clazz,
-            inFront: !!inFront
+            inFront: !!inFront,
+            id: id
         }
 
         if (inFront) {
@@ -5172,6 +5248,23 @@ var EditSession = function(text, mode) {
         }
 
         return id;
+    };
+    this.addDynamicMarker = function(marker, inFront) {
+        if (!marker.update)
+            return;
+        var id = this.$markerId++;
+        marker.id = id;
+        marker.inFront = !!inFront;
+
+        if (inFront) {
+            this.$frontMarkers[id] = marker;
+            this._emit("changeFrontMarker")
+        } else {
+            this.$backMarkers[id] = marker;
+            this._emit("changeBackMarker")
+        }
+
+        return marker;
     };
     this.removeMarker = function(markerId) {
         var marker = this.$frontMarkers[markerId] || this.$backMarkers[markerId];
@@ -5503,7 +5596,7 @@ var EditSession = function(text, mode) {
         return this.doc.getLength();
     };
     this.getTextRange = function(range) {
-        return this.doc.getTextRange(range);
+        return this.doc.getTextRange(range || this.selection.getRange());
     };
     this.insert = function(position, text) {
         return this.doc.insert(position, text);
@@ -7778,68 +7871,6 @@ var Mode = function() {
         return null;
     };
 
-    this.highlightSelection = function(editor) {
-        var session = editor.session;
-        if (!session.$selectionOccurrences)
-            session.$selectionOccurrences = [];
-
-        if (session.$selectionOccurrences.length)
-            this.clearSelectionHighlight(editor);
-
-        var selection = editor.getSelectionRange();
-        if (selection.isEmpty() || selection.isMultiLine())
-            return;
-
-        var startOuter = selection.start.column - 1;
-        var endOuter = selection.end.column + 1;
-        var line = session.getLine(selection.start.row);
-        var lineCols = line.length;
-        var needle = line.substring(Math.max(startOuter, 0),
-                                    Math.min(endOuter, lineCols));
-
-        // Make sure the outer characters are not part of the word.
-        if ((startOuter >= 0 && /^[\w\d]/.test(needle)) ||
-            (endOuter <= lineCols && /[\w\d]$/.test(needle)))
-            return;
-
-        needle = line.substring(selection.start.column, selection.end.column);
-        if (!/^[\w\d]+$/.test(needle))
-            return;
-
-        var cursor = editor.getCursorPosition();
-
-        var newOptions = {
-            wrap: true,
-            wholeWord: true,
-            caseSensitive: true,
-            needle: needle
-        };
-
-        var currentOptions = editor.$search.getOptions();
-        editor.$search.set(newOptions);
-
-        var ranges = editor.$search.findAll(session);
-        ranges.forEach(function(range) {
-            if (!range.contains(cursor.row, cursor.column)) {
-                var marker = session.addMarker(range, "ace_selected_word", "text");
-                session.$selectionOccurrences.push(marker);
-            }
-        });
-
-        editor.$search.set(currentOptions);
-    };
-
-    this.clearSelectionHighlight = function(editor) {
-        if (!editor.session.$selectionOccurrences)
-            return;
-
-        editor.session.$selectionOccurrences.forEach(function(marker) {
-            editor.session.removeMarker(marker);
-        });
-
-        editor.session.$selectionOccurrences = [];
-    };
-    
     this.createModeDelegates = function (mapping) {
         if (!this.$embeds) {
             return;
@@ -8446,6 +8477,13 @@ var Document = function(text) {
         if (lines.length == 0)
             return {row: row, column: 0};
 
+        // apply doesn't work for big arrays (smallest threshold is on safari 0xFFFF)
+        // to circumvent that we have to break huge inserts into smaller chunks here
+        if (lines.length > 0xFFFF) {
+            var end = this.insertLines(row, lines.slice(0xFFFF));
+            lines = lines.slice(0, 0xFFFF);
+        }
+
         var args = [row, 0];
         args.push.apply(args, lines);
         this.$lines.splice.apply(this.$lines, args);
@@ -8457,7 +8495,7 @@ var Document = function(text) {
             lines: lines
         };
         this._emit("change", { data: delta });
-        return range.end;
+        return end || range.end;
     };
     this.insertNewLine = function(position) {
         position = this.$clipPosition(position);
@@ -8960,6 +8998,56 @@ var BackgroundTokenizer = function(tokenizer, editor) {
 }).call(BackgroundTokenizer.prototype);
 
 exports.BackgroundTokenizer = BackgroundTokenizer;
+});
+
+__ace_shadowed__.define('ace/search_highlight', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/lib/oop', 'ace/range'], function(require, exports, module) {
+
+
+var lang = require("./lib/lang");
+var oop = require("./lib/oop");
+var Range = require("./range").Range;
+
+var SearchHighlight = function(regExp, clazz, type) {
+    this.setRegexp(regExp);
+    this.clazz = clazz;
+    this.type = type || "text";
+};
+
+(function() {
+    this.setRegexp = function(regExp) {
+        if (this.regExp+"" == regExp+"")
+            return;
+        this.regExp = regExp;
+        this.cache = [];
+    };
+
+    this.update = function(html, markerLayer, session, config) {
+        if (!this.regExp)
+            return;
+        var start = config.firstRow, end = config.lastRow;
+
+        for (var i = start; i <= end; i++) {
+            var ranges = this.cache[i];
+            if (ranges == null) {
+                ranges = lang.getMatchOffsets(session.getLine(i), this.regExp);
+                ranges = ranges.map(function(match) {
+                    return new Range(i, match.offset, i, match.offset + match.length);
+                });
+                this.cache[i] = ranges.length ? ranges : "";
+            }
+
+            for (var j = ranges.length; j --; ) {
+                markerLayer.drawSingleLineMarker(
+                    html, ranges[j].toScreenRange(session), this.clazz, config,
+                    null, this.type
+                );
+            }
+        }
+    };
+
+}).call(SearchHighlight.prototype);
+
+exports.SearchHighlight = SearchHighlight;
 });
 
 __ace_shadowed__.define('ace/edit_session/folding', ['require', 'exports', 'module' , 'ace/range', 'ace/edit_session/fold_line', 'ace/edit_session/fold', 'ace/token_iterator'], function(require, exports, module) {
@@ -10240,35 +10328,25 @@ var Range = require("./range").Range;
 /**
  * new Search()
  *
- * Creates a new `Search` object. The search options contain the following defaults:
+ * Creates a new `Search` object. The following search options are avaliable:
  *
- * * `needle`: `""`
- * * `backwards`: `false`
- * * `wrap`: `false`
- * * `caseSensitive`: `false`
- * * `wholeWord`: `false`
- * * `scope`: `ALL`
- * * `regExp`: `false`
+ * * needle: string or regular expression
+ * * backwards: false
+ * * wrap: false
+ * * caseSensitive: false
+ * * wholeWord: false
+ * * range: Range or null for whole document
+ * * regExp: false
+ * * start: Range or position
+ * * skipCurrent: false
  *
 **/
 
 var Search = function() {
-    this.$options = {
-        needle: "",
-        backwards: false,
-        wrap: false,
-        caseSensitive: false,
-        wholeWord: false,
-        scope: Search.ALL,
-        regExp: false
-    };
+    this.$options = {};
 };
 
-Search.ALL = 1;
-Search.SELECTION = 2;
-
 (function() {
-
     /**
      * Search.set(options) -> Search
      * - options (Object): An object containing all the new search properties
@@ -10283,18 +10361,23 @@ Search.SELECTION = 2;
     this.getOptions = function() {
         return lang.copyObject(this.$options);
     };
-    this.find = function(session) {
-        if (!this.$options.needle)
-            return null;
 
-        var iterator = this.$matchIterator(session);
+    this.setOptions = function(options) {
+        this.$options = options;
+    };
+    this.find = function(session) {
+        var iterator = this.$matchIterator(session, this.$options);
 
         if (!iterator)
             return false;
 
         var firstRange = null;
-        iterator.forEach(function(range) {
-            firstRange = range;
+        iterator.forEach(function(range, row, offset) {
+            if (!range.start) {
+                var column = range.offset + (offset || 0);
+                firstRange = new Range(row, column, row, column+range.length);
+            } else
+                firstRange = range;
             return true;
         });
 
@@ -10304,265 +10387,240 @@ Search.SELECTION = 2;
         var options = this.$options;
         if (!options.needle)
             return [];
+        this.$assembleRegExp(options);
 
-        var iterator = this.$matchIterator(session);
-
-        if (!iterator)
-            return false;
-
-        var ignoreCursor = !options.start && options.wrap && options.scope == Search.ALL;
-        if (ignoreCursor)
-            options.start = {row: 0, column: 0};
+        if (options.range) {
+            var range = options.range;
+            var lines = session.getLines(range.start.row, range.end.row);
+        } else
+            var lines = session.doc.getAllLines();
 
         var ranges = [];
-        iterator.forEach(function(range) {
-            ranges.push(range);
-        });
+        var re = options.re;
+        if (options.$isMultiLine) {
+            var len = re.length;
+            var maxRow = lines.length - len;
+            for (var row = re.offset || 0; row < maxRow; row++) {
+                for (var j = 0; j < re.length; j++)
+                    if (lines[row + j].search(re[j]) == -1)
+                        break;
 
-        if (ignoreCursor)
-            options.start = null;
+                var startIndex = lines[row + j].match(re[0])[0].length;
+                var endIndex = line.match(re[len - 1])[0].length;
+
+                ranges.push(new Range(
+                    row, startLine.length - startIndex,
+                    row + len - 1, endIndex
+                ));
+            }
+        } else {
+            for (var i = 0; i < lines.length; i++) {
+                var matches = lang.getMatchOffsets(lines[i], re);
+                for (var j = 0; j < matches.length; j++) {
+                    var match = matches[j];
+                    ranges.push(new Range(i, match.offset, i, match.offset + match.length));
+                };
+            }
+        }
+
+        if (options.range) {
+            var startColumn = range.start.column;
+            var endColumn = range.start.column;
+            var i = 0, j = ranges.length - 1;
+            while (i < j && ranges[i].start.column < startColumn && ranges[i].start.row == range.start.row)
+                i++;
+
+            while (i < j && ranges[j].end.column > endColumn && ranges[j].end.row == range.end.row)
+                j--;
+            return ranges.slice(i, j + 1);
+        }
 
         return ranges;
     };
     this.replace = function(input, replacement) {
-        if (!this.$options.regExp)
-            return input == this.$options.needle ? replacement : null;
-        
-        var re = this.$assembleRegExp();
+        var options = this.$options;
+
+        var re = this.$assembleRegExp(options);
+        if (options.$isMultiLine)
+            return replacement;
+
         if (!re)
             return;
 
         var match = re.exec(input);
-        if (match && match[0].length == input.length) {
-            return input.replace(re, replacement);
-        } 
-        else {
+        if (!match || match[0].length != input.length)
             return null;
+        
+        replacement = input.replace(re, replacement)
+        if (options.preserveCase) {
+            replacement = replacement.split("");
+            for (var i = Math.min(input.length, input.length); i--; ) {
+                var ch = input[i];
+                if (ch && ch.toLowerCase() != ch)
+                    replacement[i] = replacement[i].toUpperCase();
+                else
+                    replacement[i] = replacement[i].toLowerCase();
+            }
+            replacement = replacement.join("");
         }
+        
+        return replacement;
     };
-    this.$matchIterator = function(session) {
-        var re = this.$assembleRegExp();
+    this.$matchIterator = function(session, options) {
+        var re = this.$assembleRegExp(options);
         if (!re)
             return false;
 
-        var self = this, callback, backwards = this.$options.backwards;
+        var self = this, callback, backwards = options.backwards;
 
-        if (this.$options.$isMultiLine) {
-            var matchIterator = function(line, startIndex, row) {
-                var startLine = line;
-                if (startIndex)
-                    line = line.substring(startIndex);
-
-                var len = re.length;
-                var part = re[0];
-                if (line.slice(-part.length) != part)
+        if (options.$isMultiLine) {
+            var len = re.length;
+            var matchIterator = function(line, row, offset) {
+                var startIndex = line.search(re[0]);
+                if (startIndex == -1)
                     return;
-
-                for (var i = 1; i < len - 1; i++)
-                    if (re[i] != session.getLine(row + i))
+                for (var i = 1; i < len; i++) {
+                    line = session.getLine(row + i);
+                    if (line.search(re[i]) == -1)
                         return;
+                }
 
-                part = re[len - 1];
-                if (session.getLine(row + len - 1).slice(0, part.length) != part)
-                    return;
+                var endIndex = line.match(re[len - 1])[0].length;
 
-                var range = new Range(
-                    row, startLine.length - re[0].length,
-                    row + len - 1, re[len - 1].length
-                );
+                var range = new Range(row, startIndex, row + len - 1, endIndex);
+                if (re.offset == 1) {
+                    range.start.row--;
+                    range.start.column = Number.MAX_VALUE;
+                } else if (offset)
+                    range.start.column += offset;
+
                 if (callback(range))
                     return true;
             }
         } else if (backwards) {
-            var matchIterator = function(line, startIndex, row) {
-                if (startIndex)
-                    line = line.substring(startIndex);
-
-                var matches = [];
-
-                line.replace(re, function(str) {
-                    var offset = arguments[arguments.length-2];
-                    matches.push({
-                        str: str,
-                        offset: startIndex + offset
-                    });
-                    return str;
-                });
-
-                for (var i=matches.length-1; i>= 0; i--) {
-                    var match = matches[i];
-                    var range = self.$rangeFromMatch(row, match.offset, match.str.length);
-                    if (callback(range))
+            var matchIterator = function(line, row, startIndex) {
+                var matches = lang.getMatchOffsets(line, re);
+                for (var i = matches.length-1; i >= 0; i--)
+                    if (callback(matches[i], row, startIndex))
                         return true;
-                }
             }
         } else {
-            var matchIterator = function(line, startIndex, row) {
-                if (startIndex)
-                    line = line.substring(startIndex);
-
-                var matches = [];
-
-                line.replace(re, function(str) {
-                    var offset = arguments[arguments.length-2];
-                    matches.push({
-                        str: str,
-                        offset: startIndex + offset
-                    });
-                    return str;
-                });
-
-                for (var i=0; i<matches.length; i++) {
-                    var match = matches[i];
-                    var range = self.$rangeFromMatch(row, match.offset, match.str.length);
-                    if (callback(range))
+            var matchIterator = function(line, row, startIndex) {
+                var matches = lang.getMatchOffsets(line, re);
+                for (var i = 0; i < matches.length; i++)
+                    if (callback(matches[i], row, startIndex))
                         return true;
-                }
             }
         }
 
-        return {forEach: function(_callback) {
-            callback = _callback;
-            self.$lineIterator(session).forEach(matchIterator);
-        }};
-    };
-
-    this.$rangeFromMatch = function(row, column, length) {
-        return new Range(row, column, row, column+length);
-    };
-
-    this.$assembleRegExp = function() {
-        if (typeof this.$options.needle != 'string')
-            return this.$options.needle;
-
-        var needle = this.$options.needle;
-
-        if (!this.$options.regExp) {
-            if (/[\n\r]/.test(needle)){
-                this.$options.$isMultiLine = true;
-                return needle.split(/\r\n|\r|\n/)
+        return {
+            forEach: function(_callback) {
+                callback = _callback;
+                self.$lineIterator(session, options).forEach(matchIterator);
             }
+        };
+    };
+
+    this.$assembleRegExp = function(options) {
+        if (options.needle instanceof RegExp)
+            return options.re = options.needle;
+
+        var needle = options.needle;
+
+        if (!options.needle)
+            return options.re = false;
+
+        if (!options.regExp)
             needle = lang.escapeRegExp(needle);
-        }
 
-        this.$options.$isMultiLine = false;
-
-        if (this.$options.wholeWord) {
+        if (options.wholeWord)
             needle = "\\b" + needle + "\\b";
-        }
 
-        var modifier = "g";
-        if (!this.$options.caseSensitive) {
-            modifier += "i";
-        }
+        var modifier = options.caseSensitive ? "g" : "gi";
+
+        options.$isMultiLine = /[\n\r]/.test(needle);
+        if (options.$isMultiLine)
+            return options.re = this.$assembleMultilineRegExp(needle, modifier);
 
         try {
             var re = new RegExp(needle, modifier);
+        } catch(e) {
+            var re = false;
         }
-        catch(e) {
+        return options.re = re;
+    };
+
+    this.$assembleMultilineRegExp = function(needle, modifier) {
+        var parts = needle.replace(/\r\n|\r|\n/g, "$\n^").split("\n");
+        var re = [];
+        for (var i = 0; i < parts.length; i++) try {
+            re.push(new RegExp(parts[i], modifier));
+        } catch(e) {
             return false;
         }
-
+        if (parts[0] == "") {
+            re.shift();
+            re.offset = 1;
+        } else {
+            re.offset = 0;
+        }
         return re;
     };
 
-    this.$lineIterator = function(session) {
-        var searchSelection = this.$options.scope == Search.SELECTION;
-        var backwards = this.$options.backwards;
+    this.$lineIterator = function(session, options) {
+        var range = options.range;
+        var backwards = options.backwards == true;
+        var skipCurrent = options.skipCurrent != false;
 
-        var range = this.$options.range || session.getSelection().getRange();
-        var start = this.$options.start || range[searchSelection != backwards ? "start" : "end"];
+        var range = options.range;
+        var start = options.start;
+        if (!start)
+            start = range ? range[backwards ? "end" : "start"] : session.selection.getRange();
+         
+        if (start.start)
+            start = start[skipCurrent != backwards ? "end" : "start"];
 
-        var firstRow = searchSelection ? range.start.row : 0;
-        var firstColumn = searchSelection ? range.start.column : 0;
-        var lastRow = searchSelection ? range.end.row : session.getLength() - 1;
-
-        var wrap = this.$options.wrap;
-        var inWrap = false;
-
-        function getLine(row) {
-            var line = session.getLine(row);
-            if (searchSelection && row == range.end.row) {
-                line = line.substring(0, range.end.column);
-            }
-            if (inWrap && row == start.row) {
-                line = line.substring(0, start.column);
-            }
-            return line;
-        }
+        var firstRow = range ? range.start.row : 0;
+        var firstColumn = range ? range.start.column : 0;
+        var lastRow = range ? range.end.row : session.getLength() - 1;
 
         if (!backwards) {
             var forEach = function(callback) {
                 var row = start.row;
 
-                var line = getLine(row);
-                var startIndex = start.column;
+                var line = session.getLine(row).substr(start.column);
+                if (callback(line, row, start.column))
+                    return;
 
-                var stop = false;
-                inWrap = false;
-
-                while (!callback(line, startIndex, row)) {
-                    if (stop)
+                for (row = row+1; row <= lastRow; row++)
+                    if (callback(session.getLine(row), row))
                         return;
 
-                    row++;
-                    startIndex = 0;
+                if (options.wrap == false)
+                    return;
 
-                    if (row > lastRow) {
-                        if (wrap) {
-                            row = firstRow;
-                            startIndex = firstColumn;
-                            inWrap = true;
-                        } else {
-                            return;
-                        }
-                    }
-
-                    if (row == start.row)
-                        stop = true;
-
-                    line = getLine(row);
-                }
+                for (row = firstRow, lastRow = start.row; row <= lastRow; row++)
+                    if (callback(session.getLine(row), row))
+                        return;
             }
         } else {
             var forEach = function(callback) {
                 var row = start.row;
 
                 var line = session.getLine(row).substring(0, start.column);
-                var startIndex = 0;
-                var stop = false;
-                var inWrap = false;
+                if (callback(line, row))
+                    return;
 
-                while (!callback(line, startIndex, row)) {
-                    if (stop)
+                for (row--; row >= firstRow; row--)
+                    if (callback(session.getLine(row), row))
                         return;
 
-                    row--;
-                    startIndex = 0;
+                if (options.wrap == false)
+                    return;
 
-                    if (row < firstRow) {
-                        if (wrap) {
-                            row = lastRow;
-                            inWrap = true;
-                        } else {
-                            return;
-                        }
-                    }
-
-                    if (row == start.row)
-                        stop = true;
-
-                    line = session.getLine(row);
-                    if (searchSelection) {
-                        if (row == firstRow)
-                            startIndex = firstColumn;
-                        else if (row == lastRow)
-                            line = line.substring(0, range.end.column);
-                    }
-
-                    if (inWrap && row == start.row)
-                        startIndex = start.column;
-                }
+                for (row = lastRow, firstRow = start.row; row >= firstRow; row--)
+                    if (callback(session.getLine(row), row))
+                        return;
             }
         }
 
@@ -12434,6 +12492,11 @@ var Marker = function(parentEl) {
         var html = [];
         for ( var key in this.markers) {
             var marker = this.markers[key];
+
+            if (!marker.range) {
+                marker.update(html, this, this.session, config);
+                continue;
+            }
 
             var range = marker.range.clipRows(config.firstRow, config.lastRow);
             if (range.isEmpty()) continue;
