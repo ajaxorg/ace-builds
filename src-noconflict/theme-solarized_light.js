@@ -98,6 +98,10 @@ exports.cssText = "\
   background: #EEE8D5;\
 }\
 \
+.ace-solarized-light .ace_gutter_active_line {\
+  background-color : #dcdcdc;\
+}\
+\
 .ace-solarized-light .ace_marker-layer .ace_selected_word {\
   border: 1px solid #073642;\
 }\

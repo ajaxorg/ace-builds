@@ -98,6 +98,10 @@ exports.cssText = "\
   background: #38403D;\
 }\
 \
+.ace-kr-theme .ace_gutter_active_line {\
+  background-color : #dcdcdc;\
+}\
+\
 .ace-kr-theme .ace_marker-layer .ace_selected_word {\
   border: 1px solid rgba(170, 0, 255, 0.45);\
 }\

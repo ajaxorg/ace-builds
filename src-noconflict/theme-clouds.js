@@ -98,6 +98,10 @@ exports.cssText = "\
   background: #FFFBD1;\
 }\
 \
+.ace-clouds .ace_gutter_active_line {\
+  background-color : #dcdcdc;\
+}\
+\
 .ace-clouds .ace_marker-layer .ace_selected_word {\
   border: 1px solid #BDD5FC;\
 }\
