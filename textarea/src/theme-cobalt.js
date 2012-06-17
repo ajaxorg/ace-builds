@@ -98,10 +98,6 @@ exports.cssText = "\
   background: rgba(0, 0, 0, 0.35);\
 }\
 \
-.ace-cobalt .ace_gutter_active_line {\
-  background-color : #dcdcdc;\
-}\
-\
 .ace-cobalt .ace_marker-layer .ace_selected_word {\
   border: 1px solid rgba(179, 101, 57, 0.75);\
 }\

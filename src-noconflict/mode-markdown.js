@@ -363,6 +363,22 @@ var JavaScriptHighlightRules = function() {
                 ],
                 regex : "(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
+            }, { // match stuff like: Sound.play = function play() {  }
+                token : [
+                    "storage.type",
+                    "punctuation.operator",
+                    "entity.name.function",
+                    "text",
+                    "keyword.operator",
+                    "text",
+                    "storage.type",
+                    "text",
+                    "entity.name.function",
+                    "text",
+                    "paren.lparen"
+                ],
+                regex : "(" + identifierRe + ")(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s+)(\\w+)(\\s*)(\\()",
+                next: "function_arguments"
             }, { // match regular function like: function myFunc(arg) { }
                 token : [
                     "storage.type",
@@ -2118,7 +2134,7 @@ var MarkdownHighlightRules = function() {
                 return "markup.heading." + value.length;
             },
             regex : "^#{1,6}"
-        }, github_embed("javascript", "js-"),
+        }, github_embed("(?:javascript|js)", "js-"),
            github_embed("xml", "xml-"),
            github_embed("html", "html-"),
            github_embed("css", "css-"),

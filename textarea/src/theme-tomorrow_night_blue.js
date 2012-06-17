@@ -94,12 +94,11 @@ exports.cssText = "\
   border: 1px solid #404F7D;\
 }\
 \
-.ace-tomorrow-night-blue .ace_marker-layer .ace_active_line {\
+.ace-tomorrow-night-blue .ace_marker-layer .ace_active_line{\
   background: #00346E;\
 }\
-\
-.ace-tomorrow-night-blue .ace_gutter_active_line {\
-  background-color: #022040;\
+.ace-tomorrow-night-blue .ace_gutter_active_line{\
+  background: #022040;\
 }\
 \
 .ace-tomorrow-night-blue .ace_marker-layer .ace_selected_word {\

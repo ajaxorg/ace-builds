@@ -1721,7 +1721,7 @@ exports.preventDefault = function(e) {
 exports.getButton = function(e) {
     if (e.type == "dblclick")
         return 0;
-    else if (e.type == "contextmenu")
+    if (e.type == "contextmenu" || (e.ctrlKey && useragent.isMac))
         return 2;
 
     // DOM Event
@@ -2921,6 +2921,24 @@ var Editor = function(renderer, session) {
         this.session.remove(range);
         this.clearSelection();
     };
+
+    this.duplicateSelection = function() {
+        var sel = this.selection;
+		var doc = this.session;
+		var range = sel.getRange();
+		if (range.isEmpty()) {
+			var row = range.start.row;
+			doc.duplicateLines(row, row);
+		} else {
+			var reverse = sel.isBackwards()
+			var point = sel.isBackwards() ? range.start : range.end;
+			var endPoint = doc.insert(point, doc.getTextRange(range), false);
+			range.start = point;
+			range.end = endPoint;
+			
+			sel.setSelectionRange(range, reverse)
+		}
+    };
     this.moveLinesDown = function() {
         this.$moveLines(function(firstRow, lastRow) {
             return this.session.moveLinesDown(firstRow, lastRow);
@@ -3053,8 +3071,11 @@ var Editor = function(renderer, session) {
     };
     this.centerSelection = function() {
         var range = this.getSelectionRange();
-        var line = Math.floor(range.start.row + (range.end.row - range.start.row) / 2);
-        this.renderer.scrollToLine(line, true);
+        var pos = {
+            row: Math.floor(range.start.row + (range.end.row - range.start.row) / 2),
+            column: Math.floor(range.start.column + (range.end.column - range.start.column) / 2)
+        }
+        this.renderer.alignCursor(pos, 0.5);
     };
     this.getCursorPosition = function() {
         return this.selection.getCursor();
@@ -3079,21 +3100,34 @@ var Editor = function(renderer, session) {
     this.moveCursorToPosition = function(pos) {
         this.selection.moveCursorToPosition(pos);
     };
-    this.jumpToMatching = function() {
+    this.jumpToMatching = function(select) {
         var cursor = this.getCursorPosition();
-        var pos = this.session.findMatchingBracket(cursor);
-        if (!pos) {
-            cursor.column += 1;
-            pos = this.session.findMatchingBracket(cursor);
-        }
-        if (!pos) {
-            cursor.column -= 2;
-            pos = this.session.findMatchingBracket(cursor);
-        }
 
+        var range = this.session.getBracketRange(cursor);
+        if (!range) {
+            range = editor.find({
+                needle: /[{}()\[\]]/g,
+                preventScroll:true,
+                start: {row: cursor.row, column: cursor.column - 1}
+            });
+            if (!range)
+                return;
+            var pos = range.start;
+            if (pos.row == cursor.row && Math.abs(pos.column - cursor.column) < 2)
+                range = this.session.getBracketRange(pos);
+        }
+        
+        pos = range && range.cursor || pos;
         if (pos) {
-            this.clearSelection();
-            this.moveCursorTo(pos.row, pos.column);
+            if (select) {
+                if (range && range.isEqual(editor.getSelectionRange()))
+                    this.clearSelection();
+                else
+                    this.selection.selectTo(pos.row, pos.column);            
+            } else {
+                this.clearSelection();
+                this.moveCursorTo(pos.row, pos.column);
+            }
         }
     };
     this.gotoLine = function(lineNumber, column, animate) {
@@ -3640,7 +3674,6 @@ var TextInput = function(parentNode, host) {
     });
 
     this.focus = function() {
-        host.onFocus();
         reset();
         text.focus();
     };
@@ -3675,10 +3708,12 @@ var TextInput = function(parentNode, host) {
         if (host.renderer.$keepTextAreaAtCursor)
             host.renderer.$keepTextAreaAtCursor = null;
 
-        event.capture(host.container, function(e) {
-            text.style.left = e.clientX - 2 + "px";
-            text.style.top = e.clientY - 2 + "px";
-        }, onContextMenuClose);
+        // on windows context menu is opened after mouseup
+        if (useragent.isGecko && useragent.isWin)
+            event.capture(host.container, function(e) {
+                text.style.left = e.clientX - 2 + "px";
+                text.style.top = e.clientY - 2 + "px";
+            }, onContextMenuClose);
     };
 
     function onContextMenuClose() {
@@ -3800,12 +3835,12 @@ var MouseHandler = function(editor) {
             renderer.$keepTextAreaAtCursor = null;
 
         var self = this;
-        var onMouseSelection = function(e) {
+        var onMouseMove = function(e) {
             self.x = e.clientX;
             self.y = e.clientY;
         };
 
-        var onMouseSelectionEnd = function(e) {
+        var onCaptureEnd = function(e) {
             clearInterval(timerId);
             self[self.state + "End"] && self[self.state + "End"](e);
             self.$clickSelection = null;
@@ -3815,12 +3850,12 @@ var MouseHandler = function(editor) {
             }
         };
 
-        var onSelectionInterval = function() {
+        var onCaptureInterval = function() {
             self[self.state] && self[self.state]();
         }
 
-        event.capture(this.editor.container, onMouseSelection, onMouseSelectionEnd);
-        var timerId = setInterval(onSelectionInterval, 20);
+        event.capture(this.editor.container, onMouseMove, onCaptureEnd);
+        var timerId = setInterval(onCaptureInterval, 20);
     };
 }).call(MouseHandler.prototype);
 
@@ -3879,7 +3914,7 @@ function DefaultHandlers(mouseHandler) {
 
             // 2: contextmenu, 1: linux paste
             editor.textInput.onContextMenu(ev.domEvent);
-            return ev.stop();
+            return; // stopping event here breaks contextmenu on ff mac
         }
 
         // if this click caused the editor to be focused should not clear the
@@ -3898,13 +3933,8 @@ function DefaultHandlers(mouseHandler) {
             // a selection.
             this.startSelect(pos);
         } else if (inSelection) {
-            var e = ev.domEvent;
-            if ((e.ctrlKey || e.altKey)) {
-                this.startDrag();
-            } else {
-                this.mousedownEvent.time = (new Date()).getTime();
-                this.setState("dragWait");
-            }
+            this.mousedownEvent.time = (new Date()).getTime();
+            this.setState("dragWait");
         }
 
         this.captureMouse(ev);
@@ -3935,8 +3965,9 @@ function DefaultHandlers(mouseHandler) {
             } else if (cmp == 1) {
                 anchor = this.$clickSelection.start;
             } else {
-                cursor = this.$clickSelection.end;
-                anchor = this.$clickSelection.start;
+                var orientedRange = calcRangeOrientation(this.$clickSelection, cursor);
+                cursor = orientedRange.cursor;
+                anchor = orientedRange.anchor;
             }
             editor.selection.setSelectionAnchor(anchor.row, anchor.column);
         }
@@ -3964,8 +3995,9 @@ function DefaultHandlers(mouseHandler) {
                 cursor = range.end;
                 anchor = range.start;
             } else {
-                cursor = this.$clickSelection.end;
-                anchor = this.$clickSelection.start;
+                var orientedRange = calcRangeOrientation(this.$clickSelection, cursor);
+                cursor = orientedRange.cursor;
+                anchor = orientedRange.anchor;
             }
             editor.selection.setSelectionAnchor(anchor.row, anchor.column);
         }
@@ -4010,7 +4042,7 @@ function DefaultHandlers(mouseHandler) {
             this.startSelect();
     };
 
-    this.dragWait = function() {
+    this.dragWait = function(e) {
         var distance = calcDistance(this.mousedownEvent.x, this.mousedownEvent.y, this.x, this.y);
         var time = (new Date()).getTime();
         var editor = this.editor;
@@ -4018,7 +4050,7 @@ function DefaultHandlers(mouseHandler) {
         if (distance > DRAG_OFFSET) {
             this.startSelect();
         } else if (time - this.mousedownEvent.time > editor.getDragDelay()) {
-            this.startDrag()
+            this.startDrag();
         }
     };
 
@@ -4066,12 +4098,21 @@ function DefaultHandlers(mouseHandler) {
     this.onDoubleClick = function(ev) {
         var pos = ev.getDocumentPosition();
         var editor = this.editor;
+        var session = editor.session
 
+        var range = session.getBracketRange(pos);
+        if (range) {
+            if (range.isEmpty()) {
+                range.start.column--;
+                range.end.column++;
+            }
+            this.$clickSelection = range;
+            this.setState("select");
+            return;
+        }
+    
+        this.$clickSelection = editor.selection.getWordRange(pos.row, pos.column);
         this.setState("selectByWords");
-
-        editor.moveCursorToPosition(pos);
-        editor.selection.selectWord();
-        this.$clickSelection = editor.getSelectionRange();
     };
 
     this.onTripleClick = function(ev) {
@@ -4123,6 +4164,18 @@ function calcDistance(ax, ay, bx, by) {
     return Math.sqrt(Math.pow(bx - ax, 2) + Math.pow(by - ay, 2));
 }
 
+function calcRangeOrientation(range, cursor) {
+    if (range.start.row == range.end.row)
+        var cmp = 2 * cursor.column - range.start.column - range.end.column;
+    else
+        var cmp = 2 * cursor.row - range.start.row - range.end.row;
+    
+    if (cmp < 0)
+        return {cursor: range.start, anchor: range.end};
+    else
+        return {cursor: range.end, anchor: range.start};
+}
+
 });
 
 ace.define('ace/mouse/default_gutter_handler', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
@@ -4164,10 +4217,11 @@ exports.GutterHandler = GutterHandler;
 
 });
 
-ace.define('ace/mouse/mouse_event', ['require', 'exports', 'module' , 'ace/lib/event'], function(require, exports, module) {
+ace.define('ace/mouse/mouse_event', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/lib/useragent'], function(require, exports, module) {
 
 
 var event = require("../lib/event");
+var useragent = require("../lib/useragent");
 var MouseEvent = exports.MouseEvent = function(domEvent, editor) {
     this.domEvent = domEvent;
     this.editor = editor;
@@ -4232,9 +4286,9 @@ var MouseEvent = exports.MouseEvent = function(domEvent, editor) {
         return this.domEvent.shiftKey;
     };
     
-    this.getAccelKey = function() {
-        return this.domEvent.ctrlKey || this.domEvent.metaKey ;
-    };
+    this.getAccelKey = useragent.isMac
+        ? function() { return this.domEvent.metaKey; }
+        : function() { return this.domEvent.ctrlKey; };
     
 }).call(MouseEvent.prototype);
 
@@ -4938,7 +4992,8 @@ var EditSession = function(text, mode) {
         try {
             module = require(mode);
         } catch (e) {};
-        if (module)
+        // sometimes require returns empty object (this bug is present in requirejs 2 as well)
+        if (module && module.Mode)
             return done(module);
 
         // set mode to text until loading is finished
@@ -7036,7 +7091,6 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             this.start.column == range.start.column &&
             this.end.column == range.end.column
     }; 
-
     this.toString = function() {
         return ("Range: [" + this.start.row + "/" + this.start.column +
             "] -> [" + this.end.row + "/" + this.end.column + "]");
@@ -7318,7 +7372,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         }
     }
 
-   /** 
+    /** 
      * Range.compareInside(row, column) -> Number
      * - row (Number): A row point to compare with
      * - column (Number): A column point to compare with
@@ -7343,7 +7397,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         }
     }
 
-   /** 
+    /** 
      * Range.clipRows(firstRow, lastRow) -> Range
      * - firstRow (Number): The starting row
      * - lastRow (Number): The ending row
@@ -9762,10 +9816,11 @@ var TokenIterator = function(session, initialRow, initialColumn) {
 exports.TokenIterator = TokenIterator;
 });
 
-ace.define('ace/edit_session/bracket_match', ['require', 'exports', 'module' , 'ace/token_iterator'], function(require, exports, module) {
+ace.define('ace/edit_session/bracket_match', ['require', 'exports', 'module' , 'ace/token_iterator', 'ace/range'], function(require, exports, module) {
 
 
 var TokenIterator = require("../token_iterator").TokenIterator;
+var Range = require("../range").Range;
 
 /**
  * new BracketMatch(position)
@@ -9794,15 +9849,56 @@ function BracketMatch() {
         if (charBeforeCursor == "") return null;
 
         var match = charBeforeCursor.match(/([\(\[\{])|([\)\]\}])/);
-        if (!match) {
+        if (!match)
             return null;
+
+        if (match[1])
+            return this.$findClosingBracket(match[1], position);
+        else
+            return this.$findOpeningBracket(match[2], position);
+    };
+    
+    this.getBracketRange = function(pos) {
+        var line = this.getLine(pos.row);
+        var before = true, range;
+
+        var chr = line.charAt(pos.column-1);
+        var match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
+        if (!match) {
+            chr = line.charAt(pos.column);
+            pos.column++;
+            match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
+            before = false;
         }
+        if (!match)
+            return null;
 
         if (match[1]) {
-            return this.$findClosingBracket(match[1], position);
+            var bracketPos = this.$findClosingBracket(match[1], pos);
+            if (!bracketPos)
+                return null;
+            range = Range.fromPoints(pos, bracketPos);
+            if (!before) {
+                range.end.column++;
+                range.start.column--;
+            }
+            range.cursor = range.end;
         } else {
-            return this.$findOpeningBracket(match[2], position);
+            var bracketPos = this.$findOpeningBracket(match[2], pos);
+            if (!bracketPos)
+                return null;
+            range = Range.fromPoints(bracketPos, pos);
+            if (!before) {
+                range.start.column++;
+                range.end.column--;
+            }
+            range.cursor = range.start;
         }
+        
+        if (!before)
+            pos.column--;
+        
+        return range;
     };
 
     this.$brackets = {
@@ -10530,22 +10626,22 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "fold",
-    bindKey: bindKey("Alt-L", "Alt-L"),
+    bindKey: bindKey("Alt-L|Ctrl-F1", "Command-Alt-L|Command-F1"),
     exec: function(editor) { editor.session.toggleFold(false); },
     readOnly: true
 }, {
     name: "unfold",
-    bindKey: bindKey("Alt-Shift-L", "Alt-Shift-L"),
+    bindKey: bindKey("Alt-Shift-L|Ctrl-Shift-F1", "Command-Alt-Shift-L|Command-Shift-F1"),
     exec: function(editor) { editor.session.toggleFold(true); },
     readOnly: true
 }, {
     name: "foldall",
-    bindKey: bindKey("Alt-0", "Alt-0"),
+    bindKey: bindKey("Alt-0", "Command-Option-0"),
     exec: function(editor) { editor.session.foldAll(); },
     readOnly: true
 }, {
     name: "unfoldall",
-    bindKey: bindKey("Alt-Shift-0", "Alt-Shift-0"),
+    bindKey: bindKey("Alt-Shift-0", "Command-Option-Shift-0"),
     exec: function(editor) { editor.session.unfold(); },
     readOnly: true
 }, {
@@ -10568,17 +10664,17 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "overwrite",
-    bindKey: bindKey("Insert", "Insert"),
+    bindKey: "Insert",
     exec: function(editor) { editor.toggleOverwrite(); },
     readOnly: true
 }, {
     name: "selecttostart",
-    bindKey: bindKey("Ctrl-Shift-Home|Alt-Shift-Up", "Command-Shift-Up"),
+    bindKey: bindKey("Ctrl-Shift-Home", "Command-Shift-Up"),
     exec: function(editor) { editor.getSelection().selectFileStart(); },
     readOnly: true
 }, {
     name: "gotostart",
-    bindKey: bindKey("Ctrl-Home|Ctrl-Up", "Command-Home|Command-Up"),
+    bindKey: bindKey("Ctrl-Home", "Command-Home|Command-Up"),
     exec: function(editor) { editor.navigateFileStart(); },
     readOnly: true
 }, {
@@ -10595,13 +10691,13 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "selecttoend",
-    bindKey: bindKey("Ctrl-Shift-End|Alt-Shift-Down", "Command-Shift-Down"),
+    bindKey: bindKey("Ctrl-Shift-End", "Command-Shift-Down"),
     exec: function(editor) { editor.getSelection().selectFileEnd(); },
     multiSelectAction: "forEach",
     readOnly: true
 }, {
     name: "gotoend",
-    bindKey: bindKey("Ctrl-End|Ctrl-Down", "Command-End|Command-Down"),
+    bindKey: bindKey("Ctrl-End", "Command-End|Command-Down"),
     exec: function(editor) { editor.navigateFileEnd(); },
     multiSelectAction: "forEach",
     readOnly: true
@@ -10691,43 +10787,53 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "selectpagedown",
-    bindKey: bindKey("Shift-PageDown", "Shift-PageDown"),
+    bindKey: "Shift-PageDown",
     exec: function(editor) { editor.selectPageDown(); },
     readOnly: true
 }, {
     name: "pagedown",
-    bindKey: bindKey(null, "PageDown"),
+    bindKey: bindKey(null, "Option-PageDown"),
     exec: function(editor) { editor.scrollPageDown(); },
     readOnly: true
 }, {
     name: "gotopagedown",
-    bindKey: bindKey("PageDown", "Option-PageDown|Ctrl-V"),
+    bindKey: bindKey("PageDown", "PageDown|Ctrl-V"),
     exec: function(editor) { editor.gotoPageDown(); },
     readOnly: true
 }, {
     name: "selectpageup",
-    bindKey: bindKey("Shift-PageUp", "Shift-PageUp"),
+    bindKey: "Shift-PageUp",
     exec: function(editor) { editor.selectPageUp(); },
     readOnly: true
 }, {
     name: "pageup",
-    bindKey: bindKey(null, "PageUp"),
+    bindKey: bindKey(null, "Option-PageUp"),
     exec: function(editor) { editor.scrollPageUp(); },
     readOnly: true
 }, {
     name: "gotopageup",
-    bindKey: bindKey("PageUp", "Option-PageUp"),
+    bindKey: "PageUp",
     exec: function(editor) { editor.gotoPageUp(); },
     readOnly: true
 }, {
+    name: "scrollup",
+    bindKey: bindKey("Ctrl-Up", null),
+    exec: function(e) { e.renderer.scrollBy(0, -2 * e.renderer.layerConfig.lineHeight); },
+    readOnly: true
+}, {
+    name: "scrolldown",
+    bindKey: bindKey("Ctrl-Down", null),
+    exec: function(e) { e.renderer.scrollBy(0, 2 * e.renderer.layerConfig.lineHeight); },
+    readOnly: true
+}, {
     name: "selectlinestart",
-    bindKey: bindKey("Shift-Home", "Shift-Home"),
+    bindKey: "Shift-Home",
     exec: function(editor) { editor.getSelection().selectLineStart(); },
     multiSelectAction: "forEach",
     readOnly: true
 }, {
     name: "selectlineend",
-    bindKey: bindKey("Shift-End", "Shift-End"),
+    bindKey: "Shift-End",
     exec: function(editor) { editor.getSelection().selectLineEnd(); },
     multiSelectAction: "forEach",
     readOnly: true
@@ -10743,9 +10849,14 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "jumptomatching",
-    bindKey: bindKey("Ctrl-Shift-P", "Ctrl-Shift-P"),
+    bindKey: bindKey("Ctrl-P", "Ctrl-P"),
     exec: function(editor) { editor.jumpToMatching(); },
     multiSelectAction: "forEach",
+    readOnly: true
+}, {
+    name: "selecttomatching",
+    bindKey: bindKey("Ctrl-Shift-P", "Ctrl-Shift-P"),
+    exec: function(editor) { editor.jumpToMatching(true); },
     readOnly: true
 }, 
 
@@ -10766,6 +10877,11 @@ exports.commands = [{
     name: "removeline",
     bindKey: bindKey("Ctrl-D", "Command-D"),
     exec: function(editor) { editor.removeLines(); },
+    multiSelectAction: "forEach"
+}, {
+    name: "duplicateSelection",
+    bindKey: bindKey("Ctrl-Shift-D", "Command-Shift-D"),
+    exec: function(editor) { editor.duplicateSelection(); },
     multiSelectAction: "forEach"
 }, {
     name: "togglecomment",
@@ -10806,7 +10922,7 @@ exports.commands = [{
     exec: function(editor) { editor.redo(); }
 }, {
     name: "copylinesup",
-    bindKey: bindKey("Ctrl-Alt-Up", "Command-Option-Up"),
+    bindKey: bindKey("Alt-Shift-Up", "Command-Option-Up"),
     exec: function(editor) { editor.copyLinesUp(); }
 }, {
     name: "movelinesup",
@@ -10814,7 +10930,7 @@ exports.commands = [{
     exec: function(editor) { editor.moveLinesUp(); }
 }, {
     name: "copylinesdown",
-    bindKey: bindKey("Ctrl-Alt-Down", "Command-Option-Down"),
+    bindKey: bindKey("Alt-Shift-Down", "Command-Option-Down"),
     exec: function(editor) { editor.copyLinesDown(); }
 }, {
     name: "movelinesdown",
@@ -11277,14 +11393,14 @@ var VirtualRenderer = function(container, theme) {
             return;
 
         if (!gutterReady) {
-            var ch = this.$gutterLayer.element.children
-            var oldEl = ch[this.$gutterLineHighlight - this.layerConfig.firstRow];
-            if (oldEl)
-                dom.removeCssClass(oldEl, "ace_gutter_active_line");
+            var lineEl, ch = this.$gutterLayer.element.children;
+            var index = this.$gutterLineHighlight - this.layerConfig.firstRow;
+            if (index >= 0 && (lineEl = ch[index]))
+                dom.removeCssClass(lineEl, "ace_gutter_active_line");
 
-            var newEl = ch[i - this.layerConfig.firstRow];
-            if (newEl)
-                dom.addCssClass(newEl, "ace_gutter_active_line");
+            index = i - this.layerConfig.firstRow;
+            if (index >= 0 && (lineEl = ch[index]))
+                dom.addCssClass(lineEl, "ace_gutter_active_line");
         }
 
         this.$gutterLayer.removeGutterDecoration(this.$gutterLineHighlight, "ace_gutter_active_line");
@@ -14250,18 +14366,14 @@ function onMouseDown(e) {
     var ctrl = e.getAccelKey();
     var button = e.getButton();
 
+    if (e.editor.inMultiSelectMode && button == 2) {
+        e.editor.textInput.onContextMenu(e.domEvent);
+        return;
+    }
+    
     if (!ctrl && !alt) {
-        if (e.editor.inMultiSelectMode) {
-            if (button == 0) {
-                e.editor.exitMultiSelectMode();
-            } else if (button == 2) {
-                var editor = e.editor;
-                var selectionEmpty = editor.selection.isEmpty();
-                editor.textInput.onContextMenu({x: e.clientX, y: e.clientY}, selectionEmpty);
-                event.capture(editor.container, function(){}, editor.textInput.onContextMenuClose);
-                e.stop();
-            }
-        }
+        if (button == 0 && e.editor.inMultiSelectMode)
+            e.editor.exitMultiSelectMode();
         return;
     }
 
@@ -14448,14 +14560,17 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, mod, classname) {
             workerUrl = require.nameToUrl("ace/worker/worker_sourcemint");
         } else {
             // We are running in RequireJS.
-            workerUrl = this.$normalizePath(require.nameToUrl("ace/worker/worker", null, "_"));
+            // nameToUrl is renamed to toUrl in requirejs 2
+            if (require.nameToUrl && !require.toUrl)
+                require.toUrl = require.nameToUrl;
+            workerUrl = this.$normalizePath(require.toUrl("ace/worker/worker", null, "_"));
         }
         this.$worker = new Worker(workerUrl);
 
         var tlns = {};
         for (var i=0; i<topLevelNamespaces.length; i++) {
             var ns = topLevelNamespaces[i];
-            var path = this.$normalizePath(require.nameToUrl(ns, null, "_").replace(/.js$/, ""));
+            var path = this.$normalizePath(require.toUrl(ns, null, "_").replace(/.js$/, ""));
 
             tlns[ns] = path;
         }

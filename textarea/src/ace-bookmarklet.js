@@ -2905,17 +2905,11 @@ var Editor = function(renderer, session) {
         this.textInput.blur();
     };
     this.onFocus = function() {
-        if (this.$isFocused)
-            return;
-        this.$isFocused = true;
         this.renderer.showCursor();
         this.renderer.visualizeFocus();
         this._emit("focus");
     };
     this.onBlur = function() {
-        if (!this.$isFocused)
-            return;
-        this.$isFocused = false;
         this.renderer.hideCursor();
         this.renderer.visualizeBlur();
         this._emit("blur");
@@ -4250,21 +4244,19 @@ var TextInput = function(parentNode, host) {
 exports.TextInput = TextInput;
 });
 
-__ace_shadowed__.define('ace/mouse/mouse_handler', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/mouse/default_handlers', 'ace/mouse/default_gutter_handler', 'ace/mouse/mouse_event', 'ace/mouse/dragdrop'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mouse/mouse_handler', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/mouse/default_handlers', 'ace/mouse/default_gutter_handler', 'ace/mouse/mouse_event'], function(require, exports, module) {
 
 
 var event = require("../lib/event");
 var DefaultHandlers = require("./default_handlers").DefaultHandlers;
 var DefaultGutterHandler = require("./default_gutter_handler").GutterHandler;
 var MouseEvent = require("./mouse_event").MouseEvent;
-var DragdropHandler = require("./dragdrop").DragdropHandler;
 
 var MouseHandler = function(editor) {
     this.editor = editor;
 
     new DefaultHandlers(this);
     new DefaultGutterHandler(this);
-    new DragdropHandler(this);
 
     event.addListener(editor.container, "mousedown", function(e) {
         editor.focus();
@@ -4389,7 +4381,7 @@ function DefaultHandlers(mouseHandler) {
     editor.setDefaultHandler("mousewheel", this.onScroll.bind(mouseHandler));
 
     var exports = ["select", "startSelect", "drag", "dragEnd", "dragWait",
-        "dragWaitEnd", "startDrag", "focusWait"];
+        "dragWaitEnd", "startDrag"];
 
     exports.forEach(function(x) {
         mouseHandler[x] = this[x];
@@ -4430,9 +4422,8 @@ function DefaultHandlers(mouseHandler) {
         if (inSelection && !editor.isFocused()) {
             editor.focus();
             if (this.$focusWaitTimout && !this.$clickSelection) {
-                this.setState("focusWait");
-                this.captureMouse(ev);
-                return ev.preventDefault();
+                // todo start select after focusWaitTimout passes
+                return;
             }
         }
 
@@ -4545,14 +4536,6 @@ function DefaultHandlers(mouseHandler) {
         editor.keyBinding.addKeyboardHandler(this.$dragKeybinding);
     };
 
-    this.focusWait = function() {
-        var distance = calcDistance(this.mousedownEvent.x, this.mousedownEvent.y, this.x, this.y);
-        var time = (new Date()).getTime();
-
-        if (distance > DRAG_OFFSET ||time - this.mousedownEvent.time > this.$focusWaitTimout)
-            this.startSelect();
-    };
-
     this.dragWait = function() {
         var distance = calcDistance(this.mousedownEvent.x, this.mousedownEvent.y, this.x, this.y);
         var time = (new Date()).getTime();
@@ -4560,7 +4543,7 @@ function DefaultHandlers(mouseHandler) {
 
         if (distance > DRAG_OFFSET) {
             this.startSelect();
-        } else if (time - this.mousedownEvent.time > editor.getDragDelay()) {
+        } else if ((time - this.mousedownEvent.time) > editor.getDragDelay()) {
             this.startDrag()
         }
     };
@@ -4781,75 +4764,6 @@ var MouseEvent = exports.MouseEvent = function(domEvent, editor) {
     
 }).call(MouseEvent.prototype);
 
-});
-
-__ace_shadowed__.define('ace/mouse/dragdrop', ['require', 'exports', 'module' , 'ace/lib/event'], function(require, exports, module) {
-
-
-var event = require("../lib/event");
-
-var DragdropHandler = function(mouseHandler) {
-    var editor = mouseHandler.editor;
-    var dragSelectionMarker, x, y;
-    var timerId, range, isBackwards;
-    var dragCursor, counter = 0;
-
-    var mouseTarget = editor.container;
-    event.addListener(mouseTarget, "dragenter", function(e) {console.log(e.type, counter,e.target);
-        counter++;
-        if (!dragSelectionMarker) {
-            range = editor.getSelectionRange();
-            isBackwards = editor.selection.isBackwards();
-            var style = editor.getSelectionStyle();
-            dragSelectionMarker = editor.session.addMarker(range, "ace_selection", style);
-            editor.clearSelection();
-            clearInterval(timerId);
-            timerId = setInterval(onDragInterval, 20);
-        }
-        return event.preventDefault(e);
-    });
-
-    event.addListener(mouseTarget, "dragover", function(e) {
-        x = e.clientX;
-        y = e.clientY;
-        return event.preventDefault(e);
-    });
-    
-    var onDragInterval =  function() {
-        dragCursor = editor.renderer.screenToTextCoordinates(x, y);
-        editor.moveCursorToPosition(dragCursor);
-        editor.renderer.scrollCursorIntoView();
-    };
-    
-    event.addListener(mouseTarget, "dragleave", function(e) {console.log(e.type, counter,e.target);
-        counter--;
-        if (counter > 0)
-            return;
-        console.log(e.type, counter,e.target);
-        clearInterval(timerId);
-        editor.session.removeMarker(dragSelectionMarker);
-        dragSelectionMarker = null;
-        editor.selection.setSelectionRange(range, isBackwards);
-        return event.preventDefault(e);
-    });
-    
-    event.addListener(mouseTarget, "drop", function(e) {
-        console.log(e.type, counter,e.target);
-        counter = 0;
-        clearInterval(timerId);
-        editor.session.removeMarker(dragSelectionMarker);
-        dragSelectionMarker = null;
-
-        range.end = editor.session.insert(dragCursor, e.dataTransfer.getData('Text'));
-        range.start = dragCursor;
-        editor.focus();
-        editor.selection.setSelectionRange(range);
-        return event.preventDefault(e);
-    });
-
-};
-
-exports.DragdropHandler = DragdropHandler;
 });
 
 __ace_shadowed__.define('ace/mouse/fold_handler', ['require', 'exports', 'module' ], function(require, exports, module) {
@@ -5403,18 +5317,15 @@ var EditSession = function(text, mode) {
         var line = this.getLine(row);
 
         var inToken = false;
-        if (column > 0)
+        if (column > 0) {
             inToken = !!line.charAt(column - 1).match(this.tokenRe);
+        }
 
-        if (!inToken)
+        if (!inToken) {
             inToken = !!line.charAt(column).match(this.tokenRe);
-        
-        if (inToken)
-            var re = this.tokenRe;
-        else if (/^\s+$/.test(line.slice(column-1, column+1)))
-            var re = /\s/;
-        else
-            var re = this.nonTokenRe;
+        }
+
+        var re = inToken ? this.tokenRe : this.nonTokenRe;
 
         var start = column;
         if (start > 0) {
@@ -7348,17 +7259,8 @@ var Selection = function(session) {
         if (fold)
             return this.moveCursorTo(fold.end.row, fold.end.column);
 
-        if (column == line.length) {
-            var l = this.doc.getLength();
-            do {    
-                row++;
-                rightOfCursor = this.doc.getLine(row)
-            } while (row < l && /^\s*$/.test(rightOfCursor))
-            
-            if (!/^\s+/.test(rightOfCursor))
-                rightOfCursor = ""
-            column = 0;
-        }
+        if (column == line.length)
+            return this.moveCursorRight();
 
         var index = this.$shortWordEndIndex(rightOfCursor);
 
@@ -7373,19 +7275,11 @@ var Selection = function(session) {
         if (fold = this.session.getFoldAt(row, column, -1))
             return this.moveCursorTo(fold.start.row, fold.start.column);
 
-        var line = this.session.getLine(row).substring(0, column);
-        if (column == 0) {
-            do {    
-                row--;
-                line = this.doc.getLine(row);
-            } while (row > 0 && /^\s*$/.test(line))
-            
-            column = line.length;
-            if (!/\s+$/.test(line))
-                line = ""
-        }
+        if (column == 0)
+            return this.moveCursorLeft();
 
-        var leftOfCursor = lang.stringReverse(line);
+        var str = this.session.getLine(row).substring(0, column);
+        var leftOfCursor = lang.stringReverse(str);
         var index = this.$shortWordEndIndex(leftOfCursor);
 
         return this.moveCursorTo(row, column - index);
@@ -14688,9 +14582,10 @@ var RangeList = function() {
         var lineDif = endRow - startRow;
 
         var colDiff = -start.column + end.column;
+
         var ranges = this.ranges;
 
-        for (var i = 0, n = ranges.length; i < n; i++) {
+        for (var i=0, n = ranges.length; i < n; i++) {
             var r = ranges[i];
             if (r.end.row < startRow)
                 continue;

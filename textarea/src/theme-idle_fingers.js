@@ -98,10 +98,6 @@ exports.cssText = "\
   background: #353637;\
 }\
 \
-.ace-idle-fingers .ace_gutter_active_line {\
-  background-color : #dcdcdc;\
-}\
-\
 .ace-idle-fingers .ace_marker-layer .ace_selected_word {\
   border: 1px solid rgba(90, 100, 126, 0.88);\
 }\

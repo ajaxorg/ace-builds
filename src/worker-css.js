@@ -1888,7 +1888,6 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             this.start.column == range.start.column &&
             this.end.column == range.end.column
     }; 
-
     this.toString = function() {
         return ("Range: [" + this.start.row + "/" + this.start.column +
             "] -> [" + this.end.row + "/" + this.end.column + "]");
@@ -2170,7 +2169,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         }
     }
 
-   /** 
+    /** 
      * Range.compareInside(row, column) -> Number
      * - row (Number): A row point to compare with
      * - column (Number): A column point to compare with
@@ -2195,7 +2194,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         }
     }
 
-   /** 
+    /** 
      * Range.clipRows(firstRow, lastRow) -> Range
      * - firstRow (Number): The starting row
      * - lastRow (Number): The ending row
