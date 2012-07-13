@@ -37,7 +37,7 @@
 
 ace.define('ace/theme/github', ['require', 'exports', 'module', 'ace/lib/dom'], function(require, exports, module) {
 
-exports.isDark = true;
+exports.isDark = false;
 exports.cssClass = "ace-github";
 exports.cssText = "/* CSS style content from github's default pygments highlighter template.\
    Cursor and selection styles from textmate.css. */\
@@ -52,6 +52,15 @@ exports.cssText = "/* CSS style content from github's default pygments highlight
   border-radius: 3px;\
   position: relative;\
   margin-bottom: 15px;\
+}\
+\
+.ace-github .ace_gutter {\
+  background: #e8e8e8;\
+  color: #AAA;\
+}\
+\
+.ace-github .ace_scroller {\
+  background: #fff;\
 }\
 \
 .ace-github .ace_keyword {\
@@ -70,6 +79,14 @@ exports.cssText = "/* CSS style content from github's default pygments highlight
   color: #099;\
 }\
 \
+.ace-github .ace_constant.ace_buildin {\
+  color: #0086B3;\
+}\
+\
+.ace-github .ace_support.ace_function {\
+  color: #0086B3;\
+}\
+\
 .ace-github .ace_comment {\
   color: #998;\
   font-style: italic;\
@@ -79,12 +96,11 @@ exports.cssText = "/* CSS style content from github's default pygments highlight
   color: #0086B3;\
 }\
 \
-.ace-github .ace_paren.ace_lparen,\
-.ace-github .ace_paren.ace_rparen {\
+.ace-github .ace_paren {\
   font-weight: bold;\
 }\
 \
-.ace-github .ace_constant.ace_language.ace_boolean {\
+.ace-github .ace_boolean {\
   font-weight: bold;\
 }\
 \
@@ -102,7 +118,6 @@ exports.cssText = "/* CSS style content from github's default pygments highlight
 }\
 \
 .ace-github .ace_text-layer {\
-  cursor: text;\
 }\
 \
 .ace-github .ace_cursor {\
@@ -114,12 +129,48 @@ exports.cssText = "/* CSS style content from github's default pygments highlight
   border-bottom: 1px solid black;\
 }\
 \
+.ace-github .ace_marker-layer .ace_active_line {\
+  background: rgb(255, 255, 204);\
+}\
 .ace-github .ace_marker-layer .ace_selection {\
   background: rgb(181, 213, 255);\
 }\
 .ace-github.multiselect .ace_selection.start {\
   box-shadow: 0 0 3px 0px white;\
   border-radius: 2px;\
+}\
+/* bold keywords cause cursor issues for some fonts */\
+/* this disables bold style for editor and keeps for static highlighter */\
+.ace-github.ace_editor .ace_line > span {\
+    font-weight: normal !important;\
+}\
+\
+.ace-github .ace_marker-layer .ace_step {\
+  background: rgb(252, 255, 0);\
+}\
+\
+.ace-github .ace_marker-layer .ace_stack {\
+  background: rgb(164, 229, 101);\
+}\
+\
+.ace-github .ace_marker-layer .ace_bracket {\
+  margin: -1px 0 0 -1px;\
+  border: 1px solid rgb(192, 192, 192);\
+}\
+\
+.ace-github .ace_gutter_active_line{\
+    background-color : rgba(0, 0, 0, 0.07);\
+}\
+\
+.ace-github .ace_marker-layer .ace_selected_word {\
+  background: rgb(250, 250, 255);\
+  border: 1px solid rgb(200, 200, 250);\
+\
+}\
+\
+.ace-github .ace_print_margin {\
+  width: 1px;\
+  background: #e8e8e8;\
 }";
 
     var dom = require("../lib/dom");

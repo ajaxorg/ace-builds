@@ -49,7 +49,7 @@ exports.cssText = "\
 }\
 \
 .ace-clouds .ace_gutter {\
-  background: #e8e8e8;\
+  background: #ebebeb;\
   color: #333;\
 }\
 \
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-clouds .ace_text-layer {\
-  cursor: text;\
   color: #000000;\
 }\
 \
@@ -96,6 +95,10 @@ exports.cssText = "\
 \
 .ace-clouds .ace_marker-layer .ace_active_line {\
   background: #FFFBD1;\
+}\
+\
+.ace-clouds .ace_gutter_active_line {\
+  background-color : #dcdcdc;\
 }\
 \
 .ace-clouds .ace_marker-layer .ace_selected_word {\

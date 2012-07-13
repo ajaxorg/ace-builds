@@ -49,13 +49,13 @@ exports.cssText = "\
 }\
 \
 .ace-kr-theme .ace_gutter {\
-  background: #e8e8e8;\
-  color: #333;\
+  background: #1c1917;\
+  color: #FCFFE0;\
 }\
 \
 .ace-kr-theme .ace_print_margin {\
   width: 1px;\
-  background: #e8e8e8;\
+  background: #1c1917;\
 }\
 \
 .ace-kr-theme .ace_scroller {\
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-kr-theme .ace_text-layer {\
-  cursor: text;\
   color: #FCFFE0;\
 }\
 \
@@ -96,6 +95,10 @@ exports.cssText = "\
 \
 .ace-kr-theme .ace_marker-layer .ace_active_line {\
   background: #38403D;\
+}\
+\
+.ace-kr-theme .ace_gutter_active_line {\
+  background-color : #38403D;\
 }\
 \
 .ace-kr-theme .ace_marker-layer .ace_selected_word {\

@@ -49,13 +49,13 @@ exports.cssText = "\
 }\
 \
 .ace-twilight .ace_gutter {\
-  background: #e8e8e8;\
-  color: #333;\
+  background: #232323;\
+  color: #F8F8F8;\
 }\
 \
 .ace-twilight .ace_print_margin {\
   width: 1px;\
-  background: #e8e8e8;\
+  background: #232323;\
 }\
 \
 .ace-twilight .ace_scroller {\
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-twilight .ace_text-layer {\
-  cursor: text;\
   color: #F8F8F8;\
 }\
 \
@@ -99,7 +98,7 @@ exports.cssText = "\
 }\
 \
 .ace-twilight .ace_gutter_active_line {\
-  background-color : #dcdcdc;\
+  background-color: rgba(255, 255, 255, 0.031);\
 }\
 \
 .ace-twilight .ace_marker-layer .ace_selected_word {\

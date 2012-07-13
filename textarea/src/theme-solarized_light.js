@@ -49,7 +49,7 @@ exports.cssText = "\
 }\
 \
 .ace-solarized-light .ace_gutter {\
-  background: #e8e8e8;\
+  background: #fbf1d3;\
   color: #333;\
 }\
 \
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-solarized-light .ace_text-layer {\
-  cursor: text;\
   color: #586E75;\
 }\
 \
@@ -96,6 +95,10 @@ exports.cssText = "\
 \
 .ace-solarized-light .ace_marker-layer .ace_active_line {\
   background: #EEE8D5;\
+}\
+\
+.ace-solarized-light .ace_gutter_active_line {\
+  background-color : #dcdcdc;\
 }\
 \
 .ace-solarized-light .ace_marker-layer .ace_selected_word {\

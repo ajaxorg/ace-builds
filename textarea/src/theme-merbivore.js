@@ -49,8 +49,8 @@ exports.cssText = "\
 }\
 \
 .ace-merbivore .ace_gutter {\
-  background: #e8e8e8;\
-  color: #333;\
+  background: #202020;\
+  color: #E6E1DC;\
 }\
 \
 .ace-merbivore .ace_print_margin {\
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-merbivore .ace_text-layer {\
-  cursor: text;\
   color: #E6E1DC;\
 }\
 \
@@ -96,6 +95,10 @@ exports.cssText = "\
 \
 .ace-merbivore .ace_marker-layer .ace_active_line {\
   background: #333435;\
+}\
+\
+.ace-merbivore .ace_gutter_active_line {\
+  background-color : #333435;\
 }\
 \
 .ace-merbivore .ace_marker-layer .ace_selected_word {\

@@ -49,7 +49,7 @@ exports.cssText = "\
 }\
 \
 .ace-monokai .ace_gutter {\
-  background: #292a24;\
+  background: #2f3129;\
   color: #f1f1f1;\
 }\
 \
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-monokai .ace_text-layer {\
-  cursor: text;\
   color: #F8F8F2;\
 }\
 \
@@ -94,11 +93,11 @@ exports.cssText = "\
   border: 1px solid #49483E;\
 }\
 \
-.ace-monokai .ace_marker-layer .ace_active_line{\
+.ace-monokai .ace_marker-layer .ace_active_line {\
   background: #49483E;\
 }\
-.ace-monokai .ace_gutter_active_line{\
-  background: #191916;\
+.ace-monokai .ace_gutter_active_line {\
+  background-color: #191916;\
 }\
 \
 .ace-monokai .ace_marker-layer .ace_selected_word {\

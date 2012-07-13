@@ -48,14 +48,14 @@ exports.cssText = ".ace-eclipse .ace_editor {\
 }\
 \
 .ace-eclipse .ace_gutter {\
-  background: rgb(227, 227, 227);\
+  background: #ebebeb;\
   border-right: 1px solid rgb(159, 159, 159);\
   color: rgb(136, 136, 136);\
 }\
 \
 .ace-eclipse .ace_print_margin {\
   width: 1px;\
-  background: #b1b4ba;\
+  background: #ebebeb;\
 }\
 \
 .ace-eclipse .ace_fold {\
@@ -63,7 +63,6 @@ exports.cssText = ".ace-eclipse .ace_editor {\
 }\
 \
 .ace-eclipse .ace_text-layer {\
-  cursor: text;\
 }\
 \
 .ace-eclipse .ace_cursor {\

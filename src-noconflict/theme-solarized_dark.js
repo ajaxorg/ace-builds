@@ -49,7 +49,7 @@ exports.cssText = "\
 }\
 \
 .ace-solarized-dark .ace_gutter {\
-  background: #09222b;\
+  background: #01313f;\
   color: #d0edf7;\
 }\
 \
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-solarized-dark .ace_text-layer {\
-  cursor: text;\
   color: #93A1A1;\
 }\
 \

@@ -49,13 +49,13 @@ exports.cssText = "\
 }\
 \
 .ace-tomorrow .ace_gutter {\
-  background: #e8e8e8;\
-  color: #333;\
+  background: #f6f6f6;\
+  color: #4D4D4C;\
 }\
 \
 .ace-tomorrow .ace_print_margin {\
   width: 1px;\
-  background: #e8e8e8;\
+  background: #f6f6f6;\
 }\
 \
 .ace-tomorrow .ace_scroller {\
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-tomorrow .ace_text-layer {\
-  cursor: text;\
   color: #4D4D4C;\
 }\
 \

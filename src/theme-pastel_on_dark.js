@@ -49,13 +49,13 @@ exports.cssText = "\
 }\
 \
 .ace-pastel-on-dark .ace_gutter {\
-  background: #e8e8e8;\
-  color: #333;\
+  background: #353030;\
+  color: #8F938F;\
 }\
 \
 .ace-pastel-on-dark .ace_print_margin {\
   width: 1px;\
-  background: #e8e8e8;\
+  background: #353030;\
 }\
 \
 .ace-pastel-on-dark .ace_scroller {\
@@ -63,7 +63,6 @@ exports.cssText = "\
 }\
 \
 .ace-pastel-on-dark .ace_text-layer {\
-  cursor: text;\
   color: #8F938F;\
 }\
 \
@@ -99,7 +98,7 @@ exports.cssText = "\
 }\
 \
 .ace-pastel-on-dark .ace_gutter_active_line {\
-  background-color : #dcdcdc;\
+  background-color: rgba(255, 255, 255, 0.031);\
 }\
 \
 .ace-pastel-on-dark .ace_marker-layer .ace_selected_word {\

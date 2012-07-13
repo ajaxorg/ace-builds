@@ -56,18 +56,6 @@ oop.inherits(Mode, TextMode);
     
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
-
-        // ignore braces in comments
-        var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
-        if (tokens.length && tokens[tokens.length-1].type == "comment") {
-            return indent;
-        }
-
-        var match = line.match(/^.*\{\s*$/);
-        if (match) {
-            indent += tab;
-        }
-
         return indent;
     };
 
@@ -98,7 +86,7 @@ var C9SearchHighlightRules = function() {
     this.$rules = {
         "start" : [
             {
-                token : ["constant.numeric", "text", "text"],
+                token : ["c9searchresults.constant.numeric", "c9searchresults.text", "c9searchresults.text"],
                 regex : "(^\\s+[0-9]+)(:\\s*)(.+)"
             },
             {
@@ -173,46 +161,32 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
 
-    this.foldingStartMarker = /[a-zA-Z](:)\s*$/;
-    this.foldingStopMarker = /^(\s*)$/;
+    this.foldingStartMarker = /^(\w.*\:|Searching for.*)$/;
+    this.foldingStopMarker = /^(\s+|Found.*)$/;
     
     this.getFoldWidgetRange = function(session, foldStyle, row) {
         var line = session.getLine(row);
-        var match = line.match(this.foldingStartMarker);
-        if (match) {
-            var i = match.index;
+        var level1 = /^(Found.*|Searching for.*)$/;
+        var level2 = /^(\w.*\:|\s*)$/;
+        var re = level1.test(line) ? level1 : level2;
 
-            if (match[1])
-                return this.openingBracketBlock(session, match[1], row, i, false, true);
-
-            var range = session.getCommentFoldRange(row, i + match[0].length);
-            range.end.column -= 2;
-            return range;
-        }
-
-        if (foldStyle !== "markbeginend")
-            return;
-            
-        var match = line.match(this.foldingStopMarker);
-        if (match) {
-            var i = match.index + match[0].length;
-
-            if (match[2]) {
-                var range = session.getCommentFoldRange(row, i);
-                range.end.column -= 2;
-                return range;
+        if (this.foldingStartMarker.test(line)) {            
+            for (var i = row + 1, l = session.getLength(); i < l; i++) {
+                if (re.test(session.getLine(i)))
+                    break;
             }
 
-            var end = {row: row, column: i};
-            var start = session.$findOpeningBracket(match[1], end);
-            
-            if (!start)
-                return;
+            return new Range(row, line.length, i, 0);
+        }
 
-            start.column++;
-            end.column--;
+        if (this.foldingStopMarker.test(line)) {
+            for (var i = row - 1; i >= 0; i--) {
+                line = session.getLine(i);
+                if (re.test(line))
+                    break;
+            }
 
-            return  Range.fromPoints(start, end);
+            return new Range(i, line.length, row, 0);
         }
     };
     
@@ -243,25 +217,27 @@ var FoldMode = exports.FoldMode = function() {};
             return "end";
         return "";
     };
-    
+
     this.getFoldWidgetRange = function(session, foldStyle, row) {
         return null;
     };
 
     this.indentationBlock = function(session, row, column) {
-        var re = /^\s*/;
+        var re = /\S/;
+        var line = session.getLine(row);
+        var startLevel = line.search(re);
+        if (startLevel == -1)
+            return;
+
+        var startColumn = column || line.length;
+        var maxRow = session.getLength();
         var startRow = row;
         var endRow = row;
-        var line = session.getLine(row);
-        var startColumn = column || line.length;
-        var startLevel = line.match(re)[0].length;
-        var maxRow = session.getLength()
-        
-        while (++row < maxRow) {
-            line = session.getLine(row);
-            var level = line.match(re)[0].length;
 
-            if (level == line.length)
+        while (++row < maxRow) {
+            var level = session.getLine(row).search(re);
+
+            if (level == -1)
                 continue;
 
             if (level <= startLevel)
@@ -276,9 +252,9 @@ var FoldMode = exports.FoldMode = function() {};
         }
     };
 
-    this.openingBracketBlock = function(session, bracket, row, column, typeRe, allowBlankLine) {
+    this.openingBracketBlock = function(session, bracket, row, column, typeRe) {
         var start = {row: row, column: column + 1};
-        var end = session.$findClosingBracket(bracket, start, typeRe, allowBlankLine);
+        var end = session.$findClosingBracket(bracket, start, typeRe);
         if (!end)
             return;
 
@@ -286,7 +262,7 @@ var FoldMode = exports.FoldMode = function() {};
         if (fw == null)
             fw = this.getFoldWidget(session, end.row);
 
-        if (fw == "start") {
+        if (fw == "start" && end.row > start.row) {
             end.row --;
             end.column = session.getLine(end.row).length;
         }
