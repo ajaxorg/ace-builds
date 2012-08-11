@@ -273,10 +273,7 @@ var ClojureHighlightRules = function() {
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
             }, {
                 token : "string", // single line
-                regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
-            }, {
-                token : "string", // multi line
-                regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?$',
+                regex : '"',
                 next: "string"
             }, {
                 token : "string", // symbol
@@ -300,12 +297,16 @@ var ClojureHighlightRules = function() {
         ],
         "string" : [
             {
-                token : "string",
+                token : "constant.language.escape",
                 merge : true,
-                regex : "\\\\."
+                regex : "\\\\.|\\\\$"
             }, {
                 token : "string",
-                regex : '[^"\\\\]*?"',
+                merge : true,
+                regex : '[^"\\\\]+'
+            }, {
+                token : "string",
+                regex : '"',
                 next : "start"
             }
         ]

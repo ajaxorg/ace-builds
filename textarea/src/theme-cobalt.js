@@ -183,6 +183,10 @@ background-color:#001221;\
 \
 .ace-cobalt .ace_markup.ace_list {\
   background-color:#130D26;\
+}\
+\
+.ace-cobalt .ace_indent-guide {\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgUHL4zzBz5sz/AA80BCzv+WXhAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
     var dom = require("../lib/dom");

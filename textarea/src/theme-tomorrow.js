@@ -202,6 +202,10 @@ background-color:#8959A8;\
 \
 .ace-tomorrow .ace_markup.ace_heading {\
   color:#718C00;\
+}\
+\
+.ace-tomorrow .ace_indent-guide {\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bdu3f/BwAlfgctduB85QAAAABJRU5ErkJggg==) right repeat-y;\
 }";
 
     var dom = require("../lib/dom");

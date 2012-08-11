@@ -171,6 +171,10 @@ exports.cssText = "/* CSS style content from github's default pygments highlight
 .ace-github .ace_print_margin {\
   width: 1px;\
   background: #e8e8e8;\
+}\
+\
+.ace-github .ace_indent-guide {\
+  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
 }";
 
     var dom = require("../lib/dom");

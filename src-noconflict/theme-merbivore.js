@@ -178,6 +178,10 @@ color:#AD2EA4;\
 \
 .ace-merbivore .ace_markup.ace_underline {\
     text-decoration:underline;\
+}\
+\
+.ace-merbivore .ace_indent-guide {\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWMQExP7zzBz5sz/AA50BAyDznYhAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
     var dom = require("../lib/dom");

@@ -198,6 +198,10 @@ background-color:#CC99CC;\
 \
 .ace-tomorrow-night-eighties .ace_markup.ace_heading {\
   color:#99CC99;\
+}\
+\
+.ace-tomorrow-night-eighties .ace_indent-guide {\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPQ1dX9z7Bq1ar/ABE1BITwhhuFAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
     var dom = require("../lib/dom");

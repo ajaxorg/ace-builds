@@ -187,6 +187,10 @@ exports.cssText = ".ace-crimson-editor .ace_editor {\
 \
 .ace-crimson-editor .ace_string.ace_regex {\
   color: rgb(192, 0, 192);\
+}\
+\
+.ace-crimson-editor .ace_indent-guide {\
+  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
 }";
 
 exports.cssClass = "ace-crimson-editor";

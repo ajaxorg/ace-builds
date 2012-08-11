@@ -178,6 +178,10 @@ color:#706D5B;\
 \
 .ace-kr-theme .ace_markup.ace_list {\
   background-color:#0F0040;\
+}\
+\
+.ace-kr-theme .ace_indent-guide {\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPg5uL8zzBz5sz/AA1WA+hUYIqjAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
     var dom = require("../lib/dom");
