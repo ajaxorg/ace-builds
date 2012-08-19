@@ -2395,13 +2395,17 @@ var Editor = function(renderer, session) {
         // update cursor because tab characters can influence the cursor position
         this.$cursorChange();
     };
+
     this.onTokenizerUpdate = function(e) {
         var rows = e.data;
         this.renderer.updateLines(rows.first, rows.last);
     };
+
+
     this.onScrollTopChange = function() {
         this.renderer.scrollToY(this.session.getScrollTop());
     };
+    
     this.onScrollLeftChange = function() {
         this.renderer.scrollToX(this.session.getScrollLeft());
     };
@@ -2629,9 +2633,11 @@ var Editor = function(renderer, session) {
         if (shouldOutdent)
             mode.autoOutdent(lineState, session, cursor.row);
     };
+
     this.onTextInput = function(text) {
         this.keyBinding.onTextInput(text);
     };
+
     this.onCommandKey = function(e, hashId, keyCode) {
         this.keyBinding.onCommandKey(e, hashId, keyCode);
     };
@@ -3002,12 +3008,15 @@ var Editor = function(renderer, session) {
             last: range.end.row
         };
     };
+
     this.onCompositionStart = function(text) {
         this.renderer.showComposition(this.getCursorPosition());
     };
+
     this.onCompositionUpdate = function(text) {
         this.renderer.setCompositionText(text);
     };
+
     this.onCompositionEnd = function() {
         this.renderer.hideComposition();
     };
@@ -3802,7 +3811,7 @@ var MouseHandler = function(editor) {
     event.addListener(gutterEl, "mousedown", this.onMouseEvent.bind(this, "guttermousedown"));
     event.addListener(gutterEl, "click", this.onMouseEvent.bind(this, "gutterclick"));
     event.addListener(gutterEl, "dblclick", this.onMouseEvent.bind(this, "gutterdblclick"));
-    event.addListener(gutterEl, "mousemove", this.onMouseMove.bind(this, "gutter"));
+    event.addListener(gutterEl, "mousemove", this.onMouseEvent.bind(this, "guttermousemove"));
 };
 
 (function() {
@@ -4213,17 +4222,19 @@ function calcRangeOrientation(range, cursor) {
 
 });
 
-define('ace/mouse/default_gutter_handler', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+define('ace/mouse/default_gutter_handler', ['require', 'exports', 'module' , 'ace/lib/dom', 'ace/lib/event'], function(require, exports, module) {
 
 var dom = require("../lib/dom");
+var event = require("../lib/event");
 
 function GutterHandler(mouseHandler) {
     var editor = mouseHandler.editor;
+    var gutter = editor.renderer.$gutterLayer;
 
     mouseHandler.editor.setDefaultHandler("guttermousedown", function(e) {
         if (!editor.isFocused())
             return;
-        var gutterRegion = editor.renderer.$gutterLayer.getRegion(e);
+        var gutterRegion = gutter.getRegion(e);
 
         if (gutterRegion)
             return;
@@ -4239,6 +4250,98 @@ function GutterHandler(mouseHandler) {
         mouseHandler.captureMouse(e, "selectByLines");
         return e.preventDefault();
     });
+
+
+    var tooltipTimeout, mouseEvent, tooltip, tooltipAnnotation;
+    function createTooltip() {
+        tooltip = dom.createElement("div");
+        tooltip.className = "ace_gutter_tooltip";
+        tooltip.style.maxWidth = "500px";
+        tooltip.style.display = "none";
+        editor.container.appendChild(tooltip);
+    }
+
+    function showTooltip() {
+        if (!tooltip) {
+            createTooltip();
+        }
+        var row = mouseEvent.getDocumentPosition().row;
+        var annotation = gutter.$annotations[row];
+        if (!annotation)
+            return hideTooltip();
+
+        var maxRow = editor.session.getLength();
+        if (row == maxRow) {
+            var screenRow = editor.renderer.pixelToScreenCoordinates(0, mouseEvent.y).row;
+            var pos = mouseEvent.$pos;
+            if (screenRow > editor.session.documentToScreenRow(pos.row, pos.column))
+                return hideTooltip();
+        }
+
+        if (tooltipAnnotation == annotation)
+            return;
+        tooltipAnnotation = annotation.text.join("\n");
+
+        tooltip.style.display = "block";
+        tooltip.innerHTML = tooltipAnnotation;
+        editor.on("mousewheel", hideTooltip);
+
+        moveTooltip(mouseEvent);
+    }
+
+    function hideTooltip() {
+        if (tooltipTimeout)
+            tooltipTimeout = clearTimeout(tooltipTimeout);
+        if (tooltipAnnotation) {
+            tooltip.style.display = "none";
+            tooltipAnnotation = null;
+            editor.removeEventListener("mousewheel", hideTooltip);
+        }
+    }
+
+    function moveTooltip(e) {
+        var rect = editor.renderer.$gutter.getBoundingClientRect();
+        tooltip.style.left = e.x - rect.left + 15 + "px";
+        if (e.y + 3 * editor.renderer.lineHeight + 15 < rect.bottom) {
+            tooltip.style.bottom =  "";
+            tooltip.style.top =  e.y - rect.top + 15 + "px";
+        } else {
+            tooltip.style.top =  "";
+            tooltip.style.bottom = rect.bottom - e.y + 5 + "px";
+        }
+    }
+
+    mouseHandler.editor.setDefaultHandler("guttermousemove", function(e) {
+        var target = e.domEvent.target || e.domEvent.srcElement;
+        if (dom.hasCssClass(target, "ace_fold-widget"))
+            return hideTooltip();
+
+        if (tooltipAnnotation)
+            moveTooltip(e);
+
+        mouseEvent = e;
+        if (tooltipTimeout)
+            return;
+        tooltipTimeout = setTimeout(function() {
+            tooltipTimeout = null;
+            if (mouseEvent)
+                showTooltip();
+            else
+                hideTooltip();
+        }, 50);
+    });
+
+    event.addListener(editor.renderer.$gutter, "mouseout", function(e) {
+        mouseEvent = null;
+        if (!tooltipAnnotation || tooltipTimeout)
+            return;
+
+        tooltipTimeout = setTimeout(function() {
+            tooltipTimeout = null;
+            hideTooltip();
+        }, 50);
+    });
+
 }
 
 exports.GutterHandler = GutterHandler;
@@ -4549,6 +4652,36 @@ var Document = require("./document").Document;
 var BackgroundTokenizer = require("./background_tokenizer").BackgroundTokenizer;
 var SearchHighlight = require("./search_highlight").SearchHighlight;
 
+// events 
+/**
+ * EditSession@change(e)
+ *
+ * Emitted when the document changes.
+ **/
+/**
+ * EditSession@tokenizerUpdate(e)
+ *
+ * Emitted when a background tokenizer asynchronousely processes new rows.
+ *
+ **/
+/**
+ * EditSession@changeFold(e)
+ *
+ * Emitted when a code fold added or removed.
+ *
+ **/
+ /**
+ * EditSession@changeScrollTop() 
+ * 
+ * Emitted when the scroll top changes.
+ **/
+/**
+ * EditSession@changeScrollLeft() 
+ * 
+ * Emitted when the scroll left changes.
+ **/
+     
+     
 /**
  * new EditSession(text, mode)
  * - text (Document | String): If `text` is a `Document`, it associates the `EditSession` with it. Otherwise, a new `Document` is created, with the initial text
@@ -4561,6 +4694,7 @@ var SearchHighlight = require("./search_highlight").SearchHighlight;
 var EditSession = function(text, mode) {
     this.$modified = true;
     this.$breakpoints = [];
+    this.$decorations = [];
     this.$frontMarkers = {};
     this.$backMarkers = {};
     this.$markerId = 1;
@@ -4639,10 +4773,12 @@ var EditSession = function(text, mode) {
 
         return low && low -1;
     };
+
     this.onChangeFold = function(e) {
         var fold = e.data;
         this.$resetRowCache(fold.start.row);
     };
+
     this.onChange = function(e) {
         var delta = e.data;
         this.$modified = true;
@@ -4834,13 +4970,23 @@ var EditSession = function(text, mode) {
     this.toggleOverwrite = function() {
         this.setOverwrite(!this.$overwrite);
     };
+    this.addGutterDecoration = function(row, className) {
+        if (!this.$decorations[row])
+            this.$decorations[row] = "";
+        this.$decorations[row] += " " + className;
+        this._emit("changeBreakpoint", {});
+    };
+    this.removeGutterDecoration = function(row, className) {
+        this.$decorations[row] = (this.$decorations[row] || "").replace(" " + className, "");
+        this._emit("changeBreakpoint", {});
+    };
     this.getBreakpoints = function() {
         return this.$breakpoints;
     };
     this.setBreakpoints = function(rows) {
         this.$breakpoints = [];
         for (var i=0; i<rows.length; i++) {
-            this.$breakpoints[rows[i]] = true;
+            this.$breakpoints[rows[i]] = "ace_breakpoint";
         }
         this._emit("changeBreakpoint", {});
     };
@@ -4848,8 +4994,13 @@ var EditSession = function(text, mode) {
         this.$breakpoints = [];
         this._emit("changeBreakpoint", {});
     };
-    this.setBreakpoint = function(row) {
-        this.$breakpoints[row] = true;
+    this.setBreakpoint = function(row, className) {
+        if (className === undefined)
+            className = "ace_breakpoint";
+        if (className)
+            this.$breakpoints[row] = className;
+        else
+            delete this.$breakpoints[row];
         this._emit("changeBreakpoint", {});
     };
     this.clearBreakpoint = function(row) {
@@ -11730,11 +11881,9 @@ var VirtualRenderer = function(container, theme) {
     };
     this.addGutterDecoration = function(row, className){
         this.$gutterLayer.addGutterDecoration(row, className);
-        this.$loop.schedule(this.CHANGE_GUTTER);
     };
     this.removeGutterDecoration = function(row, className){
         this.$gutterLayer.removeGutterDecoration(row, className);
-        this.$loop.schedule(this.CHANGE_GUTTER);
     };
     this.updateBreakpoints = function(rows) {
         this.$loop.schedule(this.CHANGE_GUTTER);
@@ -12066,9 +12215,7 @@ var Gutter = function(parentEl) {
     
     this.gutterWidth = 0;
 
-    this.$breakpoints = [];
     this.$annotations = [];
-    this.$decorations = [];
 };
 
 (function() {
@@ -12080,13 +12227,15 @@ var Gutter = function(parentEl) {
     };
 
     this.addGutterDecoration = function(row, className){
-        if (!this.$decorations[row])
-            this.$decorations[row] = "";
-        this.$decorations[row] += " " + className;
+        if (window.console)
+            console.warn && console.warn("deprecated use session.addGutterDecoration");
+        this.session.addGutterDecoration(row, className);
     };
 
     this.removeGutterDecoration = function(row, className){
-        this.$decorations[row] = (this.$decorations[row] || "").replace(" " + className, "");
+        if (window.console)
+            console.warn && console.warn("deprecated use session.removeGutterDecoration");
+        this.session.removeGutterDecoration(row, className);
     };
 
     this.setAnnotations = function(annotations) {
@@ -12117,9 +12266,7 @@ var Gutter = function(parentEl) {
     };
 
     this.update = function(config) {
-        this.$config = config;
-
-        var emptyAnno = {className: "", text: []};
+        var emptyAnno = {className: ""};
         var html = [];
         var i = config.firstRow;
         var lastRow = config.lastRow;
@@ -12127,6 +12274,7 @@ var Gutter = function(parentEl) {
         var foldStart = fold ? fold.start.row : Infinity;
         var foldWidgets = this.$showFoldWidgets && this.session.foldWidgets;
         var breakpoints = this.session.$breakpoints;
+        var decorations = this.session.$decorations;
 
         while (true) {
             if(i > foldStart) {
@@ -12138,12 +12286,12 @@ var Gutter = function(parentEl) {
                 break;
 
             var annotation = this.$annotations[i] || emptyAnno;
-            html.push("<div class='ace_gutter-cell",
-                this.$decorations[i] || "",
-                breakpoints[i] ? " ace_breakpoint " : " ",
-                annotation.className,
-                "' title='", annotation.text.join("\n"),
-                "' style='height:", this.session.getRowLength(i) * config.lineHeight, "px;'>", (i));
+            html.push(
+                "<div class='ace_gutter-cell ",
+                breakpoints[i] || "", decorations[i] || "", annotation.className,
+                "' style='height:", this.session.getRowLength(i) * config.lineHeight, "px;'>", 
+                i + 1
+            );
 
             if (foldWidgets) {
                 var c = foldWidgets[i];
@@ -13529,6 +13677,21 @@ define("text!ace/css/editor.css", [], ".ace_editor {\n" +
   "    cursor: move;\n" +
   "}\n" +
   "\n" +
+  ".ace_gutter_tooltip {\n" +
+  "    background-color: #FFFFD5;\n" +
+  "    border: 1px solid gray;\n" +
+  "    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);\n" +
+  "    color: black;\n" +
+  "    display: inline-block;\n" +
+  "    padding: 4px;\n" +
+  "    position: absolute;\n" +
+  "    z-index: 300;\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "    cursor: default;\n" +
+  "}\n" +
+  "\n" +
   ".ace_folding-enabled > .ace_gutter-cell {\n" +
   "    padding-right: 13px;\n" +
   "}\n" +
@@ -14742,6 +14905,8 @@ var WorkerClient = function(topLevelNamespaces, mod, classname) {
     oop.implement(this, EventEmitter);
 
     this.$normalizePath = function(path) {
+        if (!location.host) // needed for file:// protocol
+            return path;
         path = path.replace(/^[a-z]+:\/\/[^\/]+/, ""); // Remove domain name and rebuild it
         path = location.protocol + "//" + location.host
             // paths starting with a slash are relative to the root (host)
