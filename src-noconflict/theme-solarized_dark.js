@@ -55,7 +55,7 @@ exports.cssText = "\
 \
 .ace-solarized-dark .ace_print_margin {\
   width: 1px;\
-  background: #e8e8e8;\
+  background: #33555E;\
 }\
 \
 .ace-solarized-dark .ace_scroller {\

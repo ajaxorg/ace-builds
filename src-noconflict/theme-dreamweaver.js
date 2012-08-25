@@ -57,7 +57,7 @@ exports.cssText = ".ace-dreamweaver .ace_editor {\
 }\
 \
 .ace-dreamweaver .ace_fold {\
-    background-color: #00F;\
+    background-color: #757AD8;\
 }\
 \
 .ace-dreamweaver .ace_text-layer {\

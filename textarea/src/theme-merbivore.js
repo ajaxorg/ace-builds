@@ -55,7 +55,7 @@ exports.cssText = "\
 \
 .ace-merbivore .ace_print_margin {\
   width: 1px;\
-  background: #e8e8e8;\
+  background: #555651;\
 }\
 \
 .ace-merbivore .ace_scroller {\

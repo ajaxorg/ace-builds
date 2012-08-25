@@ -50,7 +50,7 @@ exports.cssText = "\
 \
 .ace-vibrant-ink .ace_gutter {\
   background: #1a1a1a;\
-  color: white;\
+  color: #BEBEBE;\
 }\
 \
 .ace-vibrant-ink .ace_print_margin {\
