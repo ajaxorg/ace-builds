@@ -2712,6 +2712,12 @@ var Editor = function(renderer, session) {
     this.getKeyboardHandler = function() {
         return this.keyBinding.getKeyboardHandler();
     };
+    /**
+     * Editor@changeSession(e) 
+     * - e (Object): An object with two properties, `oldSession` and `session`, that represent the old and new [[EditSession]]s.
+     *
+     * Emitted whenever the [[EditSession]] changes.
+     **/
     this.setSession = function(session) {
         if (this.session == session)
             return;
@@ -2973,6 +2979,8 @@ var Editor = function(renderer, session) {
             }
         }
     };
+
+
     this.onSelectionChange = function(e) {
         var session = this.session;
 
@@ -3026,27 +3034,40 @@ var Editor = function(renderer, session) {
 
         return re;
     };
+
+
     this.onChangeFrontMarker = function() {
         this.renderer.updateFrontMarkers();
     };
+
     this.onChangeBackMarker = function() {
         this.renderer.updateBackMarkers();
     };
+
+
     this.onChangeBreakpoint = function() {
         this.renderer.updateBreakpoints();
     };
+
     this.onChangeAnnotation = function() {
         this.renderer.setAnnotations(this.session.getAnnotations());
     };
+
+
     this.onChangeMode = function() {
         this.renderer.updateText();
     };
+
+
     this.onChangeWrapLimit = function() {
         this.renderer.updateFull();
     };
+
     this.onChangeWrapMode = function() {
         this.renderer.onResize(true);
     };
+
+
     this.onChangeFold = function() {
         // Update the active line marker as due to folding changes the current
         // line range on the screen might have changed.
@@ -3054,6 +3075,12 @@ var Editor = function(renderer, session) {
         // TODO: This might be too much updating. Okay for now.
         this.renderer.updateFull();
     };
+    /**
+     * Editor@copy(text)
+     * - text (String): The copied text
+     *
+     * Emitted when text is copied.
+     **/
     this.getCopyText = function() {
         var text = "";
         if (!this.selection.isEmpty())
@@ -3068,6 +3095,12 @@ var Editor = function(renderer, session) {
     this.onCut = function() {
         this.commands.exec("cut", this);
     };
+    /**
+     * Editor@paste(text)
+     * - text (String): The pasted text
+     *
+     * Emitted when text is pasted.
+     **/
     this.onPaste = function(text) {
         // todo this should change when paste becomes a command
         if (this.$readOnly) 
@@ -3197,6 +3230,13 @@ var Editor = function(renderer, session) {
     };
 
     this.$selectionStyle = "line";
+    /**
+     * Editor@changeSelectionStyle(data) 
+     * - data (Object): Contains one property, `data`, which indicates the new selection style
+     *
+     * Emitted when the selection style changes, via [[Editor.setSelectionStyle]].
+     * 
+     **/
     this.setSelectionStyle = function(style) {
         if (this.$selectionStyle == style) return;
 
@@ -5196,29 +5236,87 @@ var SearchHighlight = require("./search_highlight").SearchHighlight;
 // events 
 /**
  * EditSession@change(e)
+ * - e (Object): An object containing a `delta` of information about the change.
  *
  * Emitted when the document changes.
  **/
 /**
- * EditSession@tokenizerUpdate(e)
+ * EditSession@changeTabSize()
  *
- * Emitted when a background tokenizer asynchronousely processes new rows.
+ * Emitted when the tab size changes, via [[EditSession.setTabSize]].
+ **/
+/**
+ * EditSession@changeOverwrite()
+ *
+ * Emitted when the ability to overwrite text changes, via [[EditSession.setOverwrite]].
+ **/
+/**
+ * EditSession@changeBreakpoint()
+ *
+ * Emitted when the gutter changes, either by setting or removing breakpoints, or when the gutter decorations change.
+ **/
+/**
+ * EditSession@changeFrontMarker()
+ *
+ * Emitted when a front marker changes.
+ **/
+/**
+ * EditSession@changeBackMarker()
+ *
+ * Emitted when a back marker changes.
+ **/
+/**
+ * EditSession@changeAnnotation()
+ *
+ * Emitted when an annotation changes, like through [[EditSession.setAnnotations]].
+ **/
+/**
+ * EditSession@tokenizerUpdate(e)
+ * - e (Object): An object containing one property, `"data"`, that contains information about the changing rows
+ *
+ * Emitted when a background tokenizer asynchronously processes new rows.
+ *
+ **/
+/** hide
+ * EditSession@loadMode(e)
+ * 
+ *
+ *
+ **/
+/** 
+ * EditSession@changeMode()
+ * 
+ * Emitted when the current mode changes.
+ *
+ **/
+/** 
+ * EditSession@changeWrapMode()
+ * 
+ * Emitted when the wrap mode changes.
+ *
+ **/
+/** 
+ * EditSession@changeWrapLimit()
+ * 
+ * Emitted when the wrapping limit changes.
  *
  **/
 /**
  * EditSession@changeFold(e)
  *
- * Emitted when a code fold added or removed.
+ * Emitted when a code fold is added or removed.
  *
  **/
  /**
- * EditSession@changeScrollTop() 
- * 
+ * EditSession@changeScrollTop(scrollTop) 
+ * - scrollTop (Number): The new scroll top value
+ *
  * Emitted when the scroll top changes.
  **/
 /**
- * EditSession@changeScrollLeft() 
- * 
+ * EditSession@changeScrollLeft(scrollLeft) 
+ * - scrollLeft (Number): The new scroll left value
+ *
  * Emitted when the scroll left changes.
  **/
      
@@ -7121,6 +7219,18 @@ var Range = require("./range").Range;
  * Creates a new `Selection` object.
  *
 **/
+/**
+ * Selection@changeCursor()
+ *
+ * Emitted when the cursor position changes.
+ *
+**/
+/**
+ * Selection@changeSelection()
+ *
+ * Emitted when the cursor selection changes.
+ *
+**/
 var Selection = function(session) {
     this.session = session;
     this.doc = session.getDocument();
@@ -8657,6 +8767,7 @@ var Anchor = require("./anchor").Anchor;
  * Creates a new `Document`. If `text` is included, the `Document` contains those strings; otherwise, it's empty.
  *
  **/
+
 var Document = function(text) {
     this.$lines = [];
 
@@ -8784,6 +8895,29 @@ var Document = function(text) {
         }
         return position;
     };
+    /**
+     * Document@change(e)
+     * - e (Object): Contains at least one property called `"action"`. `"action"` indicates the action that triggered the change. Each action also has a set of additional properties.
+     *
+     * Fires whenever the document changes.
+     *
+     * Several methods trigger different `"change"` events. Below is a list of each action type, followed by each property that's also available:
+     *
+     *  * `"insertLines"` (emitted by [[Document.insertLines]])
+     *    * `range`: the [[Range]] of the change within the document
+     *    * `lines`: the lines in the document that are changing
+     *  * `"insertText"` (emitted by [[Document.insertNewLine]])
+     *    * `range`: the [[Range]] of the change within the document
+     *    * `text`: the text that's being added
+     *  * `"removeLines"` (emitted by [[Document.insertLines]])
+     *    * `range`: the [[Range]] of the change within the document
+     *    * `lines`: the lines in the document that were removed
+     *    * `nl`: the new line character (as defined by [[Document.getNewLineCharacter]])
+     *  * `"removeText"` (emitted by [[Document.removeInLine]] and [[Document.removeNewLine]])
+     *    * `range`: the [[Range]] of the change within the document
+     *    * `text`: the text that's being removed
+     *
+     **/
     this.insertLines = function(row, lines) {
         if (lines.length == 0)
             return {row: row, column: 0};
@@ -9224,6 +9358,13 @@ var BackgroundTokenizer = function(tokenizer, editor) {
 
         this.stop();
     };
+     /**
+     * BackgroundTokenizer@update(e)
+     * - e (Object): An object containing two properties, `first` and `last`, which indicate the rows of the region being updated.
+     *
+     * Fires whenever the background tokeniziers between a range of rows are going to be updated.
+     *
+     **/
     this.fireUpdateEvent = function(firstRow, lastRow) {
         var data = {
             first: firstRow,
@@ -10459,26 +10600,9 @@ __ace_shadowed__.define('ace/edit_session/bracket_match', ['require', 'exports',
 var TokenIterator = require("../token_iterator").TokenIterator;
 var Range = require("../range").Range;
 
-/**
- * new BracketMatch(position)
- * - platform (String): Identifier for the platform; must be either `'mac'` or `'win'`
- * - commands (Array): A list of commands
- *
- * TODO
- *
- *
- **/
+
 function BracketMatch() {
 
-    /**
-     * new findMatchingBracket(position)
-     * - position (Number): Identifier for the platform; must be either `'mac'` or `'win'`
-     * - commands (Array): A list of commands
-     *
-     * TODO
-     *
-     *
-     **/
     this.findMatchingBracket = function(position) {
         if (position.column == 0) return null;
 
@@ -10672,15 +10796,15 @@ var Range = require("./range").Range;
  *
  * Creates a new `Search` object. The following search options are avaliable:
  *
- * * needle: string or regular expression
- * * backwards: false
- * * wrap: false
- * * caseSensitive: false
- * * wholeWord: false
- * * range: Range or null for whole document
- * * regExp: false
- * * start: Range or position
- * * skipCurrent: false
+ * * `needle`: The string or regular expression you're looking for
+ * * `backwards`: Whether to search backwards from where cursor currently is. Defaults to `false`.
+ * * `wrap`: Whether to wrap the search back to the beginning when it hits the end. Defaults to `false`.
+ * * `caseSensitive`: Whether the search ought to be case-sensitive. Defaults to `false`.
+ * * `wholeWord`: Whether the search matches only on whole words. Defaults to `false`.
+ * * `range`: The [[Range]] to search within. Set this to `null` for the whole document
+ * * `regExp`: Whether the search is a regular expression or not. Defaults to `false`.
+ * * `start`: The starting [[Range]] or cursor position to begin the search
+ * * `skipCurrent`: Whether or not to include the current line in the search. Default to `false`.
  *
 **/
 
@@ -11666,6 +11790,7 @@ var UndoManager = function() {
     * - options (Object): Contains additional properties
     *
     * Provides a means for implementing your own undo manager. `options` has one property, `args`, an [[Array `Array`]], with two elements:
+    *
     * * `args[0]` is an array of deltas
     * * `args[1]` is the document to associate with
     *
@@ -12663,7 +12788,7 @@ var VirtualRenderer = function(container, theme) {
     // a certain mode that editor is in.
 
     /**
-    * VirtualRenderer.setStyle(style) -> Void
+    * VirtualRenderer.setStyle(style)
     * - style (String): A class name
     *
     * [Adds a new class, `style`, to the editor.]{: #VirtualRenderer.setStyle}
@@ -12740,11 +12865,11 @@ var Gutter = function(parentEl) {
                     rowInfo.text.push(annoText);
                 var type = annotation.type;
                 if (type == "error")
-                    rowInfo.className = "ace_error";
-                else if (type == "warning" && rowInfo.className != "ace_error")
-                    rowInfo.className = "ace_warning";
+                    rowInfo.className = " ace_error";
+                else if (type == "warning" && rowInfo.className != " ace_error")
+                    rowInfo.className = " ace_warning";
                 else if (type == "info" && (!rowInfo.className))
-                    rowInfo.className = "ace_info";
+                    rowInfo.className = " ace_info";
             }
         }
     };
@@ -12759,6 +12884,7 @@ var Gutter = function(parentEl) {
         var foldWidgets = this.$showFoldWidgets && this.session.foldWidgets;
         var breakpoints = this.session.$breakpoints;
         var decorations = this.session.$decorations;
+        var lastLineNumber = 0;
 
         while (true) {
             if(i > foldStart) {
@@ -12774,7 +12900,7 @@ var Gutter = function(parentEl) {
                 "<div class='ace_gutter-cell ",
                 breakpoints[i] || "", decorations[i] || "", annotation.className,
                 "' style='height:", this.session.getRowLength(i) * config.lineHeight, "px;'>", 
-                i + 1
+                lastLineNumber = i + 1
             );
 
             if (foldWidgets) {
@@ -12799,13 +12925,14 @@ var Gutter = function(parentEl) {
         this.element.style.height = config.minHeight + "px";
         
         if (this.session.$useWrapMode)
-            i = this.session.getLength();
+            lastLineNumber = this.session.getLength();
         
-        var gutterWidth = ("" + --i).length * config.characterWidth;
+        var gutterWidth = ("" + lastLineNumber).length * config.characterWidth;
         var padding = this.$padding || this.$computePadding();
         gutterWidth += padding.left + padding.right;
         if (gutterWidth !== this.gutterWidth) {
             this.gutterWidth = gutterWidth;
+            this.element.style.width = Math.ceil(this.gutterWidth) + "px";
             this._emit("changeGutterWidth", gutterWidth);
         }
     };
@@ -14182,15 +14309,15 @@ __ace_shadowed__.define("ace/requirejs/text!ace/css/editor.css", [], ".ace_edito
     -moz-box-sizing: border-box;\n\
     -webkit-box-sizing: border-box;\n\
 \n\
-    margin: 0 -12px 1px 1px;\n\
+    margin: 0 -12px 0 1px;\n\
     display: inline-block;\n\
-    height: 14px;\n\
+    height: 100%;\n\
     width: 11px;\n\
-    vertical-align: text-bottom;\n\
+    vertical-align: bottom;\n\
 \n\
     background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAe%8A%B1%0D%000%0C%C2%F2%2CK%96%BC%D0%8F9%81%88H%E9%D0%0E%96%C0%10%92%3E%02%80%5E%82%E4%A9*-%EEsw%C8%CC%11%EE%96w%D8%DC%E9*Eh%0C%151(%00%00%00%00IEND%AEB%60%82\");\n\
     background-repeat: no-repeat;\n\
-    background-position: center 4px;\n\
+    background-position: center;\n\
 \n\
     border-radius: 3px;\n\
     \n\
@@ -14211,7 +14338,6 @@ __ace_shadowed__.define("ace/requirejs/text!ace/css/editor.css", [], ".ace_edito
     -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n\
     -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n\
     box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n\
-    background-position: center 4px;\n\
 }\n\
 \n\
 .ace_fold-widget:active {\n\

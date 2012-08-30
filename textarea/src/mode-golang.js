@@ -94,7 +94,7 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
         );
 
         var buildinConstants = lang.arrayToMap(
-            ("nit|true|false|iota").split("|")
+            ("nil|true|false|iota").split("|")
         );
 
         this.$rules = {
