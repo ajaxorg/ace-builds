@@ -79,23 +79,25 @@ __ace_shadowed__.define('ace/mode/golang', ['require', 'exports', 'module' , 'ac
 
     exports.Mode = Mode;
 });
-__ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
     var oop = require("../lib/oop");
-    var lang = require("../lib/lang");
     var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
     var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
     var GolangHighlightRules = function() {
-        var keywords = lang.arrayToMap(
-            ("true|else|false|break|case|return|goto|if|const|" +
-             "continue|struct|default|switch|for|" +
-             "func|import|package|chan|defer|fallthrough|go|interface|map|range" +
-             "select|type|var").split("|")
+        var keywords = (
+            "true|else|false|break|case|return|goto|if|const|" +
+            "continue|struct|default|switch|for|" +
+            "func|import|package|chan|defer|fallthrough|go|interface|map|range" +
+            "select|type|var"
         );
+        var buildinConstants = ("nil|true|false|iota");
 
-        var buildinConstants = lang.arrayToMap(
-            ("nil|true|false|iota").split("|")
-        );
+        var keywordMapper = this.createKeywordMapper({
+            "variable.language": "this",
+            "keyword": keywords,
+            "constant.language": buildinConstants
+        }, "identifier");
 
         this.$rules = {
             "start" : [
@@ -138,16 +140,7 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
                     token : "keyword", // pre-compiler directivs
                     regex : "(?:#include|#pragma|#line|#define|#undef|#ifdef|#else|#elif|#endif|#ifndef)"
                 }, {
-                    token : function(value) {
-                        if (value == "this")
-                            return "variable.language";
-                        else if (keywords.hasOwnProperty(value))
-                            return "keyword";
-                        else if (buildinConstants.hasOwnProperty(value))
-                            return "constant.language";
-                        else
-                            return "identifier";
-                    },
+                    token : keywordMapper,
                     regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
                 }, {
                     token : "keyword.operator",
@@ -200,9 +193,9 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
                 }
             ]
         };
-		
-		this.embedRules(DocCommentHighlightRules, "doc-",
-			[ DocCommentHighlightRules.getEndRule("start") ]);
+
+        this.embedRules(DocCommentHighlightRules, "doc-",
+            [ DocCommentHighlightRules.getEndRule("start") ]);
     }
     oop.inherits(GolangHighlightRules, TextHighlightRules);
 

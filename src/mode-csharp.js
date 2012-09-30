@@ -56,24 +56,19 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
-define('ace/mode/csharp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/csharp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
-var lang = require("../lib/lang");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var CSharpHighlightRules = function() {
-    
-    var keywords = lang.arrayToMap(
-    ("abstract|event|new|struct|as|explicit|null|switch|base|extern|object|this|bool|false|operator|throw|break|finally|out|true|byte|fixed|override|try|case|float|params|typeof|catch|for|private|uint|char|foreach|protected|ulong|checked|goto|public|unchecked|class|if|readonly|unsafe|const|implicit|ref|ushort|continue|in|return|using|decimal|int|sbyte|virtual|default|interface|sealed|volatile|delegate|internal|short|void|do|is|sizeof|while|double|lock|stackalloc|else|long|static|enum|namespace|string|var|dynamic").split("|")
-    );
-
-    var buildinConstants = lang.arrayToMap(
-        ("null|true|false").split("|")
-    );
-
+    var keywordMapper = this.createKeywordMapper({
+        "variable.language": "this",
+        "keyword": "abstract|event|new|struct|as|explicit|null|switch|base|extern|object|this|bool|false|operator|throw|break|finally|out|true|byte|fixed|override|try|case|float|params|typeof|catch|for|private|uint|char|foreach|protected|ulong|checked|goto|public|unchecked|class|if|readonly|unsafe|const|implicit|ref|ushort|continue|in|return|using|decimal|int|sbyte|virtual|default|interface|sealed|volatile|delegate|internal|short|void|do|is|sizeof|while|double|lock|stackalloc|else|long|static|enum|namespace|string|var|dynamic",
+        "constant.language": "null|true|false"
+    }, "identifier");
 
     // regexp must not have capturing parentheses. Use (?:) instead.
     // regexps are ordered -> the first match is used
@@ -109,16 +104,7 @@ var CSharpHighlightRules = function() {
                 token : "constant.language.boolean",
                 regex : "(?:true|false)\\b"
             }, {
-                token : function(value) {
-                    if (value == "this")
-                        return "variable.language";
-                    else if (keywords.hasOwnProperty(value))
-                        return "keyword";
-                    else if (buildinConstants.hasOwnProperty(value))
-                        return "constant.language";
-                    else
-                        return "identifier";
-                },
+                token : keywordMapper,
                 // TODO: Unicode escape sequences
                 // TODO: Unicode identifiers
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
@@ -151,7 +137,7 @@ var CSharpHighlightRules = function() {
             }
         ]
     };
-    
+
     this.embedRules(DocCommentHighlightRules, "doc-",
         [ DocCommentHighlightRules.getEndRule("start") ]);
 };

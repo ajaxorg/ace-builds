@@ -1,37 +1,30 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ * Distributed under the BSD license:
  *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
+ * Copyright (c) 2010, Ajax.org B.V.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Ajax.org B.V. nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * ***** END LICENSE BLOCK ***** */
 
@@ -198,13 +191,6 @@ function exportAce(ns) {
 exportAce(ACE_NAMESPACE);
 
 })();
-
-__ace_shadowed__.define('ace/requirejs/text', ['require', 'exports', 'module'], function(require, exports, module) {
-    // this won't be called it is needed only for included text modules
-    exports.load = function (name, req, onLoad, config) {
-        require("ace/lib/net").get(req.toUrl(name), onLoad);
-    };
-});
 
 __ace_shadowed__.define('ace/ext/textarea', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/lib/useragent', 'ace/lib/net', 'ace/ace', 'ace/theme/textmate', 'ace/mode/text'], function(require, exports, module) {
 
@@ -1039,7 +1025,7 @@ var Keys = (function() {
 
     // A reverse map of FUNCTION_KEYS
     for (var i in ret.FUNCTION_KEYS) {
-        var name = ret.FUNCTION_KEYS[i].toUpperCase();
+        var name = ret.FUNCTION_KEYS[i].toLowerCase();
         ret[name] = parseInt(i, 10);
     }
 
@@ -1048,6 +1034,14 @@ var Keys = (function() {
     oop.mixin(ret, ret.MODIFIER_KEYS);
     oop.mixin(ret, ret.PRINTABLE_KEYS);
     oop.mixin(ret, ret.FUNCTION_KEYS);
+
+    // aliases
+    ret.enter = ret["return"];
+    ret.escape = ret.esc;
+    ret.del = ret["delete"];
+    
+    // workaround for firefox bug
+    ret[173] = '-';
 
     return ret;
 })();
@@ -1466,7 +1460,10 @@ require("./placeholder");
 exports.config = require("./config");
 exports.edit = function(el) {
     if (typeof(el) == "string") {
-        el = document.getElementById(el);
+        var _id = el;
+        if (!(el = document.getElementById(el))) {
+          console.log("can't match div #" + _id);
+        }
     }
 
     if (el.env && el.env.editor instanceof Editor)
@@ -1495,6 +1492,13 @@ exports.edit = function(el) {
 };
 
 });
+// vim:set ts=4 sts=4 sw=4 st:
+// -- kriskowal Kris Kowal Copyright (C) 2009-2010 MIT License
+// -- tlrobinson Tom Robinson Copyright (C) 2009-2010 MIT License (Narwhal Project)
+// -- dantman Daniel Friesen Copyright(C) 2010 XXX No License Specified
+// -- fschaefer Florian Schäfer Copyright (C) 2010 MIT License
+// -- Irakli Gozalishvili Copyright (C) 2010 MIT License
+
 /*!
     Copyright (c) 2009, 280 North Inc. http://280north.com/
     MIT License. http://github.com/280north/narwhal/blob/master/README.md
@@ -1610,6 +1614,27 @@ __ace_shadowed__.define('ace/lib/regexp', ['require', 'exports', 'module' ], fun
     }
 
 });
+// vim: ts=4 sts=4 sw=4 expandtab
+// -- kriskowal Kris Kowal Copyright (C) 2009-2011 MIT License
+// -- tlrobinson Tom Robinson Copyright (C) 2009-2010 MIT License (Narwhal Project)
+// -- dantman Daniel Friesen Copyright (C) 2010 XXX TODO License or CLA
+// -- fschaefer Florian Schäfer Copyright (C) 2010 MIT License
+// -- Gozala Irakli Gozalishvili Copyright (C) 2010 MIT License
+// -- kitcambridge Kit Cambridge Copyright (C) 2011 MIT License
+// -- kossnocorp Sasha Koss XXX TODO License or CLA
+// -- bryanforbes Bryan Forbes XXX TODO License or CLA
+// -- killdream Quildreen Motta Copyright (C) 2011 MIT Licence
+// -- michaelficarra Michael Ficarra Copyright (C) 2011 3-clause BSD License
+// -- sharkbrainguy Gerard Paapu Copyright (C) 2011 MIT License
+// -- bbqsrc Brendan Molloy (C) 2011 Creative Commons Zero (public domain)
+// -- iwyg XXX TODO License or CLA
+// -- DomenicDenicola Domenic Denicola Copyright (C) 2011 MIT License
+// -- xavierm02 Montillet Xavier XXX TODO License or CLA
+// -- Raynos Raynos XXX TODO License or CLA
+// -- samsonjs Sami Samhuri Copyright (C) 2010 MIT License
+// -- rwldrn Rick Waldron Copyright (C) 2011 MIT License
+// -- lexer Alexey Zakharov XXX TODO License or CLA
+
 /*!
     Copyright (c) 2009, 280 North Inc. http://280north.com/
     MIT License. http://github.com/280north/narwhal/blob/master/README.md
@@ -2660,7 +2685,6 @@ var useragent = require("./lib/useragent");
 var TextInput = require("./keyboard/textinput").TextInput;
 var MouseHandler = require("./mouse/mouse_handler").MouseHandler;
 var FoldHandler = require("./mouse/fold_handler").FoldHandler;
-//var TouchHandler = require("./touch_handler").TouchHandler;
 var KeyBinding = require("./keyboard/keybinding").KeyBinding;
 var EditSession = require("./edit_session").EditSession;
 var Search = require("./search").Search;
@@ -2688,12 +2712,8 @@ var Editor = function(renderer, session) {
     this.keyBinding = new KeyBinding(this);
 
     // TODO detect touch event support
-    if (useragent.isIPad) {
-        //this.$mouseHandler = new TouchHandler(this);
-    } else {
-        this.$mouseHandler = new MouseHandler(this);
-        new FoldHandler(this);
-    }
+    this.$mouseHandler = new MouseHandler(this);
+    new FoldHandler(this);
 
     this.$blockScrolling = 0;
     this.$search = new Search().set({
@@ -4084,8 +4104,10 @@ var TextInput = function(parentNode, host) {
     text.style.top = "-2em";
     parentNode.insertBefore(text, parentNode.firstChild);
 
-    var PLACEHOLDER = useragent.isIE ? "\x01" : "\x01";
-    sendText();
+    var PLACEHOLDER = useragent.isIE ? "\x01" : "\x00";
+    reset(true);
+    if (isFocused())
+        host.onFocus();
 
     var inCompostion = false;
     var copied = false;
@@ -4505,7 +4527,7 @@ function DefaultHandlers(mouseHandler) {
     editor.setDefaultHandler("dblclick", this.onDoubleClick.bind(mouseHandler));
     editor.setDefaultHandler("tripleclick", this.onTripleClick.bind(mouseHandler));
     editor.setDefaultHandler("quadclick", this.onQuadClick.bind(mouseHandler));
-    editor.setDefaultHandler("mousewheel", this.onScroll.bind(mouseHandler));
+    editor.setDefaultHandler("mousewheel", this.onMouseWheel.bind(mouseHandler));
 
     var exports = ["select", "startSelect", "drag", "dragEnd", "dragWait",
         "dragWaitEnd", "startDrag", "focusWait"];
@@ -4759,7 +4781,10 @@ function DefaultHandlers(mouseHandler) {
         this.setState("null");
     };
 
-    this.onScroll = function(ev) {
+    this.onMouseWheel = function(ev) {
+        if (ev.getShiftKey() || ev.getAccelKey()){
+            return;
+        }
         var editor = this.editor;
         var isScrolable = editor.renderer.isScrollableBy(ev.wheelX * ev.speed, ev.wheelY * ev.speed);
         if (isScrolable) {
@@ -5380,14 +5405,14 @@ var EditSession = function(text, mode) {
     this.getDocument = function() {
         return this.doc;
     };
-    this.$resetRowCache = function(docRrow) {
-        if (!docRrow) {
+    this.$resetRowCache = function(docRow) {
+        if (!docRow) {
             this.$docRowCache = [];
             this.$screenRowCache = [];
             return;
         }
 
-        var i = this.$getRowCacheIndex(this.$docRowCache, docRrow) + 1;
+        var i = this.$getRowCacheIndex(this.$docRowCache, docRow) + 1;
         var l = this.$docRowCache.length;
         this.$docRowCache.splice(i, l);
         this.$screenRowCache.splice(i, l);
@@ -6494,10 +6519,8 @@ var EditSession = function(text, mode) {
     };
 
     this.$updateRowLengthCache = function(firstRow, lastRow, b) {
-        //console.log(firstRow, lastRow, b)
         this.$rowLengthCache[firstRow] = null;
         this.$rowLengthCache[lastRow] = null;
-        //console.log(this.$rowLengthCache)
     };
     this.$updateWrapData = function(firstRow, lastRow) {
         var lines = this.doc.getAllLines();
@@ -6782,7 +6805,7 @@ var EditSession = function(text, mode) {
             var docRow = this.$docRowCache[i];
             var doCache = screenRow > row || (screenRow == row && i == rowCache.length - 1);
         } else {
-            var doCache = true;
+            var doCache = i != 0 || !rowCache.length;
         }
 
         var maxRow = this.getLength() - 1;
@@ -6876,7 +6899,7 @@ var EditSession = function(text, mode) {
             var screenRow = this.$screenRowCache[i];
             var doCache = docRow > row || (docRow == row && i == rowCache.length - 1);
         } else {
-            var doCache = true;
+            var doCache = i != 0 || !rowCache.length;
         }
 
         var foldLine = this.getNextFoldLine(row);
@@ -7136,7 +7159,9 @@ EventEmitter._dispatchEvent = function(eventName, e) {
     if (!listeners.length && !defaultHandler)
         return;
 
-    e = e || {};
+    if (typeof e != "object" || !e)
+        e = {};
+
     if (!e.type)
         e.type = eventName;
     
@@ -8398,7 +8423,7 @@ var Tokenizer = function(rules, flag) {
             });
 
             if (matchcount > 1 && state[i].token.length !== matchcount-1)
-                throw new Error("Matching groups and length of the token array don't match in rule #" + i + " of state " + key);
+                throw new Error("For " + state[i].regex + " the matching groups and length of the token array don't match (rule #" + i + " of state " + key + ")");
 
             mapping[matchTotal] = {
                 rule: i,
@@ -8463,6 +8488,11 @@ var Tokenizer = function(rules, flag) {
                     lastIndex = re.lastIndex;
 
                     re = this.regExps[currentState];
+
+                    if (re === undefined) {
+                         throw new Error("You indicated a state of " + rule.next + " to go to, but it doesn't exist!");
+                    }
+
                     re.lastIndex = lastIndex;
                 }
                 break;
@@ -8550,7 +8580,7 @@ var TextHighlightRules = function() {
     this.getRules = function() {
         return this.$rules;
     };
-    
+
     this.embedRules = function (HighlightRules, prefix, escapeRules, states) {
         var embedRules = new HighlightRules().getRules();
         if (states) {
@@ -8564,19 +8594,32 @@ var TextHighlightRules = function() {
             }
         }
         this.addRules(embedRules, prefix);
-        
+
         for (var i = 0; i < states.length; i++) {
             Array.prototype.unshift.apply(this.$rules[states[i]], lang.deepCopy(escapeRules));
         }
-        
+
         if (!this.$embeds) {
             this.$embeds = [];
         }
         this.$embeds.push(prefix);
     }
-    
+
     this.getEmbeds = function() {
         return this.$embeds;
+    }
+
+    this.createKeywordMapper = function(map, defaultToken, ignoreCase, splitChar) {
+        var keywords = Object.create(null);
+        Object.keys(map).forEach(function(className) {
+            var list = map[className].split(splitChar || "|");
+            for (var i = list.length; i--; )
+                keywords[list[i]] = className;
+        });
+        map = null;
+        return ignoreCase
+            ? function(value) {return keywords[value.toLowerCase()] || defaultToken }
+            : function(value) {return keywords[value] || defaultToken };
     }
 
 }).call(TextHighlightRules.prototype);
@@ -10320,7 +10363,7 @@ function FoldLine(foldData, folds) {
                 && fold.start.row != row)
             {
                 //throwing here breaks whole editor
-                //@todo properly handle this
+                //TODO: properly handle this
                 window.console && window.console.log(row, column, fold);
             } else if (fold.start.row == row) {
                 folds = this.folds;
@@ -11111,7 +11154,7 @@ var EventEmitter = require("../lib/event_emitter").EventEmitter;
 
 var CommandManager = function(platform, commands) {
     this.platform = platform;
-    this.commands = {};
+    this.commands = this.byName = {};
     this.commmandKeyBinding = {};
 
     this.addCommands(commands);
@@ -11301,33 +11344,34 @@ function HashHandler(config, platform) {
         var key = typeof binding == "string" ? binding: binding[this.platform];
         this.bindKey(key, command);
     };
-
+	
+	// accepts keys in the form ctrl+Enter or ctrl-Enter
+	// keys without modifiers or shift only 
     this.parseKeys = function(keys) {
-        var key;
+        var parts = keys.toLowerCase().split(/[\-\+]([\-\+])?/).filter(function(x){return x});
+        var key = parts.pop();
+
+        var keyCode = keyUtil[key];
+        if (keyUtil.FUNCTION_KEYS[keyCode])
+            key = keyUtil.FUNCTION_KEYS[keyCode].toLowerCase();
+        else if (!parts.length)
+            return {key: key, hashId: -1};
+        else if (parts.length == 1 && parts[0] == "shift")
+            return {key: key.toUpperCase(), hashId: -1};
+
         var hashId = 0;
-        var parts = keys.toLowerCase().trim().split(/\s*\-\s*/);
-
-        for (var i = 0, l = parts.length; i < l; i++) {
-            if (keyUtil.KEY_MODS[parts[i]])
-                hashId = hashId | keyUtil.KEY_MODS[parts[i]];
-            else
-                key = parts[i] || "-"; //when empty, the splitSafe removed a '-'
+        for (var i = parts.length; i--;) {
+            var modifier = keyUtil.KEY_MODS[parts[i]];
+            if (modifier == null)
+                throw "invalid modifier " + parts[i] + " in " + keys;
+            hashId |= modifier;
         }
-
-        if (parts[0] == "text" && parts.length == 2) {
-            hashId = -1;
-            key = parts[1];
-        }
-
-        return {
-            key: key,
-            hashId: hashId
-        };
+        return {key: key, hashId: hashId};
     };
 
     this.findKeyCommand = function findKeyCommand(hashId, keyString) {
         var ckbr = this.commmandKeyBinding;
-        return ckbr[hashId] && ckbr[hashId][keyString.toLowerCase()];
+        return ckbr[hashId] && ckbr[hashId][keyString];
     };
 
     this.handleKeyboard = function(data, hashId, keyString, keyCode) {
@@ -11837,7 +11881,7 @@ var UndoManager = function() {
 exports.UndoManager = UndoManager;
 });
 
-__ace_shadowed__.define('ace/virtual_renderer', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/event', 'ace/lib/useragent', 'ace/config', 'ace/lib/net', 'ace/layer/gutter', 'ace/layer/marker', 'ace/layer/text', 'ace/layer/cursor', 'ace/scrollbar', 'ace/renderloop', 'ace/lib/event_emitter', 'ace/requirejs/text!ace/css/editor.css'], function(require, exports, module) {
+__ace_shadowed__.define('ace/virtual_renderer', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/event', 'ace/lib/useragent', 'ace/config', 'ace/lib/net', 'ace/layer/gutter', 'ace/layer/marker', 'ace/layer/text', 'ace/layer/cursor', 'ace/scrollbar', 'ace/renderloop', 'ace/lib/event_emitter', 'text!ace/css/editor.css'], function(require, exports, module) {
 
 
 var oop = require("./lib/oop");
@@ -11853,7 +11897,7 @@ var CursorLayer = require("./layer/cursor").Cursor;
 var ScrollBar = require("./scrollbar").ScrollBar;
 var RenderLoop = require("./renderloop").RenderLoop;
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
-var editorCss = require("ace/requirejs/text!./css/editor.css");
+var editorCss = require("text!./css/editor.css");
 
 dom.importCssString(editorCss, "ace_editor");
 
@@ -12567,9 +12611,11 @@ var VirtualRenderer = function(container, theme) {
             cursor = {row: cursor, column: 0};
 
         var pos = this.$cursorLayer.getPixelPosition(cursor);
-        var offset = pos.top - this.$size.scrollerHeight * (alignment || 0);
+        var h = this.$size.scrollerHeight - this.lineHeight;
+        var offset = pos.top - h * (alignment || 0);
 
         this.session.setScrollTop(offset);
+        return offset;
     };
 
     this.STEPS = 8;
@@ -12912,6 +12958,7 @@ var Gutter = function(parentEl) {
                     html.push(
                         "<span class='ace_fold-widget ", c,
                         c == "start" && i == foldStart && i < fold.end.row ? " closed" : " open",
+                        "' style='height:", config.lineHeight, "px",
                         "'></span>"
                     );
             }
@@ -13786,6 +13833,7 @@ var Cursor = function(parentEl) {
     parentEl.appendChild(this.element);
 
     this.isVisible = false;
+    this.isBlinking = true;
 
     this.cursors = [];
     this.cursor = this.addCursor();
@@ -13800,6 +13848,12 @@ var Cursor = function(parentEl) {
 
     this.setSession = function(session) {
         this.session = session;
+    };
+
+    this.setBlinking = function(blinking) {
+        this.isBlinking = blinking;
+        if (blinking)
+            this.restartTimer();
     };
 
     this.addCursor = function() {
@@ -13842,6 +13896,8 @@ var Cursor = function(parentEl) {
 
     this.restartTimer = function() {
         clearInterval(this.blinkId);
+        if (!this.isBlinking)
+            return;
         if (!this.isVisible)
             return;
 
@@ -13886,6 +13942,10 @@ var Cursor = function(parentEl) {
             for (var i = selections.length; i--; ) {
                 sel = selections[i];
                 var pixelPos = this.getPixelPosition(sel.cursor, true);
+                if ((pixelPos.top > config.height + config.offset || 
+                     pixelPos.top < -config.offset) && i > 1) {
+                    continue;
+                }
 
                 var style = (this.cursors[cursorIndex++] || this.addCursor()).style;
 
@@ -13988,7 +14048,7 @@ var ScrollBar = function(parent) {
     this.setInnerHeight = function(height) {
         this.inner.style.height = height + "px";
     };
-    // TODO: on chrome 17+ after for small zoom levels after this function
+    // TODO: on chrome 17+ for small zoom levels after calling this function
     // this.element.scrollTop != scrollTop which makes page to scroll up.
     this.setScrollTop = function(scrollTop) {
         this.element.scrollTop = scrollTop;
@@ -14047,361 +14107,373 @@ var RenderLoop = function(onRender, win) {
 
 exports.RenderLoop = RenderLoop;
 });
-__ace_shadowed__.define("ace/requirejs/text!ace/css/editor.css", [], ".ace_editor {\n\
-    position: absolute;\n\
-    overflow: hidden;\n\
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Droid Sans Mono', 'Consolas', monospace;\n\
-    font-size: 12px;\n\
-}\n\
-\n\
-.ace_scroller {\n\
-    position: absolute;\n\
-    overflow: hidden;\n\
-}\n\
-\n\
-.ace_content {\n\
-    position: absolute;\n\
-    box-sizing: border-box;\n\
-    -moz-box-sizing: border-box;\n\
-    -webkit-box-sizing: border-box;\n\
-    cursor: text;\n\
-}\n\
-\n\
-.ace_gutter {\n\
-    position: absolute;\n\
-    overflow : hidden;\n\
-    height: 100%;\n\
-    width: auto;\n\
-    cursor: default;\n\
-    z-index: 4;\n\
-}\n\
-\n\
-.ace_gutter_active_line {\n\
-    position: absolute;\n\
-    left: 0;\n\
-    right: 0;\n\
-}\n\
-\n\
-.ace_scroller.horscroll {\n\
-    box-shadow: 17px 0 16px -16px rgba(0, 0, 0, 0.4) inset;\n\
-}\n\
-\n\
-.ace_gutter-cell {\n\
-    padding-left: 19px;\n\
-    padding-right: 6px;\n\
-    background-repeat: no-repeat;\n\
-}\n\
-\n\
-.ace_gutter-cell.ace_error {\n\
-    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUM2OEZDQTQ4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUM2OEZDQTU4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBQzY4RkNBMjhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBQzY4RkNBMzhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PkgXxbAAAAJbSURBVHjapFNNaBNBFH4zs5vdZLP5sQmNpT82QY209heh1ioWisaDRcSKF0WKJ0GQnrzrxasHsR6EnlrwD0TagxJabaVEpFYxLWlLSS822tr87m66ccfd2GKyVhA6MMybgfe97/vmPUQphd0sZjto9XIn9OOsvlu2nkqRzVU+6vvlzPf8W6bk8dxQ0NPbxAALgCgg2JkaQuhzQau/El0zbmUA7U0Es8v2CiYmKQJHGO1QICCLoqilMhkmurDAyapKgqItezi/USRdJqEYY4D5jCy03ht2yMkkvL91jTTX10qzyyu2hruPRN7jgbH+EOsXcMLgYiThEgAMhABW85oqy1DXdRIdvP1AHJ2acQXvDIrVHcdQNrEKNYSVMSZGMjEzIIAwDXIo+6G/FxcGnzkC3T2oMhLjre49sBB+RRcHLqdafK6sYdE/GGBwU1VpFNj0aN8pJbe+BkZyevUrvLl6Xmm0W9IuTc0DxrDNAJd5oEvI/KRsNC3bQyNjPO9yQ1YHcfj2QvfQc/5TUhJTBc2iM0U7AWDQtc1nJHvD/cfO2s7jaGkiTEfa/Ep8coLu7zmNmh8+dc5lZDuUeFAGUNA/OY6JVaypQ0vjr7XYjUvJM37vt+j1vuTK5DgVfVUoTjVe+y3/LxMxY2GgU+CSLy4cpfsYorRXuXIOi0Vt40h67uZFTdIo6nLaZcwUJWAzwNS0tBnqqKzQDnjdG/iPyZxo46HaKUpbvYkj8qYRTZsBhge+JHhZyh0x9b95JqjVJkT084kZIPwu/mPWqPgfQ5jXh2+92Ay7HedfAgwA6KDWafb4w3cAAAAASUVORK5CYII=\");\n\
-    background-repeat: no-repeat;\n\
-    background-position: 2px center;\n\
-}\n\
-\n\
-.ace_gutter-cell.ace_warning {\n\
-    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUM2OEZDQTg4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUM2OEZDQTk4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBQzY4RkNBNjhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBQzY4RkNBNzhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pgd7PfIAAAGmSURBVHjaYvr//z8DJZiJgUIANoCRkREb9gLiSVAaQx4OQM7AAkwd7XU2/v++/rOttdYGEB9dASEvOMydGKfH8Gv/p4XTkvRBfLxeQAP+1cUhXopyvzhP7P/IoSj7g7Mw09cNKO6J1QQ0L4gICPIv/veg/8W+JdFvQNLHVsW9/nmn9zk7B+cCkDwhL7gt6knSZnx9/LuCEOcvkIAMP+cvto9nfqyZmmUAksfnBUtbM60gX/3/kgyv3/xSFOL5DZT+L8vP+Yfh5cvfPvp/xUHyQHXGyAYwgpwBjZYFT3Y1OEl/OfCH4ffv3wzc4iwMvNIsDJ+f/mH4+vIPAxsb631WW0Yln6ZpQLXdMK/DXGDflh+sIv37EivD5x//Gb7+YWT4y86sl7BCCkSD+Z++/1dkvsFRl+HnD1Rvje4F8whjMXmGj58YGf5zsDMwcnAwfPvKcml62DsQDeaDxN+/Y0qwlpEHqrdB94IRNIDUgfgfKJChGK4OikEW3gTiXUB950ASLFAF54AC94A0G9QAfOnmF9DCDzABFqS08IHYDIScdijOjQABBgC+/9awBH96jwAAAABJRU5ErkJggg==\");\n\
-    background-position: 2px center;\n\
-}\n\
-\n\
-.ace_gutter-cell.ace_info {\n\
-    background-image: url(\"data:image/gif;base64,R0lGODlhEAAQAMQAAAAAAEFBQVJSUl5eXmRkZGtra39/f4WFhYmJiZGRkaampry8vMPDw8zMzNXV1dzc3OTk5Orq6vDw8P///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABQALAAAAAAQABAAAAUuICWOZGmeaBml5XGwFCQSBGyXRSAwtqQIiRuiwIM5BoYVbEFIyGCQoeJGrVptIQA7\");\n\
-    background-position: 2px center;\n\
-}\n\
-.ace_dark .ace_gutter-cell.ace_info {\n\
-    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpGRTk5MTVGREIxNDkxMUUxOTc5Q0FFREQyMTNGMjBFQyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpGRTk5MTVGRUIxNDkxMUUxOTc5Q0FFREQyMTNGMjBFQyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZFOTkxNUZCQjE0OTExRTE5NzlDQUVERDIxM0YyMEVDIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkZFOTkxNUZDQjE0OTExRTE5NzlDQUVERDIxM0YyMEVDIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+SIDkjAAAAJ1JREFUeNpi/P//PwMlgImBQkB7A6qrq/+DMC55FkIGKCoq4pVnpFkgTp069f/+/fv/r1u37r+tre1/kg0A+ptn9uzZYLaRkRHpLvjw4cNXWVlZhufPnzOcO3eOdAO0tbVPAjHDmzdvGA4fPsxIsgGSkpJmv379Ynj37h2DjIyMCMkG3LhxQ/T27dsMampqDHZ2dq/pH41DxwCAAAMAFdc68dUsFZgAAAAASUVORK5CYII=\");\n\
-}\n\
-\n\
-.ace_editor .ace_sb {\n\
-    position: absolute;\n\
-    overflow-x: hidden;\n\
-    overflow-y: scroll;\n\
-    right: 0;\n\
-}\n\
-\n\
-.ace_editor .ace_sb div {\n\
-    position: absolute;\n\
-    width: 1px;\n\
-    left: 0;\n\
-}\n\
-\n\
-.ace_editor .ace_print_margin_layer {\n\
-    z-index: 0;\n\
-    position: absolute;\n\
-    overflow: hidden;\n\
-    margin: 0;\n\
-    left: 0;\n\
-    height: 100%;\n\
-    width: 100%;\n\
-}\n\
-\n\
-.ace_editor .ace_print_margin {\n\
-    position: absolute;\n\
-    height: 100%;\n\
-}\n\
-\n\
-.ace_editor > textarea {\n\
-    position: absolute;\n\
-    z-index: 0;\n\
-    width: 0.5em;\n\
-    height: 1em;\n\
-    opacity: 0;\n\
-    background: transparent;\n\
-    appearance: none;\n\
-    -moz-appearance: none;\n\
-    border: none;\n\
-    resize: none;\n\
-    outline: none;\n\
-    overflow: hidden;\n\
-}\n\
-\n\
-.ace_editor > textarea.ace_composition {\n\
-    background: #fff;\n\
-    color: #000;\n\
-    z-index: 1000;\n\
-    opacity: 1;\n\
-    border: solid lightgray 1px;\n\
-    margin: -1px\n\
-}\n\
-\n\
-.ace_layer {\n\
-    z-index: 1;\n\
-    position: absolute;\n\
-    overflow: hidden;\n\
-    white-space: nowrap;\n\
-    height: 100%;\n\
-    width: 100%;\n\
-    box-sizing: border-box;\n\
-    -moz-box-sizing: border-box;\n\
-    -webkit-box-sizing: border-box;\n\
-    /* setting pointer-events: auto; on node under the mouse, which changes\n\
-        during scroll, will break mouse wheel scrolling in Safari */\n\
-    pointer-events: none;\n\
-}\n\
-\n\
-.ace_gutter .ace_layer {\n\
-    position: relative;\n\
-    width: auto;\n\
-    text-align: right;\n\
-    pointer-events: auto;\n\
-}\n\
-\n\
-.ace_text-layer {\n\
-    color: black;\n\
-    font: inherit !important;\n\
-}\n\
-\n\
-.ace_cjk {\n\
-    display: inline-block;\n\
-    text-align: center;\n\
-}\n\
-\n\
-.ace_cursor-layer {\n\
-    z-index: 4;\n\
-}\n\
-\n\
-.ace_cursor {\n\
-    z-index: 4;\n\
-    position: absolute;\n\
-}\n\
-\n\
-.ace_cursor.ace_hidden {\n\
-    opacity: 0.2;\n\
-}\n\
-\n\
-.ace_editor.multiselect .ace_cursor {\n\
-    border-left-width: 1px;\n\
-}\n\
-\n\
-.ace_line {\n\
-    white-space: nowrap;\n\
-}\n\
-\n\
-.ace_marker-layer .ace_step {\n\
-    position: absolute;\n\
-    z-index: 3;\n\
-}\n\
-\n\
-.ace_marker-layer .ace_selection {\n\
-    position: absolute;\n\
-    z-index: 5;\n\
-}\n\
-\n\
-.ace_marker-layer .ace_bracket {\n\
-    position: absolute;\n\
-    z-index: 6;\n\
-}\n\
-\n\
-.ace_marker-layer .ace_active_line {\n\
-    position: absolute;\n\
-    z-index: 2;\n\
-}\n\
-\n\
-.ace_marker-layer .ace_selected_word {\n\
-    position: absolute;\n\
-    z-index: 4;\n\
-    box-sizing: border-box;\n\
-    -moz-box-sizing: border-box;\n\
-    -webkit-box-sizing: border-box;\n\
-}\n\
-\n\
-.ace_line .ace_fold {\n\
-    box-sizing: border-box;\n\
-    -moz-box-sizing: border-box;\n\
-    -webkit-box-sizing: border-box;\n\
-\n\
-    display: inline-block;\n\
-    height: 11px;\n\
-    margin-top: -2px;\n\
-    vertical-align: middle;\n\
-\n\
-    background-image:\n\
-        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%11%00%00%00%09%08%06%00%00%00%D4%E8%C7%0C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%B5IDAT(%15%A5%91%3D%0E%02!%10%85ac%E1%05%D6%CE%D6%C6%CE%D2%E8%ED%CD%DE%C0%C6%D6N.%E0V%F8%3D%9Ca%891XH%C2%BE%D9y%3F%90!%E6%9C%C3%BFk%E5%011%C6-%F5%C8N%04%DF%BD%FF%89%DFt%83DN%60%3E%F3%AB%A0%DE%1A%5Dg%BE%10Q%97%1B%40%9C%A8o%10%8F%5E%828%B4%1B%60%87%F6%02%26%85%1Ch%1E%C1%2B%5Bk%FF%86%EE%B7j%09%9A%DA%9B%ACe%A3%F9%EC%DA!9%B4%D5%A6%81%86%86%98%CC%3C%5B%40%FA%81%B3%E9%CB%23%94%C16Azo%05%D4%E1%C1%95a%3B%8A'%A0%E8%CC%17%22%85%1D%BA%00%A2%FA%DC%0A%94%D1%D1%8D%8B%3A%84%17B%C7%60%1A%25Z%FC%8D%00%00%00%00IEND%AEB%60%82\"),\n\
-        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%007%08%06%00%00%00%C4%DD%80C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%3AIDAT8%11c%FC%FF%FF%7F%18%03%1A%60%01%F2%3F%A0%891%80%04%FF%11-%F8%17%9BJ%E2%05%B1ZD%81v%26t%E7%80%F8%A3%82h%A12%1A%20%A3%01%02%0F%01%BA%25%06%00%19%C0%0D%AEF%D5%3ES%00%00%00%00IEND%AEB%60%82\");\n\
-    background-repeat: no-repeat, repeat-x;\n\
-    background-position: center center, top left;\n\
-    color: transparent;\n\
-\n\
-    border: 1px solid black;\n\
-    -moz-border-radius: 2px;\n\
-    -webkit-border-radius: 2px;\n\
-    border-radius: 2px;\n\
-\n\
-    cursor: pointer;\n\
-    pointer-events: auto;\n\
-}\n\
-\n\
-.ace_dark .ace_fold {\n\
-}\n\
-\n\
-.ace_fold:hover{\n\
-    background-image:\n\
-        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%11%00%00%00%09%08%06%00%00%00%D4%E8%C7%0C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%B5IDAT(%15%A5%91%3D%0E%02!%10%85ac%E1%05%D6%CE%D6%C6%CE%D2%E8%ED%CD%DE%C0%C6%D6N.%E0V%F8%3D%9Ca%891XH%C2%BE%D9y%3F%90!%E6%9C%C3%BFk%E5%011%C6-%F5%C8N%04%DF%BD%FF%89%DFt%83DN%60%3E%F3%AB%A0%DE%1A%5Dg%BE%10Q%97%1B%40%9C%A8o%10%8F%5E%828%B4%1B%60%87%F6%02%26%85%1Ch%1E%C1%2B%5Bk%FF%86%EE%B7j%09%9A%DA%9B%ACe%A3%F9%EC%DA!9%B4%D5%A6%81%86%86%98%CC%3C%5B%40%FA%81%B3%E9%CB%23%94%C16Azo%05%D4%E1%C1%95a%3B%8A'%A0%E8%CC%17%22%85%1D%BA%00%A2%FA%DC%0A%94%D1%D1%8D%8B%3A%84%17B%C7%60%1A%25Z%FC%8D%00%00%00%00IEND%AEB%60%82\"),\n\
-        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%007%08%06%00%00%00%C4%DD%80C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%003IDAT8%11c%FC%FF%FF%7F%3E%03%1A%60%01%F2%3F%A3%891%80%04%FFQ%26%F8w%C0%B43%A1%DB%0C%E2%8F%0A%A2%85%CAh%80%8C%06%08%3C%04%E8%96%18%00%A3S%0D%CD%CF%D8%C1%9D%00%00%00%00IEND%AEB%60%82\");\n\
-    background-repeat: no-repeat, repeat-x;\n\
-    background-position: center center, top left;\n\
-}\n\
-\n\
-.ace_dragging .ace_content {\n\
-    cursor: move;\n\
-}\n\
-\n\
-.ace_gutter_tooltip {\n\
-    background-color: #FFFFD5;\n\
-    border: 1px solid gray;\n\
-    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);\n\
-    color: black;\n\
-    display: inline-block;\n\
-    padding: 4px;\n\
-    position: absolute;\n\
-    z-index: 300;\n\
-    box-sizing: border-box;\n\
-    -moz-box-sizing: border-box;\n\
-    -webkit-box-sizing: border-box;\n\
-    cursor: default;\n\
-}\n\
-\n\
-.ace_folding-enabled > .ace_gutter-cell {\n\
-    padding-right: 13px;\n\
-}\n\
-\n\
-.ace_fold-widget {\n\
-    box-sizing: border-box;\n\
-    -moz-box-sizing: border-box;\n\
-    -webkit-box-sizing: border-box;\n\
-\n\
-    margin: 0 -12px 0 1px;\n\
-    display: inline-block;\n\
-    height: 100%;\n\
-    width: 11px;\n\
-    vertical-align: bottom;\n\
-\n\
-    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAe%8A%B1%0D%000%0C%C2%F2%2CK%96%BC%D0%8F9%81%88H%E9%D0%0E%96%C0%10%92%3E%02%80%5E%82%E4%A9*-%EEsw%C8%CC%11%EE%96w%D8%DC%E9*Eh%0C%151(%00%00%00%00IEND%AEB%60%82\");\n\
-    background-repeat: no-repeat;\n\
-    background-position: center;\n\
-\n\
-    border-radius: 3px;\n\
-    \n\
-    border: 1px solid transparent;\n\
-}\n\
-\n\
-.ace_fold-widget.end {\n\
-    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAm%C7%C1%09%000%08C%D1%8C%ECE%C8E(%8E%EC%02)%1EZJ%F1%C1'%04%07I%E1%E5%EE%CAL%F5%A2%99%99%22%E2%D6%1FU%B5%FE0%D9x%A7%26Wz5%0E%D5%00%00%00%00IEND%AEB%60%82\");\n\
-}\n\
-\n\
-.ace_fold-widget.closed {\n\
-    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%03%00%00%00%06%08%06%00%00%00%06%E5%24%0C%00%00%009IDATx%DA5%CA%C1%09%000%08%03%C0%AC*(%3E%04%C1%0D%BA%B1%23%A4Uh%E0%20%81%C0%CC%F8%82%81%AA%A2%AArGfr%88%08%11%11%1C%DD%7D%E0%EE%5B%F6%F6%CB%B8%05Q%2F%E9tai%D9%00%00%00%00IEND%AEB%60%82\");\n\
-}\n\
-\n\
-.ace_fold-widget:hover {\n\
-    border: 1px solid rgba(0, 0, 0, 0.3);\n\
-    background-color: rgba(255, 255, 255, 0.2);\n\
-    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n\
-    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n\
-    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n\
-}\n\
-\n\
-.ace_fold-widget:active {\n\
-    border: 1px solid rgba(0, 0, 0, 0.4);\n\
-    background-color: rgba(0, 0, 0, 0.05);\n\
-    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n\
-    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n\
-    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n\
-}\n\
-/**\n\
- * Dark version for fold widgets\n\
- */\n\
-.ace_dark .ace_fold-widget {\n\
-    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHklEQVQIW2P4//8/AzoGEQ7oGCaLLAhWiSwB146BAQCSTPYocqT0AAAAAElFTkSuQmCC\");\n\
-}\n\
-.ace_dark .ace_fold-widget.end {\n\
-    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAH0lEQVQIW2P4//8/AxQ7wNjIAjDMgC4AxjCVKBirIAAF0kz2rlhxpAAAAABJRU5ErkJggg==\");\n\
-}\n\
-.ace_dark .ace_fold-widget.closed {\n\
-    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAAFCAYAAACAcVaiAAAAHElEQVQIW2P4//+/AxAzgDADlOOAznHAKgPWAwARji8UIDTfQQAAAABJRU5ErkJggg==\");\n\
-}\n\
-.ace_dark .ace_fold-widget:hover {\n\
-    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n\
-    background-color: rgba(255, 255, 255, 0.1);\n\
-}\n\
-.ace_dark .ace_fold-widget:active {\n\
-    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n\
-    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n\
-    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n\
-}\n\
-    \n\
-    \n\
-    \n\
-.ace_fold-widget.invalid {\n\
-    background-color: #FFB4B4;\n\
-    border-color: #DE5555;\n\
-}\n\
-\n\
-.ace_fade-fold-widgets .ace_fold-widget {\n\
-       -moz-transition: opacity 0.4s ease 0.05s;\n\
-    -webkit-transition: opacity 0.4s ease 0.05s;\n\
-         -o-transition: opacity 0.4s ease 0.05s;\n\
-        -ms-transition: opacity 0.4s ease 0.05s;\n\
-            transition: opacity 0.4s ease 0.05s;\n\
-    opacity: 0;\n\
-}\n\
-\n\
-.ace_fade-fold-widgets:hover .ace_fold-widget {\n\
-       -moz-transition: opacity 0.05s ease 0.05s;\n\
-    -webkit-transition: opacity 0.05s ease 0.05s;\n\
-         -o-transition: opacity 0.05s ease 0.05s;\n\
-        -ms-transition: opacity 0.05s ease 0.05s;\n\
-            transition: opacity 0.05s ease 0.05s;\n\
-    opacity:1;\n\
-}\n\
-");
+__ace_shadowed__.define("text!ace/css/editor.css", [], ".ace_editor {\n" +
+  "    position: absolute;\n" +
+  "    overflow: hidden;\n" +
+  "    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Droid Sans Mono', 'Consolas', monospace;\n" +
+  "    font-size: 12px;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_scroller {\n" +
+  "    position: absolute;\n" +
+  "    overflow: hidden;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_content {\n" +
+  "    position: absolute;\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "    cursor: text;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter {\n" +
+  "    position: absolute;\n" +
+  "    overflow : hidden;\n" +
+  "    height: 100%;\n" +
+  "    width: auto;\n" +
+  "    cursor: default;\n" +
+  "    z-index: 4;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter_active_line {\n" +
+  "    position: absolute;\n" +
+  "    left: 0;\n" +
+  "    right: 0;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_scroller.horscroll {\n" +
+  "    box-shadow: 17px 0 16px -16px rgba(0, 0, 0, 0.4) inset;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter-cell {\n" +
+  "    padding-left: 19px;\n" +
+  "    padding-right: 6px;\n" +
+  "    background-repeat: no-repeat;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter-cell.ace_error {\n" +
+  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUM2OEZDQTQ4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUM2OEZDQTU4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBQzY4RkNBMjhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBQzY4RkNBMzhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/PkgXxbAAAAJbSURBVHjapFNNaBNBFH4zs5vdZLP5sQmNpT82QY209heh1ioWisaDRcSKF0WKJ0GQnrzrxasHsR6EnlrwD0TagxJabaVEpFYxLWlLSS822tr87m66ccfd2GKyVhA6MMybgfe97/vmPUQphd0sZjto9XIn9OOsvlu2nkqRzVU+6vvlzPf8W6bk8dxQ0NPbxAALgCgg2JkaQuhzQau/El0zbmUA7U0Es8v2CiYmKQJHGO1QICCLoqilMhkmurDAyapKgqItezi/USRdJqEYY4D5jCy03ht2yMkkvL91jTTX10qzyyu2hruPRN7jgbH+EOsXcMLgYiThEgAMhABW85oqy1DXdRIdvP1AHJ2acQXvDIrVHcdQNrEKNYSVMSZGMjEzIIAwDXIo+6G/FxcGnzkC3T2oMhLjre49sBB+RRcHLqdafK6sYdE/GGBwU1VpFNj0aN8pJbe+BkZyevUrvLl6Xmm0W9IuTc0DxrDNAJd5oEvI/KRsNC3bQyNjPO9yQ1YHcfj2QvfQc/5TUhJTBc2iM0U7AWDQtc1nJHvD/cfO2s7jaGkiTEfa/Ep8coLu7zmNmh8+dc5lZDuUeFAGUNA/OY6JVaypQ0vjr7XYjUvJM37vt+j1vuTK5DgVfVUoTjVe+y3/LxMxY2GgU+CSLy4cpfsYorRXuXIOi0Vt40h67uZFTdIo6nLaZcwUJWAzwNS0tBnqqKzQDnjdG/iPyZxo46HaKUpbvYkj8qYRTZsBhge+JHhZyh0x9b95JqjVJkT084kZIPwu/mPWqPgfQ5jXh2+92Ay7HedfAgwA6KDWafb4w3cAAAAASUVORK5CYII=\");\n" +
+  "    background-repeat: no-repeat;\n" +
+  "    background-position: 2px center;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter-cell.ace_warning {\n" +
+  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyJpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNSBNYWNpbnRvc2giIHhtcE1NOkluc3RhbmNlSUQ9InhtcC5paWQ6QUM2OEZDQTg4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiIHhtcE1NOkRvY3VtZW50SUQ9InhtcC5kaWQ6QUM2OEZDQTk4RTU0MTFFMUEzM0VFRTM2RUY1M0RBMjYiPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpBQzY4RkNBNjhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpBQzY4RkNBNzhFNTQxMUUxQTMzRUVFMzZFRjUzREEyNiIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pgd7PfIAAAGmSURBVHjaYvr//z8DJZiJgUIANoCRkREb9gLiSVAaQx4OQM7AAkwd7XU2/v++/rOttdYGEB9dASEvOMydGKfH8Gv/p4XTkvRBfLxeQAP+1cUhXopyvzhP7P/IoSj7g7Mw09cNKO6J1QQ0L4gICPIv/veg/8W+JdFvQNLHVsW9/nmn9zk7B+cCkDwhL7gt6knSZnx9/LuCEOcvkIAMP+cvto9nfqyZmmUAksfnBUtbM60gX/3/kgyv3/xSFOL5DZT+L8vP+Yfh5cvfPvp/xUHyQHXGyAYwgpwBjZYFT3Y1OEl/OfCH4ffv3wzc4iwMvNIsDJ+f/mH4+vIPAxsb631WW0Yln6ZpQLXdMK/DXGDflh+sIv37EivD5x//Gb7+YWT4y86sl7BCCkSD+Z++/1dkvsFRl+HnD1Rvje4F8whjMXmGj58YGf5zsDMwcnAwfPvKcml62DsQDeaDxN+/Y0qwlpEHqrdB94IRNIDUgfgfKJChGK4OikEW3gTiXUB950ASLFAF54AC94A0G9QAfOnmF9DCDzABFqS08IHYDIScdijOjQABBgC+/9awBH96jwAAAABJRU5ErkJggg==\");\n" +
+  "    background-position: 2px center;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter-cell.ace_info {\n" +
+  "    background-image: url(\"data:image/gif;base64,R0lGODlhEAAQAMQAAAAAAEFBQVJSUl5eXmRkZGtra39/f4WFhYmJiZGRkaampry8vMPDw8zMzNXV1dzc3OTk5Orq6vDw8P///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABQALAAAAAAQABAAAAUuICWOZGmeaBml5XGwFCQSBGyXRSAwtqQIiRuiwIM5BoYVbEFIyGCQoeJGrVptIQA7\");\n" +
+  "    background-position: 2px center;\n" +
+  "}\n" +
+  ".ace_dark .ace_gutter-cell.ace_info {\n" +
+  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMy1jMDExIDY2LjE0NTY2MSwgMjAxMi8wMi8wNi0xNDo1NjoyNyAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENTNiAoTWFjaW50b3NoKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpGRTk5MTVGREIxNDkxMUUxOTc5Q0FFREQyMTNGMjBFQyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpGRTk5MTVGRUIxNDkxMUUxOTc5Q0FFREQyMTNGMjBFQyI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOkZFOTkxNUZCQjE0OTExRTE5NzlDQUVERDIxM0YyMEVDIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOkZFOTkxNUZDQjE0OTExRTE5NzlDQUVERDIxM0YyMEVDIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+SIDkjAAAAJ1JREFUeNpi/P//PwMlgImBQkB7A6qrq/+DMC55FkIGKCoq4pVnpFkgTp069f/+/fv/r1u37r+tre1/kg0A+ptn9uzZYLaRkRHpLvjw4cNXWVlZhufPnzOcO3eOdAO0tbVPAjHDmzdvGA4fPsxIsgGSkpJmv379Ynj37h2DjIyMCMkG3LhxQ/T27dsMampqDHZ2dq/pH41DxwCAAAMAFdc68dUsFZgAAAAASUVORK5CYII=\");\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor .ace_sb {\n" +
+  "    position: absolute;\n" +
+  "    overflow-x: hidden;\n" +
+  "    overflow-y: scroll;\n" +
+  "    right: 0;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor .ace_sb div {\n" +
+  "    position: absolute;\n" +
+  "    width: 1px;\n" +
+  "    left: 0;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor .ace_print_margin_layer {\n" +
+  "    z-index: 0;\n" +
+  "    position: absolute;\n" +
+  "    overflow: hidden;\n" +
+  "    margin: 0;\n" +
+  "    left: 0;\n" +
+  "    height: 100%;\n" +
+  "    width: 100%;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor .ace_print_margin {\n" +
+  "    position: absolute;\n" +
+  "    height: 100%;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor > textarea {\n" +
+  "    position: absolute;\n" +
+  "    z-index: 0;\n" +
+  "    width: 0.5em;\n" +
+  "    height: 1em;\n" +
+  "    opacity: 0;\n" +
+  "    background: transparent;\n" +
+  "    appearance: none;\n" +
+  "    -moz-appearance: none;\n" +
+  "    border: none;\n" +
+  "    resize: none;\n" +
+  "    outline: none;\n" +
+  "    overflow: hidden;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor > textarea.ace_composition {\n" +
+  "    background: #fff;\n" +
+  "    color: #000;\n" +
+  "    z-index: 1000;\n" +
+  "    opacity: 1;\n" +
+  "    border: solid lightgray 1px;\n" +
+  "    margin: -1px\n" +
+  "}\n" +
+  "\n" +
+  ".ace_layer {\n" +
+  "    z-index: 1;\n" +
+  "    position: absolute;\n" +
+  "    overflow: hidden;\n" +
+  "    white-space: nowrap;\n" +
+  "    height: 100%;\n" +
+  "    width: 100%;\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "    /* setting pointer-events: auto; on node under the mouse, which changes\n" +
+  "        during scroll, will break mouse wheel scrolling in Safari */\n" +
+  "    pointer-events: none;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter .ace_layer {\n" +
+  "    position: relative;\n" +
+  "    width: auto;\n" +
+  "    text-align: right;\n" +
+  "    pointer-events: auto;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_text-layer {\n" +
+  "    color: black;\n" +
+  "    font: inherit !important;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_cjk {\n" +
+  "    display: inline-block;\n" +
+  "    text-align: center;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_cursor-layer {\n" +
+  "    z-index: 4;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_cursor {\n" +
+  "    z-index: 4;\n" +
+  "    position: absolute;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_cursor.ace_hidden {\n" +
+  "    opacity: 0.2;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_editor.multiselect .ace_cursor {\n" +
+  "    border-left-width: 1px;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_line {\n" +
+  "    white-space: nowrap;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_marker-layer .ace_step {\n" +
+  "    position: absolute;\n" +
+  "    z-index: 3;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_marker-layer .ace_selection {\n" +
+  "    position: absolute;\n" +
+  "    z-index: 5;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_marker-layer .ace_bracket {\n" +
+  "    position: absolute;\n" +
+  "    z-index: 6;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_marker-layer .ace_active_line {\n" +
+  "    position: absolute;\n" +
+  "    z-index: 2;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_marker-layer .ace_selected_word {\n" +
+  "    position: absolute;\n" +
+  "    z-index: 4;\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_line .ace_fold {\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "\n" +
+  "    display: inline-block;\n" +
+  "    height: 11px;\n" +
+  "    margin-top: -2px;\n" +
+  "    vertical-align: middle;\n" +
+  "\n" +
+  "    background-image:\n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%11%00%00%00%09%08%06%00%00%00%D4%E8%C7%0C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%B5IDAT(%15%A5%91%3D%0E%02!%10%85ac%E1%05%D6%CE%D6%C6%CE%D2%E8%ED%CD%DE%C0%C6%D6N.%E0V%F8%3D%9Ca%891XH%C2%BE%D9y%3F%90!%E6%9C%C3%BFk%E5%011%C6-%F5%C8N%04%DF%BD%FF%89%DFt%83DN%60%3E%F3%AB%A0%DE%1A%5Dg%BE%10Q%97%1B%40%9C%A8o%10%8F%5E%828%B4%1B%60%87%F6%02%26%85%1Ch%1E%C1%2B%5Bk%FF%86%EE%B7j%09%9A%DA%9B%ACe%A3%F9%EC%DA!9%B4%D5%A6%81%86%86%98%CC%3C%5B%40%FA%81%B3%E9%CB%23%94%C16Azo%05%D4%E1%C1%95a%3B%8A'%A0%E8%CC%17%22%85%1D%BA%00%A2%FA%DC%0A%94%D1%D1%8D%8B%3A%84%17B%C7%60%1A%25Z%FC%8D%00%00%00%00IEND%AEB%60%82\"),\n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%007%08%06%00%00%00%C4%DD%80C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%3AIDAT8%11c%FC%FF%FF%7F%18%03%1A%60%01%F2%3F%A0%891%80%04%FF%11-%F8%17%9BJ%E2%05%B1ZD%81v%26t%E7%80%F8%A3%82h%A12%1A%20%A3%01%02%0F%01%BA%25%06%00%19%C0%0D%AEF%D5%3ES%00%00%00%00IEND%AEB%60%82\");\n" +
+  "    background-repeat: no-repeat, repeat-x;\n" +
+  "    background-position: center center, top left;\n" +
+  "    color: transparent;\n" +
+  "\n" +
+  "    border: 1px solid black;\n" +
+  "    -moz-border-radius: 2px;\n" +
+  "    -webkit-border-radius: 2px;\n" +
+  "    border-radius: 2px;\n" +
+  "\n" +
+  "    cursor: pointer;\n" +
+  "    pointer-events: auto;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_dark .ace_fold {\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fold:hover{\n" +
+  "    background-image:\n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%11%00%00%00%09%08%06%00%00%00%D4%E8%C7%0C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%B5IDAT(%15%A5%91%3D%0E%02!%10%85ac%E1%05%D6%CE%D6%C6%CE%D2%E8%ED%CD%DE%C0%C6%D6N.%E0V%F8%3D%9Ca%891XH%C2%BE%D9y%3F%90!%E6%9C%C3%BFk%E5%011%C6-%F5%C8N%04%DF%BD%FF%89%DFt%83DN%60%3E%F3%AB%A0%DE%1A%5Dg%BE%10Q%97%1B%40%9C%A8o%10%8F%5E%828%B4%1B%60%87%F6%02%26%85%1Ch%1E%C1%2B%5Bk%FF%86%EE%B7j%09%9A%DA%9B%ACe%A3%F9%EC%DA!9%B4%D5%A6%81%86%86%98%CC%3C%5B%40%FA%81%B3%E9%CB%23%94%C16Azo%05%D4%E1%C1%95a%3B%8A'%A0%E8%CC%17%22%85%1D%BA%00%A2%FA%DC%0A%94%D1%D1%8D%8B%3A%84%17B%C7%60%1A%25Z%FC%8D%00%00%00%00IEND%AEB%60%82\"),\n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%007%08%06%00%00%00%C4%DD%80C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%003IDAT8%11c%FC%FF%FF%7F%3E%03%1A%60%01%F2%3F%A3%891%80%04%FFQ%26%F8w%C0%B43%A1%DB%0C%E2%8F%0A%A2%85%CAh%80%8C%06%08%3C%04%E8%96%18%00%A3S%0D%CD%CF%D8%C1%9D%00%00%00%00IEND%AEB%60%82\");\n" +
+  "    background-repeat: no-repeat, repeat-x;\n" +
+  "    background-position: center center, top left;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_dragging .ace_content {\n" +
+  "    cursor: move;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter_tooltip {\n" +
+  "    background-color: #FFFFD5;\n" +
+  "    border: 1px solid gray;\n" +
+  "    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);\n" +
+  "    color: black;\n" +
+  "    display: inline-block;\n" +
+  "    padding: 4px;\n" +
+  "    position: absolute;\n" +
+  "    z-index: 300;\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "    cursor: default;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_folding-enabled > .ace_gutter-cell {\n" +
+  "    padding-right: 13px;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fold-widget {\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "\n" +
+  "    margin: 0 -12px 0 1px;\n" +
+  "    display: inline-block;\n" +
+  "    width: 11px;\n" +
+  "    vertical-align: top;\n" +
+  "\n" +
+  "    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAe%8A%B1%0D%000%0C%C2%F2%2CK%96%BC%D0%8F9%81%88H%E9%D0%0E%96%C0%10%92%3E%02%80%5E%82%E4%A9*-%EEsw%C8%CC%11%EE%96w%D8%DC%E9*Eh%0C%151(%00%00%00%00IEND%AEB%60%82\");\n" +
+  "    background-repeat: no-repeat;\n" +
+  "    background-position: center;\n" +
+  "\n" +
+  "    border-radius: 3px;\n" +
+  "    \n" +
+  "    border: 1px solid transparent;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fold-widget.end {\n" +
+  "    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAm%C7%C1%09%000%08C%D1%8C%ECE%C8E(%8E%EC%02)%1EZJ%F1%C1'%04%07I%E1%E5%EE%CAL%F5%A2%99%99%22%E2%D6%1FU%B5%FE0%D9x%A7%26Wz5%0E%D5%00%00%00%00IEND%AEB%60%82\");\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fold-widget.closed {\n" +
+  "    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%03%00%00%00%06%08%06%00%00%00%06%E5%24%0C%00%00%009IDATx%DA5%CA%C1%09%000%08%03%C0%AC*(%3E%04%C1%0D%BA%B1%23%A4Uh%E0%20%81%C0%CC%F8%82%81%AA%A2%AArGfr%88%08%11%11%1C%DD%7D%E0%EE%5B%F6%F6%CB%B8%05Q%2F%E9tai%D9%00%00%00%00IEND%AEB%60%82\");\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fold-widget:hover {\n" +
+  "    border: 1px solid rgba(0, 0, 0, 0.3);\n" +
+  "    background-color: rgba(255, 255, 255, 0.2);\n" +
+  "    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fold-widget:active {\n" +
+  "    border: 1px solid rgba(0, 0, 0, 0.4);\n" +
+  "    background-color: rgba(0, 0, 0, 0.05);\n" +
+  "    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n" +
+  "    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n" +
+  "    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n" +
+  "}\n" +
+  "/**\n" +
+  " * Dark version for fold widgets\n" +
+  " */\n" +
+  ".ace_dark .ace_fold-widget {\n" +
+  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHklEQVQIW2P4//8/AzoGEQ7oGCaLLAhWiSwB146BAQCSTPYocqT0AAAAAElFTkSuQmCC\");\n" +
+  "}\n" +
+  ".ace_dark .ace_fold-widget.end {\n" +
+  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAH0lEQVQIW2P4//8/AxQ7wNjIAjDMgC4AxjCVKBirIAAF0kz2rlhxpAAAAABJRU5ErkJggg==\");\n" +
+  "}\n" +
+  ".ace_dark .ace_fold-widget.closed {\n" +
+  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAAFCAYAAACAcVaiAAAAHElEQVQIW2P4//+/AxAzgDADlOOAznHAKgPWAwARji8UIDTfQQAAAABJRU5ErkJggg==\");\n" +
+  "}\n" +
+  ".ace_dark .ace_fold-widget:hover {\n" +
+  "    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n" +
+  "    background-color: rgba(255, 255, 255, 0.1);\n" +
+  "}\n" +
+  ".ace_dark .ace_fold-widget:active {\n" +
+  "    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n" +
+  "    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n" +
+  "    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);\n" +
+  "}\n" +
+  "    \n" +
+  "    \n" +
+  "    \n" +
+  ".ace_fold-widget.invalid {\n" +
+  "    background-color: #FFB4B4;\n" +
+  "    border-color: #DE5555;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fade-fold-widgets .ace_fold-widget {\n" +
+  "       -moz-transition: opacity 0.4s ease 0.05s;\n" +
+  "    -webkit-transition: opacity 0.4s ease 0.05s;\n" +
+  "         -o-transition: opacity 0.4s ease 0.05s;\n" +
+  "        -ms-transition: opacity 0.4s ease 0.05s;\n" +
+  "            transition: opacity 0.4s ease 0.05s;\n" +
+  "    opacity: 0;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_fade-fold-widgets:hover .ace_fold-widget {\n" +
+  "       -moz-transition: opacity 0.05s ease 0.05s;\n" +
+  "    -webkit-transition: opacity 0.05s ease 0.05s;\n" +
+  "         -o-transition: opacity 0.05s ease 0.05s;\n" +
+  "        -ms-transition: opacity 0.05s ease 0.05s;\n" +
+  "            transition: opacity 0.05s ease 0.05s;\n" +
+  "    opacity:1;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_underline {\n" +
+  "    text-decoration: underline;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_bold {\n" +
+  "    font-weight: bold;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_italic {\n" +
+  "    font-style: italic;\n" +
+  "}\n" +
+  "");
 
-__ace_shadowed__.define('ace/multi_select', ['require', 'exports', 'module' , 'ace/range_list', 'ace/range', 'ace/selection', 'ace/mouse/multi_select_handler', 'ace/lib/event', 'ace/commands/multi_select_commands', 'ace/search', 'ace/edit_session', 'ace/editor'], function(require, exports, module) {
+__ace_shadowed__.define('ace/multi_select', ['require', 'exports', 'module' , 'ace/range_list', 'ace/range', 'ace/selection', 'ace/mouse/multi_select_handler', 'ace/lib/event', 'ace/lib/lang', 'ace/commands/multi_select_commands', 'ace/search', 'ace/edit_session', 'ace/editor'], function(require, exports, module) {
 
 var RangeList = require("./range_list").RangeList;
 var Range = require("./range").Range;
 var Selection = require("./selection").Selection;
 var onMouseDown = require("./mouse/multi_select_handler").onMouseDown;
 var event = require("./lib/event");
+var lang = require("./lib/lang");
 var commands = require("./commands/multi_select_commands");
 exports.commands = commands.defaultCommands.concat(commands.multiSelectCommands);
 
@@ -14544,10 +14616,19 @@ var EditSession = require("./edit_session").EditSession;
             this.setSelectionRange(range, lastRange.cursor == lastRange.start);
         } else {
             var range = this.getRange();
+            var isBackwards = this.isBackwards();
             var startRow = range.start.row;
             var endRow = range.end.row;
-            if (startRow == endRow)
+            if (startRow == endRow) {
+                if (isBackwards)
+                    var start = range.end, end = range.start;
+                else
+                    var start = range.start, end = range.end;
+                
+                this.addRange(Range.fromPoints(end, end));
+                this.addRange(Range.fromPoints(start, start));
                 return;
+            }
 
             var rectSel = [];
             var r = this.getLineRange(startRow, true);
@@ -14649,9 +14730,9 @@ var EditSession = require("./edit_session").EditSession;
 // extend Editor
 var Editor = require("./editor").Editor;
 (function() {
-    
+
     /** extension
-     * Editor.updateSelectionMarkers() 
+     * Editor.updateSelectionMarkers()
      *
      * Updates the cursor and marker layers.
      **/
@@ -14804,7 +14885,7 @@ var Editor = require("./editor").Editor;
 
     // todo this should change when paste becomes a command
     this.onPaste = function(text) {
-        if (this.$readOnly) 
+        if (this.$readOnly)
             return;
 
         this._emit("paste", text);
@@ -14850,7 +14931,7 @@ var Editor = require("./editor").Editor;
 
     // commands
     /** extension
-     * Editor.selectMoreLines(dir, skip) 
+     * Editor.selectMoreLines(dir, skip)
      * - dir (Number): The direction of lines to select: -1 for up, 1 for down
      * - skip (Boolean): If `true`, removes the active selection range
      *
@@ -14931,13 +15012,13 @@ var Editor = require("./editor").Editor;
     }
 
     /** extension
-     * Editor.selectMore(dir, skip) 
+     * Editor.selectMore(dir, skip)
      * - dir (Number): The direction of lines to select: -1 for up, 1 for down
      * - skip (Boolean): If `true`, removes the active selection range
      *
      * Finds the next occurence of text in an active selection and adds it to the selections.
      **/
-    this.selectMore = function (dir, skip) {
+    this.selectMore = function(dir, skip) {
         var session = this.session;
         var sel = session.multiSelect;
 
@@ -14957,6 +15038,115 @@ var Editor = require("./editor").Editor;
         if (skip)
             this.multiSelect.substractPoint(range.cursor);
     };
+    this.alignCursors = function() {
+        var session = this.session;
+        var sel = session.multiSelect;
+        var ranges = sel.ranges;
+
+        if (!ranges.length) {
+            var range = this.selection.getRange();
+            var fr = range.start.row, lr = range.end.row;
+            var lines = this.session.doc.removeLines(fr, lr);
+            lines = this.$reAlignText(lines);
+            this.session.doc.insertLines(fr, lines);
+            range.start.column = 0;
+            range.end.column = lines[lines.length - 1].length;
+            this.selection.setRange(range);
+        } else {
+            // filter out ranges on same row
+            var row = -1;
+            var sameRowRanges = ranges.filter(function(r) {
+                if (r.cursor.row == row)
+                    return true;
+                row = r.cursor.row;
+            });
+            sel.$onRemoveRange(sameRowRanges);
+
+            var maxCol = 0;
+            var minSpace = Infinity;
+            var spaceOffsets = ranges.map(function(r) {
+                var p = r.cursor;
+                var line = session.getLine(p.row);
+                var spaceOffset = line.substr(p.column).search(/\S/g);
+                if (spaceOffset == -1)
+                    spaceOffset = 0;
+
+                if (p.column > maxCol)
+                    maxCol = p.column;
+                if (spaceOffset < minSpace)
+                    minSpace = spaceOffset;
+                return spaceOffset;
+            });
+            ranges.forEach(function(r, i) {
+                var p = r.cursor;
+                var l = maxCol - p.column;
+                var d = spaceOffsets[i] - minSpace;
+                if (l > d)
+                    session.insert(p, lang.stringRepeat(" ", l - d));
+                else
+                    session.remove(new Range(p.row, p.column, p.row, p.column - l + d));
+
+                r.start.column = r.end.column = maxCol;
+                r.start.row = r.end.row = p.row;
+                r.cursor = r.end;
+            });
+            sel.fromOrientedRange(ranges[0]);
+            this.renderer.updateCursor();
+            this.renderer.updateBackMarkers();
+        }
+    };
+
+    this.$reAlignText = function(lines) {
+        var isLeftAligned = true, isRightAligned = true;
+        var startW, textW, endW;
+
+        return lines.map(function(line) {
+            var m = line.match(/(\s*)(.*?)(\s*)([=:].*)/);
+            if (!m)
+                return [line];
+
+            if (startW == null) {
+                startW = m[1].length;
+                textW = m[2].length;
+                endW = m[3].length;
+                return m;
+            }
+
+            if (startW + textW + endW != m[1].length + m[2].length + m[3].length)
+                isRightAligned = false;
+            if (startW != m[1].length)
+                isLeftAligned = false;
+
+            if (startW > m[1].length)
+                startW = m[1].length;
+            if (textW < m[2].length)
+                textW = m[2].length;
+            if (endW > m[3].length)
+                endW = m[3].length;
+
+            return m;
+        }).map(isLeftAligned ? isRightAligned ? alignRight : alignLeft : unAlign);
+
+        function strRepeat(n, ch) {
+            return Array(n + 1).join(ch)
+        }
+
+        function alignLeft(m) {
+            return !m[2] ? m[0] : strRepeat(startW, " ") + m[2]
+                + strRepeat(textW - m[2].length + endW, " ")
+                + m[4].replace(/^([=:])\s+/, "$1 ")
+        }
+        function alignRight(m) {
+            return !m[2] ? m[0] : strRepeat(startW + textW - m[2].length, " ") + m[2]
+                + strRepeat(endW, " ")
+                + m[4].replace(/^([=:])\s+/, "$1 ")
+        }
+        function unAlign(m) {
+            return !m[2] ? m[0] : strRepeat(startW, " ") + m[2]
+                + strRepeat(endW, " ")
+                + m[4].replace(/^([=:])\s+/, "$1 ")
+        }
+    }
 }).call(Editor.prototype);
 
 
@@ -15002,7 +15192,7 @@ exports.onSessionChange = function(e) {
     }
 };
 
-// MultiSelect(editor) 
+// MultiSelect(editor)
 // adds multiple selection support to the editor
 // (note: should be called only once for each editor instance)
 function MultiSelect(editor) {
@@ -15415,11 +15605,15 @@ exports.defaultCommands = [{
 }, {
     name: "splitIntoLines",
     exec: function(editor) { editor.multiSelect.splitIntoLines(); },
-    bindKey: {win: "Ctrl-Shift-L", mac: "Ctrl-Shift-L"},
+    bindKey: {win: "Ctrl-Alt-L", mac: "Ctrl-Alt-L"},
     readonly: true
+}, {
+    name: "alignCursors",
+    exec: function(editor) { editor.alignCursors(); },
+    bindKey: {win: "Ctrl-Alt-A", mac: "Ctrl-Alt-A"}
 }];
 
-// commands active in multiselect mode
+// commands active only in multiselect mode
 exports.multiSelectCommands = [{
     name: "singleSelection",
     bindKey: "esc",
@@ -15982,186 +16176,184 @@ var PlaceHolder = function(session, length, pos, others, mainClass, othersClass)
 exports.PlaceHolder = PlaceHolder;
 });
 
-__ace_shadowed__.define('ace/theme/textmate', ['require', 'exports', 'module' , 'ace/requirejs/text!ace/theme/textmate.css', 'ace/lib/dom'], function(require, exports, module) {
+__ace_shadowed__.define('ace/theme/textmate', ['require', 'exports', 'module' , 'text!ace/theme/textmate.css', 'ace/lib/dom'], function(require, exports, module) {
 
 
 exports.isDark = false;
 exports.cssClass = "ace-tm";
-exports.cssText = require('ace/requirejs/text!./textmate.css');
+exports.cssText = require('text!./textmate.css');
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 });
-__ace_shadowed__.define("ace/requirejs/text!ace/theme/textmate.css", [], ".ace-tm .ace_editor {\n\
-  border: 2px solid rgb(159, 159, 159);\n\
-}\n\
-\n\
-.ace-tm .ace_editor.ace_focus {\n\
-  border: 2px solid #327fbd;\n\
-}\n\
-\n\
-.ace-tm .ace_gutter {\n\
-  background: #f0f0f0;\n\
-  color: #333;\n\
-}\n\
-\n\
-.ace-tm .ace_print_margin {\n\
-  width: 1px;\n\
-  background: #e8e8e8;\n\
-}\n\
-\n\
-.ace-tm .ace_fold {\n\
-    background-color: #6B72E6;\n\
-}\n\
-\n\
-.ace-tm .ace_text-layer {\n\
-}\n\
-\n\
-.ace-tm .ace_cursor {\n\
-  border-left: 2px solid black;\n\
-}\n\
-\n\
-.ace-tm .ace_cursor.ace_overwrite {\n\
-  border-left: 0px;\n\
-  border-bottom: 1px solid black;\n\
-}\n\
-        \n\
-.ace-tm .ace_line .ace_invisible {\n\
-  color: rgb(191, 191, 191);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_storage,\n\
-.ace-tm .ace_line .ace_keyword {\n\
-  color: blue;\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_constant {\n\
-  color: rgb(197, 6, 11);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_constant.ace_buildin {\n\
-  color: rgb(88, 72, 246);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_constant.ace_language {\n\
-  color: rgb(88, 92, 246);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_constant.ace_library {\n\
-  color: rgb(6, 150, 14);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_invalid {\n\
-  background-color: rgba(255, 0, 0, 0.1);\n\
-  color: red;\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_support.ace_function {\n\
-  color: rgb(60, 76, 114);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_support.ace_constant {\n\
-  color: rgb(6, 150, 14);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_support.ace_type,\n\
-.ace-tm .ace_line .ace_support.ace_class {\n\
-  color: rgb(109, 121, 222);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_keyword.ace_operator {\n\
-  color: rgb(104, 118, 135);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_string {\n\
-  color: rgb(3, 106, 7);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_comment {\n\
-  color: rgb(76, 136, 107);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_comment.ace_doc {\n\
-  color: rgb(0, 102, 255);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_comment.ace_doc.ace_tag {\n\
-  color: rgb(128, 159, 191);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_constant.ace_numeric {\n\
-  color: rgb(0, 0, 205);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_variable {\n\
-  color: rgb(49, 132, 149);\n\
-}\n\
-\n\
-.ace-tm .ace_line .ace_xml_pe {\n\
-  color: rgb(104, 104, 91);\n\
-}\n\
-\n\
-.ace-tm .ace_entity.ace_name.ace_function {\n\
-  color: #0000A2;\n\
-}\n\
-\n\
-.ace-tm .ace_markup.ace_markupine {\n\
-    text-decoration:underline;\n\
-}\n\
-\n\
-.ace-tm .ace_markup.ace_heading {\n\
-  color: rgb(12, 7, 255);\n\
-}\n\
-\n\
-.ace-tm .ace_markup.ace_list {\n\
-  color:rgb(185, 6, 144);\n\
-}\n\
-\n\
-.ace-tm .ace_marker-layer .ace_selection {\n\
-  background: rgb(181, 213, 255);\n\
-}\n\
-.ace-tm.multiselect .ace_selection.start {\n\
-  box-shadow: 0 0 3px 0px white;\n\
-  border-radius: 2px;\n\
-}\n\
-.ace-tm .ace_marker-layer .ace_step {\n\
-  background: rgb(252, 255, 0);\n\
-}\n\
-\n\
-.ace-tm .ace_marker-layer .ace_stack {\n\
-  background: rgb(164, 229, 101);\n\
-}\n\
-\n\
-.ace-tm .ace_marker-layer .ace_bracket {\n\
-  margin: -1px 0 0 -1px;\n\
-  border: 1px solid rgb(192, 192, 192);\n\
-}\n\
-\n\
-.ace-tm .ace_marker-layer .ace_active_line {\n\
-  background: rgba(0, 0, 0, 0.07);\n\
-}\n\
-\n\
-.ace-tm .ace_gutter_active_line {\n\
-    background-color : #dcdcdc;\n\
-}\n\
-\n\
-.ace-tm .ace_marker-layer .ace_selected_word {\n\
-  background: rgb(250, 250, 255);\n\
-  border: 1px solid rgb(200, 200, 250);\n\
-}\n\
-\n\
-.ace-tm .ace_meta.ace_tag {\n\
-  color:rgb(0, 22, 142);\n\
-}\n\
-\n\
-.ace-tm .ace_string.ace_regex {\n\
-  color: rgb(255, 0, 0)\n\
-}\n\
-\n\
-.ace-tm .ace_indent-guide {\n\
-  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\n\
-}\n\
-");
+__ace_shadowed__.define("text!ace/theme/textmate.css", [], ".ace-tm .ace_editor {\n" +
+  "  border: 2px solid rgb(159, 159, 159);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_editor.ace_focus {\n" +
+  "  border: 2px solid #327fbd;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_gutter {\n" +
+  "  background: #f0f0f0;\n" +
+  "  color: #333;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_print_margin {\n" +
+  "  width: 1px;\n" +
+  "  background: #e8e8e8;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_fold {\n" +
+  "    background-color: #6B72E6;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_scroller {\n" +
+  "  background-color: #FFFFFF;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_cursor {\n" +
+  "  border-left: 2px solid black;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_cursor.ace_overwrite {\n" +
+  "  border-left: 0px;\n" +
+  "  border-bottom: 1px solid black;\n" +
+  "}\n" +
+  "        \n" +
+  ".ace-tm .ace_line .ace_invisible {\n" +
+  "  color: rgb(191, 191, 191);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_storage,\n" +
+  ".ace-tm .ace_line .ace_keyword {\n" +
+  "  color: blue;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_constant {\n" +
+  "  color: rgb(197, 6, 11);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_constant.ace_buildin {\n" +
+  "  color: rgb(88, 72, 246);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_constant.ace_language {\n" +
+  "  color: rgb(88, 92, 246);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_constant.ace_library {\n" +
+  "  color: rgb(6, 150, 14);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_invalid {\n" +
+  "  background-color: rgba(255, 0, 0, 0.1);\n" +
+  "  color: red;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_support.ace_function {\n" +
+  "  color: rgb(60, 76, 114);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_support.ace_constant {\n" +
+  "  color: rgb(6, 150, 14);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_support.ace_type,\n" +
+  ".ace-tm .ace_line .ace_support.ace_class {\n" +
+  "  color: rgb(109, 121, 222);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_keyword.ace_operator {\n" +
+  "  color: rgb(104, 118, 135);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_string {\n" +
+  "  color: rgb(3, 106, 7);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_comment {\n" +
+  "  color: rgb(76, 136, 107);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_comment.ace_doc {\n" +
+  "  color: rgb(0, 102, 255);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_comment.ace_doc.ace_tag {\n" +
+  "  color: rgb(128, 159, 191);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_constant.ace_numeric {\n" +
+  "  color: rgb(0, 0, 205);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_variable {\n" +
+  "  color: rgb(49, 132, 149);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_line .ace_xml_pe {\n" +
+  "  color: rgb(104, 104, 91);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_entity.ace_name.ace_function {\n" +
+  "  color: #0000A2;\n" +
+  "}\n" +
+  "\n" +
+  "\n" +
+  ".ace-tm .ace_markup.ace_heading {\n" +
+  "  color: rgb(12, 7, 255);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_markup.ace_list {\n" +
+  "  color:rgb(185, 6, 144);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_meta.ace_tag {\n" +
+  "  color:rgb(0, 22, 142);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_string.ace_regex {\n" +
+  "  color: rgb(255, 0, 0)\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_marker-layer .ace_selection {\n" +
+  "  background: rgb(181, 213, 255);\n" +
+  "}\n" +
+  ".ace-tm.multiselect .ace_selection.start {\n" +
+  "  box-shadow: 0 0 3px 0px white;\n" +
+  "  border-radius: 2px;\n" +
+  "}\n" +
+  ".ace-tm .ace_marker-layer .ace_step {\n" +
+  "  background: rgb(252, 255, 0);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_marker-layer .ace_stack {\n" +
+  "  background: rgb(164, 229, 101);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_marker-layer .ace_bracket {\n" +
+  "  margin: -1px 0 0 -1px;\n" +
+  "  border: 1px solid rgb(192, 192, 192);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_marker-layer .ace_active_line {\n" +
+  "  background: rgba(0, 0, 0, 0.07);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_gutter_active_line {\n" +
+  "    background-color : #dcdcdc;\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_marker-layer .ace_selected_word {\n" +
+  "  background: rgb(250, 250, 255);\n" +
+  "  border: 1px solid rgb(200, 200, 250);\n" +
+  "}\n" +
+  "\n" +
+  ".ace-tm .ace_indent-guide {\n" +
+  "  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\n" +
+  "}\n" +
+  "");
 
 ;
             (function() {

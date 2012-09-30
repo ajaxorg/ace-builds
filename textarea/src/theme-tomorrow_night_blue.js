@@ -1,37 +1,30 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ * Distributed under the BSD license:
  *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
+ * Copyright (c) 2010, Ajax.org B.V.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Ajax.org B.V. nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * ***** END LICENSE BLOCK ***** */
 
@@ -39,175 +32,148 @@ __ace_shadowed__.define('ace/theme/tomorrow_night_blue', ['require', 'exports', 
 
 exports.isDark = true;
 exports.cssClass = "ace-tomorrow-night-blue";
-exports.cssText = "\
-.ace-tomorrow-night-blue .ace_editor {\
-  border: 2px solid rgb(159, 159, 159);\
+exports.cssText = ".ace-tomorrow-night-blue .ace_editor {\
+  border: 2px solid rgb(159, 159, 159)\
 }\
 \
 .ace-tomorrow-night-blue .ace_editor.ace_focus {\
-  border: 2px solid #327fbd;\
+  border: 2px solid #327fbd\
 }\
 \
 .ace-tomorrow-night-blue .ace_gutter {\
   background: #00204b;\
-  color: #7388b5;\
+  color: #7388b5\
 }\
 \
 .ace-tomorrow-night-blue .ace_print_margin {\
   width: 1px;\
-  background: #00204b;\
+  background: #00204b\
 }\
 \
 .ace-tomorrow-night-blue .ace_scroller {\
-  background-color: #002451;\
+  background-color: #002451\
 }\
 \
+.ace-tomorrow-night-blue .ace_constant.ace_other,\
 .ace-tomorrow-night-blue .ace_text-layer {\
-  color: #FFFFFF;\
+  color: #FFFFFF\
 }\
 \
 .ace-tomorrow-night-blue .ace_cursor {\
-  border-left: 2px solid #FFFFFF;\
+  border-left: 2px solid #FFFFFF\
 }\
 \
 .ace-tomorrow-night-blue .ace_cursor.ace_overwrite {\
   border-left: 0px;\
-  border-bottom: 1px solid #FFFFFF;\
+  border-bottom: 1px solid #FFFFFF\
 }\
 \
 .ace-tomorrow-night-blue .ace_marker-layer .ace_selection {\
-  background: #003F8E;\
+  background: #003F8E\
 }\
 \
 .ace-tomorrow-night-blue.multiselect .ace_selection.start {\
   box-shadow: 0 0 3px 0px #002451;\
-  border-radius: 2px;\
+  border-radius: 2px\
 }\
 \
 .ace-tomorrow-night-blue .ace_marker-layer .ace_step {\
-  background: rgb(127, 111, 19);\
+  background: rgb(127, 111, 19)\
 }\
 \
 .ace-tomorrow-night-blue .ace_marker-layer .ace_bracket {\
   margin: -1px 0 0 -1px;\
-  border: 1px solid #404F7D;\
+  border: 1px solid #404F7D\
 }\
 \
 .ace-tomorrow-night-blue .ace_marker-layer .ace_active_line {\
-  background: #00346E;\
+  background: #00346E\
 }\
 \
 .ace-tomorrow-night-blue .ace_gutter_active_line {\
-  background-color: #022040;\
+  background-color: #022040\
 }\
 \
 .ace-tomorrow-night-blue .ace_marker-layer .ace_selected_word {\
-  border: 1px solid #003F8E;\
+  border: 1px solid #003F8E\
 }\
 \
 .ace-tomorrow-night-blue .ace_invisible {\
-  color: #404F7D;\
+  color: #404F7D\
 }\
 \
-.ace-tomorrow-night-blue .ace_keyword, .ace-tomorrow-night-blue .ace_meta {\
-  color:#EBBBFF;\
+.ace-tomorrow-night-blue .ace_keyword,\
+.ace-tomorrow-night-blue .ace_meta,\
+.ace-tomorrow-night-blue .ace_storage,\
+.ace-tomorrow-night-blue .ace_storage.ace_type,\
+.ace-tomorrow-night-blue .ace_support.ace_type {\
+  color: #EBBBFF\
 }\
 \
 .ace-tomorrow-night-blue .ace_keyword.ace_operator {\
-  color:#99FFFF;\
+  color: #99FFFF\
 }\
 \
-.ace-tomorrow-night-blue .ace_constant.ace_language {\
-  color:#FFC58F;\
-}\
-\
-.ace-tomorrow-night-blue .ace_constant.ace_numeric {\
-  color:#FFC58F;\
-}\
-\
-.ace-tomorrow-night-blue .ace_constant.ace_other {\
-  color:#FFFFFF;\
+.ace-tomorrow-night-blue .ace_constant.ace_character,\
+.ace-tomorrow-night-blue .ace_constant.ace_language,\
+.ace-tomorrow-night-blue .ace_constant.ace_numeric,\
+.ace-tomorrow-night-blue .ace_keyword.ace_other.ace_unit,\
+.ace-tomorrow-night-blue .ace_support.ace_constant,\
+.ace-tomorrow-night-blue .ace_variable.ace_parameter {\
+  color: #FFC58F\
 }\
 \
 .ace-tomorrow-night-blue .ace_invalid {\
-  color:#FFFFFF;\
-background-color:#F99DA5;\
+  color: #FFFFFF;\
+  background-color: #F99DA5\
 }\
 \
 .ace-tomorrow-night-blue .ace_invalid.ace_deprecated {\
-  color:#FFFFFF;\
-background-color:#EBBBFF;\
-}\
-\
-.ace-tomorrow-night-blue .ace_support.ace_constant {\
-  color:#FFC58F;\
+  color: #FFFFFF;\
+  background-color: #EBBBFF\
 }\
 \
 .ace-tomorrow-night-blue .ace_fold {\
-    background-color: #BBDAFF;\
-    border-color: #FFFFFF;\
+  background-color: #BBDAFF;\
+  border-color: #FFFFFF\
 }\
 \
-.ace-tomorrow-night-blue .ace_support.ace_function {\
-  color:#BBDAFF;\
-}\
-\
-.ace-tomorrow-night-blue .ace_storage {\
-  color:#EBBBFF;\
-}\
-\
-.ace-tomorrow-night-blue .ace_storage.ace_type,  .ace-tomorrow-night-blue .ace_support.ace_type{\
-  color:#EBBBFF;\
-}\
-\
+.ace-tomorrow-night-blue .ace_entity.ace_name.ace_function,\
+.ace-tomorrow-night-blue .ace_support.ace_function,\
 .ace-tomorrow-night-blue .ace_variable {\
-  color:#BBDAFF;\
+  color: #BBDAFF\
 }\
 \
-.ace-tomorrow-night-blue .ace_variable.ace_parameter {\
-  color:#FFC58F;\
+.ace-tomorrow-night-blue .ace_support.ace_class,\
+.ace-tomorrow-night-blue .ace_support.ace_type {\
+  color: #FFEEAD\
 }\
 \
+.ace-tomorrow-night-blue .ace_markup.ace_heading,\
 .ace-tomorrow-night-blue .ace_string {\
-  color:#D1F1A9;\
+  color: #D1F1A9\
 }\
 \
-.ace-tomorrow-night-blue .ace_string.ace_regexp {\
-  color:#FF9DA4;\
+.ace-tomorrow-night-blue .ace_entity.ace_name.ace_tag,\
+.ace-tomorrow-night-blue .ace_entity.ace_other.ace_attribute-name,\
+.ace-tomorrow-night-blue .ace_meta.ace_tag,\
+.ace-tomorrow-night-blue .ace_string.ace_regexp,\
+.ace-tomorrow-night-blue .ace_variable {\
+  color: #FF9DA4\
 }\
 \
 .ace-tomorrow-night-blue .ace_comment {\
-  color:#7285B7;\
-}\
-\
-.ace-tomorrow-night-blue .ace_variable {\
-  color:#FF9DA4;\
-}\
-\
-.ace-tomorrow-night-blue .ace_meta.ace_tag {\
-  color:#FF9DA4;\
-}\
-\
-.ace-tomorrow-night-blue .ace_entity.ace_other.ace_attribute-name {\
-  color:#FF9DA4;\
-}\
-\
-.ace-tomorrow-night-blue .ace_entity.ace_name.ace_function {\
-  color:#BBDAFF;\
+  color: #7285B7\
 }\
 \
 .ace-tomorrow-night-blue .ace_markup.ace_underline {\
-    text-decoration:underline;\
-}\
-\
-.ace-tomorrow-night-blue .ace_markup.ace_heading {\
-  color:#D1F1A9;\
+  text-decoration: underline\
 }\
 \
 .ace-tomorrow-night-blue .ace_indent-guide {\
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgUAn8z7Bq1ar/ABBUBHJ4/r3JAAAAAElFTkSuQmCC) right repeat-y;\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgUAn8z7Bq1ar/ABBUBHJ4/r3JAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
-    var dom = require("../lib/dom");
-    dom.importCssString(exports.cssText, exports.cssClass);
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass);
 });

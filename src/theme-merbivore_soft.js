@@ -1,37 +1,30 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ * Distributed under the BSD license:
  *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
+ * Copyright (c) 2010, Ajax.org B.V.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Ajax.org B.V. nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * ***** END LICENSE BLOCK ***** */
 
@@ -39,157 +32,138 @@ define('ace/theme/merbivore_soft', ['require', 'exports', 'module', 'ace/lib/dom
 
 exports.isDark = true;
 exports.cssClass = "ace-merbivore-soft";
-exports.cssText = "\
-.ace-merbivore-soft .ace_editor {\
-  border: 2px solid rgb(159, 159, 159);\
+exports.cssText = ".ace-merbivore-soft .ace_editor {\
+  border: 2px solid rgb(159, 159, 159)\
 }\
 \
 .ace-merbivore-soft .ace_editor.ace_focus {\
-  border: 2px solid #327fbd;\
+  border: 2px solid #327fbd\
 }\
 \
 .ace-merbivore-soft .ace_gutter {\
   background: #262424;\
-  color: #E6E1DC;\
+  color: #E6E1DC\
 }\
 \
 .ace-merbivore-soft .ace_print_margin {\
   width: 1px;\
-  background: #262424;\
+  background: #262424\
 }\
 \
 .ace-merbivore-soft .ace_scroller {\
-  background-color: #1C1C1C;\
+  background-color: #1C1C1C\
 }\
 \
 .ace-merbivore-soft .ace_text-layer {\
-  color: #E6E1DC;\
+  color: #E6E1DC\
 }\
 \
 .ace-merbivore-soft .ace_cursor {\
-  border-left: 2px solid #FFFFFF;\
+  border-left: 2px solid #FFFFFF\
 }\
 \
 .ace-merbivore-soft .ace_cursor.ace_overwrite {\
   border-left: 0px;\
-  border-bottom: 1px solid #FFFFFF;\
+  border-bottom: 1px solid #FFFFFF\
 }\
 \
 .ace-merbivore-soft .ace_marker-layer .ace_selection {\
-  background: #494949;\
+  background: #494949\
 }\
 \
 .ace-merbivore-soft.multiselect .ace_selection.start {\
   box-shadow: 0 0 3px 0px #1C1C1C;\
-  border-radius: 2px;\
+  border-radius: 2px\
 }\
 \
 .ace-merbivore-soft .ace_marker-layer .ace_step {\
-  background: rgb(102, 82, 0);\
+  background: rgb(102, 82, 0)\
 }\
 \
 .ace-merbivore-soft .ace_marker-layer .ace_bracket {\
   margin: -1px 0 0 -1px;\
-  border: 1px solid #404040;\
+  border: 1px solid #404040\
 }\
 \
 .ace-merbivore-soft .ace_marker-layer .ace_active_line {\
-  background: #333435;\
+  background: #333435\
 }\
 \
 .ace-merbivore-soft .ace_gutter_active_line {\
-  background-color: #333435;\
+  background-color: #333435\
 }\
 \
 .ace-merbivore-soft .ace_marker-layer .ace_selected_word {\
-  border: 1px solid #494949;\
+  border: 1px solid #494949\
 }\
 \
 .ace-merbivore-soft .ace_invisible {\
-  color: #404040;\
+  color: #404040\
 }\
 \
-.ace-merbivore-soft .ace_keyword, .ace-merbivore-soft .ace_meta {\
-  color:#FC803A;\
+.ace-merbivore-soft .ace_entity.ace_name.ace_tag,\
+.ace-merbivore-soft .ace_keyword,\
+.ace-merbivore-soft .ace_meta,\
+.ace-merbivore-soft .ace_meta.ace_tag,\
+.ace-merbivore-soft .ace_storage {\
+  color: #FC803A\
 }\
 \
-.ace-merbivore-soft .ace_constant, .ace-merbivore-soft .ace_constant.ace_other {\
-  color:#68C1D8;\
+.ace-merbivore-soft .ace_constant,\
+.ace-merbivore-soft .ace_constant.ace_character,\
+.ace-merbivore-soft .ace_constant.ace_character.ace_escape,\
+.ace-merbivore-soft .ace_constant.ace_other,\
+.ace-merbivore-soft .ace_support.ace_type {\
+  color: #68C1D8\
 }\
 \
-.ace-merbivore-soft .ace_constant.ace_character,  {\
-  color:#68C1D8;\
-}\
-\
-.ace-merbivore-soft .ace_constant.ace_character.ace_escape,  {\
-  color:#68C1D8;\
+.ace-merbivore-soft .ace_constant.ace_character.ace_escape {\
+  color: #B3E5B4\
 }\
 \
 .ace-merbivore-soft .ace_constant.ace_language {\
-  color:#E1C582;\
+  color: #E1C582\
 }\
 \
-.ace-merbivore-soft .ace_constant.ace_library {\
-  color:#8EC65F;\
+.ace-merbivore-soft .ace_constant.ace_library,\
+.ace-merbivore-soft .ace_string,\
+.ace-merbivore-soft .ace_support.ace_constant {\
+  color: #8EC65F\
 }\
 \
 .ace-merbivore-soft .ace_constant.ace_numeric {\
-  color:#7FC578;\
+  color: #7FC578\
 }\
 \
-.ace-merbivore-soft .ace_invalid {\
-  color:#FFFFFF;\
-background-color:#FE3838;\
-}\
-\
+.ace-merbivore-soft .ace_invalid,\
 .ace-merbivore-soft .ace_invalid.ace_deprecated {\
-  color:#FFFFFF;\
-background-color:#FE3838;\
-}\
-\
-.ace-merbivore-soft .ace_support.ace_constant {\
-  color:#8EC65F;\
+  color: #FFFFFF;\
+  background-color: #FE3838\
 }\
 \
 .ace-merbivore-soft .ace_fold {\
-    background-color: #FC803A;\
-    border-color: #E6E1DC;\
+  background-color: #FC803A;\
+  border-color: #E6E1DC\
 }\
 \
-.ace-merbivore-soft .ace_storage {\
-  color:#FC803A;\
-}\
-\
-.ace-merbivore-soft .ace_string {\
-  color:#8EC65F;\
-}\
-\
-.ace-merbivore-soft .ace_comment {\
-  font-style:italic;\
-color:#AC4BB8;\
-}\
-\
+.ace-merbivore-soft .ace_comment,\
 .ace-merbivore-soft .ace_meta {\
-  font-style:italic;\
-color:#AC4BB8;\
-}\
-\
-.ace-merbivore-soft .ace_meta.ace_tag {\
-  color:#FC803A;\
+  font-style: italic;\
+  color: #AC4BB8\
 }\
 \
 .ace-merbivore-soft .ace_entity.ace_other.ace_attribute-name {\
-  color:#EAF1A3;\
+  color: #EAF1A3\
 }\
 \
 .ace-merbivore-soft .ace_markup.ace_underline {\
-    text-decoration:underline;\
+  text-decoration: underline\
 }\
 \
 .ace-merbivore-soft .ace_indent-guide {\
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWOQkZH5zzBz5sz/AA8EBB6crd1rAAAAAElFTkSuQmCC) right repeat-y;\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWOQkZH5zzBz5sz/AA8EBB6crd1rAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
-    var dom = require("../lib/dom");
-    dom.importCssString(exports.cssText, exports.cssClass);
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass);
 });

@@ -152,68 +152,49 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 });
 
-define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/unicode', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/unicode', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
-var lang = require("../lib/lang");
 var unicode = require("../unicode");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var JavaScriptHighlightRules = function() {
-
     // see: https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects
-    var globals = lang.arrayToMap(
-      // Constructors
-        ("Array|Boolean|Date|Function|Iterator|Number|Object|RegExp|String|Proxy|" +
-      // E4X
-         "Namespace|QName|XML|XMLList|" +
-         "ArrayBuffer|Float32Array|Float64Array|Int16Array|Int32Array|Int8Array|" +
-         "Uint16Array|Uint32Array|Uint8Array|Uint8ClampedArray|" +
-      // Errors
-        "Error|EvalError|InternalError|RangeError|ReferenceError|StopIteration|" +
-        "SyntaxError|TypeError|URIError|" +
-      //  Non-constructor functions
-        "decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|eval|isFinite|" +
-        "isNaN|parseFloat|parseInt|" +
-      // Other
-        "JSON|Math|" +
-      // Pseudo
-        "this|arguments|prototype|window|document"
-      ).split("|")
-    );
+    var keywordMapper = this.createKeywordMapper({
+        "variable.language":
+            "Array|Boolean|Date|Function|Iterator|Number|Object|RegExp|String|Proxy|"  + // Constructors
+            "Namespace|QName|XML|XMLList|"                                             + // E4X
+            "ArrayBuffer|Float32Array|Float64Array|Int16Array|Int32Array|Int8Array|"   +
+            "Uint16Array|Uint32Array|Uint8Array|Uint8ClampedArray|"                    +
+            "Error|EvalError|InternalError|RangeError|ReferenceError|StopIteration|"   + // Errors
+            "SyntaxError|TypeError|URIError|"                                          +
+            "decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|eval|isFinite|" + // Non-constructor functions
+            "isNaN|parseFloat|parseInt|"                                               +
+            "JSON|Math|"                                                               + // Other
+            "this|arguments|prototype|window|document"                                 , // Pseudo
+        "invalid.deprecated":
+            "__parent__|__count__|escape|unescape|with|__proto__|debugger",
+        "keyword":
+            "const|yield|import|get|set" +
+            "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
+            "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|",
+        "storage.type":
+            "const|let|var|function",
+        "invalid.illegal":
+            "class|enum|extends|super|export|implements|private|" +
+            "public|interface|package|protected|static",
+        "constant.language":
+            "null|Infinity|NaN|undefined",
+    }, "identifier");
 
-    var keywords = lang.arrayToMap(
-        ("break|case|catch|continue|default|delete|do|else|finally|for|function|" +
-        "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|" +
-        "const|yield|import|get|set").split("|")
-    );
 
     // keywords which can be followed by regular expressions
     var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield";
 
-    var deprecated = lang.arrayToMap(
-        ("__parent__|__count__|escape|unescape|with|__proto__").split("|")
-    );
-
-    var definitions = lang.arrayToMap(("const|let|var|function").split("|"));
-
-    var buildinConstants = lang.arrayToMap(
-        ("null|Infinity|NaN|undefined").split("|")
-    );
-
-    var futureReserved = lang.arrayToMap(
-        ("class|enum|extends|super|export|implements|private|" +
-        "public|interface|package|protected|static").split("|")
-    );
-
     // TODO: Unicode escape sequences
-    var identifierRe = "[" + unicode.packages.L + "\\$_]["
-        + unicode.packages.L
-        + unicode.packages.Mn + unicode.packages.Mc
-        + unicode.packages.Nd
-        + unicode.packages.Pc + "\\$_]*\\b";
+    var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
 
     var escapedRe = "\\\\(?:x[0-9a-fA-F]{2}|" + // hex
         "u[0-9a-fA-F]{4}|" + // unicode
@@ -252,106 +233,58 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "constant.numeric", // float
                 regex : /[+-]?\d+(?:(?:\.\d*)?(?:[eE][+-]?\d+)?)?\b/
-            }, { // match stuff like: Sound.prototype.play = function() { }
+            }, {
+                // Sound.prototype.play =
                 token : [
-                    "storage.type",
-                    "punctuation.operator",
-                    "support.function",
-                    "punctuation.operator",
-                    "entity.name.function",
-                    "text",
-                    "keyword.operator",
-                    "text",
-                    "storage.type",
-                    "text",
-                    "paren.lparen"
+                    "storage.type", "punctuation.operator", "support.function",
+                    "punctuation.operator", "entity.name.function", "text","keyword.operator"
                 ],
-                regex : "(" + identifierRe + ")(\\.)(prototype)(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s*)(\\()",
+                regex : "(" + identifierRe + ")(\\.)(prototype)(\\.)(" + identifierRe +")(\\s*)(=)",
                 next: "function_arguments"
-            }, { // match stuff like: Sound.prototype.play = myfunc
+            }, {
+                // Sound.play = function() {  }
                 token : [
-                    "storage.type",
-                    "punctuation.operator",
-                    "support.function",
-                    "punctuation.operator",
-                    "entity.name.function",
-                    "text",
-                    "keyword.operator",
-                    "text"
-                ],
-                regex : "(" + identifierRe + ")(\\.)(prototype)(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)",
-                next: "function_arguments"
-            }, { // match stuff like: Sound.play = function() {  }
-                token : [
-                    "storage.type",
-                    "punctuation.operator",
-                    "entity.name.function",
-                    "text",
-                    "keyword.operator",
-                    "text",
-                    "storage.type",
-                    "text",
-                    "paren.lparen"
+                    "storage.type", "punctuation.operator", "entity.name.function", "text",
+                    "keyword.operator", "text", "storage.type", "text", "paren.lparen"
                 ],
                 regex : "(" + identifierRe + ")(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
-            }, { // match stuff like: play = function() {  }
+            }, {
+                // play = function() {  }
                 token : [
-                    "entity.name.function",
-                    "text",
-                    "keyword.operator",
-                    "text",
-                    "storage.type",
-                    "text",
-                    "paren.lparen"
+                    "entity.name.function", "text", "keyword.operator", "text", "storage.type",
+                    "text", "paren.lparen"
                 ],
                 regex : "(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
-            }, { // match stuff like: Sound.play = function play() {  }
+            }, {
+                // Sound.play = function play() {  }
                 token : [
-                    "storage.type",
-                    "punctuation.operator",
-                    "entity.name.function",
-                    "text",
-                    "keyword.operator",
-                    "text",
-                    "storage.type",
-                    "text",
-                    "entity.name.function",
-                    "text",
-                    "paren.lparen"
+                    "storage.type", "punctuation.operator", "entity.name.function", "text",
+                    "keyword.operator", "text",
+                    "storage.type", "text", "entity.name.function", "text", "paren.lparen"
                 ],
                 regex : "(" + identifierRe + ")(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s+)(\\w+)(\\s*)(\\()",
                 next: "function_arguments"
-            }, { // match regular function like: function myFunc(arg) { }
+            }, {
+                // function myFunc(arg) { }
                 token : [
-                    "storage.type",
-                    "text",
-                    "entity.name.function",
-                    "text",
-                    "paren.lparen"
+                    "storage.type", "text", "entity.name.function", "text", "paren.lparen"
                 ],
                 regex : "(function)(\\s+)(" + identifierRe + ")(\\s*)(\\()",
                 next: "function_arguments"
-            }, { // match stuff like: foobar: function() { }
+            }, {
+                // foobar: function() { }
                 token : [
-                    "entity.name.function",
-                    "text",
-                    "punctuation.operator",
-                    "text",
-                    "storage.type",
-                    "text",
-                    "paren.lparen"
+                    "entity.name.function", "text", "punctuation.operator",
+                    "text", "storage.type", "text", "paren.lparen"
                 ],
                 regex : "(" + identifierRe + ")(\\s*)(:)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
-            }, { // Attempt to match : function() { } (this is for issues with 'foo': function() { })
+            }, {
+                // : function() { } (this is for issues with 'foo': function() { })
                 token : [
-                    "text",
-                    "text",
-                    "storage.type",
-                    "text",
-                    "paren.lparen"
+                    "text", "text", "storage.type", "text", "paren.lparen"
                 ],
                 regex : "(:)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
@@ -375,24 +308,7 @@ var JavaScriptHighlightRules = function() {
                 token : ["storage.type", "punctuation.operator", "support.function.firebug"],
                 regex : /(console)(\.)(warn|info|log|error|time|timeEnd|assert)\b/
             }, {
-                token : function(value) {
-                    if (globals.hasOwnProperty(value))
-                        return "variable.language";
-                    else if (deprecated.hasOwnProperty(value))
-                        return "invalid.deprecated";
-                    else if (definitions.hasOwnProperty(value))
-                        return "storage.type";
-                    else if (keywords.hasOwnProperty(value))
-                        return "keyword";
-                    else if (buildinConstants.hasOwnProperty(value))
-                        return "constant.language";
-                    else if (futureReserved.hasOwnProperty(value))
-                        return "invalid.illegal";
-                    else if (value == "debugger")
-                        return "invalid.deprecated";
-                    else
-                        return "identifier";
-                },
+                token : keywordMapper,
                 regex : identifierRe
             }, {
                 token : "keyword.operator",
@@ -451,6 +367,7 @@ var JavaScriptHighlightRules = function() {
         ],
         "regex": [
             {
+                // escapes
                 token: "regexp.keyword.operator",
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
@@ -460,12 +377,20 @@ var JavaScriptHighlightRules = function() {
                 next: "start",
                 merge: true
             }, {
+                // invalid operators
+                token : "invalid",
+                regex: /\{\d+,?(?:\d+)?}[+*]|[+*^$?][+*]|\?\?/ // |[^$][?]
+            }, {
+                // operators
+                token : "constant.language.escape",
+                regex: /\(\?[:=!]|\)|\{\d+,?(?:\d+)?}|[+*]\?|[(|)$^+*?]/
+            }, {
                 token: "string.regexp",
-                regex: "[^\\\\/\\[]+",
+                regex: /{|[^\[\\{()$^+*?\/]+/,
                 merge: true
             }, {
-                token: "string.regexp.charachterclass",
-                regex: "\\[",
+                token: "constant.language.escape",
+                regex: /\[\^?/,
                 next: "regex_character_class",
                 merge: true
             }, {
@@ -479,13 +404,16 @@ var JavaScriptHighlightRules = function() {
                 token: "regexp.keyword.operator",
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
-                token: "string.regexp.charachterclass",
+                token: "constant.language.escape",
                 regex: "]",
                 next: "regex",
                 merge: true
             }, {
+                token: "constant.language.escape",
+                regex: "-",
+            }, {
                 token: "string.regexp.charachterclass",
-                regex: "[^\\\\\\]]+",
+                regex: /[^\]\-\\]+/,
                 merge: true
             }, {
                 token: "empty",
@@ -1056,31 +984,26 @@ var FoldMode = exports.FoldMode = function() {};
 }).call(FoldMode.prototype);
 
 });
-define('ace/mode/scala_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/scala_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
-var lang = require("../lib/lang");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var ScalaHighlightRules = function() {
 
     // taken from http://download.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html
-    var keywords = lang.arrayToMap(
-        (
+    var keywords = (
             "case|default|do|else|for|if|match|while|throw|return|try|catch|finally|yield|" +
             "abstract|class|def|extends|final|forSome|implicit|implicits|import|lazy|new|object|" +
             "override|package|private|protected|sealed|super|this|trait|type|val|var|with"
-        ).split("|")
     );
 
-    var buildinConstants = lang.arrayToMap(
-        ("true|false").split("|")
-    );
-    
-    var langClasses = lang.arrayToMap(
-        ("AbstractMethodError|AssertionError|ClassCircularityError|"+
+    var buildinConstants = ("true|false");
+
+    var langClasses = (
+        "AbstractMethodError|AssertionError|ClassCircularityError|"+
         "ClassFormatError|Deprecated|EnumConstantNotPresentException|"+
         "ExceptionInInitializerError|IllegalAccessError|"+
         "IllegalThreadStateException|InstantiationError|InternalError|"+
@@ -1107,13 +1030,17 @@ var ScalaHighlightRules = function() {
         "Cloneable|Class|CharSequence|Comparable|String|Object|" +
         "Unit|Any|AnyVal|AnyRef|Null|ScalaObject|Singleton|Seq|Iterable|List|" +
         "Option|Array|Char|Byte|Short|Int|Long|Nothing"
-        
-        ).split("|")
+
+
     );
-    
-    var importClasses = lang.arrayToMap(
-        ("").split("|")
-    );
+
+    var keywordMapper = this.createKeywordMapper({
+        "variable.language": "this",
+        "keyword": keywords,
+        "support.function": langClasses,
+        "constant.language": buildinConstants
+    }, "identifier");
+
     // regexp must not have capturing parentheses. Use (?:) instead.
     // regexps are ordered -> the first match is used
 
@@ -1153,20 +1080,7 @@ var ScalaHighlightRules = function() {
                 token : "constant.language.boolean",
                 regex : "(?:true|false)\\b"
             }, {
-                token : function(value) {
-                    if (value == "this")
-                        return "variable.language";
-                    else if (keywords.hasOwnProperty(value))
-                        return "keyword";
-                    else if (langClasses.hasOwnProperty(value))
-                        return "support.function";
-                    else if (importClasses.hasOwnProperty(value))
-                        return "support.function";
-                    else if (buildinConstants.hasOwnProperty(value))
-                        return "constant.language";
-                    else
-                        return "identifier";
-                },
+                token : keywordMapper,
                 // TODO: Unicode escape sequences
                 // TODO: Unicode identifiers
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
@@ -1226,7 +1140,7 @@ var ScalaHighlightRules = function() {
             }
         ]
     };
-    
+
     this.embedRules(DocCommentHighlightRules, "doc-",
         [ DocCommentHighlightRules.getEndRule("start") ]);
 };

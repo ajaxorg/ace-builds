@@ -1,37 +1,30 @@
 /* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ * Distributed under the BSD license:
  *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
+ * Copyright (c) 2010, Ajax.org B.V.
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of Ajax.org B.V. nor the
+ *       names of its contributors may be used to endorse or promote products
+ *       derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * ***** END LICENSE BLOCK ***** */
 
@@ -39,156 +32,143 @@ define('ace/theme/monokai', ['require', 'exports', 'module', 'ace/lib/dom'], fun
 
 exports.isDark = true;
 exports.cssClass = "ace-monokai";
-exports.cssText = "\
-.ace-monokai .ace_editor {\
-  border: 2px solid rgb(159, 159, 159);\
+exports.cssText = ".ace-monokai .ace_editor {\
+  border: 2px solid rgb(159, 159, 159)\
 }\
 \
 .ace-monokai .ace_editor.ace_focus {\
-  border: 2px solid #327fbd;\
+  border: 2px solid #327fbd\
 }\
 \
 .ace-monokai .ace_gutter {\
   background: #2f3129;\
-  color: #f1f1f1;\
+  color: #f1f1f1\
 }\
 \
 .ace-monokai .ace_print_margin {\
   width: 1px;\
-  background: #555651;\
+  background: #555651\
 }\
 \
 .ace-monokai .ace_scroller {\
-  background-color: #272822;\
+  background-color: #272822\
 }\
 \
 .ace-monokai .ace_text-layer {\
-  color: #F8F8F2;\
+  color: #F8F8F2\
 }\
 \
 .ace-monokai .ace_cursor {\
-  border-left: 2px solid #F8F8F0;\
+  border-left: 2px solid #F8F8F0\
 }\
 \
 .ace-monokai .ace_cursor.ace_overwrite {\
   border-left: 0px;\
-  border-bottom: 1px solid #F8F8F0;\
+  border-bottom: 1px solid #F8F8F0\
 }\
 \
 .ace-monokai .ace_marker-layer .ace_selection {\
-  background: #49483E;\
+  background: #49483E\
 }\
 \
 .ace-monokai.multiselect .ace_selection.start {\
   box-shadow: 0 0 3px 0px #272822;\
-  border-radius: 2px;\
+  border-radius: 2px\
 }\
 \
 .ace-monokai .ace_marker-layer .ace_step {\
-  background: rgb(102, 82, 0);\
+  background: rgb(102, 82, 0)\
 }\
 \
 .ace-monokai .ace_marker-layer .ace_bracket {\
   margin: -1px 0 0 -1px;\
-  border: 1px solid #49483E;\
+  border: 1px solid #49483E\
 }\
 \
 .ace-monokai .ace_marker-layer .ace_active_line {\
-  background: #49483E;\
+  background: #202020\
 }\
+\
 .ace-monokai .ace_gutter_active_line {\
-  background-color: #191916;\
+  background-color: #272727\
 }\
 \
 .ace-monokai .ace_marker-layer .ace_selected_word {\
-  border: 1px solid #49483E;\
+  border: 1px solid #49483E\
 }\
 \
 .ace-monokai .ace_invisible {\
-  color: #49483E;\
+  color: #49483E\
 }\
 \
-.ace-monokai .ace_keyword, .ace-monokai .ace_meta {\
-  color:#F92672;\
+.ace-monokai .ace_entity.ace_name.ace_tag,\
+.ace-monokai .ace_keyword,\
+.ace-monokai .ace_meta,\
+.ace-monokai .ace_storage {\
+  color: #F92672\
 }\
 \
-.ace-monokai .ace_constant.ace_language {\
-  color:#AE81FF;\
-}\
-\
-.ace-monokai .ace_constant.ace_numeric {\
-  color:#AE81FF;\
-}\
-\
+.ace-monokai .ace_constant.ace_character,\
+.ace-monokai .ace_constant.ace_language,\
+.ace-monokai .ace_constant.ace_numeric,\
 .ace-monokai .ace_constant.ace_other {\
-  color:#AE81FF;\
+  color: #AE81FF\
 }\
 \
 .ace-monokai .ace_invalid {\
-  color:#F8F8F0;\
-background-color:#F92672;\
+  color: #F8F8F0;\
+  background-color: #F92672\
 }\
 \
 .ace-monokai .ace_invalid.ace_deprecated {\
-  color:#F8F8F0;\
-background-color:#AE81FF;\
+  color: #F8F8F0;\
+  background-color: #AE81FF\
 }\
 \
-.ace-monokai .ace_support.ace_constant {\
-  color:#66D9EF;\
+.ace-monokai .ace_support.ace_constant,\
+.ace-monokai .ace_support.ace_function {\
+  color: #66D9EF\
 }\
 \
 .ace-monokai .ace_fold {\
-    background-color: #A6E22E;\
-    border-color: #F8F8F2;\
+  background-color: #A6E22E;\
+  border-color: #F8F8F2\
 }\
 \
-.ace-monokai .ace_support.ace_function {\
-  color:#66D9EF;\
+.ace-monokai .ace_storage.ace_type,\
+.ace-monokai .ace_support.ace_class,\
+.ace-monokai .ace_support.ace_type {\
+  font-style: italic;\
+  color: #66D9EF\
 }\
 \
-.ace-monokai .ace_storage {\
-  color:#F92672;\
-}\
-\
-.ace-monokai .ace_storage.ace_type,  .ace-monokai .ace_support.ace_type{\
-  font-style:italic;\
-color:#66D9EF;\
-}\
-\
+.ace-monokai .ace_entity.ace_name.ace_function,\
+.ace-monokai .ace_entity.ace_other.ace_attribute-name,\
 .ace-monokai .ace_variable {\
-  color:#A6E22E;\
+  color: #A6E22E\
 }\
 \
 .ace-monokai .ace_variable.ace_parameter {\
-  font-style:italic;\
-color:#FD971F;\
+  font-style: italic;\
+  color: #FD971F\
 }\
 \
 .ace-monokai .ace_string {\
-  color:#E6DB74;\
+  color: #E6DB74\
 }\
 \
 .ace-monokai .ace_comment {\
-  color:#75715E;\
-}\
-\
-.ace-monokai .ace_entity.ace_other.ace_attribute-name {\
-  color:#A6E22E;\
-}\
-\
-.ace-monokai .ace_entity.ace_name.ace_function {\
-  color:#A6E22E;\
+  color: #75715E\
 }\
 \
 .ace-monokai .ace_markup.ace_underline {\
-    text-decoration:underline;\
+  text-decoration: underline\
 }\
 \
 .ace-monokai .ace_indent-guide {\
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNQ11D6z7Bq1ar/ABCKBG6g04U2AAAAAElFTkSuQmCC) right repeat-y;\
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNQ11D6z7Bq1ar/ABCKBG6g04U2AAAAAElFTkSuQmCC) right repeat-y\
 }";
 
-    var dom = require("../lib/dom");
-    dom.importCssString(exports.cssText, exports.cssClass);
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass);
 });
