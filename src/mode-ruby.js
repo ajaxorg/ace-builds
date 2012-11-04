@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/ruby', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/ruby_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range'], function(require, exports, module) {
+define('ace/mode/ruby', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/ruby_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/folding/coffee'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -37,10 +37,12 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var RubyHighlightRules = require("./ruby_highlight_rules").RubyHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var Range = require("../range").Range;
+var FoldMode = require("./folding/coffee").FoldMode;
 
 var Mode = function() {
     this.$tokenizer = new Tokenizer(new RubyHighlightRules().getRules());
     this.$outdent = new MatchingBraceOutdent();
+    this.foldingRules = new FoldMode();
 };
 oop.inherits(Mode, TextMode);
 
@@ -172,9 +174,6 @@ var RubyHighlightRules = function() {
         "invalid.deprecated": "debugger" // TODO is this a remnant from js mode?
     }, "identifier");
 
-    // regexp must not have capturing parentheses. Use (?:) instead.
-    // regexps are ordered -> the first match is used
-
     this.$rules = {
         "start" : [
             {
@@ -183,7 +182,7 @@ var RubyHighlightRules = function() {
             }, {
                 token : "comment", // multi line comment
                 merge : true,
-                regex : "^\=begin$",
+                regex : "^=begin\\s",
                 next : "comment"
             }, {
                 token : "string.regexp",
@@ -201,11 +200,11 @@ var RubyHighlightRules = function() {
                 token : "text", // namespaces aren't symbols
                 regex : "::"
             }, {
-                token : "variable.instancce", // instance variable
-                regex : "@{1,2}(?:[a-zA-Z_]|\d)+"
+                token : "variable.instance", // instance variable
+                regex : "@{1,2}[a-zA-Z_\\d]+"
             }, {
                 token : "variable.class", // class name
-                regex : "[A-Z](?:[a-zA-Z_]|\d)+"
+                regex : "[A-Z][a-zA-Z_\\d]+"
             }, {
                 token : "string", // symbol
                 regex : "[:](?:[A-Za-z_]|[@$](?=[a-zA-Z0-9_]))[a-zA-Z0-9_]*[!=?]?"
@@ -220,8 +219,6 @@ var RubyHighlightRules = function() {
                 regex : "(?:true|false)\\b"
             }, {
                 token : keywordMapper,
-                // TODO: Unicode escape sequences
-                // TODO: Unicode identifiers
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
             }, {
                 token : "keyword.operator",
@@ -240,7 +237,7 @@ var RubyHighlightRules = function() {
         "comment" : [
             {
                 token : "comment", // closing comment
-                regex : "^\=end$",
+                regex : "^=end\\s.*$",
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line
@@ -299,4 +296,91 @@ var MatchingBraceOutdent = function() {};
 }).call(MatchingBraceOutdent.prototype);
 
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
+});
+
+define('ace/mode/folding/coffee', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode', 'ace/range'], function(require, exports, module) {
+
+
+var oop = require("../../lib/oop");
+var BaseFoldMode = require("./fold_mode").FoldMode;
+var Range = require("../../range").Range;
+
+var FoldMode = exports.FoldMode = function() {};
+oop.inherits(FoldMode, BaseFoldMode);
+
+(function() {
+
+    this.getFoldWidgetRange = function(session, foldStyle, row) {
+        var range = this.indentationBlock(session, row);
+        if (range)
+            return range;
+
+        var re = /\S/;
+        var line = session.getLine(row);
+        var startLevel = line.search(re);
+        if (startLevel == -1 || line[startLevel] != "#")
+            return;
+
+        var startColumn = line.length;
+        var maxRow = session.getLength();
+        var startRow = row;
+        var endRow = row;
+
+        while (++row < maxRow) {
+            line = session.getLine(row);
+            var level = line.search(re);
+
+            if (level == -1)
+                continue;
+
+            if (line[level] != "#")
+                break;
+
+            endRow = row;
+        }
+
+        if (endRow > startRow) {
+            var endColumn = session.getLine(endRow).length;
+            return new Range(startRow, startColumn, endRow, endColumn);
+        }
+    };
+    this.getFoldWidget = function(session, foldStyle, row) {
+        var line = session.getLine(row);
+        var indent = line.search(/\S/);
+        var next = session.getLine(row + 1);
+        var prev = session.getLine(row - 1);
+        var prevIndent = prev.search(/\S/);
+        var nextIndent = next.search(/\S/);
+
+        if (indent == -1) {
+            session.foldWidgets[row - 1] = prevIndent!= -1 && prevIndent < nextIndent ? "start" : "";
+            return "";
+        }
+        if (prevIndent == -1) {
+            if (indent == nextIndent && line[indent] == "#" && next[indent] == "#") {
+                session.foldWidgets[row - 1] = "";
+                session.foldWidgets[row + 1] = "";
+                return "start";
+            }
+        } else if (prevIndent == indent && line[indent] == "#" && prev[indent] == "#") {
+            if (session.getLine(row - 2).search(/\S/) == -1) {
+                session.foldWidgets[row - 1] = "start";
+                session.foldWidgets[row + 1] = "";
+                return "";
+            }
+        }
+
+        if (prevIndent!= -1 && prevIndent < indent)
+            session.foldWidgets[row - 1] = "start";
+        else
+            session.foldWidgets[row - 1] = "";
+
+        if (indent < nextIndent)
+            return "start";
+        else
+            return "";
+    };
+
+}).call(FoldMode.prototype);
+
 });

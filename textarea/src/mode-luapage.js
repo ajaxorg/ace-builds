@@ -163,25 +163,9 @@ oop.inherits(Mode, TextMode);
     this.createWorker = function(session) {
         var worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker");
         worker.attachToDocument(session.getDocument());
-            
+
         worker.on("jslint", function(results) {
-            var errors = [];
-            for (var i=0; i<results.data.length; i++) {
-                var error = results.data[i];
-                if (error)
-                    errors.push({
-                        row: error.line-1,
-                        column: error.character-1,
-                        text: error.reason,
-                        type: "warning",
-                        lint: error
-                    });
-            }
-            session.setAnnotations(errors);
-        });
-        
-        worker.on("narcissus", function(e) {
-            session.setAnnotations([e.data]);
+            session.setAnnotations(results.data);
         });
         
         worker.on("terminate", function() {
@@ -196,16 +180,14 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 });
 
-__ace_shadowed__.define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/unicode', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
-var unicode = require("../unicode");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var JavaScriptHighlightRules = function() {
-    // see: https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects
     var keywordMapper = this.createKeywordMapper({
         "variable.language":
             "Array|Boolean|Date|Function|Iterator|Number|Object|RegExp|String|Proxy|"  + // Constructors
@@ -219,11 +201,11 @@ var JavaScriptHighlightRules = function() {
             "JSON|Math|"                                                               + // Other
             "this|arguments|prototype|window|document"                                 , // Pseudo
         "invalid.deprecated":
-            "__parent__|__count__|escape|unescape|with|__proto__|debugger",
+            "__parent__|__count__|escape|unescape|with|__proto__",
         "keyword":
-            "const|yield|import|get|set" +
+            "const|yield|import|get|set|" +
             "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
-            "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|",
+            "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|debugger",
         "storage.type":
             "const|let|var|function",
         "invalid.illegal":
@@ -231,13 +213,10 @@ var JavaScriptHighlightRules = function() {
             "public|interface|package|protected|static",
         "constant.language":
             "null|Infinity|NaN|undefined",
+        "support.function":
+            "alert"
     }, "identifier");
-
-
-    // keywords which can be followed by regular expressions
     var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield";
-
-    // TODO: Unicode escape sequences
     var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
 
     var escapedRe = "\\\\(?:x[0-9a-fA-F]{2}|" + // hex
@@ -247,9 +226,6 @@ var JavaScriptHighlightRules = function() {
         "37[0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
-    // regexp must not have capturing parentheses. Use (?:) instead.
-    // regexps are ordered -> the first match is used
 
     this.$rules = {
         "start" : [
@@ -278,7 +254,6 @@ var JavaScriptHighlightRules = function() {
                 token : "constant.numeric", // float
                 regex : /[+-]?\d+(?:(?:\.\d*)?(?:[eE][+-]?\d+)?)?\b/
             }, {
-                // Sound.prototype.play =
                 token : [
                     "storage.type", "punctuation.operator", "support.function",
                     "punctuation.operator", "entity.name.function", "text","keyword.operator"
@@ -286,7 +261,6 @@ var JavaScriptHighlightRules = function() {
                 regex : "(" + identifierRe + ")(\\.)(prototype)(\\.)(" + identifierRe +")(\\s*)(=)",
                 next: "function_arguments"
             }, {
-                // Sound.play = function() {  }
                 token : [
                     "storage.type", "punctuation.operator", "entity.name.function", "text",
                     "keyword.operator", "text", "storage.type", "text", "paren.lparen"
@@ -294,7 +268,6 @@ var JavaScriptHighlightRules = function() {
                 regex : "(" + identifierRe + ")(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                // play = function() {  }
                 token : [
                     "entity.name.function", "text", "keyword.operator", "text", "storage.type",
                     "text", "paren.lparen"
@@ -302,7 +275,6 @@ var JavaScriptHighlightRules = function() {
                 regex : "(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                // Sound.play = function play() {  }
                 token : [
                     "storage.type", "punctuation.operator", "entity.name.function", "text",
                     "keyword.operator", "text",
@@ -311,14 +283,12 @@ var JavaScriptHighlightRules = function() {
                 regex : "(" + identifierRe + ")(\\.)(" + identifierRe +")(\\s*)(=)(\\s*)(function)(\\s+)(\\w+)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                // function myFunc(arg) { }
                 token : [
                     "storage.type", "text", "entity.name.function", "text", "paren.lparen"
                 ],
                 regex : "(function)(\\s+)(" + identifierRe + ")(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                // foobar: function() { }
                 token : [
                     "entity.name.function", "text", "punctuation.operator",
                     "text", "storage.type", "text", "paren.lparen"
@@ -326,7 +296,6 @@ var JavaScriptHighlightRules = function() {
                 regex : "(" + identifierRe + ")(\\s*)(:)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                // : function() { } (this is for issues with 'foo': function() { })
                 token : [
                     "text", "text", "storage.type", "text", "paren.lparen"
                 ],
@@ -381,8 +350,6 @@ var JavaScriptHighlightRules = function() {
                 regex : /\s+/
             }
         ],
-        // regular expressions are only allowed after certain tokens. This
-        // makes sure we don't mix up regexps with the divison operator
         "regex_allowed": [
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
@@ -402,8 +369,6 @@ var JavaScriptHighlightRules = function() {
                 token : "text",
                 regex : "\\s+"
             }, {
-                // immediately return to the start mode without matching
-                // anything
                 token: "empty",
                 regex: "",
                 next: "start"
@@ -411,26 +376,22 @@ var JavaScriptHighlightRules = function() {
         ],
         "regex": [
             {
-                // escapes
                 token: "regexp.keyword.operator",
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
-                // flag
                 token: "string.regexp",
                 regex: "/\\w*",
                 next: "start",
                 merge: true
             }, {
-                // invalid operators
                 token : "invalid",
-                regex: /\{\d+,?(?:\d+)?}[+*]|[+*^$?][+*]|\?\?/ // |[^$][?]
+                regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
             }, {
-                // operators
                 token : "constant.language.escape",
-                regex: /\(\?[:=!]|\)|\{\d+,?(?:\d+)?}|[+*]\?|[(|)$^+*?]/
+                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[(|)$^+*?]/
             }, {
                 token: "string.regexp",
-                regex: /{|[^\[\\{()$^+*?\/]+/,
+                regex: /{|[^{\[\/\\(|)$^+*?]+/,
                 merge: true
             }, {
                 token: "constant.language.escape",
@@ -454,7 +415,7 @@ var JavaScriptHighlightRules = function() {
                 merge: true
             }, {
                 token: "constant.language.escape",
-                regex: "-",
+                regex: "-"
             }, {
                 token: "string.regexp.charachterclass",
                 regex: /[^\]\-\\]+/,
@@ -660,24 +621,69 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-__ace_shadowed__.define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator'], function(require, exports, module) {
 
 
 var oop = require("../../lib/oop");
 var Behaviour = require("../behaviour").Behaviour;
+var TokenIterator = require("../../token_iterator").TokenIterator;
+
+var autoInsertedBrackets = 0;
+var autoInsertedRow = -1;
+var autoInsertedLineEnd = "";
 
 var CstyleBehaviour = function () {
+    
+    CstyleBehaviour.isSaneInsertion = function(editor, session) {
+        var cursor = editor.getCursorPosition();
+        var iterator = new TokenIterator(session, cursor.row, cursor.column);
+        if (!this.$matchTokenType(iterator.getCurrentToken() || "text", ["text", "paren.rparen"])) {
+            iterator = new TokenIterator(session, cursor.row, cursor.column + 1);
+            if (!this.$matchTokenType(iterator.getCurrentToken() || "text", ["text", "paren.rparen"]))
+                return false;
+        }
+        iterator.stepForward();
+        return iterator.getCurrentTokenRow() !== cursor.row ||
+            this.$matchTokenType(iterator.getCurrentToken() || "text", ["text", "comment", "paren.rparen"]);
+    };
+    
+    CstyleBehaviour.$matchTokenType = function(token, types) {
+        return types.indexOf(token.type || token) > -1;
+    };
+    
+    CstyleBehaviour.recordAutoInsert = function(editor, session, bracket) {
+        var cursor = editor.getCursorPosition();
+        var line = session.doc.getLine(cursor.row);
+        if (!this.isAutoInsertedClosing(cursor, line, autoInsertedLineEnd[0]))
+            autoInsertedBrackets = 0;
+        autoInsertedRow = cursor.row;
+        autoInsertedLineEnd = bracket + line.substr(cursor.column);
+        autoInsertedBrackets++;
+    };
+    
+    CstyleBehaviour.isAutoInsertedClosing = function(cursor, line, bracket) {
+        return autoInsertedBrackets > 0 &&
+            cursor.row === autoInsertedRow &&
+            bracket === autoInsertedLineEnd[0] &&
+            line.substr(cursor.column) === autoInsertedLineEnd;
+    };
+    
+    CstyleBehaviour.popAutoInsertedClosing = function() {
+        autoInsertedLineEnd = autoInsertedLineEnd.substr(1);
+        autoInsertedBrackets--;
+    };
 
     this.add("braces", "insertion", function (state, action, editor, session, text) {
         if (text == '{') {
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
-            if (selected !== "") {
+            if (selected !== "" && selected !== "{") {
                 return {
                     text: '{' + selected + '}',
                     selection: false
                 };
-            } else {
+            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
+                CstyleBehaviour.recordAutoInsert(editor, session, "}");
                 return {
                     text: '{}',
                     selection: [1, 1]
@@ -689,14 +695,15 @@ var CstyleBehaviour = function () {
             var rightChar = line.substring(cursor.column, cursor.column + 1);
             if (rightChar == '}') {
                 var matching = session.$findOpeningBracket('}', {column: cursor.column + 1, row: cursor.row});
-                if (matching !== null) {
+                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
+                    CstyleBehaviour.popAutoInsertedClosing();
                     return {
                         text: '',
                         selection: [1, 1]
                     };
                 }
             }
-        } else if (text == "\n") {
+        } else if (text == "\n" || text == "\r\n") {
             var cursor = editor.getCursorPosition();
             var line = session.doc.getLine(cursor.row);
             var rightChar = line.substring(cursor.column, cursor.column + 1);
@@ -737,7 +744,8 @@ var CstyleBehaviour = function () {
                     text: '(' + selected + ')',
                     selection: false
                 };
-            } else {
+            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
+                CstyleBehaviour.recordAutoInsert(editor, session, ")");
                 return {
                     text: '()',
                     selection: [1, 1]
@@ -749,7 +757,8 @@ var CstyleBehaviour = function () {
             var rightChar = line.substring(cursor.column, cursor.column + 1);
             if (rightChar == ')') {
                 var matching = session.$findOpeningBracket(')', {column: cursor.column + 1, row: cursor.row});
-                if (matching !== null) {
+                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
+                    CstyleBehaviour.popAutoInsertedClosing();
                     return {
                         text: '',
                         selection: [1, 1]
@@ -780,7 +789,8 @@ var CstyleBehaviour = function () {
                     text: '[' + selected + ']',
                     selection: false
                 };
-            } else {
+            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
+                CstyleBehaviour.recordAutoInsert(editor, session, "]");
                 return {
                     text: '[]',
                     selection: [1, 1]
@@ -792,7 +802,8 @@ var CstyleBehaviour = function () {
             var rightChar = line.substring(cursor.column, cursor.column + 1);
             if (rightChar == ']') {
                 var matching = session.$findOpeningBracket(']', {column: cursor.column + 1, row: cursor.row});
-                if (matching !== null) {
+                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
+                    CstyleBehaviour.popAutoInsertedClosing();
                     return {
                         text: '',
                         selection: [1, 1]
@@ -828,13 +839,9 @@ var CstyleBehaviour = function () {
                 var cursor = editor.getCursorPosition();
                 var line = session.doc.getLine(cursor.row);
                 var leftChar = line.substring(cursor.column-1, cursor.column);
-
-                // We're escaped.
                 if (leftChar == '\\') {
                     return null;
                 }
-
-                // Find what token we're inside.
                 var tokens = session.getTokens(selection.start.row);
                 var col = 0, token;
                 var quotepos = -1; // Track whether we're inside an open quote.
@@ -851,15 +858,12 @@ var CstyleBehaviour = function () {
                     }
                     col += tokens[x].value.length;
                 }
-
-                // Try and be smart about when we auto insert.
                 if (!token || (quotepos < 0 && token.type !== "comment" && (token.type !== "string" || ((selection.start.column !== token.value.length+col-1) && token.value.lastIndexOf(quote) === token.value.length-1)))) {
                     return {
                         text: quote + quote,
                         selection: [1,1]
                     };
                 } else if (token && token.type === "string") {
-                    // Ignore input and move right one if we're typing over the closing quote.
                     var rightChar = line.substring(cursor.column, cursor.column + 1);
                     if (rightChar == quote) {
                         return {
@@ -905,7 +909,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
     this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
     this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
-    
+
     this.getFoldWidgetRange = function(session, foldStyle, row) {
         var line = session.getLine(row);
         var match = line.match(this.foldingStartMarker);
@@ -915,114 +919,21 @@ oop.inherits(FoldMode, BaseFoldMode);
             if (match[1])
                 return this.openingBracketBlock(session, match[1], row, i);
 
-            var range = session.getCommentFoldRange(row, i + match[0].length);
-            range.end.column -= 2;
-            return range;
+            return session.getCommentFoldRange(row, i + match[0].length, 1);
         }
 
         if (foldStyle !== "markbeginend")
             return;
-            
+
         var match = line.match(this.foldingStopMarker);
         if (match) {
             var i = match.index + match[0].length;
 
-            if (match[2]) {
-                var range = session.getCommentFoldRange(row, i);
-                range.end.column -= 2;
-                return range;
-            }
+            if (match[1])
+                return this.closingBracketBlock(session, match[1], row, i);
 
-            var end = {row: row, column: i};
-            var start = session.$findOpeningBracket(match[1], end);
-            
-            if (!start)
-                return;
-
-            start.column++;
-            end.column--;
-
-            return  Range.fromPoints(start, end);
+            return session.getCommentFoldRange(row, i, -1);
         }
-    };
-    
-}).call(FoldMode.prototype);
-
-});
-
-__ace_shadowed__.define('ace/mode/folding/fold_mode', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
-
-
-var Range = require("../../range").Range;
-
-var FoldMode = exports.FoldMode = function() {};
-
-(function() {
-
-    this.foldingStartMarker = null;
-    this.foldingStopMarker = null;
-
-    // must return "" if there's no fold, to enable caching
-    this.getFoldWidget = function(session, foldStyle, row) {
-        var line = session.getLine(row);
-        if (this.foldingStartMarker.test(line))
-            return "start";
-        if (foldStyle == "markbeginend"
-                && this.foldingStopMarker
-                && this.foldingStopMarker.test(line))
-            return "end";
-        return "";
-    };
-
-    this.getFoldWidgetRange = function(session, foldStyle, row) {
-        return null;
-    };
-
-    this.indentationBlock = function(session, row, column) {
-        var re = /\S/;
-        var line = session.getLine(row);
-        var startLevel = line.search(re);
-        if (startLevel == -1)
-            return;
-
-        var startColumn = column || line.length;
-        var maxRow = session.getLength();
-        var startRow = row;
-        var endRow = row;
-
-        while (++row < maxRow) {
-            var level = session.getLine(row).search(re);
-
-            if (level == -1)
-                continue;
-
-            if (level <= startLevel)
-                break;
-
-            endRow = row;
-        }
-
-        if (endRow > startRow) {
-            var endColumn = session.getLine(endRow).length;
-            return new Range(startRow, startColumn, endRow, endColumn);
-        }
-    };
-
-    this.openingBracketBlock = function(session, bracket, row, column, typeRe) {
-        var start = {row: row, column: column + 1};
-        var end = session.$findClosingBracket(bracket, start, typeRe);
-        if (!end)
-            return;
-
-        var fw = session.foldWidgets[end.row];
-        if (fw == null)
-            fw = this.getFoldWidget(session, end.row);
-
-        if (fw == "start" && end.row > start.row) {
-            end.row --;
-            end.column = session.getLine(end.row).length;
-        }
-        return Range.fromPoints(start, end);
     };
 
 }).call(FoldMode.prototype);
@@ -1053,8 +964,6 @@ oop.inherits(Mode, TextMode);
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
-
-        // ignore braces in comments
         var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
@@ -1075,25 +984,19 @@ oop.inherits(Mode, TextMode);
     this.autoOutdent = function(state, doc, row) {
         this.$outdent.autoOutdent(doc, row);
     };
-    
+
     this.createWorker = function(session) {
         var worker = new WorkerClient(["ace"], "ace/mode/css_worker", "Worker");
         worker.attachToDocument(session.getDocument());
-        
+
         worker.on("csslint", function(e) {
-            var errors = [];
-            e.data.forEach(function(message) {
-                errors.push({
-                    row: message.line - 1,
-                    column: message.col - 1,
-                    text: message.message,
-                    type: message.type,
-                    lint: message
-                });
-            });
-            
-            session.setAnnotations(errors);
+            session.setAnnotations(e.data);
         });
+
+        worker.on("terminate", function() {
+            session.clearAnnotations();
+        });
+
         return worker;
     };
 
@@ -1112,15 +1015,12 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var CssHighlightRules = function() {
     var keywordMapper = this.createKeywordMapper({
-        "support.type": "animation-fill-mode|alignment-adjust|alignment-baseline|animation-delay|animation-direction|animation-duration|animation-iteration-count|animation-name|animation-play-state|animation-timing-function|animation|appearance|azimuth|backface-visibility|background-attachment|background-break|background-clip|background-color|background-image|background-origin|background-position|background-repeat|background-size|background|baseline-shift|binding|bleed|bookmark-label|bookmark-level|bookmark-state|bookmark-target|border-bottom|border-bottom-color|border-bottom-left-radius|border-bottom-right-radius|border-bottom-style|border-bottom-width|border-collapse|border-color|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-left|border-left-color|border-left-style|border-left-width|border-radius|border-right|border-right-color|border-right-style|border-right-width|border-spacing|border-style|border-top|border-top-color|border-top-left-radius|border-top-right-radius|border-top-style|border-top-width|border-width|border|bottom|box-align|box-decoration-break|box-direction|box-flex-group|box-flex|box-lines|box-ordinal-group|box-orient|box-pack|box-shadow|box-sizing|break-after|break-before|break-inside|caption-side|clear|clip|color-profile|color|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|content|counter-increment|counter-reset|crop|cue-after|cue-before|cue|cursor|direction|display|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|elevation|empty-cells|fit|fit-position|float-offset|float|font-family|font-size|font-size-adjust|font-stretch|font-style|font-variant|font-weight|font|grid-columns|grid-rows|hanging-punctuation|height|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|icon|image-orientation|image-rendering|image-resolution|inline-box-align|left|letter-spacing|line-height|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|line-stacking|list-style-image|list-style-position|list-style-type|list-style|margin-bottom|margin-left|margin-right|margin-top|margin|mark-after|mark-before|mark|marks|marquee-direction|marquee-play-count|marquee-speed|marquee-style|max-height|max-width|min-height|min-width|move-to|nav-down|nav-index|nav-left|nav-right|nav-up|opacity|orphans|outline-color|outline-offset|outline-style|outline-width|outline|overflow-style|overflow-x|overflow-y|overflow|padding-bottom|padding-left|padding-right|padding-top|padding|page-break-after|page-break-before|page-break-inside|page-policy|page|pause-after|pause-before|pause|perspective-origin|perspective|phonemes|pitch-range|pitch|play-during|position|presentation-level|punctuation-trim|quotes|rendering-intent|resize|rest-after|rest-before|rest|richness|right|rotation-point|rotation|ruby-align|ruby-overhang|ruby-position|ruby-span|size|speak-header|speak-numeral|speak-punctuation|speak|speech-rate|stress|string-set|table-layout|target-name|target-new|target-position|target|text-align-last|text-align|text-decoration|text-emphasis|text-height|text-indent|text-justify|text-outline|text-shadow|text-transform|text-wrap|top|transform-origin|transform-style|transform|transition-delay|transition-duration|transition-property|transition-timing-function|transition|unicode-bidi|vertical-align|visibility|voice-balance|voice-duration|voice-family|voice-pitch-range|voice-pitch|voice-rate|voice-stress|voice-volume|volume|white-space-collapse|white-space|widows|width|word-break|word-spacing|word-wrap|z-index",
         "support.function": "rgb|rgba|url|attr|counter|counters",
         "support.constant": "absolute|after-edge|after|all-scroll|all|alphabetic|always|antialiased|armenian|auto|avoid-column|avoid-page|avoid|balance|baseline|before-edge|before|below|bidi-override|block-line-height|block|bold|bolder|border-box|both|bottom|box|break-all|break-word|capitalize|caps-height|caption|center|central|char|circle|cjk-ideographic|clone|close-quote|col-resize|collapse|column|consider-shifts|contain|content-box|cover|crosshair|cubic-bezier|dashed|decimal-leading-zero|decimal|default|disabled|disc|disregard-shifts|distribute-all-lines|distribute-letter|distribute-space|distribute|dotted|double|e-resize|ease-in|ease-in-out|ease-out|ease|ellipsis|end|exclude-ruby|fill|fixed|georgian|glyphs|grid-height|groove|hand|hanging|hebrew|help|hidden|hiragana-iroha|hiragana|horizontal|icon|ideograph-alpha|ideograph-numeric|ideograph-parenthesis|ideograph-space|ideographic|inactive|include-ruby|inherit|initial|inline-block|inline-box|inline-line-height|inline-table|inline|inset|inside|inter-ideograph|inter-word|invert|italic|justify|katakana-iroha|katakana|keep-all|last|left|lighter|line-edge|line-through|line|linear|list-item|local|loose|lower-alpha|lower-greek|lower-latin|lower-roman|lowercase|lr-tb|ltr|mathematical|max-height|max-size|medium|menu|message-box|middle|move|n-resize|ne-resize|newspaper|no-change|no-close-quote|no-drop|no-open-quote|no-repeat|none|normal|not-allowed|nowrap|nw-resize|oblique|open-quote|outset|outside|overline|padding-box|page|pointer|pre-line|pre-wrap|pre|preserve-3d|progress|relative|repeat-x|repeat-y|repeat|replaced|reset-size|ridge|right|round|row-resize|rtl|s-resize|scroll|se-resize|separate|slice|small-caps|small-caption|solid|space|square|start|static|status-bar|step-end|step-start|steps|stretch|strict|sub|super|sw-resize|table-caption|table-cell|table-column-group|table-column|table-footer-group|table-header-group|table-row-group|table-row|table|tb-rl|text-after-edge|text-before-edge|text-bottom|text-size|text-top|text|thick|thin|transparent|underline|upper-alpha|upper-latin|upper-roman|uppercase|use-script|vertical-ideographic|vertical-text|visible|w-resize|wait|whitespace|z-index|zero",
+        "support.type": "animation-fill-mode|alignment-adjust|alignment-baseline|animation-delay|animation-direction|animation-duration|animation-iteration-count|animation-name|animation-play-state|animation-timing-function|animation|appearance|azimuth|backface-visibility|background-attachment|background-break|background-clip|background-color|background-image|background-origin|background-position|background-repeat|background-size|background|baseline-shift|binding|bleed|bookmark-label|bookmark-level|bookmark-state|bookmark-target|border-bottom|border-bottom-color|border-bottom-left-radius|border-bottom-right-radius|border-bottom-style|border-bottom-width|border-collapse|border-color|border-image|border-image-outset|border-image-repeat|border-image-slice|border-image-source|border-image-width|border-left|border-left-color|border-left-style|border-left-width|border-radius|border-right|border-right-color|border-right-style|border-right-width|border-spacing|border-style|border-top|border-top-color|border-top-left-radius|border-top-right-radius|border-top-style|border-top-width|border-width|border|bottom|box-align|box-decoration-break|box-direction|box-flex-group|box-flex|box-lines|box-ordinal-group|box-orient|box-pack|box-shadow|box-sizing|break-after|break-before|break-inside|caption-side|clear|clip|color-profile|color|column-count|column-fill|column-gap|column-rule|column-rule-color|column-rule-style|column-rule-width|column-span|column-width|columns|content|counter-increment|counter-reset|crop|cue-after|cue-before|cue|cursor|direction|display|dominant-baseline|drop-initial-after-adjust|drop-initial-after-align|drop-initial-before-adjust|drop-initial-before-align|drop-initial-size|drop-initial-value|elevation|empty-cells|fit|fit-position|float-offset|float|font-family|font-size|font-size-adjust|font-stretch|font-style|font-variant|font-weight|font|grid-columns|grid-rows|hanging-punctuation|height|hyphenate-after|hyphenate-before|hyphenate-character|hyphenate-lines|hyphenate-resource|hyphens|icon|image-orientation|image-rendering|image-resolution|inline-box-align|left|letter-spacing|line-height|line-stacking-ruby|line-stacking-shift|line-stacking-strategy|line-stacking|list-style-image|list-style-position|list-style-type|list-style|margin-bottom|margin-left|margin-right|margin-top|margin|mark-after|mark-before|mark|marks|marquee-direction|marquee-play-count|marquee-speed|marquee-style|max-height|max-width|min-height|min-width|move-to|nav-down|nav-index|nav-left|nav-right|nav-up|opacity|orphans|outline-color|outline-offset|outline-style|outline-width|outline|overflow-style|overflow-x|overflow-y|overflow|padding-bottom|padding-left|padding-right|padding-top|padding|page-break-after|page-break-before|page-break-inside|page-policy|page|pause-after|pause-before|pause|perspective-origin|perspective|phonemes|pitch-range|pitch|play-during|position|presentation-level|punctuation-trim|quotes|rendering-intent|resize|rest-after|rest-before|rest|richness|right|rotation-point|rotation|ruby-align|ruby-overhang|ruby-position|ruby-span|size|speak-header|speak-numeral|speak-punctuation|speak|speech-rate|stress|string-set|table-layout|target-name|target-new|target-position|target|text-align-last|text-align|text-decoration|text-emphasis|text-height|text-indent|text-justify|text-outline|text-shadow|text-transform|text-wrap|top|transform-origin|transform-style|transform|transition-delay|transition-duration|transition-property|transition-timing-function|transition|unicode-bidi|vertical-align|visibility|voice-balance|voice-duration|voice-family|voice-pitch-range|voice-pitch|voice-rate|voice-stress|voice-volume|volume|white-space-collapse|white-space|widows|width|word-break|word-spacing|word-wrap|z-index",
         "support.constant.color": "aqua|black|blue|fuchsia|gray|green|lime|maroon|navy|olive|orange|purple|red|silver|teal|white|yellow",
         "support.constant.fonts": "arial|century|comic|courier|garamond|georgia|helvetica|impact|lucida|symbol|system|tahoma|times|trebuchet|utopia|verdana|webdings|sans-serif|serif|monospace"
     }, "text", true);
-
-    // regexp must not have capturing parentheses. Use (?:) instead.
-    // regexps are ordered -> the first match is used
 
     var numRe = "\\-?(?:(?:[0-9]+)|(?:[0-9]*\\.[0-9]+))";
     var pseudoElements = "(\\:+)\\b(after|before|first-letter|first-line|moz-selection|selection)\\b";
@@ -1304,9 +1204,6 @@ var tagMap = lang.createMap({
 });
 
 var HtmlHighlightRules = function() {
-
-    // regexp must not have capturing parentheses
-    // regexps are ordered -> the first match is used
     this.$rules = {
         start : [{
             token : "text",
@@ -1314,7 +1211,7 @@ var HtmlHighlightRules = function() {
             regex : "<\\!\\[CDATA\\[",
             next : "cdata"
         }, {
-            token : "xml_pe",
+            token : "xml-pe",
             regex : "<\\?.*?\\?>"
         }, {
             token : "comment",
@@ -1322,15 +1219,15 @@ var HtmlHighlightRules = function() {
             regex : "<\\!--",
             next : "comment"
         }, {
-            token : "xml_pe",
+            token : "xml-pe",
             regex : "<\\!.*?>"
         }, {
             token : "meta.tag",
-            regex : "<(?=\s*script\\b)",
+            regex : "<(?=script\\b)",
             next : "script"
         }, {
             token : "meta.tag",
-            regex : "<(?=\s*style\\b)",
+            regex : "<(?=style\\b)",
             next : "style"
         }, {
             token : "meta.tag", // opening tag
@@ -1439,7 +1336,6 @@ exports.tag = function(states, name, nextState, tagMap) {
         token : "text",
         regex : "\\s+"
     }, {
-        //token : "meta.tag",
         
     token : !tagMap ? "meta.tag.tag-name" : function(value) {
             if (tagMap[value])
@@ -1628,7 +1524,6 @@ var CStyleFoldMode = require("./cstyle").FoldMode;
 
 var FoldMode = exports.FoldMode = function() {
     MixedFoldMode.call(this, new XmlFoldMode({
-        // void elements
         "area": 1,
         "base": 1,
         "br": 1,
@@ -1645,8 +1540,6 @@ var FoldMode = exports.FoldMode = function() {
         "source": 1,
         "track": 1,
         "wbr": 1,
-        
-        // optional tags 
         "li": 1,
         "dt": 1,
         "dd": 1,
@@ -1942,17 +1835,19 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-__ace_shadowed__.define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules', 'ace/range'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules', 'ace/mode/folding/lua', 'ace/range'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var LuaHighlightRules = require("./lua_highlight_rules").LuaHighlightRules;
+var LuaFoldMode = require("./folding/lua").FoldMode;
 var Range = require("../range").Range;
 
 var Mode = function() {
     this.$tokenizer = new Tokenizer(new LuaHighlightRules().getRules());
+    this.foldingRules = new LuaFoldMode();
 };
 oop.inherits(Mode, TextMode);
 
@@ -1965,7 +1860,7 @@ oop.inherits(Mode, TextMode);
         "elseif": 1,
         "repeat": 1,
         "end": -1,
-        "until": -1,
+        "until": -1
     };
     var outdentKeywords = [
         "else",
@@ -1976,8 +1871,6 @@ oop.inherits(Mode, TextMode);
 
     function getNetIndentLevel(tokens) {
         var level = 0;
-        // Support single-line blocks by decrementing the indent level if
-        // an ending token is found
         for (var i in tokens){
             var token = tokens[i];
             if (token.type == "keyword") {
@@ -1990,8 +1883,6 @@ oop.inherits(Mode, TextMode);
                 level --;
             }
         }
-        // Limit the level to +/- 1 since usually users only indent one level
-        // at a time regardless of the logical nesting level
         if (level < 0) {
             return -1;
         } else if (level > 0) {
@@ -2014,7 +1905,6 @@ oop.inherits(Mode, TextMode);
         if (level > 0) {
             return indent + tab;
         } else if (level < 0 && indent.substr(indent.length - tab.length) == tab) {
-            // Don't do a next-line outdent if we're going to do a real outdent of this line
             if (!this.checkOutdent(state, line, "\n")) {
                 return indent.substr(0, indent.length - tab.length);
             }
@@ -2045,7 +1935,6 @@ oop.inherits(Mode, TextMode);
         var expectedIndent = prevIndent + tabLength * getNetIndentLevel(prevTokens);
         var curIndent = this.$getIndent(session.getLine(row)).length;
         if (curIndent < expectedIndent) {
-            // User already outdented //
             return;
         }
         session.outdentRows(new Range(row, 0, row + 2, 0));
@@ -2072,7 +1961,6 @@ var LuaHighlightRules = function() {
     var builtinConstants = ("true|false|nil|_G|_VERSION");
 
     var functions = (
-      // builtinFunctions
         "string|xpcall|package|tostring|print|os|unpack|require|"+
         "getfenv|setmetatable|next|assert|tonumber|io|rawequal|"+
         "collectgarbage|getmetatable|module|rawset|math|debug|"+
@@ -2093,7 +1981,6 @@ var LuaHighlightRules = function() {
         "setupvalue|getlocal|getregistry|getfenv|setn|insert|getn|"+
         "foreachi|maxn|foreach|concat|sort|remove|resume|yield|"+
         "status|wrap|create|running|"+
-      // metatableMethods
         "__add|__sub|__mod|__unm|__concat|__lt|__index|__call|__gc|__metatable|"+
          "__mul|__div|__pow|__len|__eq|__le|__newindex|__tostring|__mode|__tonumber"
     );
@@ -2129,9 +2016,6 @@ var LuaHighlightRules = function() {
 
     this.$rules = {
         "start" :
-
-
-        // bracketed comments
         [{
             token : "comment",           // --[[ comment
             regex : strPre + '\\-\\-\\[\\[.*\\]\\]'
@@ -2151,8 +2035,6 @@ var LuaHighlightRules = function() {
             token : "comment",           // --[====+[ comment
             regex : strPre + '\\-\\-\\[\\={5}\\=*\\[.*\\]\\={5}\\=*\\]'
         },
-
-        // multiline bracketed comments
         {
             token : "comment",           // --[[ comment
             regex : strPre + '\\-\\-\\[\\[.*$',
@@ -2180,12 +2062,7 @@ var LuaHighlightRules = function() {
             next  : "qcomment4"
         }, {
             token : function(value){     // --[====+[ comment
-                // WARNING: EXTREMELY SLOW, but this is the only way to circumvent the
-                // limits imposed by the current automaton.
-                // I've never personally seen any practical code where 5 or more '='s are
-                // used for string or commenting, so this will rarely be invoked.
                 var pattern = /\-\-\[(\=+)\[/, match;
-                // you can never be too paranoid ;)
                 if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined)
                     comment_stack.push(match.length);
 
@@ -2195,14 +2072,10 @@ var LuaHighlightRules = function() {
             merge : true,
             next  : "qcomment5"
         },
-
-        // single line comments
         {
             token : "comment",
             regex : "\\-\\-.*$"
         },
-
-        // bracketed strings
         {
             token : "string",           // [[ string
             regex : strPre + '\\[\\[.*\\]\\]'
@@ -2222,8 +2095,6 @@ var LuaHighlightRules = function() {
             token : "string",           // [====+[ string
             regex : strPre + '\\[\\={5}\\=*\\[.*\\]\\={5}\\=*\\]'
         },
-
-        // multiline bracketed strings
         {
             token : "string",           // [[ string
             regex : strPre + '\\[\\[.*$',
@@ -2251,7 +2122,6 @@ var LuaHighlightRules = function() {
             next  : "qstring4"
         }, {
             token : function(value){     // --[====+[ string
-                // WARNING: EXTREMELY SLOW, see above.
                 var pattern = /\[(\=+)\[/, match;
                 if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined)
                     comment_stack.push(match.length);
@@ -2339,7 +2209,6 @@ var LuaHighlightRules = function() {
         } ],
         "qcomment5": [ {
             token : function(value){
-                // very hackish, mutates the qcomment5 field on the fly.
                 var pattern = /\](\=+)\]/, rule = this.rules.qcomment5[0], match;
                 rule.next = "start";
                 if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined){
@@ -2407,7 +2276,6 @@ var LuaHighlightRules = function() {
         } ],
         "qstring5": [ {
             token : function(value){
-                // very hackish, mutates the qstring5 field on the fly.
                 var pattern = /\](\=+)\]/, rule = this.rules.qstring5[0], match;
                 rule.next = "start";
                 if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined){
@@ -2436,8 +2304,140 @@ oop.inherits(LuaHighlightRules, TextHighlightRules);
 
 exports.LuaHighlightRules = LuaHighlightRules;
 });
-// LuaPage implements the LuaPage markup as described by the Kepler Project's CGILua
-// documentation: http://keplerproject.github.com/cgilua/manual.html#templates
+
+__ace_shadowed__.define('ace/mode/folding/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode', 'ace/range', 'ace/token_iterator'], function(require, exports, module) {
+
+
+var oop = require("../../lib/oop");
+var BaseFoldMode = require("./fold_mode").FoldMode;
+var Range = require("../../range").Range;
+var TokenIterator = require("ace/token_iterator").TokenIterator;
+
+
+var FoldMode = exports.FoldMode = function() {};
+
+oop.inherits(FoldMode, BaseFoldMode);
+
+(function() {
+
+    this.foldingStartMarker = /\b(function|then|do|repeat)\b|{\s*$|(\[=*\[)/;
+    this.foldingStopMarker = /\bend\b|^\s*}|\]=*\]/;
+
+    this.getFoldWidget = function(session, foldStyle, row) {
+        var line = session.getLine(row);
+        var isStart = this.foldingStartMarker.test(line);
+        var isEnd = this.foldingStopMarker.test(line);
+
+        if (isStart && !isEnd) {
+            var match = line.match(this.foldingStartMarker);
+            if (match[1] == "then" && /\belseif\b/.test(line))
+                return;
+            if (match[1]) {
+                if (session.getTokenAt(row, match.index + 1).type === "keyword")
+                    return "start";
+            } else if (match[2]) {
+                var type = session.bgTokenizer.getState(row) || "";
+                if (type.indexOf("comment") != -1 || type.indexOf("string") != -1)
+                    return "start";
+            } else {
+                return "start";
+            }
+        }
+        if (foldStyle != "markbeginend" || !isEnd || isStart && isEnd)
+            return "";
+
+        var match = line.match(this.foldingStopMarker);
+        if (match[0] === "end") {
+            if (session.getTokenAt(row, match.index + 1).type === "keyword")
+                return "end";
+        } else if (match[0][0] === "]") {
+            var type = session.bgTokenizer.getState(row - 1) || "";
+            if (type.indexOf("comment") != -1 || type.indexOf("string") != -1)
+                return "end";
+        } else
+            return "end";
+    };
+
+    this.getFoldWidgetRange = function(session, foldStyle, row) {
+        var line = session.doc.getLine(row);
+        var match = this.foldingStartMarker.exec(line);
+        if (match) {
+            if (match[1])
+                return this.luaBlock(session, row, match.index + 1);
+
+            if (match[2])
+                return session.getCommentFoldRange(row, match.index + 1);
+
+            return this.openingBracketBlock(session, "{", row, match.index);
+        }
+
+        var match = this.foldingStopMarker.exec(line);
+        if (match) {
+            if (match[0] === "end") {
+                if (session.getTokenAt(row, match.index + 1).type === "keyword")
+                    return this.luaBlock(session, row, match.index + 1);
+            }
+
+            if (match[0][0] === "]")
+                return session.getCommentFoldRange(row, match.index + 1);
+
+            return this.closingBracketBlock(session, "}", row, match.index + match[0].length);
+        }
+    };
+
+    this.luaBlock = function(session, row, column) {
+        var stream = new TokenIterator(session, row, column);
+        var indentKeywords = {
+            "function": 1,
+            "do": 1,
+            "then": 1,
+            "elseif": -1,
+            "end": -1,
+            "repeat": 1,
+            "until": -1,
+        };
+
+        var token = stream.getCurrentToken();
+        if (!token || token.type != "keyword")
+            return;
+
+        var val = token.value;
+        var stack = [val];
+        var dir = indentKeywords[val];
+
+        if (!dir)
+            return;
+
+        var startColumn = dir === -1 ? stream.getCurrentTokenColumn() : session.getLine(row).length;
+        var startRow = row;
+
+        stream.step = dir === -1 ? stream.stepBackward : stream.stepForward;
+        while(token = stream.step()) {
+            if (token.type !== "keyword")
+                continue;
+            var level = dir * indentKeywords[token.value];
+
+            if (level > 0) {
+                stack.unshift(token.value);
+            } else if (level <= 0) {
+                stack.shift();
+                if (!stack.length && token.value != "elseif")
+                    break;
+                if (level === 0)
+                    stack.unshift(token.value);
+            }
+        }
+
+        var row = stream.getCurrentTokenRow();
+        if (dir === -1)
+            return new Range(row, session.getLine(row).length, startRow, startColumn);
+        else
+            return new Range(startRow, startColumn, row, stream.getCurrentTokenColumn());
+    };
+
+}).call(FoldMode.prototype);
+
+});
 __ace_shadowed__.define('ace/mode/luapage_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/html_highlight_rules', 'ace/mode/lua_highlight_rules'], function(require, exports, module) {
 
 

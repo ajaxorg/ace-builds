@@ -82,23 +82,29 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var YamlHighlightRules = function() {
-
-    // regexp must not have capturing parentheses. Use (?:) instead.
-    // regexps are ordered -> the first match is used
     this.$rules = {
         "start" : [
             {
                 token : "comment",
                 regex : "#.*$"
             }, {
-                token : "comment",
-                regex : "^---"
+                token : "list.markup",
+                regex : /^(?:-{3}|\.{3})\s*(?=#|$)/     
+            },  {
+                token : "list.markup",
+                regex : /^\s*[\-?](?:$|\s)/     
             }, {
-                token: "variable",
+                token: "constant",
+                regex: "!![\\w//]+"
+            }, {
+                token: "constant.language",
                 regex: "[&\\*][a-zA-Z0-9-_]+"
             }, {
-                token: ["identifier", "text"],
-                regex: "(\\w+\\s*:)(\\w*)"
+                token: ["meta.tag", "keyword"],
+                regex: /^(\s*\w.*?)(\:(?:\s+|$))/
+            },{
+                token: ["meta.tag", "keyword"],
+                regex: /(\w+?)(\s*\:(?:\s+|$))/
             }, {
                 token : "keyword.operator",
                 regex : "<<\\w*:\\w*"
@@ -118,10 +124,13 @@ var YamlHighlightRules = function() {
                 regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
             }, {
                 token : "constant.numeric", // float
-                regex : "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"
+                regex : /[+\-]?[\d_]+(?:(?:\.[\d_]*)?(?:[eE][+\-]?[\d_]+)?)?\b/
+            }, {
+                token : "constant.numeric", // other number
+                regex : /[+\-]?\.inf\b|NaN\b|0x[\dA-Fa-f_]+|0b[10_]+/
             }, {
                 token : "constant.language.boolean",
-                regex : "(?:true|false|yes|no)\\b"
+                regex : "(?:true|false|TRUE|FALSE|True|False|yes|no)\\b"
             }, {
                 token : "invalid.illegal", // comments are not allowed
                 regex : "\\/\\/.*$"
@@ -134,6 +143,9 @@ var YamlHighlightRules = function() {
             }, {
                 token : "text",
                 regex : "\\s+"
+            }, {
+                token : "text",
+                regex : "\\w+"
             }
         ],
         "qqstring" : [
@@ -146,7 +158,7 @@ var YamlHighlightRules = function() {
                 merge : true,
                 regex : '.+'
             }
-        ]}
+        ]};
 
 };
 
@@ -246,8 +258,6 @@ oop.inherits(FoldMode, BaseFoldMode);
             return new Range(startRow, startColumn, endRow, endColumn);
         }
     };
-
-    // must return "" if there's no fold, to enable caching
     this.getFoldWidget = function(session, foldStyle, row) {
         var line = session.getLine(row);
         var indent = line.search(/\S/);
@@ -260,8 +270,6 @@ oop.inherits(FoldMode, BaseFoldMode);
             session.foldWidgets[row - 1] = prevIndent!= -1 && prevIndent < nextIndent ? "start" : "";
             return "";
         }
-
-        // documentation comments
         if (prevIndent == -1) {
             if (indent == nextIndent && line[indent] == "#" && next[indent] == "#") {
                 session.foldWidgets[row - 1] = "";
@@ -285,85 +293,6 @@ oop.inherits(FoldMode, BaseFoldMode);
             return "start";
         else
             return "";
-    };
-
-}).call(FoldMode.prototype);
-
-});
-
-define('ace/mode/folding/fold_mode', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
-
-
-var Range = require("../../range").Range;
-
-var FoldMode = exports.FoldMode = function() {};
-
-(function() {
-
-    this.foldingStartMarker = null;
-    this.foldingStopMarker = null;
-
-    // must return "" if there's no fold, to enable caching
-    this.getFoldWidget = function(session, foldStyle, row) {
-        var line = session.getLine(row);
-        if (this.foldingStartMarker.test(line))
-            return "start";
-        if (foldStyle == "markbeginend"
-                && this.foldingStopMarker
-                && this.foldingStopMarker.test(line))
-            return "end";
-        return "";
-    };
-
-    this.getFoldWidgetRange = function(session, foldStyle, row) {
-        return null;
-    };
-
-    this.indentationBlock = function(session, row, column) {
-        var re = /\S/;
-        var line = session.getLine(row);
-        var startLevel = line.search(re);
-        if (startLevel == -1)
-            return;
-
-        var startColumn = column || line.length;
-        var maxRow = session.getLength();
-        var startRow = row;
-        var endRow = row;
-
-        while (++row < maxRow) {
-            var level = session.getLine(row).search(re);
-
-            if (level == -1)
-                continue;
-
-            if (level <= startLevel)
-                break;
-
-            endRow = row;
-        }
-
-        if (endRow > startRow) {
-            var endColumn = session.getLine(endRow).length;
-            return new Range(startRow, startColumn, endRow, endColumn);
-        }
-    };
-
-    this.openingBracketBlock = function(session, bracket, row, column, typeRe) {
-        var start = {row: row, column: column + 1};
-        var end = session.$findClosingBracket(bracket, start, typeRe);
-        if (!end)
-            return;
-
-        var fw = session.foldWidgets[end.row];
-        if (fw == null)
-            fw = this.getFoldWidget(session, end.row);
-
-        if (fw == "start" && end.row > start.row) {
-            end.row --;
-            end.column = session.getLine(end.row).length;
-        }
-        return Range.fromPoints(start, end);
     };
 
 }).call(FoldMode.prototype);

@@ -45,7 +45,6 @@ define('ace/mode/pgsql', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/m
 
         this.toggleCommentLines = function(state, doc, startRow, endRow) {
             var outdent = true;
-            // var outentedRows = [];
             var re = /^(\s*)--/;
 
             for (var i=startRow; i<= endRow; i++) {
@@ -92,13 +91,10 @@ var oop = require("../lib/oop");
 var lang = require("../lib/lang");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-// Supporting perl and python for now -- both in pg core and ace
 var PerlHighlightRules = require("./perl_highlight_rules").PerlHighlightRules;
 var PythonHighlightRules = require("./python_highlight_rules").PythonHighlightRules;
 
 var PgsqlHighlightRules = function() {
-
-    // Keywords, functions, operators last updated for pg 9.1.
     var keywords = (
         "abort|absolute|abstime|access|aclitem|action|add|admin|after|aggregate|all|also|alter|always|" +
         "analyse|analyze|and|any|anyarray|anyelement|anyenum|anynonarray|array|as|asc|assertion|" +
@@ -462,7 +458,7 @@ var PgsqlHighlightRules = function() {
 
     var keywordMapper = this.createKeywordMapper({
         "support.function": builtinFunctions,
-        "keyword": keywords,
+        "keyword": keywords
     }, "identifier", true);
 
 
@@ -746,9 +742,6 @@ var PerlHighlightRules = function() {
         "support.function": builtinFunctions
     }, "identifier");
 
-    // regexp must not have capturing parentheses. Use (?:) instead.
-    // regexps are ordered -> the first match is used
-
     this.$rules = {
         "start" : [
             {
@@ -825,9 +818,6 @@ oop.inherits(PerlHighlightRules, TextHighlightRules);
 
 exports.PerlHighlightRules = PerlHighlightRules;
 });
-/*
- * TODO: python delimiters
- */
 
 define('ace/mode/python_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
@@ -857,12 +847,9 @@ var PythonHighlightRules = function() {
         "__import__|complex|hash|min|set|apply|delattr|help|next|setattr|" +
         "buffer|dict|hex|object|slice|coerce|dir|id|oct|sorted|intern"
     );
-
-    //var futureReserved = "";
     var keywordMapper = this.createKeywordMapper({
         "invalid.deprecated": "debugger",
         "support.function": builtinFunctions,
-        //"invalid.illegal": futureReserved,
         "constant.language": builtinConstants,
         "keyword": keywords
     }, "identifier");

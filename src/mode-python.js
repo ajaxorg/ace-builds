@@ -110,8 +110,6 @@ oop.inherits(Mode, TextMode);
         
         if (!tokens)
             return false;
-        
-        // ignore trailing comments
         do {
             var last = tokens.pop();
         } while (last && (last.type == "comment" || (last.type == "text" && last.value.match(/^\s+$/))));
@@ -123,8 +121,6 @@ oop.inherits(Mode, TextMode);
     };
 
     this.autoOutdent = function(state, doc, row) {
-        // outdenting in python is slightly different because it always applies
-        // to the next line and only of a new line is inserted
         
         row += 1;
         var indent = this.$getIndent(doc.getLine(row));
@@ -137,9 +133,6 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
-/*
- * TODO: python delimiters
- */
 
 define('ace/mode/python_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
@@ -169,12 +162,9 @@ var PythonHighlightRules = function() {
         "__import__|complex|hash|min|set|apply|delattr|help|next|setattr|" +
         "buffer|dict|hex|object|slice|coerce|dir|id|oct|sorted|intern"
     );
-
-    //var futureReserved = "";
     var keywordMapper = this.createKeywordMapper({
         "invalid.deprecated": "debugger",
         "support.function": builtinFunctions,
-        //"invalid.illegal": futureReserved,
         "constant.language": builtinConstants,
         "keyword": keywords
     }, "identifier");
@@ -298,85 +288,6 @@ oop.inherits(FoldMode, BaseFoldMode);
             return this.indentationBlock(session, row);
         }
     }
-
-}).call(FoldMode.prototype);
-
-});
-
-define('ace/mode/folding/fold_mode', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
-
-
-var Range = require("../../range").Range;
-
-var FoldMode = exports.FoldMode = function() {};
-
-(function() {
-
-    this.foldingStartMarker = null;
-    this.foldingStopMarker = null;
-
-    // must return "" if there's no fold, to enable caching
-    this.getFoldWidget = function(session, foldStyle, row) {
-        var line = session.getLine(row);
-        if (this.foldingStartMarker.test(line))
-            return "start";
-        if (foldStyle == "markbeginend"
-                && this.foldingStopMarker
-                && this.foldingStopMarker.test(line))
-            return "end";
-        return "";
-    };
-
-    this.getFoldWidgetRange = function(session, foldStyle, row) {
-        return null;
-    };
-
-    this.indentationBlock = function(session, row, column) {
-        var re = /\S/;
-        var line = session.getLine(row);
-        var startLevel = line.search(re);
-        if (startLevel == -1)
-            return;
-
-        var startColumn = column || line.length;
-        var maxRow = session.getLength();
-        var startRow = row;
-        var endRow = row;
-
-        while (++row < maxRow) {
-            var level = session.getLine(row).search(re);
-
-            if (level == -1)
-                continue;
-
-            if (level <= startLevel)
-                break;
-
-            endRow = row;
-        }
-
-        if (endRow > startRow) {
-            var endColumn = session.getLine(endRow).length;
-            return new Range(startRow, startColumn, endRow, endColumn);
-        }
-    };
-
-    this.openingBracketBlock = function(session, bracket, row, column, typeRe) {
-        var start = {row: row, column: column + 1};
-        var end = session.$findClosingBracket(bracket, start, typeRe);
-        if (!end)
-            return;
-
-        var fw = session.foldWidgets[end.row];
-        if (fw == null)
-            fw = this.getFoldWidget(session, end.row);
-
-        if (fw == "start" && end.row > start.row) {
-            end.row --;
-            end.column = session.getLine(end.row).length;
-        }
-        return Range.fromPoints(start, end);
-    };
 
 }).call(FoldMode.prototype);
 

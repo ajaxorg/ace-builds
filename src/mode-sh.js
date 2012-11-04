@@ -108,8 +108,6 @@ oop.inherits(Mode, TextMode);
 
         if (!tokens)
             return false;
-
-        // ignore trailing comments
         do {
             var last = tokens.pop();
         } while (last && (last.type == "comment" || (last.type == "text" && last.value.match(/^\s+$/))));
@@ -121,8 +119,6 @@ oop.inherits(Mode, TextMode);
     };
 
     this.autoOutdent = function(state, doc, row) {
-        // outdenting in sh is slightly different because it always applies
-        // to the next line and only of a new line is inserted
 
         row += 1;
         var indent = this.$getIndent(doc.getLine(row));
@@ -169,7 +165,6 @@ var ShHighlightRules = function() {
     }, "identifier");
 
     var integer = "(?:(?:[1-9]\\d*)|(?:0))";
-    // var integer = "(?:" + decimalInteger + ")";
 
     var fraction = "(?:\\.\\d+)";
     var intPart = "(?:\\d+)";
@@ -200,7 +195,7 @@ var ShHighlightRules = function() {
             regex : variable
         }, {
             token : "support.function",
-            regex : func,
+            regex : func
         }, {
             token : "support.function",
             regex : fileDescriptor

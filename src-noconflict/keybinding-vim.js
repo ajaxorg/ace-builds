@@ -58,22 +58,17 @@ var startCommands = {
 };
 
 exports.handler = {
-    // workaround for j not repeating with `defaults write -g ApplePressAndHoldEnabled -bool true`
     handleMacRepeat: function(data, hashId, key) {
         if (hashId == -1) {
-            // record key
             data.inputChar = key;
             data.lastEvent = "input";
         } else if (data.inputChar && data.$lastHash == hashId && data.$lastKey == key) {
-            // check for repeated keypress 
             if (data.lastEvent == "input") {
                 data.lastEvent = "input1";
             } else if (data.lastEvent == "input1") {
-                // simulate textinput
                 return true;
             }
         } else {
-            // reset
             data.$lastHash = hashId;
             data.$lastKey = key;
             data.lastEvent = "keypress";
@@ -81,7 +76,6 @@ exports.handler = {
     },
 
     handleKeyboard: function(data, hashId, key, keyCode, e) {
-        // ignore command keys (shift, ctrl etc.)
         if (hashId != 0 && (key == "" || key == "\x00"))
             return null;
 
@@ -194,13 +188,13 @@ var actions = exports.actions = {
         fn: function(editor, range, count, param) {
             switch (param) {
                 case "z":
-                    editor.alignCursor(null, 0.5);
+                    editor.renderer.alignCursor(null, 0.5);
                     break;
                 case "t":
-                    editor.alignCursor(null, 0);
+                    editor.renderer.alignCursor(null, 0);
                     break;
                 case "b":
-                    editor.alignCursor(null, 1);
+                    editor.renderer.alignCursor(null, 1);
                     break;
             }
         }
@@ -291,8 +285,6 @@ var actions = exports.actions = {
     },
     "V": {
         fn: function(editor, range, count, param) {
-            //editor.selection.selectLine();
-            //editor.selection.selectLeft();
             var row = editor.getCursorPosition().row;
             editor.selection.clearSelection();
             editor.selection.moveCursorTo(row, 0);
@@ -388,17 +380,14 @@ var actions = exports.actions = {
     },
     ":": {
         fn: function(editor, range, count, param) {
-            // not implemented
         }
     },
     "/": {
         fn: function(editor, range, count, param) {
-            // not implemented
         }
     },
     "?": {
         fn: function(editor, range, count, param) {
-            // not implemented
         }
     },
     ".": {
@@ -414,86 +403,81 @@ var actions = exports.actions = {
 var inputBuffer = exports.inputBuffer = {
     accepting: [NUMBER, OPERATOR, MOTION, ACTION],
     currentCmd: null,
-    //currentMode: 0,
     currentCount: "",
     status: "",
-
-    // Types
     operator: null,
     motion: null,
 
     lastInsertCommands: [],
 
-    push: function(editor, char, keyId) {
+    push: function(editor, ch, keyId) {
         this.idle = false;
         var wObj = this.waitingForParam;
         if (wObj) {
-            this.exec(editor, wObj, char);
+            this.exec(editor, wObj, ch);
         }
-        // If input is a number (that doesn't start with 0)
-        else if (!(char === "0" && !this.currentCount.length) &&
-            (char.match(/^\d+$/) && this.isAccepting(NUMBER))) {
-            // Assuming that char is always of type String, and not Number
-            this.currentCount += char;
+        else if (!(ch === "0" && !this.currentCount.length) &&
+            (ch.match(/^\d+$/) && this.isAccepting(NUMBER))) {
+            this.currentCount += ch;
             this.currentCmd = NUMBER;
             this.accepting = [NUMBER, OPERATOR, MOTION, ACTION];
         }
-        else if (!this.operator && this.isAccepting(OPERATOR) && operators[char]) {
+        else if (!this.operator && this.isAccepting(OPERATOR) && operators[ch]) {
             this.operator = {
-                char: char,
+                ch: ch,
                 count: this.getCount()
             };
             this.currentCmd = OPERATOR;
             this.accepting = [NUMBER, MOTION, ACTION];
             this.exec(editor, { operator: this.operator });
         }
-        else if (motions[char] && this.isAccepting(MOTION)) {
+        else if (motions[ch] && this.isAccepting(MOTION)) {
             this.currentCmd = MOTION;
 
             var ctx = {
                 operator: this.operator,
                 motion: {
-                    char: char,
+                    ch: ch,
                     count: this.getCount()
                 }
             };
 
-            if (motions[char].param)
+            if (motions[ch].param)
                 this.waitForParam(ctx);
             else
                 this.exec(editor, ctx);
         }
-        else if (alias[char] && this.isAccepting(MOTION)) {
-            alias[char].operator.count = this.getCount();
-            this.exec(editor, alias[char]);
+        else if (alias[ch] && this.isAccepting(MOTION)) {
+            alias[ch].operator.count = this.getCount();
+            this.exec(editor, alias[ch]);
         }
-        else if (actions[char] && this.isAccepting(ACTION)) {
+        else if (actions[ch] && this.isAccepting(ACTION)) {
             var actionObj = {
                 action: {
-                    fn: actions[char].fn,
+                    fn: actions[ch].fn,
                     count: this.getCount()
                 }
             };
 
-            if (actions[char].param) {
+            if (actions[ch].param) {
                 this.waitForParam(actionObj);
             }
             else {
                 this.exec(editor, actionObj);
             }
 
-            if (actions[char].acceptsMotion)
+            if (actions[ch].acceptsMotion)
                 this.idle = false;
         }
         else if (this.operator) {
-            this.exec(editor, { operator: this.operator }, char);
+            this.exec(editor, { operator: this.operator }, ch);
         }
         else {
             this.reset();
         }
         
         if (this.waitingForParam || this.motion || this.operator) {
-            this.status += char;
+            this.status += ch;
         } else if (this.currentCount) {
             this.status = this.currentCount;
         } else if (this.status) {
@@ -530,18 +514,14 @@ var inputBuffer = exports.inputBuffer = {
         }
 
         if (o && !editor.selection.isEmpty()) {
-            if (operators[o.char].selFn) {
-                operators[o.char].selFn(editor, editor.getSelectionRange(), o.count, param);
+            if (operators[o.ch].selFn) {
+                operators[o.ch].selFn(editor, editor.getSelectionRange(), o.count, param);
                 this.reset();
             }
             return;
         }
-
-        // There is an operator, but no motion or action. We try to pass the
-        // current char to the operator to see if it responds to it (an example
-        // of this is the 'dd' operator).
         else if (!m && !a && o && param) {
-            operators[o.char].fn(editor, null, o.count, param);
+            operators[o.ch].fn(editor, null, o.count, param);
             this.reset();
         }
         else if (m) {
@@ -554,7 +534,7 @@ var inputBuffer = exports.inputBuffer = {
                 }
             };
 
-            var motionObj = motions[m.char];
+            var motionObj = motions[m.ch];
             var selectable = motionObj.sel;
 
             if (!o) {
@@ -566,7 +546,7 @@ var inputBuffer = exports.inputBuffer = {
             else if (selectable) {
                 repeat(function() {
                     run(motionObj.sel);
-                    operators[o.char].fn(editor, editor.getSelectionRange(), o.count, param);
+                    operators[o.ch].fn(editor, editor.getSelectionRange(), o.count, param);
                 }, o.count || 1);
             }
             this.reset();
@@ -611,8 +591,6 @@ exports.coreCommands = {
             setPreviousCommand(startBeginning);
         }
     },
-    // Stop Insert mode as soon as possible. Works like typing <Esc> in
-    // insert mode.
     stop: {
         exec: function stop(editor) {
             inputBuffer.reset();
@@ -683,7 +661,7 @@ ace.define('ace/keyboard/vim/maps/util', ['require', 'exports', 'module' , 'ace/
 var registers = require("../registers");
 
 var dom = require("../../../lib/dom");
-dom.importCssString('.insert-mode. ace_cursor{\
+dom.importCssString('.insert-mode .ace_cursor{\
     border-left: 2px solid #333333;\
 }\
 .ace_dark.insert-mode .ace_cursor{\
@@ -708,7 +686,6 @@ module.exports = {
     },
     insertMode: function(editor) {
         this.currentMode = 'insert';
-        // Switch editor to insert mode
         editor.setStyle('insert-mode');
         editor.unsetStyle('normal-mode');
 
@@ -718,20 +695,17 @@ module.exports = {
         this.onVisualMode = false;
         this.onVisualLineMode = false;
         if(this.onInsertReplaySequence) {
-            // Ok, we're apparently replaying ("."), so let's do it
             editor.commands.macro = this.onInsertReplaySequence;
             editor.commands.replay(editor);
             this.onInsertReplaySequence = null;
             this.normalMode(editor);
         } else {
             editor._emit("changeStatus");
-            // Record any movements, insertions in insert mode
             if(!editor.commands.recording)
                 editor.commands.toggleRecording(editor);
         }
     },
     normalMode: function(editor) {
-        // Switch editor to normal mode
         this.currentMode = 'normal';
 
         editor.unsetStyle('insert-mode');
@@ -751,7 +725,6 @@ module.exports = {
         this.onVisualMode = false;
         this.onVisualLineMode = false;
         editor._emit("changeStatus");
-        // Save recorded keystrokes
         if (editor.commands.recording) {
             editor.commands.toggleRecording(editor);
             return editor.commands.macro;
@@ -780,24 +753,24 @@ module.exports = {
             this.onVisualLineMode = false;
         }
     },
-    getRightNthChar: function(editor, cursor, char, n) {
+    getRightNthChar: function(editor, cursor, ch, n) {
         var line = editor.getSession().getLine(cursor.row);
-        var matches = line.substr(cursor.column + 1).split(char);
+        var matches = line.substr(cursor.column + 1).split(ch);
 
-        return n < matches.length ? matches.slice(0, n).join(char).length : null;
+        return n < matches.length ? matches.slice(0, n).join(ch).length : null;
     },
-    getLeftNthChar: function(editor, cursor, char, n) {
+    getLeftNthChar: function(editor, cursor, ch, n) {
         var line = editor.getSession().getLine(cursor.row);
-        var matches = line.substr(0, cursor.column).split(char);
+        var matches = line.substr(0, cursor.column).split(ch);
 
-        return n < matches.length ? matches.slice(-1 * n).join(char).length : null;
+        return n < matches.length ? matches.slice(-1 * n).join(ch).length : null;
     },
-    toRealChar: function(char) {
-        if (char.length === 1)
-            return char;
+    toRealChar: function(ch) {
+        if (ch.length === 1)
+            return ch;
 
-        if (/^shift-./.test(char))
-            return char[char.length - 1].toUpperCase();
+        if (/^shift-./.test(ch))
+            return ch[ch.length - 1].toUpperCase();
         else
             return "";
     },
@@ -827,9 +800,9 @@ module.exports = {
 
 });
 
-"use strict"
 
 ace.define('ace/keyboard/vim/maps/motions', ['require', 'exports', 'module' , 'ace/keyboard/vim/maps/util', 'ace/search', 'ace/range'], function(require, exports, module) {
+
 
 var util = require("./util");
 
@@ -841,42 +814,27 @@ var keepScrollPosition = function(editor, fn) {
     editor.renderer.scrollToRow(editor.getCursorPosition().row - diff);
 };
 
-function Motion(getRange, type){
-    if (type == 'extend')
-        var extend = true;
-    else
-        var reverse = type;
-
-    this.nav = function(editor) {
-        var r = getRange(editor);
-        if (!r)
+function Motion(m) {
+    if (typeof m == "function") {
+        var getPos = m;
+        m = this;
+    } else {
+        var getPos = m.getPos;
+    }
+    m.nav = function(editor, range, count, param) {
+        var a = getPos(editor, range, count, param, false);
+        if (!a)
             return;
-        if (!r.end)
-            var a = r;
-        else if (reverse)
-            var a = r.start;
-        else
-            var a = r.end;
-
         editor.clearSelection();
         editor.moveCursorTo(a.row, a.column);
-    }
-    this.sel = function(editor){
-        var r = getRange(editor);
-        if (!r)
+    };
+    m.sel = function(editor, range, count, param) {
+        var a = getPos(editor, range, count, param, true);
+        if (!a)
             return;
-        if (extend)
-            return editor.selection.setSelectionRange(r);
-
-        if (!r.end)
-            var a = r;
-        else if (reverse)
-            var a = r.start;
-        else
-            var a = r.end;
-
         editor.selection.selectTo(a.row, a.column);
-    }
+    };
+    return m;
 }
 
 var nonWordRe = /[\s.\/\\()\"'-:,.;<>~!@#$%^&*|+=\[\]{}`~?]/;
@@ -889,20 +847,18 @@ var StringStream = function(editor, cursor) {
     this.row = cursor.row;
     this.col = cursor.column;
     var line = editor.session.getLine(this.row);
-    var maxRow = editor.session.getLength()
-    this.ch = line[this.col] || '\n'
+    var maxRow = editor.session.getLength();
+    this.ch = line[this.col] || '\n';
     this.skippedLines = 0;
 
     this.next = function() {
         this.ch = line[++this.col] || this.handleNewLine(1);
-        //this.debug()
         return this.ch;
-    }
+    };
     this.prev = function() {
         this.ch = line[--this.col] || this.handleNewLine(-1);
-        //this.debug()
         return this.ch;
-    }
+    };
     this.peek = function(dir) {
         var ch = line[this.col + dir];
         if (ch)
@@ -912,7 +868,7 @@ var StringStream = function(editor, cursor) {
         if (this.col == line.length - 1)
             return '\n';
         return editor.session.getLine(this.row + 1)[0] || '\n';
-    }
+    };
 
     this.handleNewLine = function(dir) {
         if (dir == 1){
@@ -927,7 +883,7 @@ var StringStream = function(editor, cursor) {
             return line[0] || '\n';
         }
         if (dir == -1) {
-            if (this.row == 0)
+            if (this.row === 0)
                 return '';
             this.row --;
             line = editor.session.getLine(this.row);
@@ -935,13 +891,13 @@ var StringStream = function(editor, cursor) {
             this.skippedLines--;
             return '\n';
         }
-    }
+    };
     this.debug = function() {
         console.log(line.substring(0, this.col)+'|'+this.ch+'\''+this.col+'\''+line.substr(this.col+1));
-    }
-}
+    };
+};
 
-var Search = require("ace/search").Search;
+var Search = require("../../../search").Search;
 var search = new Search();
 
 function find(editor, needle, dir) {
@@ -950,7 +906,7 @@ function find(editor, needle, dir) {
     return search.find(editor.session);
 }
 
-var Range = require("ace/range").Range;
+var Range = require("../../../range").Range;
 
 module.exports = {
     "w": new Motion(function(editor) {
@@ -978,7 +934,7 @@ module.exports = {
         else
             str.next();
 
-        return {column: str.col, row: str.row}
+        return {column: str.col, row: str.row};
     }),
     "b": new Motion(function(editor) {
         var str = new StringStream(editor);
@@ -998,7 +954,7 @@ module.exports = {
         return {column: str.col, row: str.row};
     }),
     "B": new Motion(function(editor) {
-        var str = new StringStream(editor)
+        var str = new StringStream(editor);
         str.prev();
         while(str.ch && !(!whiteRe.test(str.ch) && whiteRe.test(str.peek(-1))) && str.skippedLines > -2)
             str.prev();
@@ -1007,7 +963,7 @@ module.exports = {
             str.next();
 
         return {column: str.col, row: str.row};
-    }, true),
+    }),
     "e": new Motion(function(editor) {
         var str = new StringStream(editor);
 
@@ -1042,9 +998,6 @@ module.exports = {
             var pos = editor.getCursorPosition();
             var col = pos.column;
             var lineLen = editor.session.getLine(pos.row).length;
-
-            // Solving the behavior at the end of the line due to the
-            // different 0 index-based colum positions in ACE.
             if (lineLen && col !== lineLen) //In selection mode you can select the newline
                 editor.selection.selectRight();
         }
@@ -1188,98 +1141,58 @@ module.exports = {
         }
     },
 
-    "f": {
+    "f": new Motion({
         param: true,
         handlesCount: true,
-        nav: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
+        getPos: function(editor, range, count, param, isSel) {
+            var cursor = editor.getCursorPosition();
             var column = util.getRightNthChar(editor, cursor, param, count || 1);
 
             if (typeof column === "number") {
-                ed.selection.clearSelection(); // Why does it select in the first place?
-                ed.moveCursorTo(cursor.row, column + cursor.column + 1);
+                cursor.column += column + (isSel ? 2 : 1);                
+                return cursor;
             }
-        },
-        sel: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
+        }
+    }),
+    "F": new Motion({
+        param: true,
+        handlesCount: true,
+        getPos: function(editor, range, count, param, isSel) {
+            var cursor = editor.getCursorPosition();
+            var column = util.getLeftNthChar(editor, cursor, param, count || 1);
+
+            if (typeof column === "number") {
+                cursor.column -= column + 1;
+                return cursor;
+            }
+        }
+    }),
+    "t": new Motion({
+        param: true,
+        handlesCount: true,
+        getPos: function(editor, range, count, param, isSel) {
+            var cursor = editor.getCursorPosition();
             var column = util.getRightNthChar(editor, cursor, param, count || 1);
 
             if (typeof column === "number") {
-                ed.moveCursorTo(cursor.row, column + cursor.column + 1);
+                cursor.column += column + (isSel ? 1 : 0);
+                return cursor;
             }
         }
-    },
-    "F": {
+    }),
+    "T": new Motion({
         param: true,
         handlesCount: true,
-        nav: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
+        getPos: function(editor, range, count, param, isSel) {
+            var cursor = editor.getCursorPosition();
             var column = util.getLeftNthChar(editor, cursor, param, count || 1);
 
             if (typeof column === "number") {
-                ed.selection.clearSelection(); // Why does it select in the first place?
-                ed.moveCursorTo(cursor.row, cursor.column - column - 1);
-            }
-        },
-        sel: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
-            var column = util.getLeftNthChar(editor, cursor, param, count || 1);
-
-            if (typeof column === "number") {
-                ed.moveCursorTo(cursor.row, cursor.column - column - 1);
+                cursor.column -= column;
+                return cursor;
             }
         }
-    },
-    "t": {
-        param: true,
-        handlesCount: true,
-        nav: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
-            var column = util.getRightNthChar(editor, cursor, param, count || 1);
-
-            if (typeof column === "number") {
-                ed.selection.clearSelection(); // Why does it select in the first place?
-                ed.moveCursorTo(cursor.row, column + cursor.column);
-            }
-        },
-        sel: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
-            var column = util.getRightNthChar(editor, cursor, param, count || 1);
-
-            if (typeof column === "number") {
-                ed.moveCursorTo(cursor.row, column + cursor.column);
-            }
-        }
-    },
-    "T": {
-        param: true,
-        handlesCount: true,
-        nav: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
-            var column = util.getLeftNthChar(editor, cursor, param, count || 1);
-
-            if (typeof column === "number") {
-                ed.selection.clearSelection(); // Why does it select in the first place?
-                ed.moveCursorTo(cursor.row, -column + cursor.column);
-            }
-        },
-        sel: function(editor, range, count, param) {
-            var ed = editor;
-            var cursor = ed.getCursorPosition();
-            var column = util.getLeftNthChar(editor, cursor, param, count || 1);
-
-            if (typeof column === "number") {
-                ed.moveCursorTo(cursor.row, -column + cursor.column);
-            }
-        }
-    },
+    }),
 
     "^": {
         nav: function(editor) {
@@ -1434,7 +1347,7 @@ module.exports = {
         sel: function(editor, range, count, param) {
             keepScrollPosition(editor, editor.selectPageUp);
         }
-    },
+    }
 };
 
 module.exports.backspace = module.exports.left = module.exports.h;
@@ -1474,7 +1387,6 @@ module.exports = {
                         editor.selection.selectLine();
                         registers._default.text += editor.getCopyText();
                         var selRange = editor.getSelectionRange();
-                        // check if end of the document was reached
                         if (!selRange.isMultiLine()) {
                             lastLineReached = true
                             var row = selRange.start.row - 1;
@@ -1517,8 +1429,6 @@ module.exports = {
                     break;
                 default:
                     if (range) {
-
-                        // range.end.column ++;
                         editor.session.remove(range);
                         util.insertMode(editor);
                     }
@@ -1619,57 +1529,57 @@ ace.define('ace/keyboard/vim/maps/aliases', ['require', 'exports', 'module' ], f
 module.exports = {
     "x": {
         operator: {
-            char: "d",
+            ch: "d",
             count: 1
         },
         motion: {
-            char: "l",
+            ch: "l",
             count: 1
         }
     },
     "X": {
         operator: {
-            char: "d",
+            ch: "d",
             count: 1
         },
         motion: {
-            char: "h",
+            ch: "h",
             count: 1
         }
     },
     "D": {
         operator: {
-            char: "d",
+            ch: "d",
             count: 1
         },
         motion: {
-            char: "$",
+            ch: "$",
             count: 1
         }
     },
     "C": {
         operator: {
-            char: "c",
+            ch: "c",
             count: 1
         },
         motion: {
-            char: "$",
+            ch: "$",
             count: 1
         }
     },
     "s": {
         operator: {
-            char: "c",
+            ch: "c",
             count: 1
         },
         motion: {
-            char: "l",
+            ch: "l",
             count: 1
         }
     },
     "S": {
         operator: {
-            char: "c",
+            ch: "c",
             count: 1
         },
         param: "c"
