@@ -1,5 +1,8 @@
 "no use strict";
 
+if (typeof window != "undefined" && window.document)
+    throw "atempt to load ace worker into main window instead of webWorker";
+
 var console = {
     log: function() {
         var msgs = Array.prototype.slice.call(arguments, 0);
@@ -1111,6 +1114,9 @@ var Document = function(text) {
         this.$split = function(text) {
             return text.split(/\r\n|\r|\n/);
         };
+
+
+ 
     this.$detectNewLine = function(text) {
         var match = text.match(/^.*?(\r\n|\r|\n)/m);
         if (match) {
@@ -1170,6 +1176,7 @@ var Document = function(text) {
             return lines.join(this.getNewLineCharacter());
         }
     };
+
     this.$clipPosition = function(position) {
         var length = this.getLength();
         if (position.row >= length) {
@@ -1448,23 +1455,23 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
                 return 0;
             }
         }
-    } 
+    }; 
     this.comparePoint = function(p) {
         return this.compare(p.row, p.column);
-    } 
+    }; 
     this.containsRange = function(range) {
         return this.comparePoint(range.start) == 0 && this.comparePoint(range.end) == 0;
-    }
+    };
     this.intersects = function(range) {
         var cmp = this.compareRange(range);
         return (cmp == -1 || cmp == 0 || cmp == 1);
-    }
+    };
     this.isEnd = function(row, column) {
         return this.end.row == row && this.end.column == column;
-    } 
+    }; 
     this.isStart = function(row, column) {
         return this.start.row == row && this.start.column == column;
-    } 
+    }; 
     this.setStart = function(row, column) {
         if (typeof row == "object") {
             this.start.column = row.column;
@@ -1473,7 +1480,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             this.start.row = row;
             this.start.column = column;
         }
-    } 
+    }; 
     this.setEnd = function(row, column) {
         if (typeof row == "object") {
             this.end.column = row.column;
@@ -1482,7 +1489,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             this.end.row = row;
             this.end.column = column;
         }
-    } 
+    }; 
     this.inside = function(row, column) {
         if (this.compare(row, column) == 0) {
             if (this.isEnd(row, column) || this.isStart(row, column)) {
@@ -1492,7 +1499,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             }
         }
         return false;
-    } 
+    }; 
     this.insideStart = function(row, column) {
         if (this.compare(row, column) == 0) {
             if (this.isEnd(row, column)) {
@@ -1502,7 +1509,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             }
         }
         return false;
-    } 
+    }; 
     this.insideEnd = function(row, column) {
         if (this.compare(row, column) == 0) {
             if (this.isStart(row, column)) {
@@ -1512,7 +1519,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
             }
         }
         return false;
-    }
+    };
     this.compare = function(row, column) {
         if (!this.isMultiLine()) {
             if (row === this.start.row) {
@@ -1540,14 +1547,14 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         } else {
             return this.compare(row, column);
         }
-    }
+    };
     this.compareEnd = function(row, column) {
         if (this.end.row == row && this.end.column == column) {
             return 1;
         } else {
             return this.compare(row, column);
         }
-    }
+    };
     this.compareInside = function(row, column) {
         if (this.end.row == row && this.end.column == column) {
             return 1;
@@ -1556,7 +1563,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         } else {
             return this.compare(row, column);
         }
-    }
+    };
     this.clipRows = function(firstRow, lastRow) {
         if (this.end.row > lastRow) {
             var end = {
@@ -1761,7 +1768,6 @@ var Anchor = exports.Anchor = function(doc, row, column) {
     this.detach = function() {
         this.document.removeEventListener("change", this.$onChange);
     };
-
     this.$clipPositionToDocument = function(row, column) {
         var pos = {};
     
@@ -1933,7 +1939,7 @@ exports.delayedCall = function(fcn, defaultTimeout) {
         timer = setTimeout(callback, timeout || defaultTimeout);
     };
 
-    _self.delay = delayed;
+    _self.delay = _self;
     _self.schedule = function(timeout) {
         if (timer == null)
             timer = setTimeout(callback, timeout || 0);

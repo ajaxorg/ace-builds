@@ -121,7 +121,7 @@ env.editor.commands.addCommands([{
 }, {
     name: "execute",
     bindKey: "ctrl+enter",
-    exec: function(editor) { 
+    exec: function(editor) {
         try {
             var r = eval(editor.getCopyText()||editor.getValue());
         } catch(e) {
@@ -407,6 +407,140 @@ event.addListener(container, "drop", function(e) {
 var StatusBar = require("./statusbar").StatusBar;
 new StatusBar(env.editor, cmdLine.container);
 
+});
+
+define('ace/theme/textmate', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+
+
+exports.isDark = false;
+exports.cssClass = "ace-tm";
+exports.cssText = ".ace-tm .ace_gutter {\
+background: #f0f0f0;\
+color: #333;\
+}\
+.ace-tm .ace_print-margin {\
+width: 1px;\
+background: #e8e8e8;\
+}\
+.ace-tm .ace_fold {\
+background-color: #6B72E6;\
+}\
+.ace-tm .ace_scroller {\
+background-color: #FFFFFF;\
+}\
+.ace-tm .ace_cursor {\
+border-left: 2px solid black;\
+}\
+.ace-tm .ace_overwrite-cursors .ace_cursor {\
+border-left: 0px;\
+border-bottom: 1px solid black;\
+}\
+.ace-tm .ace_invisible {\
+color: rgb(191, 191, 191);\
+}\
+.ace-tm .ace_storage,\
+.ace-tm .ace_keyword {\
+color: blue;\
+}\
+.ace-tm .ace_constant {\
+color: rgb(197, 6, 11);\
+}\
+.ace-tm .ace_constant.ace_buildin {\
+color: rgb(88, 72, 246);\
+}\
+.ace-tm .ace_constant.ace_language {\
+color: rgb(88, 92, 246);\
+}\
+.ace-tm .ace_constant.ace_library {\
+color: rgb(6, 150, 14);\
+}\
+.ace-tm .ace_invalid {\
+background-color: rgba(255, 0, 0, 0.1);\
+color: red;\
+}\
+.ace-tm .ace_support.ace_function {\
+color: rgb(60, 76, 114);\
+}\
+.ace-tm .ace_support.ace_constant {\
+color: rgb(6, 150, 14);\
+}\
+.ace-tm .ace_support.ace_type,\
+.ace-tm .ace_support.ace_class {\
+color: rgb(109, 121, 222);\
+}\
+.ace-tm .ace_keyword.ace_operator {\
+color: rgb(104, 118, 135);\
+}\
+.ace-tm .ace_string {\
+color: rgb(3, 106, 7);\
+}\
+.ace-tm .ace_comment {\
+color: rgb(76, 136, 107);\
+}\
+.ace-tm .ace_comment.ace_doc {\
+color: rgb(0, 102, 255);\
+}\
+.ace-tm .ace_comment.ace_doc.ace_tag {\
+color: rgb(128, 159, 191);\
+}\
+.ace-tm .ace_constant.ace_numeric {\
+color: rgb(0, 0, 205);\
+}\
+.ace-tm .ace_variable {\
+color: rgb(49, 132, 149);\
+}\
+.ace-tm .ace_xml-pe {\
+color: rgb(104, 104, 91);\
+}\
+.ace-tm .ace_entity.ace_name.ace_function {\
+color: #0000A2;\
+}\
+.ace-tm .ace_markup.ace_heading {\
+color: rgb(12, 7, 255);\
+}\
+.ace-tm .ace_markup.ace_list {\
+color:rgb(185, 6, 144);\
+}\
+.ace-tm .ace_meta.ace_tag {\
+color:rgb(0, 22, 142);\
+}\
+.ace-tm .ace_string.ace_regex {\
+color: rgb(255, 0, 0)\
+}\
+.ace-tm .ace_marker-layer .ace_selection {\
+background: rgb(181, 213, 255);\
+}\
+.ace-tm.ace_multiselect .ace_selection.ace_start {\
+box-shadow: 0 0 3px 0px white;\
+border-radius: 2px;\
+}\
+.ace-tm .ace_marker-layer .ace_step {\
+background: rgb(252, 255, 0);\
+}\
+.ace-tm .ace_marker-layer .ace_stack {\
+background: rgb(164, 229, 101);\
+}\
+.ace-tm .ace_marker-layer .ace_bracket {\
+margin: -1px 0 0 -1px;\
+border: 1px solid rgb(192, 192, 192);\
+}\
+.ace-tm .ace_marker-layer .ace_active-line {\
+background: rgba(0, 0, 0, 0.07);\
+}\
+.ace-tm .ace_gutter-active-line {\
+background-color : #dcdcdc;\
+}\
+.ace-tm .ace_marker-layer .ace_selected-word {\
+background: rgb(250, 250, 255);\
+border: 1px solid rgb(200, 200, 250);\
+}\
+.ace-tm .ace_indent-guide {\
+background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
+}\
+";
+
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass);
 });
 
 define('ace/keyboard/vim', ['require', 'exports', 'module' , 'ace/keyboard/vim/commands', 'ace/keyboard/vim/maps/util', 'ace/lib/useragent'], function(require, exports, module) {
@@ -2346,10 +2480,13 @@ var docs = {
     "docs/cpp.cpp": "C/C++",
     "docs/csharp.cs": "C#",
     "docs/css.css": "CSS",
+    "docs/dart.dart": "Dart",
     "docs/diff.diff": "Diff",
+    "docs/dot.dot": "Dot",
     "docs/glsl.glsl": "Glsl",
     "docs/golang.go": "Go",
     "docs/groovy.groovy": "Groovy",
+    "docs/haml.haml": "Haml",
     "docs/Haxe.hx": "haXe",
     "docs/html.html": "HTML",
     "docs/jade.jade": "Jade",
@@ -2359,10 +2496,14 @@ var docs = {
     "docs/jsx.jsx": "JSX",
     "docs/latex.tex": {name: "LaTeX", wrapped: true},
     "docs/less.less": "LESS",
+    "docs/lisp.lisp": "Lisp",
     "docs/liquid.liquid": "Liquid",
     "docs/lua.lua": "Lua",
+    "docs/lucene.lucene": "Lucene",
     "docs/luapage.lp": "LuaPage",
+    "docs/Makefile": "Makefile",
     "docs/markdown.md": {name: "Markdown", wrapped: true},
+    "docs/objectivec.m": {name: "Objective-C"},
     "docs/ocaml.ml": "OCaml",
     "docs/OpenSCAD.scad": "OpenSCAD",
     "docs/perl.pl": "Perl",
@@ -2371,13 +2512,19 @@ var docs = {
     "docs/plaintext.txt": {name: "Plain Text", prepare: makeHuge, wrapped: true},
     "docs/powershell.ps1": "Powershell",
     "docs/python.py": "Python",
+    "docs/r.r": "R",
+    "docs/rdoc.Rd": "RDoc",
+    "docs/rhtml.rhtml": "RHTML",
     "docs/ruby.rb": "Ruby",
+    "docs/abap.abap": "SAP - ABAP",
     "docs/scala.scala": "Scala",
     "docs/scss.scss": "SCSS",
     "docs/sh.sh": "SH",
+    "docs/stylus.styl": "Stylus",
     "docs/sql.sql": {name: "SQL", wrapped: true},
     "docs/svg.svg": "SVG",
     "docs/tcl.tcl": "Tcl",
+    "docs/tex.tex": "Tex",
     "docs/textile.textile": {name: "Textile", wrapped: true},
     "docs/typescript.ts": "Typescript",
     "docs/xml.xml": "XML",
@@ -2449,22 +2596,23 @@ module.exports = {
     ownSource: prepareDocList(ownSource),
     hugeDocs: prepareDocList(hugeDocs),
     initDoc: initDoc,
-    loadDoc: loadDoc    
+    loadDoc: loadDoc
 };
 module.exports.all = {
     "Mode Examples": module.exports.docs,
-    "Huge documents": module.exports.hugeDocs, 
+    "Huge documents": module.exports.hugeDocs,
     "own source": module.exports.ownSource
 };
-    
+
 });
 
 define('kitchen-sink/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
 var modes = [];
 function getModeFromPath(path) {
     var mode = modesByName.text;
+    var fileName = path.split(/[\/\\]/).pop();
     for (var i = 0; i < modes.length; i++) {
-        if (modes[i].supportsFile(path)) {
+        if (modes[i].supportsFile(fileName)) {
             mode = modes[i];
             break;
         }
@@ -2476,7 +2624,15 @@ var Mode = function(name, desc, extensions) {
     this.name = name;
     this.desc = desc;
     this.mode = "ace/mode/" + name;
-    this.extRe = new RegExp("^.*\\.(" + extensions + ")$", "g");
+    if (/\^/.test(extensions)) {
+        var re = extensions.replace(/\|(\^)?/g, function(a, b){
+            return "$|" + (b ? "^" : "^.*\\.");
+        }) + "$";
+    } else {
+        var re = "^.*\\.(" + extensions + ")$";
+    }   
+
+    this.extRe = new RegExp(re, "gi");
 };
 
 Mode.prototype.supportsFile = function(filename) {
@@ -2484,46 +2640,59 @@ Mode.prototype.supportsFile = function(filename) {
 };
 
 var modesByName = {
+    abap:       ["ABAP"         , "abap"],
     asciidoc:   ["AsciiDoc"     , "asciidoc"],
     c9search:   ["C9Search"     , "c9search_results"],
-    coffee:     ["CoffeeScript" , "coffee|^Cakefile"],
+    coffee:     ["CoffeeScript" , "^Cakefile|coffee|cf"],
     coldfusion: ["ColdFusion"   , "cfm"],
     csharp:     ["C#"           , "cs"],
     css:        ["CSS"          , "css"],
+    dart:       ["Dart"         , "dart"],
     diff:       ["Diff"         , "diff|patch"],
+    dot:        ["Dot"          , "dot"],
     glsl:       ["Glsl"         , "glsl|frag|vert"],
     golang:     ["Go"           , "go"],
     groovy:     ["Groovy"       , "groovy"],
     haxe:       ["haXe"         , "hx"],
+    haml:       ["HAML"         , "haml"],
     html:       ["HTML"         , "htm|html|xhtml"],
     c_cpp:      ["C/C++"        , "c|cc|cpp|cxx|h|hh|hpp"],
     clojure:    ["Clojure"      , "clj"],
     jade:       ["Jade"         , "jade"],
     java:       ["Java"         , "java"],
-    jsp:        ["JSP"                , "jsp"],
+    jsp:        ["JSP"          , "jsp"],
     javascript: ["JavaScript"   , "js"],
     json:       ["JSON"         , "json"],
     jsx:        ["JSX"          , "jsx"],
     latex:      ["LaTeX"        , "latex|tex|ltx|bib"],
     less:       ["LESS"         , "less"],
+    lisp:       ["Lisp"         , "lisp|scm|rkt"],
     liquid:     ["Liquid"       , "liquid"],
     lua:        ["Lua"          , "lua"],
     luapage:    ["LuaPage"      , "lp"], // http://keplerproject.github.com/cgilua/manual.html#templates
+    lucene:     ["Lucene"       , "lucene"],
+    makefile:   ["Makefile"     , "^GNUmakefile|^makefile|^Makefile|^OCamlMakefile|make"],
     markdown:   ["Markdown"     , "md|markdown"],
+    objectivec: ["Objective-C"  , "m"],
     ocaml:      ["OCaml"        , "ml|mli"],
     perl:       ["Perl"         , "pl|pm"],
     pgsql:      ["pgSQL"        , "pgsql"],
     php:        ["PHP"          , "php|phtml"],
     powershell: ["Powershell"   , "ps1"],
     python:     ["Python"       , "py"],
+    r:          ["R"            , "r"],
+    rdoc:       ["RDoc"         , "Rd"],
+    rhtml:      ["RHTML"        , "Rhtml"],
     ruby:       ["Ruby"         , "ru|gemspec|rake|rb"],
     scad:       ["OpenSCAD"     , "scad"],
     scala:      ["Scala"        , "scala"],
     scss:       ["SCSS"         , "scss|sass"],
     sh:         ["SH"           , "sh|bash|bat"],
     sql:        ["SQL"          , "sql"],
+    stylus:     ["Stylus"       , "styl|stylus"],
     svg:        ["SVG"          , "svg"],
     tcl:        ["Tcl"          , "tcl"],
+    tex:        ["Tex"          , "tex"],
     text:       ["Text"         , "txt"],
     textile:    ["Textile"      , "textile"],
     typescript: ["Typescript"   , "typescript|ts|str"],
@@ -3101,6 +3270,7 @@ var Editor = require("./editor").Editor;
 var Renderer = require("./virtual_renderer").VirtualRenderer;
 var EditSession = require("./edit_session").EditSession;
 
+
 var Split = function(container, theme, splits) {
     this.BELOW = 1;
     this.BESIDE = 0;
@@ -3140,6 +3310,7 @@ var Split = function(container, theme, splits) {
         editor.setFontSize(this.$fontSize);
         return editor;
     };
+
     this.setSplits = function(splits) {
         var editor;
         if (splits < 1) {
@@ -3196,6 +3367,8 @@ var Split = function(container, theme, splits) {
     this.forEach = function(callback, scope) {
         this.$editors.forEach(callback, scope);
     };
+
+
     this.$fontSize = "";
     this.setFontSize = function(size) {
         this.$fontSize = size;
@@ -3281,6 +3454,8 @@ var Split = function(container, theme, splits) {
     };
 
 }).call(Split.prototype);
+
+ 
 function UndoManagerProxy(undoManager, session) {
     this.$u = undoManager;
     this.$doc = session;

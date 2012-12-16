@@ -156,17 +156,14 @@ var JavaScriptHighlightRules = function() {
             "isNaN|parseFloat|parseInt|"                                               +
             "JSON|Math|"                                                               + // Other
             "this|arguments|prototype|window|document"                                 , // Pseudo
-        "invalid.deprecated":
-            "__parent__|__count__|escape|unescape|with|__proto__",
         "keyword":
             "const|yield|import|get|set|" +
             "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
-            "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|debugger",
+            "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|debugger|" +
+            "__parent__|__count__|escape|unescape|with|__proto__|" +
+            "class|enum|extends|super|export|implements|private|public|interface|package|protected|static",
         "storage.type":
             "const|let|var|function",
-        "invalid.illegal":
-            "class|enum|extends|super|export|implements|private|" +
-            "public|interface|package|protected|static",
         "constant.language":
             "null|Infinity|NaN|undefined",
         "support.function":
@@ -577,30 +574,41 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator'], function(require, exports, module) {
+define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator', 'ace/lib/lang'], function(require, exports, module) {
 
 
 var oop = require("../../lib/oop");
 var Behaviour = require("../behaviour").Behaviour;
 var TokenIterator = require("../../token_iterator").TokenIterator;
+var lang = require("../../lib/lang");
+
+var SAFE_INSERT_IN_TOKENS =
+    ["text", "paren.rparen", "punctuation.operator"];
+var SAFE_INSERT_BEFORE_TOKENS =
+    ["text", "paren.rparen", "punctuation.operator", "comment"];
+
 
 var autoInsertedBrackets = 0;
 var autoInsertedRow = -1;
 var autoInsertedLineEnd = "";
+var maybeInsertedBrackets = 0;
+var maybeInsertedRow = -1;
+var maybeInsertedLineStart = "";
+var maybeInsertedLineEnd = "";
 
 var CstyleBehaviour = function () {
     
     CstyleBehaviour.isSaneInsertion = function(editor, session) {
         var cursor = editor.getCursorPosition();
         var iterator = new TokenIterator(session, cursor.row, cursor.column);
-        if (!this.$matchTokenType(iterator.getCurrentToken() || "text", ["text", "paren.rparen"])) {
-            iterator = new TokenIterator(session, cursor.row, cursor.column + 1);
-            if (!this.$matchTokenType(iterator.getCurrentToken() || "text", ["text", "paren.rparen"]))
+        if (!this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS)) {
+            var iterator2 = new TokenIterator(session, cursor.row, cursor.column + 1);
+            if (!this.$matchTokenType(iterator2.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS))
                 return false;
         }
         iterator.stepForward();
         return iterator.getCurrentTokenRow() !== cursor.row ||
-            this.$matchTokenType(iterator.getCurrentToken() || "text", ["text", "comment", "paren.rparen"]);
+            this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_BEFORE_TOKENS);
     };
     
     CstyleBehaviour.$matchTokenType = function(token, types) {
@@ -617,6 +625,17 @@ var CstyleBehaviour = function () {
         autoInsertedBrackets++;
     };
     
+    CstyleBehaviour.recordMaybeInsert = function(editor, session, bracket) {
+        var cursor = editor.getCursorPosition();
+        var line = session.doc.getLine(cursor.row);
+        if (!this.isMaybeInsertedClosing(cursor, line))
+            maybeInsertedBrackets = 0;
+        maybeInsertedRow = cursor.row;
+        maybeInsertedLineStart = line.substr(0, cursor.column) + bracket;
+        maybeInsertedLineEnd = line.substr(cursor.column);
+        maybeInsertedBrackets++;
+    };
+    
     CstyleBehaviour.isAutoInsertedClosing = function(cursor, line, bracket) {
         return autoInsertedBrackets > 0 &&
             cursor.row === autoInsertedRow &&
@@ -624,30 +643,50 @@ var CstyleBehaviour = function () {
             line.substr(cursor.column) === autoInsertedLineEnd;
     };
     
+    CstyleBehaviour.isMaybeInsertedClosing = function(cursor, line) {
+        return maybeInsertedBrackets > 0 &&
+            cursor.row === maybeInsertedRow &&
+            line.substr(cursor.column) === maybeInsertedLineEnd &&
+            line.substr(0, cursor.column) == maybeInsertedLineStart;
+    };
+    
     CstyleBehaviour.popAutoInsertedClosing = function() {
         autoInsertedLineEnd = autoInsertedLineEnd.substr(1);
         autoInsertedBrackets--;
     };
+    
+    CstyleBehaviour.clearMaybeInsertedClosing = function() {
+        maybeInsertedBrackets = 0;
+        maybeInsertedRow = -1;
+    };
 
     this.add("braces", "insertion", function (state, action, editor, session, text) {
+        var cursor = editor.getCursorPosition();
+        var line = session.doc.getLine(cursor.row);
         if (text == '{') {
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
-            if (selected !== "" && selected !== "{") {
+            if (selected !== "" && selected !== "{" && editor.getWrapBehavioursEnabled()) {
                 return {
                     text: '{' + selected + '}',
                     selection: false
                 };
             } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                CstyleBehaviour.recordAutoInsert(editor, session, "}");
-                return {
-                    text: '{}',
-                    selection: [1, 1]
-                };
+                if (/[\]\}\)]/.test(line[cursor.column])) {
+                    CstyleBehaviour.recordAutoInsert(editor, session, "}");
+                    return {
+                        text: '{}',
+                        selection: [1, 1]
+                    };
+                } else {
+                    CstyleBehaviour.recordMaybeInsert(editor, session, "{");
+                    return {
+                        text: '{',
+                        selection: [1, 1]
+                    };
+                }
             }
         } else if (text == '}') {
-            var cursor = editor.getCursorPosition();
-            var line = session.doc.getLine(cursor.row);
             var rightChar = line.substring(cursor.column, cursor.column + 1);
             if (rightChar == '}') {
                 var matching = session.$findOpeningBracket('}', {column: cursor.column + 1, row: cursor.row});
@@ -660,19 +699,22 @@ var CstyleBehaviour = function () {
                 }
             }
         } else if (text == "\n" || text == "\r\n") {
-            var cursor = editor.getCursorPosition();
-            var line = session.doc.getLine(cursor.row);
+            var closing = "";
+            if (CstyleBehaviour.isMaybeInsertedClosing(cursor, line)) {
+                closing = lang.stringRepeat("}", maybeInsertedBrackets);
+                CstyleBehaviour.clearMaybeInsertedClosing();
+            }
             var rightChar = line.substring(cursor.column, cursor.column + 1);
-            if (rightChar == '}') {
-                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column + 1});
+            if (rightChar == '}' || closing !== "") {
+                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column}, '}');
                 if (!openBracePos)
                      return null;
 
-                var indent = this.getNextLineIndent(state, line.substring(0, line.length - 1), session.getTabString());
-                var next_indent = this.$getIndent(session.doc.getLine(openBracePos.row));
+                var indent = this.getNextLineIndent(state, line.substring(0, cursor.column), session.getTabString());
+                var next_indent = this.$getIndent(line);
 
                 return {
-                    text: '\n' + indent + '\n' + next_indent,
+                    text: '\n' + indent + '\n' + next_indent + closing,
                     selection: [1, indent.length, 1, indent.length]
                 };
             }
@@ -687,6 +729,8 @@ var CstyleBehaviour = function () {
             if (rightChar == '}') {
                 range.end.column++;
                 return range;
+            } else {
+                maybeInsertedBrackets--;
             }
         }
     });
@@ -695,7 +739,7 @@ var CstyleBehaviour = function () {
         if (text == '(') {
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
-            if (selected !== "") {
+            if (selected !== "" && editor.getWrapBehavioursEnabled()) {
                 return {
                     text: '(' + selected + ')',
                     selection: false
@@ -740,7 +784,7 @@ var CstyleBehaviour = function () {
         if (text == '[') {
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
-            if (selected !== "") {
+            if (selected !== "" && editor.getWrapBehavioursEnabled()) {
                 return {
                     text: '[' + selected + ']',
                     selection: false
@@ -786,7 +830,7 @@ var CstyleBehaviour = function () {
             var quote = text;
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
-            if (selected !== "") {
+            if (selected !== "" && selected !== "'" && selected != '"' && editor.getWrapBehavioursEnabled()) {
                 return {
                     text: quote + selected + quote,
                     selection: false
@@ -815,6 +859,8 @@ var CstyleBehaviour = function () {
                     col += tokens[x].value.length;
                 }
                 if (!token || (quotepos < 0 && token.type !== "comment" && (token.type !== "string" || ((selection.start.column !== token.value.length+col-1) && token.value.lastIndexOf(quote) === token.value.length-1)))) {
+                    if (!CstyleBehaviour.isSaneInsertion(editor, session))
+                        return;
                     return {
                         text: quote + quote,
                         selection: [1,1]

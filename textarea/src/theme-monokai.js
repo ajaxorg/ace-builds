@@ -114,7 +114,7 @@ font-style: italic;\
 color: #66D9EF\
 }\
 .ace-monokai .ace_entity.ace_name.ace_function,\
-.ace-monokai .ace_entity.ace_other.ace_attribute-name,\
+.ace-monokai .ace_entity.ace_other,\
 .ace-monokai .ace_variable {\
 color: #A6E22E\
 }\
