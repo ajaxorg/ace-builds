@@ -3384,7 +3384,7 @@ var TextInput = function(parentNode, host) {
         text.style.cssText = "z-index:100000;" + (useragent.isIE ? "opacity:0.1;" : "");
 
         resetSelection(host.selection.isEmpty());
-        host._emit("nativecontextmenu", {target: editor});
+        host._emit("nativecontextmenu", {target: host});
         var rect = host.container.getBoundingClientRect();
         var move = function(e) {
             text.style.left = e.clientX - rect.left - 2 + "px";
