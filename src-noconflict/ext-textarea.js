@@ -257,6 +257,19 @@ function setupApi(editor, editorDiv, settingDiv, ace, options, loader) {
                 editorDiv.style.fontSize = value;
             break;
 
+            case "keybindings":
+                switch (value) {
+                    case "vim":
+                        editor.setKeyboardHandler("ace/keyboard/vim");
+                        break;
+                    case "emacs": 
+                        editor.setKeyboardHandler("ace/keyboard/emacs");
+                        break;
+                    default:
+                        editor.setKeyboardHandler(null);
+                }
+            break;
+
             case "softWrap":
                 switch (value) {
                     case "off":
@@ -324,6 +337,7 @@ function setupSettingPanel(settingDiv, settingOpener, editor, options) {
         theme:           "Theme:",
         fontSize:        "Font Size:",
         softWrap:        "Soft Wrap:",
+        keybindings:     "Keyboard",
         showPrintMargin: "Show Print Margin:",
         useSoftTabs:     "Use Soft Tabs:",
         showInvisibles:  "Show Invisibles"
@@ -389,6 +403,11 @@ function setupSettingPanel(settingDiv, settingOpener, editor, options) {
             80:     "80",
             free:   "Free"
         },
+        keybindings: {
+            ace: "ace",
+            vim: "vim",
+            emacs: "emacs"
+        },
         showPrintMargin:    BOOL,
         useSoftTabs:        BOOL,
         showInvisibles:     BOOL
@@ -449,6 +468,7 @@ exports.options = {
     gutter:             "false",
     fontSize:           "12px",
     softWrap:           "off",
+    keybindings:        "ace",
     showPrintMargin:    "false",
     useSoftTabs:        "true",
     showInvisibles:     "true"

@@ -193,7 +193,6 @@ var PythonHighlightRules = function() {
             regex : strPre + '"{3}(?:[^\\\\]|\\\\.)*?"{3}'
         }, {
             token : "string",           // multi line """ string start
-            merge : true,
             regex : strPre + '"{3}.*$',
             next : "qqstring"
         }, {
@@ -204,7 +203,6 @@ var PythonHighlightRules = function() {
             regex : strPre + "'{3}(?:[^\\\\]|\\\\.)*?'{3}"
         }, {
             token : "string",           // multi line ''' string start
-            merge : true,
             regex : strPre + "'{3}.*$",
             next : "qstring"
         }, {
@@ -244,7 +242,6 @@ var PythonHighlightRules = function() {
             next : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring" : [ {
@@ -253,7 +250,6 @@ var PythonHighlightRules = function() {
             next : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ]
     };

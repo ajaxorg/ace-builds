@@ -13,12 +13,12 @@
 define('ace/mode/rdoc', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/text_highlight_rules', 'ace/mode/rdoc_highlight_rules', 'ace/mode/matching_brace_outdent'], function(require, exports, module) {
 
 
-var oop = require("ace/lib/oop");
-var TextMode = require("ace/mode/text").Mode;
-var Tokenizer = require("ace/tokenizer").Tokenizer;
-var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var Tokenizer = require("../tokenizer").Tokenizer;
+var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var RDocHighlightRules = require("./rdoc_highlight_rules").RDocHighlightRules;
-var MatchingBraceOutdent = require("ace/mode/matching_brace_outdent").MatchingBraceOutdent;
+var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 
 var Mode = function(suppressHighlighting) {
 	this.$tokenizer = new Tokenizer(new RDocHighlightRules().getRules());
@@ -37,8 +37,8 @@ exports.Mode = Mode;
 define('ace/mode/rdoc_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules', 'ace/mode/latex_highlight_rules'], function(require, exports, module) {
 
 
-var oop = require("ace/lib/oop");
-var lang = require("ace/lib/lang");
+var oop = require("../lib/oop");
+var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var LaTeXHighlightRules = require("./latex_highlight_rules");
 

@@ -125,7 +125,6 @@ var CssHighlightRules = function() {
     var base_ruleset = [
         {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "ruleset_comment"
         }, {
@@ -174,7 +173,6 @@ var CssHighlightRules = function() {
 
     var base_comment = [{
           token : "comment", // comment spanning whole line
-          merge : true,
           regex : ".+"
     }];
 
@@ -202,7 +200,6 @@ var CssHighlightRules = function() {
     this.$rules = {
         "start" : [{
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "comment"
         }, {
@@ -229,7 +226,6 @@ var CssHighlightRules = function() {
 
         "media" : [ {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "media_comment"
         }, {
@@ -624,7 +620,7 @@ var CstyleBehaviour = function () {
         if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
             var line = session.doc.getLine(range.start.row);
             var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == '"') {
+            if (rightChar == selected) {
                 range.end.column++;
                 return range;
             }

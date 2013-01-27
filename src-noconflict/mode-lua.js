@@ -64,7 +64,7 @@ oop.inherits(Mode, TextMode);
 
     function getNetIndentLevel(tokens) {
         var level = 0;
-        for (var i in tokens){
+        for (var i = 0; i < tokens.length; i++) {
             var token = tokens[i];
             if (token.type == "keyword") {
                 if (token.value in indentKeywords) {
@@ -231,27 +231,22 @@ var LuaHighlightRules = function() {
         {
             token : "comment",           // --[[ comment
             regex : strPre + '\\-\\-\\[\\[.*$',
-            merge : true,
             next  : "qcomment"
         }, {
             token : "comment",           // --[=[ comment
             regex : strPre + '\\-\\-\\[\\=\\[.*$',
-            merge : true,
             next  : "qcomment1"
         }, {
             token : "comment",           // --[==[ comment
             regex : strPre + '\\-\\-\\[\\={2}\\[.*$',
-            merge : true,
             next  : "qcomment2"
         }, {
             token : "comment",           // --[===[ comment
             regex : strPre + '\\-\\-\\[\\={3}\\[.*$',
-            merge : true,
             next  : "qcomment3"
         }, {
             token : "comment",           // --[====[ comment
             regex : strPre + '\\-\\-\\[\\={4}\\[.*$',
-            merge : true,
             next  : "qcomment4"
         }, {
             token : function(value){     // --[====+[ comment
@@ -262,7 +257,6 @@ var LuaHighlightRules = function() {
                 return "comment";
             },
             regex : strPre + '\\-\\-\\[\\={5}\\=*\\[.*$',
-            merge : true,
             next  : "qcomment5"
         },
         {
@@ -291,27 +285,22 @@ var LuaHighlightRules = function() {
         {
             token : "string",           // [[ string
             regex : strPre + '\\[\\[.*$',
-            merge : true,
             next  : "qstring"
         }, {
             token : "string",           // [=[ string
             regex : strPre + '\\[\\=\\[.*$',
-            merge : true,
             next  : "qstring1"
         }, {
             token : "string",           // [==[ string
             regex : strPre + '\\[\\={2}\\[.*$',
-            merge : true,
             next  : "qstring2"
         }, {
             token : "string",           // [===[ string
             regex : strPre + '\\[\\={3}\\[.*$',
-            merge : true,
             next  : "qstring3"
         }, {
             token : "string",           // [====[ string
             regex : strPre + '\\[\\={4}\\[.*$',
-            merge : true,
             next  : "qstring4"
         }, {
             token : function(value){     // --[====+[ string
@@ -322,7 +311,6 @@ var LuaHighlightRules = function() {
                 return "string";
             },
             regex : strPre + '\\[\\={5}\\=*\\[.*$',
-            merge : true,
             next  : "qstring5"
         },
 
@@ -361,7 +349,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : '.+'
         } ],
         "qcomment1": [ {
@@ -370,7 +357,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : '.+'
         } ],
         "qcomment2": [ {
@@ -379,7 +365,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : '.+'
         } ],
         "qcomment3": [ {
@@ -388,7 +373,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : '.+'
         } ],
         "qcomment4": [ {
@@ -397,7 +381,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : '.+'
         } ],
         "qcomment5": [ {
@@ -418,7 +401,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : '.+'
         } ],
 
@@ -428,7 +410,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring1": [ {
@@ -437,7 +418,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring2": [ {
@@ -446,7 +426,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring3": [ {
@@ -455,7 +434,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring4": [ {
@@ -464,7 +442,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring5": [ {
@@ -485,7 +462,6 @@ var LuaHighlightRules = function() {
             next  : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ]
 
@@ -504,7 +480,7 @@ ace.define('ace/mode/folding/lua', ['require', 'exports', 'module' , 'ace/lib/oo
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
 var Range = require("../../range").Range;
-var TokenIterator = require("ace/token_iterator").TokenIterator;
+var TokenIterator = require("../../token_iterator").TokenIterator;
 
 
 var FoldMode = exports.FoldMode = function() {};

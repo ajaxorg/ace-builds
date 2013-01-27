@@ -28,21 +28,25 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/php', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/php_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle', 'ace/unicode'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/php', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/php_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/worker/worker_client', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle', 'ace/unicode'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var PhpHighlightRules = require("./php_highlight_rules").PhpHighlightRules;
+var PhpLangHighlightRules = require("./php_highlight_rules").PhpLangHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var Range = require("../range").Range;
+var WorkerClient = require("../worker/worker_client").WorkerClient;
 var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 var unicode = require("../unicode");
 
-var Mode = function() {
-    this.$tokenizer = new Tokenizer(new PhpHighlightRules().getRules());
+var Mode = function(opts) {
+    var inline = opts && opts.inline;
+    var HighlightRules = inline ? PhpLangHighlightRules : PhpHighlightRules;
+    this.$tokenizer = new Tokenizer(new HighlightRules().getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CstyleBehaviour();
     this.foldingRules = new CStyleFoldMode();
@@ -132,6 +136,21 @@ oop.inherits(Mode, TextMode);
 
     this.autoOutdent = function(state, doc, row) {
         this.$outdent.autoOutdent(doc, row);
+    };
+
+    this.createWorker = function(session) {
+        var worker = new WorkerClient(["ace"], "ace/mode/php_worker", "PhpWorker");
+        worker.attachToDocument(session.getDocument());
+
+        worker.on("error", function(e) {
+            session.setAnnotations(e.data);
+        });
+
+        worker.on("ok", function() {
+            session.clearAnnotations();
+        });
+
+        return worker;
     };
 
 }).call(Mode.prototype);
@@ -1076,10 +1095,10 @@ var PhpLangHighlightRules = function() {
                 token : "keyword.operator",
                 regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
             }, {
-                token : "lparen",
+                token : "paren.lparen",
                 regex : "[[({]"
             }, {
-                token : "rparen",
+                token : "paren.rparen",
                 regex : "[\\])}]"
             }, {
                 token : "text",
@@ -1160,6 +1179,7 @@ var PhpHighlightRules = function() {
 oop.inherits(PhpHighlightRules, HtmlHighlightRules);
 
 exports.PhpHighlightRules = PhpHighlightRules;
+exports.PhpLangHighlightRules = PhpLangHighlightRules;
 });
 
 __ace_shadowed__.define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
@@ -1176,19 +1196,15 @@ var DocCommentHighlightRules = function() {
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "\\s+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "TODO"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "[^@\\*]+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "."
         }]
     };
@@ -1199,7 +1215,6 @@ oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
         token : "comment.doc", // doc comment
-        merge : true,
         regex : "\\/\\*(?=\\*)",
         next  : start
     };
@@ -1208,7 +1223,6 @@ DocCommentHighlightRules.getStartRule = function(start) {
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
         token : "comment.doc", // closing comment
-        merge : true,
         regex : "\\*\\/",
         next  : start
     };
@@ -1252,7 +1266,6 @@ var HtmlHighlightRules = function() {
     this.$rules = {
         start : [{
             token : "text",
-            merge : true,
             regex : "<\\!\\[CDATA\\[",
             next : "cdata"
         }, {
@@ -1260,7 +1273,6 @@ var HtmlHighlightRules = function() {
             regex : "<\\?.*?\\?>"
         }, {
             token : "comment",
-            merge : true,
             regex : "<\\!--",
             next : "comment"
         }, {
@@ -1295,11 +1307,9 @@ var HtmlHighlightRules = function() {
             next : "start"
         }, {
             token : "text",
-            merge : true,
             regex : "\\s+"
         }, {
             token : "text",
-            merge : true,
             regex : ".+"
         } ],
 
@@ -1309,7 +1319,6 @@ var HtmlHighlightRules = function() {
             next : "start"
         }, {
             token : "comment",
-            merge : true,
             regex : ".+"
         } ]
     };
@@ -1369,7 +1378,6 @@ var CssHighlightRules = function() {
     var base_ruleset = [
         {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "ruleset_comment"
         }, {
@@ -1418,7 +1426,6 @@ var CssHighlightRules = function() {
 
     var base_comment = [{
           token : "comment", // comment spanning whole line
-          merge : true,
           regex : ".+"
     }];
 
@@ -1446,7 +1453,6 @@ var CssHighlightRules = function() {
     this.$rules = {
         "start" : [{
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "comment"
         }, {
@@ -1473,7 +1479,6 @@ var CssHighlightRules = function() {
 
         "media" : [ {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "media_comment"
         }, {
@@ -1547,7 +1552,7 @@ var JavaScriptHighlightRules = function() {
         "support.function":
             "alert"
     }, "identifier");
-    var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield";
+    var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield|void";
     var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
 
     var escapedRe = "\\\\(?:x[0-9a-fA-F]{2}|" + // hex
@@ -1567,7 +1572,6 @@ var JavaScriptHighlightRules = function() {
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
                 token : "comment", // multi line comment
-                merge : true,
                 regex : /\/\*/,
                 next : "comment"
             }, {
@@ -1656,7 +1660,7 @@ var JavaScriptHighlightRules = function() {
                 regex : identifierRe
             }, {
                 token : "keyword.operator",
-                regex : /!|\$|%|&|\*|\-\-|\-|\+\+|\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\|\||\?\:|\*=|%=|\+=|\-=|&=|\^=|\b(?:in|instanceof|new|delete|typeof|void)/,
+                regex : /--|\+\+|[!$%&*+\-~]|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\|\||\?\:|\*=|%=|\+=|\-=|&=|\^=/,
                 next  : "regex_allowed"
             }, {
                 token : "punctuation.operator",
@@ -1685,7 +1689,6 @@ var JavaScriptHighlightRules = function() {
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
                 token : "comment", // multi line comment
-                merge : true,
                 regex : "\\/\\*",
                 next : "comment_regex_allowed"
             }, {
@@ -1695,7 +1698,6 @@ var JavaScriptHighlightRules = function() {
                 token: "string.regexp",
                 regex: "\\/",
                 next: "regex",
-                merge: true
             }, {
                 token : "text",
                 regex : "\\s+"
@@ -1713,7 +1715,6 @@ var JavaScriptHighlightRules = function() {
                 token: "string.regexp",
                 regex: "/\\w*",
                 next: "start",
-                merge: true
             }, {
                 token : "invalid",
                 regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
@@ -1723,12 +1724,10 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "string.regexp",
                 regex: /{|[^{\[\/\\(|)$^+*?]+/,
-                merge: true
             }, {
                 token: "constant.language.escape",
                 regex: /\[\^?/,
                 next: "regex_character_class",
-                merge: true
             }, {
                 token: "empty",
                 regex: "",
@@ -1743,14 +1742,12 @@ var JavaScriptHighlightRules = function() {
                 token: "constant.language.escape",
                 regex: "]",
                 next: "regex",
-                merge: true
             }, {
                 token: "constant.language.escape",
                 regex: "-"
             }, {
                 token: "string.regexp.charachterclass",
                 regex: /[^\]\-\\]+/,
-                merge: true
             }, {
                 token: "empty",
                 regex: "",
@@ -1764,11 +1761,9 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "punctuation.operator",
                 regex: "[, ]+",
-                merge: true
             }, {
                 token: "punctuation.operator",
                 regex: "$",
-                merge: true
             }, {
                 token: "empty",
                 regex: "",
@@ -1779,11 +1774,9 @@ var JavaScriptHighlightRules = function() {
             {
                 token : "comment", // closing comment
                 regex : ".*?\\*\\/",
-                merge : true,
                 next : "regex_allowed"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -1791,11 +1784,9 @@ var JavaScriptHighlightRules = function() {
             {
                 token : "comment", // closing comment
                 regex : ".*?\\*\\/",
-                merge : true,
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -1805,18 +1796,15 @@ var JavaScriptHighlightRules = function() {
                 regex : escapedRe
             }, {
                 token : "string",
-                regex : '[^"\\\\]+',
-                merge : true
-            }, {
-                token : "string",
                 regex : "\\\\$",
                 next  : "qqstring",
-                merge : true
             }, {
                 token : "string",
                 regex : '"|$',
                 next  : "start",
-                merge : true
+            }, {
+                token : "string",
+                regex : '.|\\w+|\\s+',
             }
         ],
         "qstring" : [
@@ -1825,18 +1813,15 @@ var JavaScriptHighlightRules = function() {
                 regex : escapedRe
             }, {
                 token : "string",
-                regex : "[^'\\\\]+",
-                merge : true
-            }, {
-                token : "string",
                 regex : "\\\\$",
                 next  : "qstring",
-                merge : true
             }, {
                 token : "string",
                 regex : "'|$",
                 next  : "start",
-                merge : true
+            }, {
+                token : "string",
+                regex : '.|\\w+|\\s+',
             }
         ]
     };
@@ -1856,34 +1841,24 @@ __ace_shadowed__.define('ace/mode/xml_util', ['require', 'exports', 'module' ], 
 function string(state) {
     return [{
         token : "string",
-        regex : '".*?"'
-    }, {
-        token : "string", // multi line string start
-        merge : true,
-        regex : '["].*',
+        regex : '"',
         next : state + "_qqstring"
     }, {
         token : "string",
-        regex : "'.*?'"
-    }, {
-        token : "string", // multi line string start
-        merge : true,
-        regex : "['].*",
+        regex : "'",
         next : state + "_qstring"
     }];
 }
 
 function multiLineString(quote, state) {
-    return [{
-        token : "string",
-        merge : true,
-        regex : ".*?" + quote,
-        next : state
-    }, {
-        token : "string",
-        merge : true,
-        regex : '.+'
-    }];
+    return [
+        {token : "string", regex : quote, next : state},
+        {
+            token : "constant.language.escape",
+            regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)" 
+        },
+        {token : "string", regex : '\\w+|.|\\s+'}
+    ];
 }
 
 exports.tag = function(states, name, nextState, tagMap) {
@@ -1898,7 +1873,6 @@ exports.tag = function(states, name, nextState, tagMap) {
             else
                 return "meta.tag.tag-name";
         },
-        merge : true,
         regex : "[-_a-zA-Z0-9:]+",
         next : name + "_embed_attribute_list" 
     }, {
@@ -1911,9 +1885,8 @@ exports.tag = function(states, name, nextState, tagMap) {
     states[name + "_qqstring"] = multiLineString("\"", name + "_embed_attribute_list");
     
     states[name + "_embed_attribute_list"] = [{
-        token : "meta.tag",
-        merge : true,
-        regex : "\/?>",
+        token : "meta.tag.r",
+        regex : "/?>",
         next : nextState
     }, {
         token : "keyword.operator",
@@ -2286,7 +2259,7 @@ var CstyleBehaviour = function () {
         if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
             var line = session.doc.getLine(range.start.row);
             var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == '"') {
+            if (rightChar == selected) {
                 range.end.column++;
                 return range;
             }

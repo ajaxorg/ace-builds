@@ -503,7 +503,6 @@ var PgsqlHighlightRules = function() {
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
                 token : "comment", // multi-line comment
-                merge : true,
                 regex : "\\/\\*",
                 next : "comment"
             },{
@@ -522,7 +521,6 @@ var PgsqlHighlightRules = function() {
                 regex : "--.*$"
             }, {
                 token : "comment", // multi-line comment
-                merge : true,
                 regex : "\\/\\*",
                 next : "commentStatement"
             }, {
@@ -554,7 +552,6 @@ var PgsqlHighlightRules = function() {
                 regex : "--.*$"
             }, {
                 token : "comment", // multi-line comment
-                merge : true,
                 regex : "\\/\\*",
                 next : "commentDollarSql"
             }, {
@@ -575,7 +572,6 @@ var PgsqlHighlightRules = function() {
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -587,7 +583,6 @@ var PgsqlHighlightRules = function() {
                 next : "statement"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -599,7 +594,6 @@ var PgsqlHighlightRules = function() {
                 next : "dollarSql"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -611,7 +605,6 @@ var PgsqlHighlightRules = function() {
                 next : "statement"
             }, {
                 token : "string", // dollarstring spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -623,7 +616,6 @@ var PgsqlHighlightRules = function() {
                 next : "dollarSql"
             }, {
                 token : "string", // dollarstring spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ]
@@ -653,19 +645,15 @@ var DocCommentHighlightRules = function() {
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "\\s+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "TODO"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "[^@\\*]+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "."
         }]
     };
@@ -676,7 +664,6 @@ oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
         token : "comment.doc", // doc comment
-        merge : true,
         regex : "\\/\\*(?=\\*)",
         next  : start
     };
@@ -685,7 +672,6 @@ DocCommentHighlightRules.getStartRule = function(start) {
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
         token : "comment.doc", // closing comment
-        merge : true,
         regex : "\\*\\/",
         next  : start
     };
@@ -755,7 +741,6 @@ var PerlHighlightRules = function() {
                 regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
             }, {
                 token : "string", // multi line string start
-                merge : true,
                 regex : '["].*\\\\$',
                 next : "qqstring"
             }, {
@@ -763,7 +748,6 @@ var PerlHighlightRules = function() {
                 regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
             }, {
                 token : "string", // multi line string start
-                merge : true,
                 regex : "['].*\\\\$",
                 next : "qstring"
             }, {
@@ -796,7 +780,6 @@ var PerlHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
             }
         ],
@@ -807,7 +790,6 @@ var PerlHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
             }
         ]
@@ -878,7 +860,6 @@ var PythonHighlightRules = function() {
             regex : strPre + '"{3}(?:[^\\\\]|\\\\.)*?"{3}'
         }, {
             token : "string",           // multi line """ string start
-            merge : true,
             regex : strPre + '"{3}.*$',
             next : "qqstring"
         }, {
@@ -889,7 +870,6 @@ var PythonHighlightRules = function() {
             regex : strPre + "'{3}(?:[^\\\\]|\\\\.)*?'{3}"
         }, {
             token : "string",           // multi line ''' string start
-            merge : true,
             regex : strPre + "'{3}.*$",
             next : "qstring"
         }, {
@@ -929,7 +909,6 @@ var PythonHighlightRules = function() {
             next : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ],
         "qstring" : [ {
@@ -938,7 +917,6 @@ var PythonHighlightRules = function() {
             next : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ]
     };

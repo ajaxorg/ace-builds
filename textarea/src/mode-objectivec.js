@@ -70,12 +70,10 @@ var ObjectiveCHighlightRules = function() {
                          "222|" +
                          "x[a-zA-Z0-9]+)";
 
-    var specialVariables = [
-        {
+    var specialVariables = [{
             "regex": "\\b_cmd\\b",
             "token": "variable.other.selector.objc"
-        },
-        {
+        }, {
             "regex": "\\b(?:self|super)\\b",
             "token": "variable.language.objc"
         }
@@ -84,8 +82,7 @@ var ObjectiveCHighlightRules = function() {
     var cObj = new CHighlightRules();
     var cRules = cObj.getRules();
 
-    this.$rules = 
-        {
+    this.$rules = {
     "start": [ 
         {
             token : "comment",
@@ -94,7 +91,6 @@ var ObjectiveCHighlightRules = function() {
         DocCommentHighlightRules.getStartRule("doc-start"),
         {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "comment"
         }, 
@@ -352,7 +348,6 @@ var ObjectiveCHighlightRules = function() {
             next : "start"
         }, {
             token : "comment", // comment spanning whole line
-            merge : true,
             regex : ".+"
         }
     ],
@@ -365,24 +360,17 @@ var ObjectiveCHighlightRules = function() {
     ]
 }
     for (var r in cRules) {
-        if (r == "start") {
-            for (var key in cRules[r]) {
-                this.$rules.start.push(cRules[r][key])
-            }
-        }
-        else {
+        if (this.$rules[r]) {
+            if (this.$rules[r].push)
+                this.$rules[r].push.apply(this.$rules[r], cRules[r]);
+        } else {
             this.$rules[r] = cRules[r];
         }
     }
-
-    var startRules = this.$rules.start;
-    for (var s in startRules) {
-        this.$rules.bracketed_content.push(startRules[s]);
-    }
-    for (var s in specialVariables) {
-        this.$rules.bracketed_content.push(specialVariables[s]);
-    }
-
+    
+    this.$rules.bracketed_content = this.$rules.bracketed_content.concat(
+        this.$rules.start, specialVariables
+    );
 
     this.embedRules(DocCommentHighlightRules, "doc-",
         [ DocCommentHighlightRules.getEndRule("start") ]);
@@ -407,19 +395,15 @@ var DocCommentHighlightRules = function() {
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "\\s+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "TODO"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "[^@\\*]+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "."
         }]
     };
@@ -430,7 +414,6 @@ oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
         token : "comment.doc", // doc comment
-        merge : true,
         regex : "\\/\\*(?=\\*)",
         next  : start
     };
@@ -439,7 +422,6 @@ DocCommentHighlightRules.getStartRule = function(start) {
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
         token : "comment.doc", // closing comment
-        merge : true,
         regex : "\\*\\/",
         next  : start
     };
@@ -449,7 +431,6 @@ DocCommentHighlightRules.getEndRule = function (start) {
 exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
 });
-
 __ace_shadowed__.define('ace/mode/c_cpp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
@@ -505,7 +486,6 @@ var c_cppHighlightRules = function() {
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
                 token : "comment", // multi line comment
-                merge : true,
                 regex : "\\/\\*",
                 next : "comment"
             }, {
@@ -513,7 +493,6 @@ var c_cppHighlightRules = function() {
                 regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
             }, {
                 token : "string", // multi line string start
-                merge : true,
                 regex : '["].*\\\\$',
                 next : "qqstring"
             }, {
@@ -521,7 +500,6 @@ var c_cppHighlightRules = function() {
                 regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
             }, {
                 token : "string", // multi line string start
-                merge : true,
                 regex : "['].*\\\\$",
                 next : "qstring"
             }, {
@@ -531,11 +509,12 @@ var c_cppHighlightRules = function() {
                 token : "constant.numeric", // float
                 regex : "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"
             }, {
-              token : "constant", // <CONSTANT>
-              regex : "<[a-zA-Z0-9.]+>"
+                token : "keyword", // pre-compiler directives
+                regex : "(?:#include|#import|#pragma|#line|#define|#undef|#if|#ifdef|#else|#elif|#ifndef)\\b",
+                next  : "directive"
             }, {
-              token : "keyword", // pre-compiler directivs
-              regex : "(?:#include|#import|#pragma|#line|#define|#undef|#ifdef|#else|#elif|#endif|#ifndef)"
+                token : "keyword", // special case pre-compiler directive
+                regex : "(?:#endif)\\b"
             }, {
                 token : "support.function.C99.c",
                 regex : cFunctions
@@ -566,7 +545,6 @@ var c_cppHighlightRules = function() {
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -577,7 +555,6 @@ var c_cppHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
             }
         ],
@@ -588,8 +565,37 @@ var c_cppHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
+            }
+        ],
+        "directive" : [
+            {
+                token : "constant.other.multiline",
+                regex : /\\/
+            },
+            {
+                token : "constant.other",
+                regex : "\\s*<.+?>",
+                next : "start"
+            },
+            {
+                token : "constant.other", // single line
+                regex : '\\s*["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]',
+                next : "start"
+            }, 
+            {
+                token : "constant.other", // single line
+                regex : "\\s*['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']",
+                next : "start"
+            },
+            {
+                token : "constant.other.multiline",
+                regex : /.*\\/
+            },
+            {
+                token : "constant.other",
+                regex : /[^\\\/]+/,
+                next : "start"
             }
         ]
     };

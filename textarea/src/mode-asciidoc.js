@@ -126,9 +126,9 @@ var AsciidocHighlightRules = function() {
             {token: "keyword", regex: /\s\+$/},
             {token: "text", regex: identifierRe},
             {token: ["keyword", "string", "keyword"],
-                regex: /(<<[\w\d\-$]+,)(.*?)(>>|$)/, merge: true},
-            {token: "keyword", regex: /<<[\w\d\-$]+,?|>>/, merge: true},
-            {token: "constant.character", regex: /\({2,3}.*?\){2,3}/, merge: true},
+                regex: /(<<[\w\d\-$]+,)(.*?)(>>|$)/},
+            {token: "keyword", regex: /<<[\w\d\-$]+,?|>>/},
+            {token: "constant.character", regex: /\({2,3}.*?\){2,3}/},
             {token: "keyword", regex: /\[\[.+?\]\]/},
             {token: "support", regex: /^\[{3}[\w\d =\-]+\]{3}/},
 
@@ -149,26 +149,26 @@ var AsciidocHighlightRules = function() {
         "listingBlock": [
             {token: "literal", regex: /^\.{4,}\s*$/, next: "dissallowDelimitedBlock"},
             {token: "constant.numeric", regex: '<\\d+>'},
-            {token: "literal", regex: '[^<]+', merge: true},
-            {token: "literal", regex: '<', merge: true}
+            {token: "literal", regex: '[^<]+'},
+            {token: "literal", regex: '<'}
         ],
         "literalBlock": [
             {token: "literal", regex: /^-{4,}\s*$/, next: "dissallowDelimitedBlock"},
             {token: "constant.numeric", regex: '<\\d+>'},
-            {token: "literal", regex: '[^<]+', merge: true},
-            {token: "literal", regex: '<', merge: true}
+            {token: "literal", regex: '[^<]+'},
+            {token: "literal", regex: '<'}
         ],
         "passthroughBlock": [
             {token: "literal", regex: /^\+{4,}\s*$/, next: "dissallowDelimitedBlock"},
-            {token: "literal", regex: identifierRe + "|\\d+", merge: true},
+            {token: "literal", regex: identifierRe + "|\\d+"},
             {include: "macros"},
-            {token: "literal", regex: ".", merge: true}
+            {token: "literal", regex: "."}
         ],
 
         "smallPassthrough": [
             {token: "literal", regex: /[+]{3,}/, next: "dissallowDelimitedBlock"},
-            {token: "literal", regex: /^\s*$/, next: "dissallowDelimitedBlock", merge: true},
-            {token: "literal", regex: identifierRe + "|\\d+", merge: true},
+            {token: "literal", regex: /^\s*$/, next: "dissallowDelimitedBlock"},
+            {token: "literal", regex: identifierRe + "|\\d+"},
             {include: "macros"}
         ],
 

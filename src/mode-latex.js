@@ -89,7 +89,7 @@ define('ace/mode/folding/latex', ['require', 'exports', 'module' , 'ace/lib/oop'
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
 var Range = require("../../range").Range;
-var TokenIterator = require("ace/token_iterator").TokenIterator;
+var TokenIterator = require("../../token_iterator").TokenIterator;
 
 var FoldMode = exports.FoldMode = function() {};
 

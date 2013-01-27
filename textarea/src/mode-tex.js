@@ -18,9 +18,9 @@
 __ace_shadowed__.define('ace/mode/tex', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/text_highlight_rules', 'ace/mode/tex_highlight_rules', 'ace/mode/matching_brace_outdent'], function(require, exports, module) {
 
 
-var oop = require("ace/lib/oop");
-var TextMode = require("ace/mode/text").Mode;
-var Tokenizer = require("ace/tokenizer").Tokenizer;
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var Tokenizer = require("../tokenizer").Tokenizer;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var TexHighlightRules = require("./tex_highlight_rules").TexHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
@@ -49,8 +49,8 @@ exports.Mode = Mode;
 __ace_shadowed__.define('ace/mode/tex_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
-var oop = require("ace/lib/oop");
-var lang = require("ace/lib/lang");
+var oop = require("../lib/oop");
+var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var TexHighlightRules = function(textClass) {

@@ -107,7 +107,6 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
                 DocCommentHighlightRules.getStartRule("doc-start"),
                 {
                     token : "comment", // multi line comment
-                    merge : true,
                     regex : "\\/\\*",
                     next : "comment"
                 }, {
@@ -115,7 +114,6 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
                     regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
                 }, {
                     token : "string", // multi line string start
-                    merge : true,
                     regex : '["].*\\\\$',
                     next : "qqstring"
                 }, {
@@ -123,7 +121,6 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
                     regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
                 }, {
                     token : "string", // multi line string start
-                    merge : true,
                     regex : "['].*\\\\$",
                     next : "qstring"
                 }, {
@@ -165,7 +162,6 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
                     next : "start"
                 }, {
                     token : "comment", // comment spanning whole line
-                    merge : true,
                     regex : ".+"
                 }
             ],
@@ -176,7 +172,6 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
                     next : "start"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : '.+'
                 }
             ],
@@ -187,7 +182,6 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
                     next : "start"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : '.+'
                 }
             ]
@@ -215,19 +209,15 @@ var DocCommentHighlightRules = function() {
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "\\s+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "TODO"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "[^@\\*]+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "."
         }]
     };
@@ -238,7 +228,6 @@ oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
         token : "comment.doc", // doc comment
-        merge : true,
         regex : "\\/\\*(?=\\*)",
         next  : start
     };
@@ -247,7 +236,6 @@ DocCommentHighlightRules.getStartRule = function(start) {
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
         token : "comment.doc", // closing comment
-        merge : true,
         regex : "\\*\\/",
         next  : start
     };
@@ -612,7 +600,7 @@ var CstyleBehaviour = function () {
         if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
             var line = session.doc.getLine(range.start.row);
             var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == '"') {
+            if (rightChar == selected) {
                 range.end.column++;
                 return range;
             }

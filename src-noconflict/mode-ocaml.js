@@ -323,7 +323,6 @@ var OcamlHighlightRules = function() {
             },
             {
                 token : "comment",
-                merge : true,
                 regex : '\\(\\*.*',
                 next : "comment"
             },
@@ -337,7 +336,6 @@ var OcamlHighlightRules = function() {
             },
             {
                 token : "string", // " string
-                merge : true,
                 regex : '"',
                 next  : "qstring"
             },
@@ -382,7 +380,6 @@ var OcamlHighlightRules = function() {
             },
             {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -394,7 +391,6 @@ var OcamlHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
             }
         ]

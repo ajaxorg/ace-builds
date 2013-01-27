@@ -141,17 +141,14 @@ var JsonHighlightRules = function() {
             }, {
                 token : "string",
                 regex : '[^"\\\\]+',
-                merge : true
             }, {
                 token : "string",
                 regex : '"',
                 next  : "start",
-                merge : true
             }, {
                 token : "string",
                 regex : "",
                 next  : "start",
-                merge : true
             }
         ]
     };
@@ -517,7 +514,7 @@ var CstyleBehaviour = function () {
         if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
             var line = session.doc.getLine(range.start.row);
             var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == '"') {
+            if (rightChar == selected) {
                 range.end.column++;
                 return range;
             }

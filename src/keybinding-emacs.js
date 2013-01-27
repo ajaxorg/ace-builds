@@ -33,14 +33,14 @@ define('ace/keyboard/emacs', ['require', 'exports', 'module' , 'ace/lib/dom', 'a
 
 var dom = require("../lib/dom");
 
-var screenToTextBlockCoordinates = function(pageX, pageY) {
+var screenToTextBlockCoordinates = function(x, y) {
     var canvasPos = this.scroller.getBoundingClientRect();
 
     var col = Math.floor(
-        (pageX + this.scrollLeft - canvasPos.left - this.$padding - dom.getPageScrollLeft()) / this.characterWidth
+        (x + this.scrollLeft - canvasPos.left - this.$padding) / this.characterWidth
     );
     var row = Math.floor(
-        (pageY + this.scrollTop - canvasPos.top - dom.getPageScrollTop()) / this.lineHeight
+        (y + this.scrollTop - canvasPos.top) / this.lineHeight
     );
 
     return this.session.screenToDocumentPosition(row, col);

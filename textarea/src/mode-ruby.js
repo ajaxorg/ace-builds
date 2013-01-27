@@ -210,7 +210,6 @@ var RubyHighlightRules = function() {
                 regex : "#.*$"
             }, {
                 token : "comment", // multi line comment
-                merge : true,
                 regex : "^=begin\\s",
                 next : "comment"
             }, {
@@ -267,7 +266,6 @@ var RubyHighlightRules = function() {
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ]

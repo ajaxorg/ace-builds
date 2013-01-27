@@ -90,7 +90,6 @@ __ace_shadowed__.define('ace/mode/jsx_highlight_rules', ['require', 'exports', '
                 {
                     token : "comment", // multi line comment
                     regex : "\\/\\*",
-                    merge : true,
                     next : "comment"
                 }, {
                     token : "string.regexp",
@@ -157,7 +156,6 @@ __ace_shadowed__.define('ace/mode/jsx_highlight_rules', ['require', 'exports', '
                     next : "start"
                 }, {
                     token : "comment", // comment spanning whole line
-                    merge : true,
                     regex : ".+"
                 }
             ]
@@ -186,19 +184,15 @@ var DocCommentHighlightRules = function() {
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "\\s+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "TODO"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "[^@\\*]+"
         }, {
             token : "comment.doc",
-            merge : true,
             regex : "."
         }]
     };
@@ -209,7 +203,6 @@ oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
         token : "comment.doc", // doc comment
-        merge : true,
         regex : "\\/\\*(?=\\*)",
         next  : start
     };
@@ -218,7 +211,6 @@ DocCommentHighlightRules.getStartRule = function(start) {
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
         token : "comment.doc", // closing comment
-        merge : true,
         regex : "\\*\\/",
         next  : start
     };
@@ -583,7 +575,7 @@ var CstyleBehaviour = function () {
         if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
             var line = session.doc.getLine(range.start.row);
             var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == '"') {
+            if (rightChar == selected) {
                 range.end.column++;
                 return range;
             }

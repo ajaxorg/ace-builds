@@ -125,7 +125,6 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
         var identifier = "[$A-Za-z_\\x7f-\\uffff][$\\w\\x7f-\\uffff]*";
         var stringfill = {
             token : "string",
-            merge : true,
             regex : ".+"
         };
 
@@ -198,32 +197,26 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                     regex : "(?:0x[\\da-fA-F]+|(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:[eE][+-]?\\d+)?)"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : "'''",
                     next : "qdoc"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : '"""',
                     next : "qqdoc"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : "'",
                     next : "qstring"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : '"',
                     next : "qqstring"
                 }, {
                     token : "string",
-                    merge : true,
                     regex : "`",
                     next : "js"
                 }, {
                     token : "string.regex",
-                    merge : true,
                     regex : "///",
                     next : "heregex"
                 }, {
@@ -231,7 +224,6 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                     regex : /(?:\/(?![\s=])[^[\/\n\\]*(?:(?:\\[\s\S]|\[[^\]\n\\]*(?:\\[\s\S][^\]\n\\]*)*])[^[\/\n\\]*)*\/)(?:[imgy]{0,4})(?!\w)/
                 }, {
                     token : "comment",
-                    merge : true,
                     regex : "###(?!#)",
                     next : "comment"
                 }, {
@@ -354,20 +346,17 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
             qstring : [{
                 token : "string",
                 regex : "[^\\\\']*(?:\\\\.[^\\\\']*)*'",
-                merge : true,
                 next : "start"
             }, stringfill],
 
             qqstring : [{
                 token : "string",
                 regex : '[^\\\\"]*(?:\\\\.[^\\\\"]*)*"',
-                merge : true,
                 next : "start"
             }, stringfill],
 
             js : [{
                 token : "string",
-                merge : true,
                 regex : "[^\\\\`]*(?:\\\\.[^\\\\`]*)*`",
                 next : "start"
             }, stringfill],
@@ -381,7 +370,6 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                 regex : "\\s+(?:#.*)?"
             }, {
                 token : "string.regex",
-                merge : true,
                 regex : "\\S+"
             }],
 
@@ -391,7 +379,6 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                 next : "start"
             }, {
                 token : "comment",
-                merge : true,
                 regex : ".+"
             }]
         };

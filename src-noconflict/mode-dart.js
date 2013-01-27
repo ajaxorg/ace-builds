@@ -83,7 +83,6 @@ var DartHighlightRules = function() {
 
     var stringfill = {
         token : "string",
-        merge : true,
         regex : ".+"
     };
 
@@ -96,7 +95,6 @@ var DartHighlightRules = function() {
         },
         {
             "token" : "comment", // multi line comment
-            "merge" : true,
             "regex" : /\/\*/,
             "next" : "comment"
         },
@@ -146,25 +144,21 @@ var DartHighlightRules = function() {
         },
         {
             "token" : "string",
-            "merge" : true,
             "regex" : "'''",
             "next" : "qdoc"
         }, 
         {
             "token" : "string",
-            "merge" : true,
             "regex" : '"""',
             "next" : "qqdoc"
         }, 
         {
             "token" : "string",
-            "merge" : true,
             "regex" : "'",
             "next" : "qstring"
         }, 
         {
             "token" : "string",
-            "merge" : true,
             "regex" : '"',
             "next" : "qqstring"
         }, 
@@ -197,11 +191,9 @@ var DartHighlightRules = function() {
         {
             token : "comment", // closing comment
             regex : ".*?\\*\\/",
-            merge : true,
             next : "start"
         }, {
             token : "comment", // comment spanning whole line
-            merge : true,
             regex : ".+"
         }
     ],
@@ -223,7 +215,6 @@ var DartHighlightRules = function() {
         {
             "token" : "string",
             "regex" : "[^\\\\']*(?:\\\\.[^\\\\']*)*'",
-            "merge" : true,
             "next" : "start"
         }, stringfill],
 
@@ -231,7 +222,6 @@ var DartHighlightRules = function() {
         {
             "token" : "string",
             "regex" : '[^\\\\"]*(?:\\\\.[^\\\\"]*)*"',
-            "merge" : true,
             "next" : "start"
         }, stringfill]
 }

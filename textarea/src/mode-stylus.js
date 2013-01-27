@@ -73,8 +73,7 @@ var StylusHighlightRules = function() {
         "support.constant.fonts": CssHighlightRules.supportConstantFonts
     }, "text", true);
 
-    this.$rules = 
-        {
+    this.$rules = {
     "start": [
         {
             token : "comment",
@@ -82,7 +81,6 @@ var StylusHighlightRules = function() {
         },
         {
             token : "comment", // multi line comment
-            merge : true,
             regex : /\/\*/,
             next : "comment"
         },
@@ -134,16 +132,16 @@ var StylusHighlightRules = function() {
             "regex": "-webkit-|-moz\\-|-ms-|-o-"
         },
         {
-            "token": ["keyword.control.stylus"],
-            "regex": "(?:\\b|\\s)(!important|for|in|return|true|false|null|if|else|unless|return)(?:\\b)"
+            "token": "keyword.control.stylus",
+            "regex": "(?:!important|for|in|return|true|false|null|if|else|unless|return)\\b"
         },
         {
-            "token": ["keyword.operator.stylus"],
-            "regex": "((?:!|~|\\+|-|(?:\\*)?\\*|\\/|%|(?:\\.)\\.\\.|<|>|(?:=|:|\\?|\\+|-|\\*|\\/|%|<|>)?=|!=))"
+            "token": "keyword.operator.stylus",
+            "regex": "!|~|\\+|-|(?:\\*)?\\*|\\/|%|(?:\\.)\\.\\.|<|>|(?:=|:|\\?|\\+|-|\\*|\\/|%|<|>)?=|!="
         },
         {
-            "token": ["keyword.operator.stylus"],
-            "regex": "(?:\\b)(in|is(?:nt)?|not)(?:\\b)"
+            "token": "keyword.operator.stylus",
+            "regex": "(?:in|is(?:nt)?|not)\\b"
         },
         {
             token : "string",
@@ -159,8 +157,8 @@ var StylusHighlightRules = function() {
             regex : CssHighlightRules.numRe
         }, 
         {
-            token : ["keyword"],
-            regex : "(ch|cm|deg|em|ex|fr|gd|grad|Hz|in|kHz|mm|ms|pc|pt|px|rad|rem|s|turn|vh|vm|vw|%)"
+            token : "keyword",
+            regex : "(?:ch|cm|deg|em|ex|fr|gd|grad|Hz|in|kHz|mm|ms|pc|pt|px|rad|rem|s|turn|vh|vm|vw|%)\\b"
         }, 
         {
             token : keywordMapper,
@@ -171,50 +169,42 @@ var StylusHighlightRules = function() {
         {
             token : "comment", // closing comment
             regex : ".*?\\*\\/",
-            merge : true,
             next : "start"
         }, {
             token : "comment", // comment spanning whole line
-            merge : true,
             regex : ".+"
         }
     ],
     "qqstring" : [
         {
             token : "string",
-            regex : '[^"\\\\]+',
-            merge : true
+            regex : '[^"\\\\]+'
         }, 
         {
             token : "string",
             regex : "\\\\$",
-            next  : "qqstring",
-            merge : true
+            next  : "qqstring"
         }, 
         {
             token : "string",
             regex : '"|$',
-            next  : "start",
-            merge : true
+            next  : "start"
         }
     ],
     "qstring" : [
         {
             token : "string",
-            regex : "[^'\\\\]+",
-            merge : true
+            regex : "[^'\\\\]+"
         }, 
         {
             token : "string",
             regex : "\\\\$",
-            next  : "qstring",
-            merge : true
+            next  : "qstring"
         }, 
         {
             token : "string",
             regex : "'|$",
-            next  : "start",
-            merge : true
+            next  : "start"
         }
     ]
 }
@@ -255,7 +245,6 @@ var CssHighlightRules = function() {
     var base_ruleset = [
         {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "ruleset_comment"
         }, {
@@ -304,7 +293,6 @@ var CssHighlightRules = function() {
 
     var base_comment = [{
           token : "comment", // comment spanning whole line
-          merge : true,
           regex : ".+"
     }];
 
@@ -332,7 +320,6 @@ var CssHighlightRules = function() {
     this.$rules = {
         "start" : [{
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "comment"
         }, {
@@ -359,7 +346,6 @@ var CssHighlightRules = function() {
 
         "media" : [ {
             token : "comment", // multi line comment
-            merge : true,
             regex : "\\/\\*",
             next : "media_comment"
         }, {

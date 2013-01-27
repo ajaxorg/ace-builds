@@ -166,7 +166,6 @@ var TclHighlightRules = function() {
         "start" : [
            {
                 token : "comment",
-                merge : true,
                 regex : "#.*\\\\$",
                 next  : "commentfollow"
             }, {
@@ -188,12 +187,10 @@ var TclHighlightRules = function() {
                 regex : '[ ]*["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
             }, {
                 token : "string", // multi line """ string start
-                merge : true,
                 regex : '[ ]*["]',
                 next  : "qqstring"
             }, {
                 token : "variable.instancce", // variable xotcl with braces
-                merge : true,
                 regex : "[$]",
                 next  : "variable"
             }, {
@@ -220,7 +217,6 @@ var TclHighlightRules = function() {
         "commandItem" : [
             {
                 token : "comment",
-                merge : true,
                 regex : "#.*\\\\$",
                 next  : "commentfollow"
             }, {
@@ -232,7 +228,6 @@ var TclHighlightRules = function() {
                 regex : '[ ]*["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
             }, {
                 token : "variable.instancce", // variable xotcl with braces
-                merge : true,
                 regex : "[$]",
                 next  : "variable"
             }, {
@@ -262,7 +257,6 @@ var TclHighlightRules = function() {
                 next  : "commentfollow"
             }, {
                 token : "comment",
-                merge : true,
                 regex : '.+',
                 next  : "start"
         } ],
@@ -292,7 +286,6 @@ var TclHighlightRules = function() {
             next : "start"
         }, {
             token : "string",
-            merge : true,
             regex : '.+'
         } ]
     };

@@ -15,20 +15,17 @@
  * AGPL (http://www.gnu.org/licenses/agpl-3.0.txt) for more details.
  *
  */
-ace.define('ace/mode/r', ['require', 'exports', 'module' , 'ace/editor', 'ace/edit_session', 'ace/range', 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/text_highlight_rules', 'ace/mode/r_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/unicode'], function(require, exports, module) {
+ace.define('ace/mode/r', ['require', 'exports', 'module' , 'ace/range', 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/text_highlight_rules', 'ace/mode/r_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/unicode'], function(require, exports, module) {
    
 
-   var Editor = require("ace/editor").Editor;
-   var EditSession = require("ace/edit_session").EditSession;
-   var Range = require("ace/range").Range;
-   var oop = require("ace/lib/oop");
-   var TextMode = require("ace/mode/text").Mode;
-   var Tokenizer = require("ace/tokenizer").Tokenizer;
-   var TextHighlightRules = require("ace/mode/text_highlight_rules")
-         .TextHighlightRules;
+   var Range = require("../range").Range;
+   var oop = require("../lib/oop");
+   var TextMode = require("./text").Mode;
+   var Tokenizer = require("../tokenizer").Tokenizer;
+   var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
    var RHighlightRules = require("./r_highlight_rules").RHighlightRules;
-   var MatchingBraceOutdent = require("ace/mode/matching_brace_outdent").MatchingBraceOutdent;
-   var unicode = require("ace/unicode");
+   var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
+   var unicode = require("../unicode");
 
    var Mode = function()
    {
@@ -133,10 +130,9 @@ ace.define('ace/mode/r', ['require', 'exports', 'module' , 'ace/editor', 'ace/ed
 });
 ace.define('ace/mode/r_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules', 'ace/mode/tex_highlight_rules'], function(require, exports, module) {
 
-   var oop = require("ace/lib/oop");
-   var lang = require("ace/lib/lang");
-   var TextHighlightRules = require("ace/mode/text_highlight_rules")
-         .TextHighlightRules;
+   var oop = require("../lib/oop");
+   var lang = require("../lib/lang");
+   var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
    var TexHighlightRules = require("./tex_highlight_rules").TexHighlightRules;
 
    var RHighlightRules = function()
@@ -292,8 +288,8 @@ ace.define('ace/mode/r_highlight_rules', ['require', 'exports', 'module' , 'ace/
 ace.define('ace/mode/tex_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
-var oop = require("ace/lib/oop");
-var lang = require("ace/lib/lang");
+var oop = require("../lib/oop");
+var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var TexHighlightRules = function(textClass) {

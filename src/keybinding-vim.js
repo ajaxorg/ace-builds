@@ -90,12 +90,14 @@ exports.handler = {
                 key = data.inputChar;
             }
             
-            if (hashId == -1 || hashId == 1) {
+            if (hashId == -1 || hashId == 1 || hashId == 0 && key.length > 1) {
                 if (cmds.inputBuffer.idle && startCommands[key])
                     return startCommands[key];
                 return {
                     command: {
-                        exec: function(editor) {cmds.inputBuffer.push(editor, key);}
+                        exec: function(editor) { 
+                            return cmds.inputBuffer.push(editor, key);
+                        }
                     }
                 };
             } // if no modifier || shift: wait for input.
@@ -245,6 +247,18 @@ var actions = exports.actions = {
             ensureScrollMargin(editor);
             var r = editor.selection.getRange();
             editor.selection.setSelectionRange(r, true);
+        }
+    },
+    "m": {
+        param: true,
+        fn: function(editor, range, count, param) {
+            var s =  editor.session;
+            var markers = s.vimMarkers || (s.vimMarkers = {});
+            var c = editor.getCursorPosition();
+            if (!markers[param]) {
+                markers[param] = editor.session.doc.createAnchor(c);
+            }
+            markers[param].setPosition(c.row, c.column, true);
         }
     },
     "n": {
@@ -397,7 +411,17 @@ var actions = exports.actions = {
             if (previous) // If there is a previous action
                 inputBuffer.exec(editor, previous.action, previous.param);
         }
-    }
+    },
+    "ctrl-x": {
+        fn: function(editor, range, count, param) {
+            editor.modifyNumber(-(count || 1));
+        }
+    },
+    "ctrl-a": {
+        fn: function(editor, range, count, param) {
+            editor.modifyNumber(count || 1);
+        }
+    },
 };
 
 var inputBuffer = exports.inputBuffer = {
@@ -411,6 +435,7 @@ var inputBuffer = exports.inputBuffer = {
     lastInsertCommands: [],
 
     push: function(editor, ch, keyId) {
+        var isKeyHandled = true;
         this.idle = false;
         var wObj = this.waitingForParam;
         if (wObj) {
@@ -473,6 +498,7 @@ var inputBuffer = exports.inputBuffer = {
             this.exec(editor, { operator: this.operator }, ch);
         }
         else {
+            isKeyHandled = ch.length == 1;
             this.reset();
         }
         
@@ -483,9 +509,10 @@ var inputBuffer = exports.inputBuffer = {
         } else if (this.status) {
             this.status = "";
         } else {
-            return;
+            return isKeyHandled;
         }
         editor._emit("changeStatus");
+        return isKeyHandled;
     },
 
     waitForParam: function(cmd) {
@@ -992,7 +1019,11 @@ module.exports = {
 
     "l": {
         nav: function(editor) {
-            editor.navigateRight();
+            var pos = editor.getCursorPosition();
+            var col = pos.column;
+            var lineLen = editor.session.getLine(pos.row).length;
+            if (lineLen && col !== lineLen)
+                editor.navigateRight();
         },
         sel: function(editor) {
             var pos = editor.getCursorPosition();
@@ -1149,7 +1180,7 @@ module.exports = {
             var column = util.getRightNthChar(editor, cursor, param, count || 1);
 
             if (typeof column === "number") {
-                cursor.column += column + (isSel ? 2 : 1);                
+                cursor.column += column + (isSel ? 2 : 1);
                 return cursor;
             }
         }
@@ -1326,7 +1357,7 @@ module.exports = {
         while(row < l && !/\S/.test(session.getLine(row)))
             row++;
         while(/\S/.test(session.getLine(row)))
-            row++;        
+            row++;
         return {column: 0, row: row};
     }),
     "ctrl-d": {
@@ -1342,12 +1373,38 @@ module.exports = {
         nav: function(editor, range, count, param) {
             editor.selection.clearSelection();
             keepScrollPosition(editor, editor.gotoPageUp);
-
         },
         sel: function(editor, range, count, param) {
             keepScrollPosition(editor, editor.selectPageUp);
         }
-    }
+    },
+    "`": new Motion({
+        param: true,
+        handlesCount: true,
+        getPos: function(editor, range, count, param, isSel) {
+            var s = editor.session;
+            var marker = s.vimMarkers && s.vimMarkers[param];
+            if (marker) {
+                return marker.getPosition();
+            }
+        }
+    }),
+    "'": new Motion({
+        param: true,
+        handlesCount: true,
+        getPos: function(editor, range, count, param, isSel) {
+            var s = editor.session;
+            var marker = s.vimMarkers && s.vimMarkers[param];
+            if (marker) {
+                var pos = marker.getPosition();
+                var line = editor.session.getLine(pos.row);                
+                pos.column = line.search(/\S/);
+                if (pos.column == -1)
+                    pos.column = line.length;
+                return pos;
+            }
+        }
+    }),
 };
 
 module.exports.backspace = module.exports.left = module.exports.h;
