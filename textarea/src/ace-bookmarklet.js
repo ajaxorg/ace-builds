@@ -259,7 +259,8 @@ exports.transformTextarea = function(element, loader) {
         left: "0px",
         right: "0px",
         bottom: "0px",
-        border: "1px solid gray"
+        border: "1px solid gray",
+        position: "absolute"
     });
     container.appendChild(editorDiv);
 
@@ -610,7 +611,7 @@ exports.options = {
     keybindings:        "ace",
     showPrintMargin:    "false",
     useSoftTabs:        "true",
-    showInvisibles:     "true"
+    showInvisibles:     "false"
 };
 
 });
