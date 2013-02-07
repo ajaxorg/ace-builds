@@ -181,8 +181,8 @@ var ShHighlightRules = function() {
 
     this.$rules = {
         "start" : [ {
-            token : "comment",
-            regex : "#.*$"
+            token : ["text", "comment"],
+            regex : /(^|\s)(#.*)$/
         }, {
             token : "string",           // " string
             regex : '"(?:[^\\\\]|\\\\.)*?"'
@@ -219,9 +219,6 @@ var ShHighlightRules = function() {
         }, {
             token : "paren.rparen",
             regex : "[\\]\\)\\}]"
-        }, {
-            token : "text",
-            regex : "\\s+"
         } ]
     };
 };

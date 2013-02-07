@@ -89,134 +89,134 @@ var JadeHighlightRules = function() {
         {
     "start": [
         {
-            "token": "keyword.control.import.include.jade",
-            "regex": "\\s*\\binclude\\b"
+            token: "keyword.control.import.include.jade",
+            regex: "\\s*\\binclude\\b"
         },
         {
-            "token": "keyword.other.doctype.jade",
-            "regex": "^!!!\\s*(?:[a-zA-Z0-9-_]+)?"
+            token: "keyword.other.doctype.jade",
+            regex: "^!!!\\s*(?:[a-zA-Z0-9-_]+)?"
         },
         {
-            "token" : "punctuation.section.comment",
-            "regex" : "^\\s*\/\/(?:\\s*[^-\\s]|\\s+\\S)(?:.*$)"
+            token : "punctuation.section.comment",
+            regex : "^\\s*\/\/(?:\\s*[^-\\s]|\\s+\\S)(?:.*$)"
         },
         {
-            "token" : function(space, text) {
+            token : function(space, text) {
                 return "punctuation.section.comment";
             },
-            "regex" : "^((\\s*)\/\/)(?:\\s*$)",
-            "next": "comment_block"
+            regex : "^((\\s*)\/\/)(?:\\s*$)",
+            next: "comment_block"
         },
         mixin_embed("markdown", "markdown-"),
         mixin_embed("sass", "sass-"),
         mixin_embed("less", "less-"),
         mixin_embed("coffee", "coffee-"),
         {
-            "token": [ "storage.type.function.jade",
+            token: [ "storage.type.function.jade",
                        "entity.name.function.jade",
                        "punctuation.definition.parameters.begin.jade",
                        "variable.parameter.function.jade",
                        "punctuation.definition.parameters.end.jade"
                     ],
-            "regex": "^(\\s*mixin)( [\\w\\-]+)(\\s*\\()(.*?)(\\))"
+            regex: "^(\\s*mixin)( [\\w\\-]+)(\\s*\\()(.*?)(\\))"
         },
         {
-            "token": [ "storage.type.function.jade", "entity.name.function.jade"],
-            "regex": "^(\\s*mixin)( [\\w\\-]+)"
+            token: [ "storage.type.function.jade", "entity.name.function.jade"],
+            regex: "^(\\s*mixin)( [\\w\\-]+)"
         },
         {
-            "token": "source.js.embedded.jade",
-            "regex": "^\\s*(?:-|=|!=)",
-            "next": "js-start"
+            token: "source.js.embedded.jade",
+            regex: "^\\s*(?:-|=|!=)",
+            next: "js-start"
         },
         {
-            "token": "string.interpolated.jade",
-            "regex": "[#!]\\{[^\\}]+\\}"
+            token: "string.interpolated.jade",
+            regex: "[#!]\\{[^\\}]+\\}"
         },
         {
-            "token": ["meta.tag.any.jade", "entity.variable.tag.jade"],
-            "regex": /^\s*(?!\w+\:)(?:[\w]+|(?=\.|#)])/,
-            "next": "tag_single"
+            token: "meta.tag.any.jade",
+            regex: /^\s*(?!\w+\:)(?:[\w]+|(?=\.|#)])/,
+            next: "tag_single"
         },
         {
-            "token": "suport.type.attribute.id.jade",
-            "regex": "#\\w+"
+            token: "suport.type.attribute.id.jade",
+            regex: "#\\w+"
         },
         {
-            "token": "suport.type.attribute.class.jade",
-            "regex": "\\.\\w+"
+            token: "suport.type.attribute.class.jade",
+            regex: "\\.\\w+"
         },
         {
-            "token": "punctuation",
-            "regex": "\\s*(?:\\()",
-            "next": "tag_attributes"
+            token: "punctuation",
+            regex: "\\s*(?:\\()",
+            next: "tag_attributes"
         }
     ],
     "comment_block": [
         {
-            "token": function(text) {
+            token: function(text) {
                 return "text";
             },
-            "regex": "^(\\1\\S|$)", 
+            regex: "^(\\1\\S|$)", 
             "captures": "1",
-            "next": "start"
+            next: "start"
         },
         {
-            "token": "comment.block.jade",
-            "regex" : ".+"
+            token: "comment.block.jade",
+            regex : ".+"
         }
     ],
     "tag_single": [
         {
-            "token": "entity.other.attribute-name.class.jade",
-            "regex": "\\.[\\w-]+"
+            token: "entity.other.attribute-name.class.jade",
+            regex: "\\.[\\w-]+"
         },
         {
-            "token": "entity.other.attribute-name.id.jade",
-            "regex": "#[\\w-]+"
+            token: "entity.other.attribute-name.id.jade",
+            regex: "#[\\w-]+"
         },
         {
-            "token": ["text", "punctuation"],
-            "regex": "($)|((?!\\.|#|=|-))",
-            "next": "start"
+            token: ["text", "punctuation"],
+            regex: "($)|((?!\\.|#|=|-))",
+            next: "start"
         }
     ],
     "tag_attributes": [ 
         {
-            "token" : "string",
-            "regex" : "'(?=.)",
-            "next"  : "qstring"
+            token : "string",
+            regex : "'(?=.)",
+            next  : "qstring"
         }, 
         {
-            "token" : "string",
-            "regex" : '"(?=.)',
-            "next"  : "qqstring"
+            token : "string",
+            regex : '"(?=.)',
+            next  : "qqstring"
         },
         {
-            "token": "entity.other.attribute-name.jade",
-            "regex": "\\b[a-zA-Z\\-:]+"
+            token: "entity.other.attribute-name.jade",
+            regex: "\\b[a-zA-Z\\-:]+"
         },
         {
-            "token": ["entity.other.attribute-name.jade", "punctuation"],
-            "regex": "\\b([a-zA-Z:\\.-]+)(=)",
-            "next": "attribute_strings"
+            token: ["entity.other.attribute-name.jade", "punctuation"],
+            regex: "\\b([a-zA-Z:\\.-]+)(=)",
+            next: "attribute_strings"
         },
         {
-            "token": "punctuation",
-            "regex": "\\)",
-            "next": "start"
+            token: "punctuation",
+            regex: "\\)",
+            next: "start"
         }
     ],
     "attribute_strings": [
         {
-            "token" : "string",
-            "regex" : "'(?=.)",
-            "next"  : "qstring"
+            token : "string",
+            regex : "'(?=.)",
+            next  : "qstring"
         }, 
         {
-            "token" : "string",
-            "regex" : '"(?=.)',
-            "next"  : "qqstring"
+            token : "string",
+            regex : '"(?=.)',
+            next  : "qqstring"
         }
     ],
     "qqstring" : [
@@ -288,38 +288,9 @@ function github_embed(tag, prefix) {
 var MarkdownHighlightRules = function() {
 
     this.$rules = {
-        "start" : [ {
-            token : "empty_line",
-            regex : '^$'
-        }, { // code span `
-            token : ["support.function", "support.function", "support.function"],
-            regex : "(`+)([^\\r]*?[^`])(\\1)"
-        }, { // code block
+        "basic" : [{ // code span `
             token : "support.function",
-            regex : "^[ ]{4}.+"
-        }, { // h1
-            token: "markup.heading.1",
-            regex: "^=+(?=\\s*$)"
-        }, { // h2
-            token: "markup.heading.2",
-            regex: "^\\-+(?=\\s*$)"
-        }, { // header
-            token : function(value) {
-                return "markup.heading." + value.search(/[^#]/);
-            },
-            regex : "^#{1,6}(?:[^ #].*| +.*(?:[^ #].*|[^ ]+.* +#+ *))$"
-        }, github_embed("(?:javascript|js)", "js-"),
-           github_embed("xml", "xml-"),
-           github_embed("html", "html-"),
-           github_embed("css", "css-"),
-        { // Github style block
-            token : "support.function",
-            regex : "^```\\s*[a-zA-Z]*(?:{.*?\\})?\\s*$",
-            next  : "githubblock"
-        }, { // block quote
-            token : "string",
-            regex : "^>[ ].+$",
-            next  : "blockquote"
+            regex : "(`+)(.*?[^`])(\\1)"
         }, { // reference
             token : ["text", "constant", "text", "url", "string", "text"],
             regex : "^([ ]{0,3}\\[)([^\\]]+)(\\]:\\s*)([^ ]+)(\\s*(?:[\"][^\"]+[\"])?(\\s*))$"
@@ -334,46 +305,85 @@ var MarkdownHighlightRules = function() {
                     "(<?(?:(?:[^\\(]*?\\([^\\)]*?\\)\\S*?)|(?:.*?))>?)"+
                     "((?:[ \t]*\"(?:.*?)\"[ \\t]*)?)"+
                     "(\\))"
-        }, { // HR *
-            token : "constant",
-            regex : "^[ ]{0,2}(?:[ ]?\\*[ ]?){3,}\\s*$"
-        }, { // HR -
-            token : "constant",
-            regex : "^[ ]{0,2}(?:[ ]?\\-[ ]?){3,}\\s*$"
-        }, { // HR _
-            token : "constant",
-            regex : "^[ ]{0,2}(?:[ ]?\\_[ ]?){3,}\\s*$"
-        }, { // list
-            token : "markup.list",
-            regex : "^\\s{0,3}(?:[*+-]|\\d+\\.)\\s+",
-            next  : "listblock"
         }, { // strong ** __
-            token : ["string", "string", "string"],
-            regex : "([*]{2}|[_]{2}(?=\\S))([^\\r]*?\\S[*_]*)(\\1)"
+            token : "string",
+            regex : "([*]{2}|[_]{2}(?=\\S))(.*?\\S[*_]*)(\\1)"
         }, { // emphasis * _
-            token : ["string", "string", "string"],
-            regex : "([*]|[_](?=\\S))([^\\r]*?\\S[*_]*)(\\1)"
-        }, { // 
+            token : "string",
+            regex : "([*]|[_](?=\\S))(.*?\\S[*_]*)(\\1)"
+        }, { //
             token : ["text", "url", "text"],
             regex : "(<)("+
                       "(?:https?|ftp|dict):[^'\">\\s]+"+
                       "|"+
                       "(?:mailto:)?[-.\\w]+\\@[-a-z0-9]+(?:\\.[-a-z0-9]+)*\\.[a-z]+"+
                     ")(>)"
+        }],
+        "allowBlock": [
+            {token : "support.function", regex : "^ {4}.+", next : "allowBlock"},
+            {token : "empty", regex : "", next : "start"}
+        ],
+
+        "start" : [{
+            token : "empty_line",
+            regex : '^$',
+            next: "allowBlock"
+        }, { // h1
+            token: "markup.heading.1",
+            regex: "^=+(?=\\s*$)"
+        }, { // h2
+            token: "markup.heading.2",
+            regex: "^\\-+(?=\\s*$)"
+        }, { // header
+            token : function(value) {
+                return "markup.heading." + value.search(/[^#]/);
+            },
+            regex : "^#{1,6}(?:[^ #].*| +.*(?:[^ #].*|[^ ]+.* +#+ *))$"
+        },
+           github_embed("(?:javascript|js)", "js-"),
+           github_embed("xml", "xml-"),
+           github_embed("html", "html-"),
+           github_embed("css", "css-"),
+        { // Github style block
+            token : "support.function",
+            regex : "^```\\s*[a-zA-Z]*(?:{.*?\\})?\\s*$",
+            next  : "githubblock"
+        }, { // block quote
+            token : "string",
+            regex : "^>[ ].+$",
+            next  : "blockquote"
+        }, { // HR * - _
+            token : "constant",
+            regex : "^ {0,2}(?:(?: ?\\* ?){3,}|(?: ?\\- ?){3,}|(?: ?\\_ ?){3,})\\s*$",
+            next: "allowBlock"
+        }, { // list
+            token : "markup.list",
+            regex : "^\\s{0,3}(?:[*+-]|\\d+\\.)\\s+",
+            next  : "listblock-start"
         }, {
-            token : "text",
-            regex : "[^\\*_%$`\\[#<>]+"
-        } ],
-        
+            include : "basic"
+        }],
+
+        "listblock-start" : [{
+            token : "support.variable",
+            regex : /(?:\[[ x]\])?/,
+            next  : "listblock"
+        }],
+
         "listblock" : [ { // Lists only escape on completely blank lines.
             token : "empty_line",
             regex : "^$",
             next  : "start"
         }, {
+            include : "basic", noEscape: true
+        }, { // list
             token : "markup.list",
-            regex : ".+"
+            regex : "^\\s{0,3}(?:[*+-]|\\d+\\.)\\s+",
+            next  : "listblock-start"
+        }, {
+            defaultToken : "markup.list"
         } ],
-        
+
         "blockquote" : [ { // BLockquotes only escape on blank lines.
             token : "empty_line",
             regex : "^\\s*$",
@@ -382,7 +392,7 @@ var MarkdownHighlightRules = function() {
             token : "string",
             regex : ".+"
         } ],
-        
+
         "githubblock" : [ {
             token : "support.function",
             regex : "^```",
@@ -392,31 +402,31 @@ var MarkdownHighlightRules = function() {
             regex : ".+"
         } ]
     };
-    
+
     this.embedRules(JavaScriptHighlightRules, "js-", [{
        token : "support.function",
        regex : "^```",
        next  : "start"
     }]);
-    
+
     this.embedRules(HtmlHighlightRules, "html-", [{
        token : "support.function",
        regex : "^```",
        next  : "start"
     }]);
-    
+
     this.embedRules(CssHighlightRules, "css-", [{
        token : "support.function",
        regex : "^```",
        next  : "start"
     }]);
-    
+
     this.embedRules(XmlHighlightRules, "xml-", [{
        token : "support.function",
        regex : "^```",
        next  : "start"
     }]);
-    
+
     var html = new HtmlHighlightRules().getRules();
     for (var i in html) {
         if (this.$rules[i])
@@ -424,7 +434,8 @@ var MarkdownHighlightRules = function() {
         else
             this.$rules[i] = html[i];
     }
-    
+
+    this.normalizeRules();
 };
 oop.inherits(MarkdownHighlightRules, TextHighlightRules);
 
@@ -462,7 +473,8 @@ var JavaScriptHighlightRules = function() {
         "constant.language":
             "null|Infinity|NaN|undefined",
         "support.function":
-            "alert"
+            "alert",
+        "constant.language.boolean": "true|false"
     }, "identifier");
     var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield|void";
     var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
@@ -549,9 +561,6 @@ var JavaScriptHighlightRules = function() {
                 regex : "(:)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                token : "constant.language.boolean",
-                regex : /(?:true|false)\b/
-            }, {
                 token : "keyword",
                 regex : "(?:" + kwBeforeRe + ")\\b",
                 next : "regex_allowed"
@@ -592,9 +601,6 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "comment",
                 regex: /^#!.*$/
-            }, {
-                token : "text",
-                regex : /\s+/
             }
         ],
         "regex_allowed": [
@@ -632,18 +638,20 @@ var JavaScriptHighlightRules = function() {
                 regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
             }, {
                 token : "constant.language.escape",
-                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[(|)$^+*?]/
+                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[()$^+*?]/
             }, {
-                token: "string.regexp",
-                regex: /{|[^{\[\/\\(|)$^+*?]+/,
+                token : "constant.language.delimiter",
+                regex: /\|/
             }, {
                 token: "constant.language.escape",
                 regex: /\[\^?/,
                 next: "regex_character_class",
             }, {
                 token: "empty",
-                regex: "",
+                regex: "$",
                 next: "start"
+            }, {
+                defaultToken: "string.regexp"
             }
         ],
         "regex_character_class": [
@@ -658,12 +666,11 @@ var JavaScriptHighlightRules = function() {
                 token: "constant.language.escape",
                 regex: "-"
             }, {
-                token: "string.regexp.charachterclass",
-                regex: /[^\]\-\\]+/,
-            }, {
                 token: "empty",
-                regex: "",
+                regex: "$",
                 next: "start"
+            }, {
+                defaultToken: "string.regexp.charachterclass"
             }
         ],
         "function_arguments": [
@@ -683,24 +690,12 @@ var JavaScriptHighlightRules = function() {
             }
         ],
         "comment_regex_allowed" : [
-            {
-                token : "comment", // closing comment
-                regex : ".*?\\*\\/",
-                next : "regex_allowed"
-            }, {
-                token : "comment", // comment spanning whole line
-                regex : ".+"
-            }
+            {token : "comment", regex : "\\*\\/", next : "regex_allowed"},
+            {defaultToken : "comment"}
         ],
         "comment" : [
-            {
-                token : "comment", // closing comment
-                regex : ".*?\\*\\/",
-                next : "start"
-            }, {
-                token : "comment", // comment spanning whole line
-                regex : ".+"
-            }
+            {token : "comment", regex : "\\*\\/", next : "start"},
+            {defaultToken : "comment"}
         ],
         "qqstring" : [
             {
@@ -715,8 +710,7 @@ var JavaScriptHighlightRules = function() {
                 regex : '"|$',
                 next  : "start",
             }, {
-                token : "string",
-                regex : '.|\\w+|\\s+',
+                defaultToken: "string"
             }
         ],
         "qstring" : [
@@ -732,8 +726,7 @@ var JavaScriptHighlightRules = function() {
                 regex : "'|$",
                 next  : "start",
             }, {
-                token : "string",
-                regex : '.|\\w+|\\s+',
+                defaultToken: "string"
             }
         ]
     };
@@ -760,17 +753,10 @@ var DocCommentHighlightRules = function() {
             token : "comment.doc.tag",
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
-            token : "comment.doc",
-            regex : "\\s+"
+            token : "comment.doc.tag",
+            regex : "\\bTODO\\b"
         }, {
-            token : "comment.doc",
-            regex : "TODO"
-        }, {
-            token : "comment.doc",
-            regex : "[^@\\*]+"
-        }, {
-            token : "comment.doc",
-            regex : "."
+            defaultToken : "comment.doc"
         }]
     };
 };
@@ -817,8 +803,7 @@ var XmlHighlightRules = function() {
             {
                 token : "constant.character.entity", 
                 regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)" 
-            },
-            {token : "text", regex : "[^<]+"}
+            }
         ],
         
         cdata : [
@@ -863,7 +848,7 @@ function multiLineString(quote, state) {
             token : "constant.language.escape",
             regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)" 
         },
-        {token : "string", regex : '\\w+|.|\\s+'}
+        {defaultToken : "string"}
     ];
 }
 
@@ -974,21 +959,12 @@ var HtmlHighlightRules = function() {
         }, {
             token : "constant.character.entity",
             regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)"
-        }, {
-            token : "text",
-            regex : "[^<]+"
-        } ],
+        }],
     
         cdata : [ {
             token : "text",
             regex : "\\]\\]>",
             next : "start"
-        }, {
-            token : "text",
-            regex : "\\s+"
-        }, {
-            token : "text",
-            regex : ".+"
         } ],
 
         comment : [ {
@@ -996,8 +972,7 @@ var HtmlHighlightRules = function() {
             regex : ".*?-->",
             next : "start"
         }, {
-            token : "comment",
-            regex : ".+"
+            defaultToken : "comment"
         } ]
     };
     
@@ -1683,10 +1658,6 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
 
     function CoffeeHighlightRules() {
         var identifier = "[$A-Za-z_\\x7f-\\uffff][$\\w\\x7f-\\uffff]*";
-        var stringfill = {
-            token : "string",
-            regex : ".+"
-        };
 
         var keywords = (
             "this|throw|then|try|typeof|super|switch|return|break|by|continue|" +
@@ -1731,24 +1702,12 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
             "variable.language": variableLanguage
         }, "identifier");
 
-        var functionRules = {
-            "({args})->": {
-                token: ["paren.lparen", "text", "paren.lparen", "text", "variable.parameter", "text", "paren.rparen", "text", "paren.rparen", "text", "storage.type"],
-                regex: "(\\()(\\s*)(\\{)(\\s*)([$@A-Za-z_\\x7f-\\uffff][$@\\w\\s,\\x7f-\\uffff]*)(\\s*)(\\})(\\s*)(\\))(\\s*)([\\-=]>)"
-            },
-            "({})->": {
-                token: ["paren.lparen", "text", "paren.lparen", "text", "paren.rparen", "text", "paren.rparen", "text", "storage.type"],
-                regex: "(\\()(\\s*)(\\{)(\\s*)(\\})(\\s*)(\\))(\\s*)([\\-=]>)"
-            },
-            "(args)->": {
-                token: ["paren.lparen", "text", "variable.parameter", "text", "paren.rparen", "text", "storage.type"],
-                regex: "(\\()(\\s*)([$@A-Za-z_\\x7f-\\uffff][\\s\\x21-\\uffff]*)(\\s*)(\\))(\\s*)([\\-=]>)"
-            },
-            "()->": {
-                token: ["paren.lparen", "text", "paren.rparen", "text", "storage.type"],
-                regex: "(\\()(\\s*)(\\))(\\s*)([\\-=]>)"
-            }
+        var functionRule = {
+            token: ["paren.lparen", "variable.parameter", "paren.rparen", "text", "storage.type"],
+            regex: /(?:(\()((?:"[^")]*?"|'[^')]*?'|\/[^\/)]*?\/|[^()\"'\/])*?)(\))(\s*))?([\-=]>)/.source
         };
+
+        var stringEscape = /\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.)/;
 
         this.$rules = {
             start : [
@@ -1756,25 +1715,42 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
                     token : "constant.numeric",
                     regex : "(?:0x[\\da-fA-F]+|(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:[eE][+-]?\\d+)?)"
                 }, {
-                    token : "string",
-                    regex : "'''",
-                    next : "qdoc"
+                    stateName: "qdoc",
+                    token : "string", regex : "'''", next : [
+                        {token : "string", regex : "'''", next : "start"},
+                        {token : "constant.language.escape", regex : stringEscape},
+                        {defaultToken: "string"},
+                    ]
                 }, {
+                    stateName: "qqdoc",
                     token : "string",
                     regex : '"""',
-                    next : "qqdoc"
+                    next : [
+                        {token : "string", regex : '"""', next : "start"},
+                        {token : "constant.language.escape", regex : stringEscape},
+                        {defaultToken: "string"}
+                    ]
                 }, {
-                    token : "string",
-                    regex : "'",
-                    next : "qstring"
+                    stateName: "qstring",
+                    token : "string", regex : "'", next : [
+                        {token : "string", regex : "'", next : "start"},
+                        {token : "constant.language.escape", regex : stringEscape},
+                        {defaultToken: "string"},
+                    ]
                 }, {
-                    token : "string",
-                    regex : '"',
-                    next : "qqstring"
+                    stateName: "qqstring",
+                    token : "string.start", regex : '"', next : [
+                        {token : "string.end", regex : '"', next : "start"},
+                        {token : "constant.language.escape", regex : stringEscape},
+                        {defaultToken: "string"},
+                    ]
                 }, {
-                    token : "string",
-                    regex : "`",
-                    next : "js"
+                    stateName: "js",
+                    token : "string", regex : "`", next : [
+                        {token : "string", regex : "`", next : "start"},
+                        {token : "constant.language.escape", regex : stringEscape},
+                        {defaultToken: "string"},
+                    ]
                 }, {
                     token : "string.regex",
                     regex : "///",
@@ -1790,82 +1766,21 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
                     token : "comment",
                     regex : "#.*"
                 }, {
-                    token : [
-                        "punctuation.operator", "identifier"
-                    ],
-                    regex : "(\\.)(" + illegal + ")"
+                    token : ["punctuation.operator", "text", "identifier"],
+                    regex : "(\\.)(\\s*)(" + illegal + ")"
                 }, {
                     token : "punctuation.operator",
                     regex : "\\."
                 }, {
-                    token : [
-                        "keyword", "text", "language.support.class", "text", "keyword", "text", "language.support.class"
-                    ],
-                    regex : "(class)(\\s+)(" + identifier + ")(\\s+)(extends)(\\s+)(" + identifier + ")"
+                    token : ["keyword", "text", "language.support.class",
+                     "text", "keyword", "text", "language.support.class"],
+                    regex : "(class)(\\s+)(" + identifier + ")(?:(\\s+)(extends)(\\s+)(" + identifier + "))?"
                 }, {
-                    token : [
-                        "keyword", "text", "language.support.class"
-                    ],
-                    regex : "(class)(\\s+)(" + identifier + ")"
-                }, {
-                    token : [
-                        "entity.name.function", "text", "keyword.operator", "text"
-                    ].concat(functionRules["({args})->"].token),
-                    regex : "(" + identifier + ")(\\s*)(=)(\\s*)" + functionRules["({args})->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "punctuation.operator", "text"
-                    ].concat(functionRules["({args})->"].token),
-                    regex : "(" + identifier + ")(\\s*)(:)(\\s*)" + functionRules["({args})->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "keyword.operator", "text"
-                    ].concat(functionRules["({})->"].token),
-                    regex : "(" + identifier + ")(\\s*)(=)(\\s*)" + functionRules["({})->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "punctuation.operator", "text"
-                    ].concat(functionRules["({})->"].token),
-                    regex : "(" + identifier + ")(\\s*)(:)(\\s*)" + functionRules["({})->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "keyword.operator", "text"
-                    ].concat(functionRules["(args)->"].token),
-                    regex : "(" + identifier + ")(\\s*)(=)(\\s*)" + functionRules["(args)->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "punctuation.operator", "text"
-                    ].concat(functionRules["(args)->"].token),
-                    regex : "(" + identifier + ")(\\s*)(:)(\\s*)" + functionRules["(args)->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "keyword.operator", "text"
-                    ].concat(functionRules["()->"].token),
-                    regex : "(" + identifier + ")(\\s*)(=)(\\s*)" + functionRules["()->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "punctuation.operator", "text"
-                    ].concat(functionRules["()->"].token),
-                    regex : "(" + identifier + ")(\\s*)(:)(\\s*)" + functionRules["()->"].regex
-                }, {
-                    token : [
-                        "entity.name.function", "text", "keyword.operator", "text", "storage.type"
-                    ],
-                    regex : "(" + identifier + ")(\\s*)(=)(\\s*)([\\-=]>)"
-                }, {
-                    token : [
-                        "entity.name.function", "text", "punctuation.operator", "text", "storage.type"
-                    ],
-                    regex : "(" + identifier + ")(\\s*)(:)(\\s*)([\\-=]>)"
+                    token : ["entity.name.function", "text", "keyword.operator", "text"].concat(functionRule.token),
+                    regex : "(" + identifier + ")(\\s*)([=:])(\\s*)" + functionRule.regex
                 }, 
-                functionRules["({args})->"],
-                functionRules["({})->"],
-                functionRules["(args)->"],
-                functionRules["()->"]
-                , {
-                    token : "identifier",
-                    regex : "(?:(?:\\.|::)\\s*)" + identifier
-                }, {
+                functionRule, 
+                {
                     token : "variable",
                     regex : "@(?:" + identifier + ")?"
                 }, {
@@ -1873,7 +1788,7 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
                     regex : identifier
                 }, {
                     token : "punctuation.operator",
-                    regex : "\\?|\\:|\\,|\\."
+                    regex : "\\,|\\."
                 }, {
                     token : "storage.type",
                     regex : "[\\-=]>"
@@ -1891,35 +1806,6 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
                     regex : "\\s+"
                 }],
 
-            qdoc : [{
-                token : "string",
-                regex : ".*?'''",
-                next : "start"
-            }, stringfill],
-
-            qqdoc : [{
-                token : "string",
-                regex : '.*?"""',
-                next : "start"
-            }, stringfill],
-
-            qstring : [{
-                token : "string",
-                regex : "[^\\\\']*(?:\\\\.[^\\\\']*)*'",
-                next : "start"
-            }, stringfill],
-
-            qqstring : [{
-                token : "string",
-                regex : '[^\\\\"]*(?:\\\\.[^\\\\"]*)*"',
-                next : "start"
-            }, stringfill],
-
-            js : [{
-                token : "string",
-                regex : "[^\\\\`]*(?:\\\\.[^\\\\`]*)*`",
-                next : "start"
-            }, stringfill],
 
             heregex : [{
                 token : "string.regex",
@@ -1935,13 +1821,13 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
 
             comment : [{
                 token : "comment",
-                regex : '.*?###',
+                regex : '###',
                 next : "start"
             }, {
-                token : "comment",
-                regex : ".+"
+                defaultToken : "comment",
             }]
         };
+        this.normalizeRules();
     }
 
     exports.CoffeeHighlightRules = CoffeeHighlightRules;

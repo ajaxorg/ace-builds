@@ -76,8 +76,7 @@ var XmlHighlightRules = function() {
             {
                 token : "constant.character.entity", 
                 regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)" 
-            },
-            {token : "text", regex : "[^<]+"}
+            }
         ],
         
         cdata : [
@@ -122,7 +121,7 @@ function multiLineString(quote, state) {
             token : "constant.language.escape",
             regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)" 
         },
-        {token : "string", regex : '\\w+|.|\\s+'}
+        {defaultToken : "string"}
     ];
 }
 

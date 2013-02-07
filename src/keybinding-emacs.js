@@ -50,9 +50,13 @@ var HashHandler = require("./hash_handler").HashHandler;
 exports.handler = new HashHandler();
 
 var initialized = false;
+var $formerLongWords;
+var $formerLineStart;
+
 exports.handler.attach = function(editor) {
     if (!initialized) {
         initialized = true;
+
         dom.importCssString('\
             .emacs-mode .ace_cursor{\
                 border: 2px rgba(50,250,50,0.8) solid!important;\
@@ -79,16 +83,63 @@ exports.handler.attach = function(editor) {
             }', 'emacsMode'
         );
     }
+    $formerLongWords = editor.session.$selectLongWords;
+    editor.session.$selectLongWords = true;
+    $formerLineStart = editor.session.$useEmacsStyleLineStart;
+    editor.session.$useEmacsStyleLineStart = true;
+    
+    editor.session.$emacsMark = null;
+    
+    exports.markMode = function() {
+        return editor.session.$emacsMark;
+    }
+
+    exports.setMarkMode = function(p) {
+        editor.session.$emacsMark = p;
+    }
+
+    editor.on("click",$resetMarkMode);
+
+    editor.on("changeSession",$kbSessionChange);
 
     editor.renderer.screenToTextCoordinates = screenToTextBlockCoordinates;
+
     editor.setStyle("emacs-mode");
+
 };
 
 exports.handler.detach = function(editor) {
+
     delete editor.renderer.screenToTextCoordinates;
+
+    editor.session.$selectLongWords = $formerLongWords;
+    editor.session.$useEmacsStyleLineStart = $formerLineStart;
+
+
+    editor.removeEventListener("click",$resetMarkMode);
+    editor.removeEventListener("changeSession",$kbSessionChange);
+
     editor.unsetStyle("emacs-mode");
 };
 
+var $kbSessionChange = function(e) {
+    if (e.oldSession) {
+        e.oldSession.$selectLongWords = $formerLongWords;
+        e.oldSession.$useEmacsStyleLineStart = $formerLineStart;
+    }
+    
+    $formerLongWords = e.session.$selectLongWords;
+    e.session.$selectLongWords = true;
+    $formerLineStart = e.session.$useEmacsStyleLineStart;
+    e.session.$useEmacsStyleLineStart = true;
+
+    if (!e.session.hasOwnProperty('$emacsMark'))
+        e.session.$emacsMark = null;
+}    
+
+var $resetMarkMode = function(e) {
+    e.editor.session.$emacsMark = null;
+}
 
 var keys = require("../lib/keys").KEY_MODS;
 var eMods = {
@@ -119,6 +170,7 @@ exports.handler.bindKey = function(key, command) {
 
 exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
     if (hashId == -1) {
+        exports.setMarkMode(null);
         if (data.count) {
             var str = Array(data.count + 1).join(key);
             data.count = null;
@@ -162,9 +214,21 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
     if (typeof command != "string") {
         var args = command.args;
         command = command.command;
+        if (command == "goorselect") {
+            command = args[0];
+            if (exports.markMode()) {
+                command = args[1];
+            }
+            args = null;
+        }
     }
 
     if (typeof command == "string") {
+        if (command == "insertstring" ||
+           command == "splitline" ||
+           command == "togglecomment") {
+            exports.setMarkMode(null);
+        }
         command = this.commands[command] || data.editor.commands.commands[command];
     }
 
@@ -189,16 +253,16 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
 };
 
 exports.emacsKeys = {
-    "Up|C-p"      : "golineup",
-    "Down|C-n"    : "golinedown",
-    "Left|C-b"    : "gotoleft",
-    "Right|C-f"   : "gotoright",
-    "C-Left|M-b"  : "gotowordleft",
-    "C-Right|M-f" : "gotowordright",
-    "Home|C-a"    : "gotolinestart",
-    "End|C-e"     : "gotolineend",
-    "C-Home|S-M-,": "gotostart",
-    "C-End|S-M-." : "gotoend",
+    "Up|C-p"      : {command: "goorselect", args: ["golineup","selectup"]},         
+    "Down|C-n"    : {command: "goorselect", args: ["golinedown","selectdown"]},       
+    "Left|C-b"    : {command: "goorselect", args: ["gotoleft","selectleft"]},
+    "Right|C-f"   : {command: "goorselect", args: ["gotoright","selectright"]},
+    "C-Left|M-b"  : {command: "goorselect", args: ["gotowordleft","selectwordleft"]}, 
+    "C-Right|M-f" : {command: "goorselect", args: ["gotowordright","selectwordright"]},
+    "Home|C-a"    : {command: "goorselect", args: ["gotolinestart","selecttolinestart"]},
+    "End|C-e"     : {command: "goorselect", args: ["gotolineend","selecttolineend"]},
+    "C-Home|S-M-,": {command: "goorselect", args: ["gotostart","selecttostart"]},
+    "C-End|S-M-." : {command: "goorselect", args: ["gotoend","selecttoend"]},
     "S-Up|S-C-p"      : "selectup",
     "S-Down|S-C-n"    : "selectdown",
     "S-Left|S-C-b"    : "selectleft",
@@ -214,10 +278,10 @@ exports.emacsKeys = {
     "M-s" : "centerselection",
     "M-g": "gotoline",
     "C-x C-p": "selectall",
-    "C-Down": "gotopagedown",
-    "C-Up": "gotopageup",
-    "PageDown|C-v": "gotopagedown",
-    "PageUp|M-v": "gotopageup",
+    "C-Down": {command: "goorselect", args: ["gotopagedown","selectpagedown"]},
+    "C-Up": {command: "goorselect", args: ["gotopageup","selectpageup"]},
+    "PageDown|C-v": {command: "goorselect", args: ["gotopagedown","selectpagedown"]},
+    "PageUp|M-v": {command: "goorselect", args: ["gotopageup","selectpageup"]},
     "S-C-Down": "selectpagedown",
     "S-C-Up": "selectpageup",
     "C-s": "findnext",
@@ -240,16 +304,15 @@ exports.emacsKeys = {
 
     "C-w": "killRegion",
     "M-w": "killRingSave",
-
     "C-Space": "setMark",
     "C-x C-x": "exchangePointAndMark",
 
     "C-t": "transposeletters",
-
-    "M-u": "touppercase",
+    "M-u": "touppercase",    // Doesn't work
     "M-l": "tolowercase",
-    "M-/": "autocomplete",
-    "C-u": "universalArgument",
+    "M-/": "autocomplete",   // Doesn't work
+    "C-u": "universalArgument",  
+
     "M-;": "togglecomment",
 
     "C-/|C-x u|S-C--|C-z": "undo",
@@ -278,11 +341,27 @@ exports.handler.addCommands({
     selectRectangularRegion:  function(editor) {
         editor.multiSelect.toggleBlockSelection();
     },
-    setMark:  function() {
+    setMark:  function(editor) {
+        var markMode = exports.markMode();
+
+        if (markMode) {
+
+            cp = editor.getCursorPosition();
+            if (editor.selection.isEmpty() &&
+               markMode.row == cp.row && markMode.column == cp.column) {
+                exports.setMarkMode(null);
+                return;
+            }
+        }
+        markMode = editor.getCursorPosition();
+        exports.setMarkMode(markMode);
+        editor.selection.setSelectionAnchor(markMode.row, markMode.column);
+        
     },
     exchangePointAndMark: {
         exec: function(editor) {
             var range = editor.selection.getRange();
+
             editor.selection.setSelectionRange(range, !editor.selection.isBackwards());
         },
         readonly: true,
@@ -306,7 +385,17 @@ exports.handler.addCommands({
         multiselectAction: "forEach"
     },
     killLine: function(editor) {
-        editor.selection.selectLine();
+        exports.setMarkMode(null);
+        var pos = editor.getCursorPosition();
+
+        if (pos.column == 0 &&
+            editor.session.doc.getLine(pos.row).length == 0) {
+            editor.selection.selectLine();
+        } else {
+            editor.clearSelection();
+            editor.selection.selectLineEnd();
+
+        }
         var range = editor.getSelectionRange();
         var text = editor.session.getTextRange(range);
         exports.killRing.add(text);

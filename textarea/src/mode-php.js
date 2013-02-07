@@ -1092,6 +1092,16 @@ var PhpLangHighlightRules = function() {
                 },
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
             }, {
+                token : function(value, currentSate, state) {
+                    value = value.substr(3);
+                    if (value[0] == "'" || value[0] == '"')
+                        value = value.slice(1, -1);
+                    state.unshift(this.next, value);
+                    return "markup.list";
+                },
+                regex : /<<<(?:\w+|'\w+'|"\w+")$/,
+                next: "heredoc"
+            }, {
                 token : "keyword.operator",
                 regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
             }, {
@@ -1103,6 +1113,22 @@ var PhpLangHighlightRules = function() {
             }, {
                 token : "text",
                 regex : "\\s+"
+            }
+        ],
+        "heredoc" : [
+            {
+                token : function(value, currentSate, stack) {
+                    if (stack[1]  + ";" != value)
+                        return "string";
+                    stack.shift();
+                    stack.shift();
+                    return "markup.list"
+                },
+                regex : "^\\w+;$",
+                next: "start"
+            }, {
+                token: "string",
+                regex : ".*",
             }
         ],
         "comment" : [
@@ -1121,31 +1147,18 @@ var PhpLangHighlightRules = function() {
                 regex : '\\\\(?:[nrtvef\\\\"$]|[0-7]{1,3}|x[0-9A-Fa-f]{1,2})'
             }, {
                 token : "constant.language.escape",
-                regex : /\$[\w\d]+(?:\[[\w\d]+\])?/
+                regex : /\$[\w]+(?:\[[\w\]+]|=>\w+)?/
             }, {
                 token : "constant.language.escape",
                 regex : /\$\{[^"\}]+\}?/           // this is wrong but ok for now
-            }, {
-                token : "string",
-                regex : '"',
-                next : "start"
-            }, {
-                token : "string",
-                regex : '.+?'
-            }
+            },
+            {token : "string", regex : '"', next : "start"},
+            {defaultToken : "string"}
         ],
         "qstring" : [
-            {
-                token : "constant.language.escape",
-                regex : "\\\\['\\\\]"
-            }, {
-                token : "string",
-                regex : "'",
-                next : "start"
-            }, {
-                token : "string",
-                regex : ".+?"
-            }
+            {token : "constant.language.escape", regex : /\\['\\]/},
+            {token : "string", regex : "'", next : "start"},
+            {defaultToken : "string"}
         ]
     };
 
@@ -1195,17 +1208,10 @@ var DocCommentHighlightRules = function() {
             token : "comment.doc.tag",
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
-            token : "comment.doc",
-            regex : "\\s+"
+            token : "comment.doc.tag",
+            regex : "\\bTODO\\b"
         }, {
-            token : "comment.doc",
-            regex : "TODO"
-        }, {
-            token : "comment.doc",
-            regex : "[^@\\*]+"
-        }, {
-            token : "comment.doc",
-            regex : "."
+            defaultToken : "comment.doc"
         }]
     };
 };
@@ -1296,21 +1302,12 @@ var HtmlHighlightRules = function() {
         }, {
             token : "constant.character.entity",
             regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)"
-        }, {
-            token : "text",
-            regex : "[^<]+"
-        } ],
+        }],
     
         cdata : [ {
             token : "text",
             regex : "\\]\\]>",
             next : "start"
-        }, {
-            token : "text",
-            regex : "\\s+"
-        }, {
-            token : "text",
-            regex : ".+"
         } ],
 
         comment : [ {
@@ -1318,8 +1315,7 @@ var HtmlHighlightRules = function() {
             regex : ".*?-->",
             next : "start"
         }, {
-            token : "comment",
-            regex : ".+"
+            defaultToken : "comment"
         } ]
     };
     
@@ -1550,7 +1546,8 @@ var JavaScriptHighlightRules = function() {
         "constant.language":
             "null|Infinity|NaN|undefined",
         "support.function":
-            "alert"
+            "alert",
+        "constant.language.boolean": "true|false"
     }, "identifier");
     var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield|void";
     var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
@@ -1637,9 +1634,6 @@ var JavaScriptHighlightRules = function() {
                 regex : "(:)(\\s*)(function)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
-                token : "constant.language.boolean",
-                regex : /(?:true|false)\b/
-            }, {
                 token : "keyword",
                 regex : "(?:" + kwBeforeRe + ")\\b",
                 next : "regex_allowed"
@@ -1680,9 +1674,6 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "comment",
                 regex: /^#!.*$/
-            }, {
-                token : "text",
-                regex : /\s+/
             }
         ],
         "regex_allowed": [
@@ -1720,18 +1711,20 @@ var JavaScriptHighlightRules = function() {
                 regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
             }, {
                 token : "constant.language.escape",
-                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[(|)$^+*?]/
+                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[()$^+*?]/
             }, {
-                token: "string.regexp",
-                regex: /{|[^{\[\/\\(|)$^+*?]+/,
+                token : "constant.language.delimiter",
+                regex: /\|/
             }, {
                 token: "constant.language.escape",
                 regex: /\[\^?/,
                 next: "regex_character_class",
             }, {
                 token: "empty",
-                regex: "",
+                regex: "$",
                 next: "start"
+            }, {
+                defaultToken: "string.regexp"
             }
         ],
         "regex_character_class": [
@@ -1746,12 +1739,11 @@ var JavaScriptHighlightRules = function() {
                 token: "constant.language.escape",
                 regex: "-"
             }, {
-                token: "string.regexp.charachterclass",
-                regex: /[^\]\-\\]+/,
-            }, {
                 token: "empty",
-                regex: "",
+                regex: "$",
                 next: "start"
+            }, {
+                defaultToken: "string.regexp.charachterclass"
             }
         ],
         "function_arguments": [
@@ -1771,24 +1763,12 @@ var JavaScriptHighlightRules = function() {
             }
         ],
         "comment_regex_allowed" : [
-            {
-                token : "comment", // closing comment
-                regex : ".*?\\*\\/",
-                next : "regex_allowed"
-            }, {
-                token : "comment", // comment spanning whole line
-                regex : ".+"
-            }
+            {token : "comment", regex : "\\*\\/", next : "regex_allowed"},
+            {defaultToken : "comment"}
         ],
         "comment" : [
-            {
-                token : "comment", // closing comment
-                regex : ".*?\\*\\/",
-                next : "start"
-            }, {
-                token : "comment", // comment spanning whole line
-                regex : ".+"
-            }
+            {token : "comment", regex : "\\*\\/", next : "start"},
+            {defaultToken : "comment"}
         ],
         "qqstring" : [
             {
@@ -1803,8 +1783,7 @@ var JavaScriptHighlightRules = function() {
                 regex : '"|$',
                 next  : "start",
             }, {
-                token : "string",
-                regex : '.|\\w+|\\s+',
+                defaultToken: "string"
             }
         ],
         "qstring" : [
@@ -1820,8 +1799,7 @@ var JavaScriptHighlightRules = function() {
                 regex : "'|$",
                 next  : "start",
             }, {
-                token : "string",
-                regex : '.|\\w+|\\s+',
+                defaultToken: "string"
             }
         ]
     };
@@ -1857,7 +1835,7 @@ function multiLineString(quote, state) {
             token : "constant.language.escape",
             regex : "(?:&#[0-9]+;)|(?:&#x[0-9a-fA-F]+;)|(?:&[a-zA-Z0-9_:\\.-]+;)" 
         },
-        {token : "string", regex : '\\w+|.|\\s+'}
+        {defaultToken : "string"}
     ];
 }
 

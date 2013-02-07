@@ -74,48 +74,48 @@ var MakefileHighlightRules = function() {
         {
     "start": [
         {
-            "token": "string.interpolated.backtick.makefile",
-            "regex": "`",
-            "next": "shell-start"
+            token: "string.interpolated.backtick.makefile",
+            regex: "`",
+            next: "shell-start"
         },
         {
-            "token": "punctuation.definition.comment.makefile",
-            "regex": /#(?=.)/,
-            "next": "comment"
+            token: "punctuation.definition.comment.makefile",
+            regex: /#(?=.)/,
+            next: "comment"
         },
         {
-            "token": [ "keyword.control.makefile"],
-            "regex": "^(?:\\s*\\b)(\\-??include|ifeq|ifneq|ifdef|ifndef|else|endif|vpath|export|unexport|define|endef|override)(?:\\b)"
+            token: [ "keyword.control.makefile"],
+            regex: "^(?:\\s*\\b)(\\-??include|ifeq|ifneq|ifdef|ifndef|else|endif|vpath|export|unexport|define|endef|override)(?:\\b)"
         },
         {// ^([^\t ]+(\s[^\t ]+)*:(?!\=))\s*.*
-            "token": ["entity.name.function.makefile", "text"],
-            "regex": "^([^\\t ]+(?:\\s[^\\t ]+)*:)(\\s*.*)"
+            token: ["entity.name.function.makefile", "text"],
+            regex: "^([^\\t ]+(?:\\s[^\\t ]+)*:)(\\s*.*)"
         }
     ],
     "comment": [
         {
-            "token" : "punctuation.definition.comment.makefile",
-            "regex" : /.+\\/
+            token : "punctuation.definition.comment.makefile",
+            regex : /.+\\/
         },
         {
-            "token" : "punctuation.definition.comment.makefile",
-            "regex" : ".+",
-            "next"  : "start"
+            token : "punctuation.definition.comment.makefile",
+            regex : ".+",
+            next  : "start"
         }
     ],
     "shell-start": [
         {
-            "token": keywordMapper,
-            "regex" : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
+            token: keywordMapper,
+            regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
         }, 
         {
-            "token": "string",
-            "regex" : "\\w+"
+            token: "string",
+            regex : "\\w+"
         }, 
         {
-            "token" : "string.interpolated.backtick.makefile",
-            "regex" : "`",
-            "next"  : "start"
+            token : "string.interpolated.backtick.makefile",
+            regex : "`",
+            next  : "start"
         }
     ]
 }
@@ -176,8 +176,8 @@ var ShHighlightRules = function() {
 
     this.$rules = {
         "start" : [ {
-            token : "comment",
-            regex : "#.*$"
+            token : ["text", "comment"],
+            regex : /(^|\s)(#.*)$/
         }, {
             token : "string",           // " string
             regex : '"(?:[^\\\\]|\\\\.)*?"'
@@ -214,9 +214,6 @@ var ShHighlightRules = function() {
         }, {
             token : "paren.rparen",
             regex : "[\\]\\)\\}]"
-        }, {
-            token : "text",
-            regex : "\\s+"
         } ]
     };
 };

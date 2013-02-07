@@ -139,12 +139,6 @@ var YamlHighlightRules = function() {
             }, {
                 token : "paren.rparen",
                 regex : "[\\])}]"
-            }, {
-                token : "text",
-                regex : "\\s+"
-            }, {
-                token : "text",
-                regex : "\\w+"
             }
         ],
         "qqstring" : [

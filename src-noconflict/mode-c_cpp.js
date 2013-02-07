@@ -265,6 +265,10 @@ var c_cppHighlightRules = function() {
                 regex : /\\/
             },
             {
+                token : "constant.other.multiline",
+                regex : /.*\\/
+            },
+            {
                 token : "constant.other",
                 regex : "\\s*<.+?>",
                 next : "start"
@@ -278,10 +282,6 @@ var c_cppHighlightRules = function() {
                 token : "constant.other", // single line
                 regex : "\\s*['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']",
                 next : "start"
-            },
-            {
-                token : "constant.other.multiline",
-                regex : /.*\\/
             },
             {
                 token : "constant.other",
@@ -313,17 +313,10 @@ var DocCommentHighlightRules = function() {
             token : "comment.doc.tag",
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
         }, {
-            token : "comment.doc",
-            regex : "\\s+"
+            token : "comment.doc.tag",
+            regex : "\\bTODO\\b"
         }, {
-            token : "comment.doc",
-            regex : "TODO"
-        }, {
-            token : "comment.doc",
-            regex : "[^@\\*]+"
-        }, {
-            token : "comment.doc",
-            regex : "."
+            defaultToken : "comment.doc"
         }]
     };
 };

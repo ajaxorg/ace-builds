@@ -388,7 +388,7 @@ event.addListener(container, "drop", function(e) {
         if (window.FileReader) {
             var reader = new FileReader();
             reader.onload = function() {
-                var mode = getModeFromPath(file.name);
+                var mode = modelist.getModeFromPath(file.name);
 
                 env.editor.session.doc.setValue(reader.result);
                 modeEl.value = mode.name;
@@ -605,6 +605,7 @@ var docs = {
     "docs/latex.tex": {name: "LaTeX", wrapped: true},
     "docs/less.less": "LESS",
     "docs/lisp.lisp": "Lisp",
+    "docs/scheme.scm": "Scheme",
     "docs/liquid.liquid": "Liquid",
     "docs/lua.lua": "Lua",
     "docs/lucene.lucene": "Lucene",
@@ -634,6 +635,7 @@ var docs = {
     "docs/tcl.tcl": "Tcl",
     "docs/tex.tex": "Tex",
     "docs/textile.textile": {name: "Textile", wrapped: true},
+    "docs/tmSnippet.tmSnippet": "tmSnippet",
     "docs/typescript.ts": "Typescript",
     "docs/vbscript.vbs": "VBScript",
     "docs/xml.xml": "XML",
@@ -776,7 +778,8 @@ var modesByName = {
     jsx:        ["JSX"          , "jsx"],
     latex:      ["LaTeX"        , "latex|tex|ltx|bib"],
     less:       ["LESS"         , "less"],
-    lisp:       ["Lisp"         , "lisp|scm|rkt"],
+    lisp:       ["Lisp"         , "lisp"],
+    scheme:     ["Scheme"       , "scm|rkt"],
     liquid:     ["Liquid"       , "liquid"],
     lua:        ["Lua"          , "lua"],
     luapage:    ["LuaPage"      , "lp"], // http://keplerproject.github.com/cgilua/manual.html#templates
@@ -805,6 +808,7 @@ var modesByName = {
     tex:        ["Tex"          , "tex"],
     text:       ["Text"         , "txt"],
     textile:    ["Textile"      , "textile"],
+    tm_snippet: ["tmSnippet"    , "tmSnippet"],
     typescript: ["Typescript"   , "typescript|ts|str"],
     vbscript:   ["VBScript"     , "vbs"],
     xml:        ["XML"          , "xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl"],

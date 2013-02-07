@@ -194,8 +194,6 @@ var LuaHighlightRules = function() {
         "variable.language": "this"
     }, "identifier");
 
-    var strPre = "";
-
     var decimalInteger = "(?:(?:[1-9]\\d*)|(?:0))";
     var hexInteger = "(?:0[xX][\\dA-Fa-f]+)";
     var integer = "(?:" + decimalInteger + "|" + hexInteger + ")";
@@ -205,121 +203,71 @@ var LuaHighlightRules = function() {
     var pointFloat = "(?:(?:" + intPart + "?" + fraction + ")|(?:" + intPart + "\\.))";
     var floatNumber = "(?:" + pointFloat + ")";
 
-    var comment_stack = [];
-
     this.$rules = {
-        "start" :
-        [{
-            token : "comment",           // --[[ comment
-            regex : strPre + '\\-\\-\\[\\[.*\\]\\]'
-        }, {
-            token : "comment",           // --[=[ comment
-            regex : strPre + '\\-\\-\\[\\=\\[.*\\]\\=\\]'
-        }, {
-            token : "comment",           // --[==[ comment
-            regex : strPre + '\\-\\-\\[\\={2}\\[.*\\]\\={2}\\]'
-        }, {
-            token : "comment",           // --[===[ comment
-            regex : strPre + '\\-\\-\\[\\={3}\\[.*\\]\\={3}\\]'
-        }, {
-            token : "comment",           // --[====[ comment
-            regex : strPre + '\\-\\-\\[\\={4}\\[.*\\]\\={4}\\]'
-        }, {
-            token : "comment",           // --[====+[ comment
-            regex : strPre + '\\-\\-\\[\\={5}\\=*\\[.*\\]\\={5}\\=*\\]'
-        },
-        {
-            token : "comment",           // --[[ comment
-            regex : strPre + '\\-\\-\\[\\[.*$',
-            next  : "qcomment"
-        }, {
-            token : "comment",           // --[=[ comment
-            regex : strPre + '\\-\\-\\[\\=\\[.*$',
-            next  : "qcomment1"
-        }, {
-            token : "comment",           // --[==[ comment
-            regex : strPre + '\\-\\-\\[\\={2}\\[.*$',
-            next  : "qcomment2"
-        }, {
-            token : "comment",           // --[===[ comment
-            regex : strPre + '\\-\\-\\[\\={3}\\[.*$',
-            next  : "qcomment3"
-        }, {
-            token : "comment",           // --[====[ comment
-            regex : strPre + '\\-\\-\\[\\={4}\\[.*$',
-            next  : "qcomment4"
-        }, {
-            token : function(value){     // --[====+[ comment
-                var pattern = /\-\-\[(\=+)\[/, match;
-                if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined)
-                    comment_stack.push(match.length);
-
+        "start" : [{
+            stateName: "bracketedComment",
+            token : function(value, currentState, stack){
+                stack.unshift(this.next, value.length, currentState);
                 return "comment";
             },
-            regex : strPre + '\\-\\-\\[\\={5}\\=*\\[.*$',
-            next  : "qcomment5"
+            regex : /\-\-\[=*\[/,
+            next  : [
+                {
+                    token : function(value, currentState, stack) {
+                        if (value.length == stack[1]) {
+                            stack.shift();
+                            stack.shift();
+                            this.next = stack.shift();
+                        } else {
+                            this.next = "";
+                        }
+                        return "comment";
+                    },
+                    regex : /(?:[^\\]|\\.)*?\]=*\]/,
+                    next  : "start"
+                }, {
+                    defaultToken : "comment"
+                }
+            ]
         },
+
         {
             token : "comment",
             regex : "\\-\\-.*$"
         },
         {
-            token : "string",           // [[ string
-            regex : strPre + '\\[\\[.*\\]\\]'
-        }, {
-            token : "string",           // [=[ string
-            regex : strPre + '\\[\\=\\[.*\\]\\=\\]'
-        }, {
-            token : "string",           // [==[ string
-            regex : strPre + '\\[\\={2}\\[.*\\]\\={2}\\]'
-        }, {
-            token : "string",           // [===[ string
-            regex : strPre + '\\[\\={3}\\[.*\\]\\={3}\\]'
-        }, {
-            token : "string",           // [====[ string
-            regex : strPre + '\\[\\={4}\\[.*\\]\\={4}\\]'
-        }, {
-            token : "string",           // [====+[ string
-            regex : strPre + '\\[\\={5}\\=*\\[.*\\]\\={5}\\=*\\]'
-        },
-        {
-            token : "string",           // [[ string
-            regex : strPre + '\\[\\[.*$',
-            next  : "qstring"
-        }, {
-            token : "string",           // [=[ string
-            regex : strPre + '\\[\\=\\[.*$',
-            next  : "qstring1"
-        }, {
-            token : "string",           // [==[ string
-            regex : strPre + '\\[\\={2}\\[.*$',
-            next  : "qstring2"
-        }, {
-            token : "string",           // [===[ string
-            regex : strPre + '\\[\\={3}\\[.*$',
-            next  : "qstring3"
-        }, {
-            token : "string",           // [====[ string
-            regex : strPre + '\\[\\={4}\\[.*$',
-            next  : "qstring4"
-        }, {
-            token : function(value){     // --[====+[ string
-                var pattern = /\[(\=+)\[/, match;
-                if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined)
-                    comment_stack.push(match.length);
-
-                return "string";
+            stateName: "bracketedString",
+            token : function(value, currentState, stack){
+                stack.unshift(this.next, value.length, currentState);
+                return "comment";
             },
-            regex : strPre + '\\[\\={5}\\=*\\[.*$',
-            next  : "qstring5"
+            regex : /\[=*\[/,
+            next  : [
+                {
+                    token : function(value, currentState, stack) {
+                        if (value.length == stack[1]) {
+                            stack.shift();
+                            stack.shift();
+                            this.next = stack.shift();
+                        } else {
+                            this.next = "";
+                        }
+                        return "comment";
+                    },
+                    
+                    regex : /(?:[^\\]|\\.)*?\]=*\]/,
+                    next  : "start"
+                }, {
+                    defaultToken : "comment"
+                }
+            ]
         },
-
         {
             token : "string",           // " string
-            regex : strPre + '"(?:[^\\\\]|\\\\.)*?"'
+            regex : '"(?:[^\\\\]|\\\\.)*?"'
         }, {
             token : "string",           // ' string
-            regex : strPre + "'(?:[^\\\\]|\\\\.)*?'"
+            regex : "'(?:[^\\\\]|\\\\.)*?'"
         }, {
             token : "constant.numeric", // float
             regex : floatNumber
@@ -340,133 +288,11 @@ var LuaHighlightRules = function() {
             regex : "[\\]\\)\\}]"
         }, {
             token : "text",
-            regex : "\\s+"
-        } ],
-
-        "qcomment": [ {
-            token : "comment",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\]",
-            next  : "start"
-        }, {
-            token : "comment",
-            regex : '.+'
-        } ],
-        "qcomment1": [ {
-            token : "comment",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\=\\]",
-            next  : "start"
-        }, {
-            token : "comment",
-            regex : '.+'
-        } ],
-        "qcomment2": [ {
-            token : "comment",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={2}\\]",
-            next  : "start"
-        }, {
-            token : "comment",
-            regex : '.+'
-        } ],
-        "qcomment3": [ {
-            token : "comment",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={3}\\]",
-            next  : "start"
-        }, {
-            token : "comment",
-            regex : '.+'
-        } ],
-        "qcomment4": [ {
-            token : "comment",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={4}\\]",
-            next  : "start"
-        }, {
-            token : "comment",
-            regex : '.+'
-        } ],
-        "qcomment5": [ {
-            token : function(value){
-                var pattern = /\](\=+)\]/, rule = this.rules.qcomment5[0], match;
-                rule.next = "start";
-                if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined){
-                    var found = match.length, expected;
-                    if ((expected = comment_stack.pop()) != found){
-                        comment_stack.push(expected);
-                        rule.next = "qcomment5";
-                    }
-                }
-
-                return "comment";
-            },
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={5}\\=*\\]",
-            next  : "start"
-        }, {
-            token : "comment",
-            regex : '.+'
-        } ],
-
-        "qstring": [ {
-            token : "string",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\]",
-            next  : "start"
-        }, {
-            token : "string",
-            regex : '.+'
-        } ],
-        "qstring1": [ {
-            token : "string",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\=\\]",
-            next  : "start"
-        }, {
-            token : "string",
-            regex : '.+'
-        } ],
-        "qstring2": [ {
-            token : "string",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={2}\\]",
-            next  : "start"
-        }, {
-            token : "string",
-            regex : '.+'
-        } ],
-        "qstring3": [ {
-            token : "string",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={3}\\]",
-            next  : "start"
-        }, {
-            token : "string",
-            regex : '.+'
-        } ],
-        "qstring4": [ {
-            token : "string",
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={4}\\]",
-            next  : "start"
-        }, {
-            token : "string",
-            regex : '.+'
-        } ],
-        "qstring5": [ {
-            token : function(value){
-                var pattern = /\](\=+)\]/, rule = this.rules.qstring5[0], match;
-                rule.next = "start";
-                if ((match = pattern.exec(value)) != null && (match = match[1]) != undefined){
-                    var found = match.length, expected;
-                    if ((expected = comment_stack.pop()) != found){
-                        comment_stack.push(expected);
-                        rule.next = "qstring5";
-                    }
-                }
-
-                return "string";
-            },
-            regex : "(?:[^\\\\]|\\\\.)*?\\]\\={5}\\=*\\]",
-            next  : "start"
-        }, {
-            token : "string",
-            regex : '.+'
+            regex : "\\s+|\\w+"
         } ]
-
     };
-
+    
+    this.normalizeRules();
 }
 
 oop.inherits(LuaHighlightRules, TextHighlightRules);
