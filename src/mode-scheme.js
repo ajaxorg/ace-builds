@@ -49,6 +49,9 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
+       
+    this.lineCommentStart = ";";
+    
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

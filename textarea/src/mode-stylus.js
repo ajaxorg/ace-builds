@@ -272,8 +272,13 @@ var CssHighlightRules = function() {
             token : ["punctuation", "entity.other.attribute-name.pseudo-class.css"],
             regex : pseudoClasses
         }, {
+            token : ["support.function", "string", "support.function"],
+            regex : "(url\\()(.*)(\\))"
+        }, {
             token : keywordMapper,
             regex : "\\-?[a-zA-Z_][a-zA-Z0-9_\\-]*"
+        }, {
+            caseInsensitive: true
         }
       ];
 
@@ -342,6 +347,8 @@ var CssHighlightRules = function() {
         },{
             token: "constant",
             regex: "[a-z0-9-_]+"
+        },{
+            caseInsensitive: true
         }],
 
         "media" : [ {
@@ -368,6 +375,8 @@ var CssHighlightRules = function() {
         },{
             token: "constant",
             regex: "[a-z0-9-_]+"
+        },{
+            caseInsensitive: true
         }],
 
         "comment" : comment,

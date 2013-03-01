@@ -1,4 +1,4 @@
-__ace_shadowed__.define('ace/mode/ls', function(require, exports, module){
+__ace_shadowed__.define('ace/mode/livescript', ['require', 'exports', 'module' , 'ace/tokenizer', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/text'], function(require, exports, module) {
   var identifier, LiveScriptMode, keywordend, stringfill;
   identifier = '(?![\\d\\s])[$\\w\\xAA-\\uFFDC](?:(?!\\s)[$\\w\\xAA-\\uFFDC]|-[A-Za-z])*';
   exports.Mode = LiveScriptMode = (function(superclass){

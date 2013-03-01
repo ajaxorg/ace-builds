@@ -51,6 +51,8 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
+    this.lineCommentStart = "//";
+    this.blockComment = {start: "/*", end: "*/"};
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

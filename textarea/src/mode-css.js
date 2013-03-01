@@ -41,7 +41,7 @@ var CssBehaviour = require("./behaviour/css").CssBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    this.$tokenizer = new Tokenizer(new CssHighlightRules().getRules(), "i");
+    this.$tokenizer = new Tokenizer(new CssHighlightRules().getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CssBehaviour();
     this.foldingRules = new CStyleFoldMode();
@@ -51,6 +51,7 @@ oop.inherits(Mode, TextMode);
 (function() {
 
     this.foldingRules = "cStyle";
+    this.blockComment = {start: "/*", end: "*/"};
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
@@ -152,8 +153,13 @@ var CssHighlightRules = function() {
             token : ["punctuation", "entity.other.attribute-name.pseudo-class.css"],
             regex : pseudoClasses
         }, {
+            token : ["support.function", "string", "support.function"],
+            regex : "(url\\()(.*)(\\))"
+        }, {
             token : keywordMapper,
             regex : "\\-?[a-zA-Z_][a-zA-Z0-9_\\-]*"
+        }, {
+            caseInsensitive: true
         }
       ];
 
@@ -222,6 +228,8 @@ var CssHighlightRules = function() {
         },{
             token: "constant",
             regex: "[a-z0-9-_]+"
+        },{
+            caseInsensitive: true
         }],
 
         "media" : [ {
@@ -248,6 +256,8 @@ var CssHighlightRules = function() {
         },{
             token: "constant",
             regex: "[a-z0-9-_]+"
+        },{
+            caseInsensitive: true
         }],
 
         "comment" : comment,
@@ -353,11 +363,19 @@ var CssBehaviour = function () {
     this.add("colon", "deletion", function (state, action, editor, session, range) {
         var selected = session.doc.getTextRange(range);
         if (!range.isMultiLine() && selected === ':') {
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.end.column, range.end.column + 1);
-            if (rightChar === ';') {
-                range.end.column ++;
-                return range;
+            var cursor = editor.getCursorPosition();
+            var iterator = new TokenIterator(session, cursor.row, cursor.column);
+            var token = iterator.getCurrentToken();
+            if (token && token.value.match(/\s+/)) {
+                token = iterator.stepBackward();
+            }
+            if (token && token.type === 'support.type') {
+                var line = session.doc.getLine(range.start.row);
+                var rightChar = line.substring(range.end.column, range.end.column + 1);
+                if (rightChar === ';') {
+                    range.end.column ++;
+                    return range;
+                }
             }
         }
     });

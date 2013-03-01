@@ -27,10 +27,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  *
- * Contributor(s):
- * 
- *
- *
  * ***** END LICENSE BLOCK ***** */
 
 ace.define('ace/mode/lisp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lisp_highlight_rules'], function(require, exports, module) {
@@ -49,6 +45,9 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
+       
+    this.lineCommentStart = ";";
+    
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

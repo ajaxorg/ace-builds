@@ -39,7 +39,7 @@ var TextMode = require("./text").Mode;
 var oop = require("../lib/oop");
 
 function Mode() {
-    this.$tokenizer = new Tokenizer(new Rules().getRules(), "i");
+    this.$tokenizer = new Tokenizer(new Rules().getRules());
     this.foldingRules = new FoldMode();
 }
 
@@ -152,17 +152,18 @@ var AbapHighlightRules = function() {
             {token : "variable.parameter", regex : /sy|pa?\d\d\d\d\|t\d\d\d\.|innnn/}, 
             {token : "keyword", regex : compoundKeywords}, 
             {token : "variable.parameter", regex : /\w+-\w+(?:-\w+)*/}, 
-            {token : keywordMapper, regex : "\\b\\w+\\b"}, 
+            {token : keywordMapper, regex : "\\b\\w+\\b"},
+            {caseInsensitive: true}
         ],
         "qstring" : [
             {token : "constant.language.escape",   regex : "''"},
             {token : "string", regex : "'",     next  : "start"},
-            {token : "string", regex : ".|\w+"}
+            {defaultToken : "string"}
         ],
         "string" : [
             {token : "constant.language.escape",   regex : "``"},
             {token : "string", regex : "`",     next  : "start"},
-            {token : "string", regex : ".|\w+"}
+            {defaultToken : "string"}
         ]
     }
 };

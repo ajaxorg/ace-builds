@@ -1,9 +1,10 @@
 "no use strict";
+;(function(window) {
+if (typeof window.window != "undefined" && window.document) {
+    return;
+}
 
-if (typeof window != "undefined" && window.document)
-    throw "atempt to load ace worker into main window instead of webWorker";
-
-var console = {
+window.console = {
     log: function() {
         var msgs = Array.prototype.slice.call(arguments, 0);
         postMessage({type: "log", data: msgs});
@@ -13,11 +14,10 @@ var console = {
         postMessage({type: "log", data: msgs});
     }
 };
-var window = {
-    console: console
-};
+window.window = window;
+window.ace = window;
 
-var normalizeModule = function(parentId, moduleName) {
+window.normalizeModule = function(parentId, moduleName) {
     // normalize plugin requires
     if (moduleName.indexOf("!") !== -1) {
         var chunks = moduleName.split("!");
@@ -37,7 +37,7 @@ var normalizeModule = function(parentId, moduleName) {
     return moduleName;
 };
 
-var require = function(parentId, id) {
+window.require = function(parentId, id) {
     if (!id.charAt)
         throw new Error("worker.js require() accepts only (parentId, id) as arguments");
 
@@ -64,7 +64,7 @@ var require = function(parentId, id) {
 require.modules = {};
 require.tlns = {};
 
-var define = function(id, deps, factory) {
+window.define = function(id, deps, factory) {
     if (arguments.length == 2) {
         factory = deps;
         if (typeof id != "string") {
@@ -96,11 +96,11 @@ var define = function(id, deps, factory) {
     };
 };
 
-function initBaseUrls(topLevelNamespaces) {
+window.initBaseUrls  = function initBaseUrls(topLevelNamespaces) {
     require.tlns = topLevelNamespaces;
 }
 
-function initSender() {
+window.initSender = function initSender() {
 
     var EventEmitter = require(null, "ace/lib/event_emitter").EventEmitter;
     var oop = require(null, "ace/lib/oop");
@@ -132,10 +132,10 @@ function initSender() {
     return new Sender();
 }
 
-var main;
-var sender;
+window.main = null;
+window.sender = null;
 
-onmessage = function(e) {
+window.onmessage = function(e) {
     var msg = e.data;
     if (msg.command) {
         if (main[msg.command])
@@ -154,9 +154,9 @@ onmessage = function(e) {
         sender._emit(msg.event, msg.data);
     }
 };
-// vim:set ts=4 sts=4 sw=4 st:
+})(this);// vim:set ts=4 sts=4 sw=4 st:
 
-define('ace/lib/fixoldbrowsers', ['require', 'exports', 'module' , 'ace/lib/regexp', 'ace/lib/es5-shim'], function(require, exports, module) {
+ace.define('ace/lib/fixoldbrowsers', ['require', 'exports', 'module' , 'ace/lib/regexp', 'ace/lib/es5-shim'], function(require, exports, module) {
 
 
 require("./regexp");
@@ -164,7 +164,7 @@ require("./es5-shim");
 
 });
  
-define('ace/lib/regexp', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/lib/regexp', ['require', 'exports', 'module' ], function(require, exports, module) {
 
     var real = {
             exec: RegExp.prototype.exec,
@@ -236,7 +236,7 @@ define('ace/lib/regexp', ['require', 'exports', 'module' ], function(require, ex
 
 });
 
-define('ace/lib/es5-shim', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/lib/es5-shim', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 function Empty() {}
 
@@ -870,23 +870,6 @@ if (!Date.now) {
         return new Date().getTime();
     };
 }
-if("0".split(void 0, 0).length) {
-    var string_split = String.prototype.split;
-    String.prototype.split = function(separator, limit) {
-        if(separator === void 0 && limit === 0)return [];
-        return string_split.apply(this, arguments);
-    }
-}
-if("".substr && "0b".substr(-1) !== "b") {
-    var string_substr = String.prototype.substr;
-    String.prototype.substr = function(start, length) {
-        return string_substr.call(
-            this,
-            start < 0 ? (start = this.length + start) < 0 ? 0 : start : start,
-            length
-        );
-    }
-}
 var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u180E\u2000\u2001\u2002\u2003" +
     "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028" +
     "\u2029\uFEFF";
@@ -895,12 +878,7 @@ if (!String.prototype.trim || ws.trim()) {
     var trimBeginRegexp = new RegExp("^" + ws + ws + "*"),
         trimEndRegexp = new RegExp(ws + ws + "*$");
     String.prototype.trim = function trim() {
-        if (this === undefined || this === null) {
-            throw new TypeError("can't convert "+this+" to object");
-        }
-        return String(this)
-            .replace(trimBeginRegexp, "")
-            .replace(trimEndRegexp, "");
+        return String(this).replace(trimBeginRegexp, "").replace(trimEndRegexp, "");
     };
 }
 
@@ -955,15 +933,17 @@ var toObject = function (o) {
 
 });
 
-define('ace/lib/event_emitter', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/lib/event_emitter', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
 var EventEmitter = {};
+var stopPropagation = function() { this.propagationStopped = true; };
+var preventDefault = function() { this.defaultPrevented = true; };
 
 EventEmitter._emit =
 EventEmitter._dispatchEvent = function(eventName, e) {
-    this._eventRegistry = this._eventRegistry || {};
-    this._defaultHandlers = this._defaultHandlers || {};
+    this._eventRegistry || (this._eventRegistry = {});
+    this._defaultHandlers || (this._defaultHandlers = {});
 
     var listeners = this._eventRegistry[eventName] || [];
     var defaultHandler = this._defaultHandlers[eventName];
@@ -975,18 +955,12 @@ EventEmitter._dispatchEvent = function(eventName, e) {
 
     if (!e.type)
         e.type = eventName;
-    
-    if (!e.stopPropagation) {
-        e.stopPropagation = function() {
-            this.propagationStopped = true;
-        };
-    }
-    
-    if (!e.preventDefault) {
-        e.preventDefault = function() {
-            this.defaultPrevented = true;
-        };
-    }
+    if (!e.stopPropagation)
+        e.stopPropagation = stopPropagation;
+    if (!e.preventDefault)
+        e.preventDefault = preventDefault;
+    if (!e.target)
+        e.target = this;
 
     for (var i=0; i<listeners.length; i++) {
         listeners[i](e);
@@ -998,6 +972,26 @@ EventEmitter._dispatchEvent = function(eventName, e) {
         return defaultHandler(e);
 };
 
+
+EventEmitter._signal = function(eventName, e) {
+    var listeners = (this._eventRegistry || {})[eventName];
+    if (!listeners)
+        return;
+
+    for (var i=0; i<listeners.length; i++)
+        listeners[i](e);
+};
+
+EventEmitter.once = function(eventName, callback) {
+    var _self = this;
+    var newCallback = function() {
+        fun && fun.apply(null, arguments);
+        _self.removeEventListener(event, newCallback);
+    };
+    this.addEventListener(event, newCallback);
+};
+
+
 EventEmitter.setDefaultHandler = function(eventName, callback) {
     this._defaultHandlers = this._defaultHandlers || {};
     
@@ -1008,7 +1002,7 @@ EventEmitter.setDefaultHandler = function(eventName, callback) {
 };
 
 EventEmitter.on =
-EventEmitter.addEventListener = function(eventName, callback) {
+EventEmitter.addEventListener = function(eventName, callback, capturing) {
     this._eventRegistry = this._eventRegistry || {};
 
     var listeners = this._eventRegistry[eventName];
@@ -1016,7 +1010,8 @@ EventEmitter.addEventListener = function(eventName, callback) {
         listeners = this._eventRegistry[eventName] = [];
 
     if (listeners.indexOf(callback) == -1)
-        listeners.push(callback);
+        listeners[capturing ? "unshift" : "push"](callback);
+    return callback;
 };
 
 EventEmitter.removeListener =
@@ -1040,7 +1035,7 @@ exports.EventEmitter = EventEmitter;
 
 });
 
-define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
 exports.inherits = (function() {
@@ -1065,7 +1060,7 @@ exports.implement = function(proto, mixin) {
 
 });
 
-define('ace/mode/css_worker', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/worker/mirror', 'ace/mode/css/csslint'], function(require, exports, module) {
+ace.define('ace/mode/css_worker', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/worker/mirror', 'ace/mode/css/csslint'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -1130,7 +1125,7 @@ oop.inherits(Worker, Mirror);
 
 });
 
-define('ace/lib/lang', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/lib/lang', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
 exports.stringReverse = function(string) {
@@ -1306,7 +1301,7 @@ exports.delayedCall = function(fcn, defaultTimeout) {
     return _self;
 };
 });
-define('ace/worker/mirror', ['require', 'exports', 'module' , 'ace/document', 'ace/lib/lang'], function(require, exports, module) {
+ace.define('ace/worker/mirror', ['require', 'exports', 'module' , 'ace/document', 'ace/lib/lang'], function(require, exports, module) {
 
 
 var Document = require("../document").Document;
@@ -1316,7 +1311,7 @@ var Mirror = exports.Mirror = function(sender) {
     this.sender = sender;
     var doc = this.doc = new Document("");
     
-    var deferredUpdate = this.deferredUpdate = lang.deferredCall(this.onUpdate.bind(this));
+    var deferredUpdate = this.deferredUpdate = lang.delayedCall(this.onUpdate.bind(this));
     
     var _self = this;
     sender.on("change", function(e) {
@@ -1349,7 +1344,7 @@ var Mirror = exports.Mirror = function(sender) {
 
 });
 
-define('ace/document', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter', 'ace/range', 'ace/anchor'], function(require, exports, module) {
+ace.define('ace/document', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter', 'ace/range', 'ace/anchor'], function(require, exports, module) {
 
 
 var oop = require("./lib/oop");
@@ -1696,7 +1691,7 @@ var Document = function(text) {
 exports.Document = Document;
 });
 
-define('ace/range', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/range', ['require', 'exports', 'module' ], function(require, exports, module) {
 var Range = function(startRow, startColumn, endRow, endColumn) {
     this.start = {
         row: startRow,
@@ -1938,7 +1933,7 @@ Range.fromPoints = function(start, end) {
 exports.Range = Range;
 });
 
-define('ace/anchor', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
+ace.define('ace/anchor', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
 
 
 var oop = require("./lib/oop");
@@ -2089,7 +2084,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
 }).call(Anchor.prototype);
 
 });
-define('ace/mode/css/csslint', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define('ace/mode/css/csslint', ['require', 'exports', 'module' ], function(require, exports, module) {
 var parserlib = {};
 (function(){
 function EventTarget(){

@@ -40,7 +40,7 @@ var CssBehaviour = require("./behaviour/css").CssBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    this.$tokenizer = new Tokenizer(new ScssHighlightRules().getRules(), "i");
+    this.$tokenizer = new Tokenizer(new ScssHighlightRules().getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CssBehaviour();
     this.foldingRules = new CStyleFoldMode();
@@ -48,7 +48,10 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
-    
+   
+    this.lineCommentStart = "//";
+    this.blockComment = {start: "/*", end: "*/"};
+
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
         var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
@@ -116,8 +119,8 @@ var ScssHighlightRules = function() {
             "border-color|border-left-color|border-left-style|border-left-width|" +
             "border-left|border-right-color|border-right-style|border-right-width|" +
             "border-right|border-spacing|border-style|border-top-color|" +
-            "border-top-style|border-top-width|border-top|border-width|border|" +
-            "bottom|box-sizing|caption-side|clear|clip|color|content|counter-increment|" +
+            "border-top-style|border-top-width|border-top|border-width|border|bottom|" +
+            "box-shadow|box-sizing|caption-side|clear|clip|color|content|counter-increment|" +
             "counter-reset|cue-after|cue-before|cue|cursor|direction|display|" +
             "elevation|empty-cells|float|font-family|font-size-adjust|font-size|" +
             "font-stretch|font-style|font-variant|font-weight|font|height|left|" +
@@ -242,6 +245,9 @@ var ScssHighlightRules = function() {
                 token : "constant.numeric",
                 regex : numRe
             }, {
+                token : ["support.function", "string", "support.function"],
+                regex : "(url\\()(.*)(\\))"
+            }, {
                 token : function(value) {
                     if (properties.hasOwnProperty(value.toLowerCase()))
                         return "support.type";
@@ -286,6 +292,8 @@ var ScssHighlightRules = function() {
             }, {
                 token : "text",
                 regex : "\\s+"
+            }, {
+                caseInsensitive: true
             }
         ],
         "comment" : [
@@ -414,11 +422,19 @@ var CssBehaviour = function () {
     this.add("colon", "deletion", function (state, action, editor, session, range) {
         var selected = session.doc.getTextRange(range);
         if (!range.isMultiLine() && selected === ':') {
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.end.column, range.end.column + 1);
-            if (rightChar === ';') {
-                range.end.column ++;
-                return range;
+            var cursor = editor.getCursorPosition();
+            var iterator = new TokenIterator(session, cursor.row, cursor.column);
+            var token = iterator.getCurrentToken();
+            if (token && token.value.match(/\s+/)) {
+                token = iterator.stepBackward();
+            }
+            if (token && token.type === 'support.type') {
+                var line = session.doc.getLine(range.start.row);
+                var rightChar = line.substring(range.end.column, range.end.column + 1);
+                if (rightChar === ';') {
+                    range.end.column ++;
+                    return range;
+                }
             }
         }
     });

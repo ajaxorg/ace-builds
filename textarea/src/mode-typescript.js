@@ -26,11 +26,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *
- * Contributor(s):
- * 
- *
- *
  * ***** END LICENSE BLOCK ***** */
 
 __ace_shadowed__.define('ace/mode/typescript', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript', 'ace/tokenizer', 'ace/mode/typescript_highlight_rules', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle', 'ace/mode/matching_brace_outdent'], function(require, exports, module) {
@@ -86,34 +81,8 @@ oop.inherits(Mode, TextMode);
 
 (function() {
 
-
-    this.toggleCommentLines = function(state, doc, startRow, endRow) {
-        var outdent = true;
-        var re = /^(\s*)\/\//;
-
-        for (var i=startRow; i<= endRow; i++) {
-            if (!re.test(doc.getLine(i))) {
-                outdent = false;
-                break;
-            }
-        }
-
-        if (outdent) {
-            var deleteRange = new Range(0, 0, 0, 0);
-            for (var i=startRow; i<= endRow; i++)
-            {
-                var line = doc.getLine(i);
-                var m = line.match(re);
-                deleteRange.start.row = i;
-                deleteRange.end.row = i;
-                deleteRange.end.column = m[0].length;
-                doc.replace(deleteRange, m[1]);
-            }
-        }
-        else {
-            doc.indentRows(startRow, endRow, "//");
-        }
-    };
+    this.lineCommentStart = "//";
+    this.blockComment = {start: "/*", end: "*/"};
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
@@ -125,14 +94,14 @@ oop.inherits(Mode, TextMode);
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
         }
-        
-        if (state == "start" || state == "regex_allowed") {
+
+        if (state == "start" || state == "no_regex") {
             var match = line.match(/^.*(?:\bcase\b.*\:|[\{\(\[])\s*$/);
             if (match) {
                 indent += tab;
             }
         } else if (state == "doc-start") {
-            if (endState == "start" || state == "regex_allowed") {
+            if (endState == "start" || endState == "no_regex") {
                 return "";
             }
             var match = line.match(/^\s*(\/?)\*/);
@@ -154,7 +123,7 @@ oop.inherits(Mode, TextMode);
     this.autoOutdent = function(state, doc, row) {
         this.$outdent.autoOutdent(doc, row);
     };
-    
+
     this.createWorker = function(session) {
         var worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker");
         worker.attachToDocument(session.getDocument());
@@ -162,11 +131,11 @@ oop.inherits(Mode, TextMode);
         worker.on("jslint", function(results) {
             session.setAnnotations(results.data);
         });
-        
+
         worker.on("terminate", function() {
             session.clearAnnotations();
         });
-        
+
         return worker;
     };
 
@@ -221,7 +190,7 @@ var JavaScriptHighlightRules = function() {
         ".)";
 
     this.$rules = {
-        "start" : [
+        "no_regex" : [
             {
                 token : "comment",
                 regex : /\/\/.*$/
@@ -296,7 +265,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "keyword",
                 regex : "(?:" + kwBeforeRe + ")\\b",
-                next : "regex_allowed"
+                next : "start"
             }, {
                 token : ["punctuation.operator", "support.function"],
                 regex : /(\.)(s(?:h(?:ift|ow(?:Mod(?:elessDialog|alDialog)|Help))|croll(?:X|By(?:Pages|Lines)?|Y|To)?|t(?:opzzzz|rike)|i(?:n|zeToContent|debar|gnText)|ort|u(?:p|b(?:str(?:ing)?)?)|pli(?:ce|t)|e(?:nd|t(?:Re(?:sizable|questHeader)|M(?:i(?:nutes|lliseconds)|onth)|Seconds|Ho(?:tKeys|urs)|Year|Cursor|Time(?:out)?|Interval|ZOptions|Date|UTC(?:M(?:i(?:nutes|lliseconds)|onth)|Seconds|Hours|Date|FullYear)|FullYear|Active)|arch)|qrt|lice|avePreferences|mall)|h(?:ome|andleEvent)|navigate|c(?:har(?:CodeAt|At)|o(?:s|n(?:cat|textual|firm)|mpile)|eil|lear(?:Timeout|Interval)?|a(?:ptureEvents|ll)|reate(?:StyleSheet|Popup|EventObject))|t(?:o(?:GMTString|S(?:tring|ource)|U(?:TCString|pperCase)|Lo(?:caleString|werCase))|est|a(?:n|int(?:Enabled)?))|i(?:s(?:NaN|Finite)|ndexOf|talics)|d(?:isableExternalCapture|ump|etachEvent)|u(?:n(?:shift|taint|escape|watch)|pdateCommands)|j(?:oin|avaEnabled)|p(?:o(?:p|w)|ush|lugins.refresh|a(?:ddings|rse(?:Int|Float)?)|r(?:int|ompt|eference))|e(?:scape|nableExternalCapture|val|lementFromPoint|x(?:p|ec(?:Script|Command)?))|valueOf|UTC|queryCommand(?:State|Indeterm|Enabled|Value)|f(?:i(?:nd|le(?:ModifiedDate|Size|CreatedDate|UpdatedDate)|xed)|o(?:nt(?:size|color)|rward)|loor|romCharCode)|watch|l(?:ink|o(?:ad|g)|astIndexOf)|a(?:sin|nchor|cos|t(?:tachEvent|ob|an(?:2)?)|pply|lert|b(?:s|ort))|r(?:ou(?:nd|teEvents)|e(?:size(?:By|To)|calc|turnValue|place|verse|l(?:oad|ease(?:Capture|Events)))|andom)|g(?:o|et(?:ResponseHeader|M(?:i(?:nutes|lliseconds)|onth)|Se(?:conds|lection)|Hours|Year|Time(?:zoneOffset)?|Da(?:y|te)|UTC(?:M(?:i(?:nutes|lliseconds)|onth)|Seconds|Hours|Da(?:y|te)|FullYear)|FullYear|A(?:ttention|llResponseHeaders)))|m(?:in|ove(?:B(?:y|elow)|To(?:Absolute)?|Above)|ergeAttributes|a(?:tch|rgins|x))|b(?:toa|ig|o(?:ld|rderWidths)|link|ack))\b(?=\()/
@@ -315,28 +284,28 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "keyword.operator",
                 regex : /--|\+\+|[!$%&*+\-~]|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\|\||\?\:|\*=|%=|\+=|\-=|&=|\^=/,
-                next  : "regex_allowed"
+                next  : "start"
             }, {
                 token : "punctuation.operator",
                 regex : /\?|\:|\,|\;|\./,
-                next  : "regex_allowed"
+                next  : "start"
             }, {
                 token : "paren.lparen",
                 regex : /[\[({]/,
-                next  : "regex_allowed"
+                next  : "start"
             }, {
                 token : "paren.rparen",
                 regex : /[\])}]/
             }, {
                 token : "keyword.operator",
                 regex : /\/=?/,
-                next  : "regex_allowed"
+                next  : "start"
             }, {
                 token: "comment",
                 regex: /^#!.*$/
             }
         ],
-        "regex_allowed": [
+        "start": [
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
                 token : "comment", // multi line comment
@@ -344,18 +313,20 @@ var JavaScriptHighlightRules = function() {
                 next : "comment_regex_allowed"
             }, {
                 token : "comment",
-                regex : "\\/\\/.*$"
+                regex : "\\/\\/.*$",
+                next : "start"
             }, {
                 token: "string.regexp",
                 regex: "\\/",
                 next: "regex",
             }, {
                 token : "text",
-                regex : "\\s+"
+                regex : "\\s+|^$",
+                next : "start"
             }, {
                 token: "empty",
                 regex: "",
-                next: "start"
+                next: "no_regex"
             }
         ],
         "regex": [
@@ -365,7 +336,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "string.regexp",
                 regex: "/\\w*",
-                next: "start",
+                next: "no_regex",
             }, {
                 token : "invalid",
                 regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
@@ -382,7 +353,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "empty",
                 regex: "$",
-                next: "start"
+                next: "no_regex"
             }, {
                 defaultToken: "string.regexp"
             }
@@ -401,7 +372,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "empty",
                 regex: "$",
-                next: "start"
+                next: "no_regex"
             }, {
                 defaultToken: "string.regexp.charachterclass"
             }
@@ -419,15 +390,15 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "empty",
                 regex: "",
-                next: "start"
+                next: "no_regex"
             }
         ],
         "comment_regex_allowed" : [
-            {token : "comment", regex : "\\*\\/", next : "regex_allowed"},
+            {token : "comment", regex : "\\*\\/", next : "start"},
             {defaultToken : "comment"}
         ],
         "comment" : [
-            {token : "comment", regex : "\\*\\/", next : "start"},
+            {token : "comment", regex : "\\*\\/", next : "no_regex"},
             {defaultToken : "comment"}
         ],
         "qqstring" : [
@@ -441,7 +412,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "string",
                 regex : '"|$',
-                next  : "start",
+                next  : "no_regex",
             }, {
                 defaultToken: "string"
             }
@@ -457,7 +428,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "string",
                 regex : "'|$",
-                next  : "start",
+                next  : "no_regex",
             }, {
                 defaultToken: "string"
             }
@@ -465,7 +436,7 @@ var JavaScriptHighlightRules = function() {
     };
 
     this.embedRules(DocCommentHighlightRules, "doc-",
-        [ DocCommentHighlightRules.getEndRule("start") ]);
+        [ DocCommentHighlightRules.getEndRule("no_regex") ]);
 };
 
 oop.inherits(JavaScriptHighlightRules, TextHighlightRules);

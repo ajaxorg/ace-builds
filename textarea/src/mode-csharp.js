@@ -19,6 +19,9 @@ oop.inherits(Mode, TextMode);
 
 (function() {
     
+    this.lineCommentStart = "//";
+    this.blockComment = {start: "/*", end: "*/"};
+    
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
   
@@ -85,11 +88,17 @@ var CSharpHighlightRules = function() {
                 token : "string.regexp",
                 regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
             }, {
-                token : "string", // single line
-                regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
+                token : "string", // character
+                regex : /'(?:.|\\(:?u[\da-fA-F]+|x[\da-fA-F]+|[tbrf'"n]))'/
             }, {
-                token : "string", // single line
-                regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
+                token : "string", start : '"', end : '"|$', next: [
+                    {token: "constant.language.escape", regex: /\\(:?u[\da-fA-F]+|x[\da-fA-F]+|[tbrf'"n])/},
+                    {token: "invalid", regex: /\\./}
+                ]
+            }, {
+                token : "string", start : '@"', end : '"', next:[
+                    {token: "constant.language.escape", regex: '""'}
+                ]
             }, {
                 token : "constant.numeric", // hex
                 regex : "0[xX][0-9a-fA-F]+\\b"
@@ -133,6 +142,7 @@ var CSharpHighlightRules = function() {
 
     this.embedRules(DocCommentHighlightRules, "doc-",
         [ DocCommentHighlightRules.getEndRule("start") ]);
+    this.normalizeRules();
 };
 
 oop.inherits(CSharpHighlightRules, TextHighlightRules);

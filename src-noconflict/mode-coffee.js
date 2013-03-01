@@ -184,7 +184,7 @@ ace.define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 
                     token : "string", regex : "'''", next : [
                         {token : "string", regex : "'''", next : "start"},
                         {token : "constant.language.escape", regex : stringEscape},
-                        {defaultToken: "string"},
+                        {defaultToken: "string"}
                     ]
                 }, {
                     stateName: "qqdoc",
@@ -200,21 +200,21 @@ ace.define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 
                     token : "string", regex : "'", next : [
                         {token : "string", regex : "'", next : "start"},
                         {token : "constant.language.escape", regex : stringEscape},
-                        {defaultToken: "string"},
+                        {defaultToken: "string"}
                     ]
                 }, {
                     stateName: "qqstring",
                     token : "string.start", regex : '"', next : [
                         {token : "string.end", regex : '"', next : "start"},
                         {token : "constant.language.escape", regex : stringEscape},
-                        {defaultToken: "string"},
+                        {defaultToken: "string"}
                     ]
                 }, {
                     stateName: "js",
                     token : "string", regex : "`", next : [
                         {token : "string", regex : "`", next : "start"},
                         {token : "constant.language.escape", regex : stringEscape},
-                        {defaultToken: "string"},
+                        {defaultToken: "string"}
                     ]
                 }, {
                     token : "string.regex",

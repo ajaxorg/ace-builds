@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of Ajax.org B.V. nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -56,7 +56,6 @@ var $formerLineStart;
 exports.handler.attach = function(editor) {
     if (!initialized) {
         initialized = true;
-
         dom.importCssString('\
             .emacs-mode .ace_cursor{\
                 border: 2px rgba(50,250,50,0.8) solid!important;\
@@ -87,9 +86,9 @@ exports.handler.attach = function(editor) {
     editor.session.$selectLongWords = true;
     $formerLineStart = editor.session.$useEmacsStyleLineStart;
     editor.session.$useEmacsStyleLineStart = true;
-    
+
     editor.session.$emacsMark = null;
-    
+
     exports.markMode = function() {
         return editor.session.$emacsMark;
     }
@@ -99,27 +98,21 @@ exports.handler.attach = function(editor) {
     }
 
     editor.on("click",$resetMarkMode);
-
     editor.on("changeSession",$kbSessionChange);
-
     editor.renderer.screenToTextCoordinates = screenToTextBlockCoordinates;
-
     editor.setStyle("emacs-mode");
-
+    editor.commands.addCommands(commands);
+    exports.handler.platform = editor.commands.platform;
 };
 
 exports.handler.detach = function(editor) {
-
     delete editor.renderer.screenToTextCoordinates;
-
     editor.session.$selectLongWords = $formerLongWords;
     editor.session.$useEmacsStyleLineStart = $formerLineStart;
-
-
     editor.removeEventListener("click",$resetMarkMode);
     editor.removeEventListener("changeSession",$kbSessionChange);
-
     editor.unsetStyle("emacs-mode");
+    editor.commands.removeCommands(commands);
 };
 
 var $kbSessionChange = function(e) {
@@ -127,7 +120,7 @@ var $kbSessionChange = function(e) {
         e.oldSession.$selectLongWords = $formerLongWords;
         e.oldSession.$useEmacsStyleLineStart = $formerLineStart;
     }
-    
+
     $formerLongWords = e.session.$selectLongWords;
     e.session.$selectLongWords = true;
     $formerLineStart = e.session.$useEmacsStyleLineStart;
@@ -135,19 +128,21 @@ var $kbSessionChange = function(e) {
 
     if (!e.session.hasOwnProperty('$emacsMark'))
         e.session.$emacsMark = null;
-}    
+}
 
 var $resetMarkMode = function(e) {
     e.editor.session.$emacsMark = null;
 }
 
-var keys = require("../lib/keys").KEY_MODS;
-var eMods = {
-    C: "ctrl", S: "shift", M: "alt"
-};
-["S-C-M", "S-C", "S-M", "C-M", "S", "C", "M"].forEach(function(c) {
+var keys = require("../lib/keys").KEY_MODS,
+    eMods = {C: "ctrl", S: "shift", M: "alt", CMD: "command"},
+    combinations = ["C-S-M-CMD",
+                    "S-M-CMD", "C-M-CMD", "C-S-CMD", "C-S-M",
+                    "M-CMD", "S-CMD", "S-M", "C-CMD", "C-M", "C-S",
+                    "CMD", "M", "S", "C"];
+combinations.forEach(function(c) {
     var hashId = 0;
-    c.split("-").forEach(function(c){
+    c.split("-").forEach(function(c) {
         hashId = hashId | keys[eMods[c]];
     });
     eMods[hashId] = c.toLowerCase() + "-";
@@ -190,43 +185,31 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
         }
     }
     data.universalArgument = false;
-
-    if (modifier)
-        key = modifier + key;
-
-    if (data.keyChain)
-        key = data.keyChain += " " + key;
-
+    if (modifier) key = modifier + key;
+    if (data.keyChain) key = data.keyChain += " " + key;
     var command = this.commmandKeyBinding[key];
     data.keyChain = command == "null" ? key : "";
+    if (!command) return;
+    if (command === "null") return {command: "null"};
 
-    if (!command)
-        return;
-
-    if (command == "null")
-        return {command: "null"};
-
-    if (command == "universalArgument") {
+    if (command === "universalArgument") {
         data.universalArgument = true;
         return {command: "null"};
     }
-
-    if (typeof command != "string") {
-        var args = command.args;
-        command = command.command;
-        if (command == "goorselect") {
-            command = args[0];
-            if (exports.markMode()) {
-                command = args[1];
-            }
+    var args;
+    if (typeof command !== "string") {
+        args = command.args;
+        if (command.command) command = command.command;
+        if (command === "goorselect") {
+            command = exports.markMode() ? args[1] : args[0];
             args = null;
         }
     }
 
-    if (typeof command == "string") {
-        if (command == "insertstring" ||
-           command == "splitline" ||
-           command == "togglecomment") {
+    if (typeof command === "string") {
+        if (command === "insertstring" ||
+            command === "splitline" ||
+            command === "togglecomment") {
             exports.setMarkMode(null);
         }
         command = this.commands[command] || data.editor.commands.commands[command];
@@ -253,11 +236,11 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
 };
 
 exports.emacsKeys = {
-    "Up|C-p"      : {command: "goorselect", args: ["golineup","selectup"]},         
-    "Down|C-n"    : {command: "goorselect", args: ["golinedown","selectdown"]},       
+    "Up|C-p"      : {command: "goorselect", args: ["golineup","selectup"]},
+    "Down|C-n"    : {command: "goorselect", args: ["golinedown","selectdown"]},
     "Left|C-b"    : {command: "goorselect", args: ["gotoleft","selectleft"]},
     "Right|C-f"   : {command: "goorselect", args: ["gotoright","selectright"]},
-    "C-Left|M-b"  : {command: "goorselect", args: ["gotowordleft","selectwordleft"]}, 
+    "C-Left|M-b"  : {command: "goorselect", args: ["gotowordleft","selectwordleft"]},
     "C-Right|M-f" : {command: "goorselect", args: ["gotowordright","selectwordright"]},
     "Home|C-a"    : {command: "goorselect", args: ["gotolinestart","selecttolinestart"]},
     "End|C-e"     : {command: "goorselect", args: ["gotolineend","selecttolineend"]},
@@ -311,7 +294,7 @@ exports.emacsKeys = {
     "M-u": "touppercase",    // Doesn't work
     "M-l": "tolowercase",
     "M-/": "autocomplete",   // Doesn't work
-    "C-u": "universalArgument",  
+    "C-u": "universalArgument",
 
     "M-;": "togglecomment",
 
@@ -327,7 +310,7 @@ exports.handler.addCommands({
     recenterTopBottom: function(editor) {
         var renderer = editor.renderer;
         var pos = renderer.$cursorLayer.getPixelPosition();
-        var h = renderer.$size.scrollerHeight - renderer.lineHeight;       
+        var h = renderer.$size.scrollerHeight - renderer.lineHeight;
         var scrollTop = renderer.scrollTop;
         if (Math.abs(pos.top - scrollTop) < 2) {
             scrollTop = pos.top - h;
@@ -343,10 +326,8 @@ exports.handler.addCommands({
     },
     setMark:  function(editor) {
         var markMode = exports.markMode();
-
         if (markMode) {
-
-            cp = editor.getCursorPosition();
+            var cp = editor.getCursorPosition();
             if (editor.selection.isEmpty() &&
                markMode.row == cp.row && markMode.column == cp.column) {
                 exports.setMarkMode(null);
@@ -356,12 +337,11 @@ exports.handler.addCommands({
         markMode = editor.getCursorPosition();
         exports.setMarkMode(markMode);
         editor.selection.setSelectionAnchor(markMode.row, markMode.column);
-        
+
     },
     exchangePointAndMark: {
         exec: function(editor) {
             var range = editor.selection.getRange();
-
             editor.selection.setSelectionRange(range, !editor.selection.isBackwards());
         },
         readonly: true,
@@ -387,14 +367,12 @@ exports.handler.addCommands({
     killLine: function(editor) {
         exports.setMarkMode(null);
         var pos = editor.getCursorPosition();
-
         if (pos.column == 0 &&
             editor.session.doc.getLine(pos.row).length == 0) {
             editor.selection.selectLine();
         } else {
             editor.clearSelection();
             editor.selection.selectLineEnd();
-
         }
         var range = editor.getSelectionRange();
         var text = editor.session.getTextRange(range);
@@ -410,7 +388,6 @@ exports.handler.addCommands({
     yankRotate: function(editor) {
         if (editor.keyBinding.$data.lastCommand != "yank")
             return;
-
         editor.undo();
         editor.onPaste(exports.killRing.rotate());
         editor.keyBinding.$data.lastCommand = "yank";
@@ -421,6 +398,10 @@ exports.handler.addCommands({
     },
     killRingSave: function(editor) {
         exports.killRing.add(editor.getCopyText());
+    },
+    keyboardQuit: function(editor) {
+        editor.selection.clearSelection();
+        exports.setMarkMode(null);
     }
 });
 

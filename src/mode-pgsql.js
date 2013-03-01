@@ -30,59 +30,32 @@
 
 define('ace/mode/pgsql', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/pgsql_highlight_rules', 'ace/range'], function(require, exports, module) {
 
-    var oop = require("../lib/oop");
-    var TextMode = require("../mode/text").Mode;
-    var Tokenizer = require("../tokenizer").Tokenizer;
-    var PgsqlHighlightRules = require("./pgsql_highlight_rules").PgsqlHighlightRules;
-    var Range = require("../range").Range;
+var oop = require("../lib/oop");
+var TextMode = require("../mode/text").Mode;
+var Tokenizer = require("../tokenizer").Tokenizer;
+var PgsqlHighlightRules = require("./pgsql_highlight_rules").PgsqlHighlightRules;
+var Range = require("../range").Range;
 
-    var Mode = function() {
-        this.$tokenizer = new Tokenizer(new PgsqlHighlightRules().getRules());
-    };
-    oop.inherits(Mode, TextMode);
+var Mode = function() {
+    this.$tokenizer = new Tokenizer(new PgsqlHighlightRules().getRules());
+};
+oop.inherits(Mode, TextMode);
 
-    (function() {
+(function() {       
+    this.lineCommentStart = "--";
+    this.blockComment = {start: "/*", end: "*/"};
 
-        this.toggleCommentLines = function(state, doc, startRow, endRow) {
-            var outdent = true;
-            var re = /^(\s*)--/;
-
-            for (var i=startRow; i<= endRow; i++) {
-                if (!re.test(doc.getLine(i))) {
-                    outdent = false;
-                    break;
-                }
-            }
-
-            if (outdent) {
-                var deleteRange = new Range(0, 0, 0, 0);
-                for (var i=startRow; i<= endRow; i++)
-                {
-                    var line = doc.getLine(i);
-                    var m = line.match(re);
-                    deleteRange.start.row = i;
-                    deleteRange.end.row = i;
-                    deleteRange.end.column = m[0].length;
-                    doc.replace(deleteRange, m[1]);
-                }
-            }
-            else {
-                doc.indentRows(startRow, endRow, "--");
-            }
-        };
-
-
-        this.getNextLineIndent = function(state, line, tab) { 
-            if (state == "start" || state == "keyword.statementEnd") {
-                return "";
-            } else {
-                return this.$getIndent(line); // Keep whatever indent the previous line has
-            }
+    this.getNextLineIndent = function(state, line, tab) { 
+        if (state == "start" || state == "keyword.statementEnd") {
+            return "";
+        } else {
+            return this.$getIndent(line); // Keep whatever indent the previous line has
         }
+    }
 
-    }).call(Mode.prototype);
+}).call(Mode.prototype);
 
-    exports.Mode = Mode;
+exports.Mode = Mode;
 });
 
 define('ace/mode/pgsql_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules', 'ace/mode/perl_highlight_rules', 'ace/mode/python_highlight_rules'], function(require, exports, module) {

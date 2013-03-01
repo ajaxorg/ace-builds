@@ -51,6 +51,8 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
+    this.lineCommentStart = ["//", "#"];
+    
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -323,11 +325,11 @@ var RubyHighlightRules = function() {
             }, {
                 stateName: "heredoc",
                 token : function(value, currentState, stack) {
-                    var next = value[3] == '-' ? "heredoc" : "indentedHeredoc";
+                    var next = value[2] == '-' ? "indentedHeredoc" : "heredoc";
                     var tokens = value.split(this.splitRegex);
                     stack.push(next, tokens[3]);
                     return [
-                        {type:"constant", value: "<<"},
+                        {type:"constant", value: tokens[1]},
                         {type:"string", value: tokens[2]},
                         {type:"support.class", value: tokens[3]},
                         {type:"string", value: tokens[4]}

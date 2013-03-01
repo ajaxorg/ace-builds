@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'kitchen-sink/doclist', 'kitchen-sink/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/split', 'ace/keyboard/vim', 'kitchen-sink/statusbar'], function(require, exports, module) {
+define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'kitchen-sink/doclist', 'kitchen-sink/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/split', 'ace/keyboard/vim', 'kitchen-sink/statusbar'], function(require, exports, module) {
 
 
 require("ace/lib/fixoldbrowsers");
@@ -61,6 +61,8 @@ var saveOption = util.saveOption;
 var fillDropdown = util.fillDropdown;
 var bindCheckbox = util.bindCheckbox;
 var bindDropdown = util.bindDropdown;
+
+var ElasticTabstopsLite = require("ace/ext/elastic_tabstops_lite").ElasticTabstopsLite;
 var container = document.getElementById("editor-container");
 var Split = require("ace/split").Split;
 var split = new Split(container, theme, 1);
@@ -343,30 +345,37 @@ bindCheckbox("read_only", function(checked) {
     env.editor.setReadOnly(checked);
 });
 
-var secondSession = null;
 bindDropdown("split", function(value) {
     var sp = env.split;
     if (value == "none") {
-        if (sp.getSplits() == 2) {
-            secondSession = sp.getEditor(1).session;
-        }
         sp.setSplits(1);
     } else {
         var newEditor = (sp.getSplits() == 1);
-        if (value == "below") {
-            sp.setOrientation(sp.BELOW);
-        } else {
-            sp.setOrientation(sp.BESIDE);
-        }
+        sp.setOrientation(value == "below" ? sp.BELOW : sp.BESIDE);        
         sp.setSplits(2);
 
         if (newEditor) {
-            var session = secondSession || sp.getEditor(0).session;
+            var session = sp.getEditor(0).session;
             var newSession = sp.setSession(session, 1);
             newSession.name = session.name;
         }
     }
 });
+
+
+bindCheckbox("elastic_tabstops", function(checked) {
+    env.editor.setOption("useElasticTabstops", checked);
+});
+
+
+function synchroniseScrolling() {
+    var s1 = env.split.$editors[0].session;
+    var s2 = env.split.$editors[1].session;
+    s1.on('changeScrollTop', function(pos) {s2.setScrollTop(pos)});
+    s2.on('changeScrollTop', function(pos) {s1.setScrollTop(pos)});
+    s1.on('changeScrollLeft', function(pos) {s2.setScrollLeft(pos)});
+    s2.on('changeScrollLeft', function(pos) {s1.setScrollLeft(pos)});
+}
 
 bindCheckbox("highlight_token", function(checked) {
     var editor = env.editor;
@@ -378,7 +387,9 @@ bindCheckbox("highlight_token", function(checked) {
     }
 });
 event.addListener(container, "dragover", function(e) {
-    return event.preventDefault(e);
+    var types = e.dataTransfer.types;
+    if (types && Array.prototype.indexOf.call(types, 'Files') !== -1)
+        return event.preventDefault(e);
 });
 
 event.addListener(container, "drop", function(e) {
@@ -408,140 +419,6 @@ event.addListener(container, "drop", function(e) {
 var StatusBar = require("./statusbar").StatusBar;
 new StatusBar(env.editor, cmdLine.container);
 
-});
-
-define('ace/theme/textmate', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
-
-
-exports.isDark = false;
-exports.cssClass = "ace-tm";
-exports.cssText = ".ace-tm .ace_gutter {\
-background: #f0f0f0;\
-color: #333;\
-}\
-.ace-tm .ace_print-margin {\
-width: 1px;\
-background: #e8e8e8;\
-}\
-.ace-tm .ace_fold {\
-background-color: #6B72E6;\
-}\
-.ace-tm .ace_scroller {\
-background-color: #FFFFFF;\
-}\
-.ace-tm .ace_cursor {\
-border-left: 2px solid black;\
-}\
-.ace-tm .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid black;\
-}\
-.ace-tm .ace_invisible {\
-color: rgb(191, 191, 191);\
-}\
-.ace-tm .ace_storage,\
-.ace-tm .ace_keyword {\
-color: blue;\
-}\
-.ace-tm .ace_constant {\
-color: rgb(197, 6, 11);\
-}\
-.ace-tm .ace_constant.ace_buildin {\
-color: rgb(88, 72, 246);\
-}\
-.ace-tm .ace_constant.ace_language {\
-color: rgb(88, 92, 246);\
-}\
-.ace-tm .ace_constant.ace_library {\
-color: rgb(6, 150, 14);\
-}\
-.ace-tm .ace_invalid {\
-background-color: rgba(255, 0, 0, 0.1);\
-color: red;\
-}\
-.ace-tm .ace_support.ace_function {\
-color: rgb(60, 76, 114);\
-}\
-.ace-tm .ace_support.ace_constant {\
-color: rgb(6, 150, 14);\
-}\
-.ace-tm .ace_support.ace_type,\
-.ace-tm .ace_support.ace_class {\
-color: rgb(109, 121, 222);\
-}\
-.ace-tm .ace_keyword.ace_operator {\
-color: rgb(104, 118, 135);\
-}\
-.ace-tm .ace_string {\
-color: rgb(3, 106, 7);\
-}\
-.ace-tm .ace_comment {\
-color: rgb(76, 136, 107);\
-}\
-.ace-tm .ace_comment.ace_doc {\
-color: rgb(0, 102, 255);\
-}\
-.ace-tm .ace_comment.ace_doc.ace_tag {\
-color: rgb(128, 159, 191);\
-}\
-.ace-tm .ace_constant.ace_numeric {\
-color: rgb(0, 0, 205);\
-}\
-.ace-tm .ace_variable {\
-color: rgb(49, 132, 149);\
-}\
-.ace-tm .ace_xml-pe {\
-color: rgb(104, 104, 91);\
-}\
-.ace-tm .ace_entity.ace_name.ace_function {\
-color: #0000A2;\
-}\
-.ace-tm .ace_markup.ace_heading {\
-color: rgb(12, 7, 255);\
-}\
-.ace-tm .ace_markup.ace_list {\
-color:rgb(185, 6, 144);\
-}\
-.ace-tm .ace_meta.ace_tag {\
-color:rgb(0, 22, 142);\
-}\
-.ace-tm .ace_string.ace_regex {\
-color: rgb(255, 0, 0)\
-}\
-.ace-tm .ace_marker-layer .ace_selection {\
-background: rgb(181, 213, 255);\
-}\
-.ace-tm.ace_multiselect .ace_selection.ace_start {\
-box-shadow: 0 0 3px 0px white;\
-border-radius: 2px;\
-}\
-.ace-tm .ace_marker-layer .ace_step {\
-background: rgb(252, 255, 0);\
-}\
-.ace-tm .ace_marker-layer .ace_stack {\
-background: rgb(164, 229, 101);\
-}\
-.ace-tm .ace_marker-layer .ace_bracket {\
-margin: -1px 0 0 -1px;\
-border: 1px solid rgb(192, 192, 192);\
-}\
-.ace-tm .ace_marker-layer .ace_active-line {\
-background: rgba(0, 0, 0, 0.07);\
-}\
-.ace-tm .ace_gutter-active-line {\
-background-color : #dcdcdc;\
-}\
-.ace-tm .ace_marker-layer .ace_selected-word {\
-background: rgb(250, 250, 255);\
-border: 1px solid rgb(200, 200, 250);\
-}\
-.ace-tm .ace_indent-guide {\
-background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
-}\
-";
-
-var dom = require("../lib/dom");
-dom.importCssString(exports.cssText, exports.cssClass);
 });
 
  define('kitchen-sink/doclist', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/undomanager', 'ace/lib/net', 'kitchen-sink/modelist'], function(require, exports, module) {
@@ -605,6 +482,7 @@ var docs = {
     "docs/latex.tex": {name: "LaTeX", wrapped: true},
     "docs/less.less": "LESS",
     "docs/lisp.lisp": "Lisp",
+    "docs/lsl.lsl": "LSL",
     "docs/scheme.scm": "Scheme",
     "docs/liquid.liquid": "Liquid",
     "docs/lua.lua": "Lua",
@@ -615,6 +493,7 @@ var docs = {
     "docs/objectivec.m": {name: "Objective-C"},
     "docs/ocaml.ml": "OCaml",
     "docs/OpenSCAD.scad": "OpenSCAD",
+    "docs/pascal.pas": "Pascal",
     "docs/perl.pl": "Perl",
     "docs/pgsql.pgsql": {name: "pgSQL", wrapped: true},
     "docs/php.php": "PHP",
@@ -628,6 +507,7 @@ var docs = {
     "docs/abap.abap": "SAP - ABAP",
     "docs/scala.scala": "Scala",
     "docs/scss.scss": "SCSS",
+    "docs/sass.sass": "SASS",
     "docs/sh.sh": "SH",
     "docs/stylus.styl": "Stylus",
     "docs/sql.sql": {name: "SQL", wrapped: true},
@@ -636,6 +516,7 @@ var docs = {
     "docs/tex.tex": "Tex",
     "docs/textile.textile": {name: "Textile", wrapped: true},
     "docs/tmSnippet.tmSnippet": "tmSnippet",
+    "docs/toml.toml": "TOML",
     "docs/typescript.ts": "Typescript",
     "docs/vbscript.vbs": "VBScript",
     "docs/xml.xml": "XML",
@@ -754,7 +635,7 @@ var modesByName = {
     abap:       ["ABAP"         , "abap"],
     asciidoc:   ["AsciiDoc"     , "asciidoc"],
     c9search:   ["C9Search"     , "c9search_results"],
-    coffee:     ["CoffeeScript" , "^Cakefile|coffee|cf"],
+    coffee:     ["CoffeeScript" , "^Cakefile|coffee|cf|cson"],
     coldfusion: ["ColdFusion"   , "cfm"],
     csharp:     ["C#"           , "cs"],
     css:        ["CSS"          , "css"],
@@ -784,10 +665,12 @@ var modesByName = {
     lua:        ["Lua"          , "lua"],
     luapage:    ["LuaPage"      , "lp"], // http://keplerproject.github.com/cgilua/manual.html#templates
     lucene:     ["Lucene"       , "lucene"],
+    lsl:        ["LSL"          , "lsl"],
     makefile:   ["Makefile"     , "^GNUmakefile|^makefile|^Makefile|^OCamlMakefile|make"],
     markdown:   ["Markdown"     , "md|markdown"],
     objectivec: ["Objective-C"  , "m"],
     ocaml:      ["OCaml"        , "ml|mli"],
+    pascal:     ["Pascal"       , "pas|p"],
     perl:       ["Perl"         , "pl|pm"],
     pgsql:      ["pgSQL"        , "pgsql"],
     php:        ["PHP"          , "php|phtml"],
@@ -799,7 +682,8 @@ var modesByName = {
     ruby:       ["Ruby"         , "ru|gemspec|rake|rb"],
     scad:       ["OpenSCAD"     , "scad"],
     scala:      ["Scala"        , "scala"],
-    scss:       ["SCSS"         , "scss|sass"],
+    scss:       ["SCSS"         , "scss"],
+    sass:       ["SASS"         , "sass"],
     sh:         ["SH"           , "sh|bash|bat"],
     sql:        ["SQL"          , "sql"],
     stylus:     ["Stylus"       , "styl|stylus"],
@@ -809,6 +693,7 @@ var modesByName = {
     text:       ["Text"         , "txt"],
     textile:    ["Textile"      , "textile"],
     tm_snippet: ["tmSnippet"    , "tmSnippet"],
+    toml:       ["toml"         , "toml"],
     typescript: ["Typescript"   , "typescript|ts|str"],
     vbscript:   ["VBScript"     , "vbs"],
     xml:        ["XML"          , "xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl"],
@@ -1174,7 +1059,7 @@ exports.TokenTooltip = TokenTooltip;
 
 });
 
-define('kitchen-sink/util', ['require', 'exports', 'module' , 'ace/lib/dom', 'ace/lib/event', 'ace/edit_session', 'ace/undomanager', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/theme/textmate'], function(require, exports, module) {
+define('kitchen-sink/util', ['require', 'exports', 'module' , 'ace/lib/dom', 'ace/lib/event', 'ace/edit_session', 'ace/undomanager', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select'], function(require, exports, module) {
 
 
 var dom = require("ace/lib/dom");
@@ -1185,6 +1070,10 @@ var UndoManager = require("ace/undomanager").UndoManager;
 var Renderer = require("ace/virtual_renderer").VirtualRenderer;
 var Editor = require("ace/editor").Editor;
 var MultiSelect = require("ace/multi_select").MultiSelect;
+
+exports.createEditor = function(el) {
+    return new Editor(new Renderer(el));
+}
 
 exports.createSplitEditor = function(el) {
     if (typeof(el) == "string")
@@ -1200,8 +1089,8 @@ exports.createSplitEditor = function(el) {
     el.style.position = "relative";
     var split = {$container: el};
 
-    split.editor0 = split[0] = new Editor(new Renderer(e0, require("ace/theme/textmate")));
-    split.editor1 = split[1] = new Editor(new Renderer(e1, require("ace/theme/textmate")));
+    split.editor0 = split[0] = new Editor(new Renderer(e0));
+    split.editor1 = split[1] = new Editor(new Renderer(e1));
     split.splitter = s;
 
     MultiSelect(split.editor0);
@@ -1374,6 +1263,278 @@ function dropdown(values) {
 
 });
 
+define('ace/ext/elastic_tabstops_lite', ['require', 'exports', 'module' , 'ace/editor', 'ace/config'], function(require, exports, module) {
+
+
+var ElasticTabstopsLite = function(editor) {
+    this.$editor = editor;
+    var self = this;
+    var changedRows = [];
+    var recordChanges = false;
+    this.onAfterExec = function() {
+        recordChanges = false;
+        self.processRows(changedRows);
+        changedRows = [];
+    };
+    this.onExec = function() {
+        recordChanges = true;
+    };
+    this.onChange = function(e) {
+        var range = e.data.range
+        if (recordChanges) {
+            if (changedRows.indexOf(range.start.row) == -1)
+                changedRows.push(range.start.row);
+            if (range.end.row != range.start.row)
+                changedRows.push(range.end.row);
+        }
+    };
+};
+
+(function() {
+    this.processRows = function(rows) {
+        this.$inChange = true;
+        var checkedRows = [];
+
+        for (var r = 0, rowCount = rows.length; r < rowCount; r++) {
+            var row = rows[r];
+
+            if (checkedRows.indexOf(row) > -1)
+                continue;
+
+            var cellWidthObj = this.$findCellWidthsForBlock(row);
+            var cellWidths = this.$setBlockCellWidthsToMax(cellWidthObj.cellWidths);
+            var rowIndex = cellWidthObj.firstRow;
+
+            for (var w = 0, l = cellWidths.length; w < l; w++) {
+                var widths = cellWidths[w];
+                checkedRows.push(rowIndex);
+                this.$adjustRow(rowIndex, widths);
+                rowIndex++;
+            }
+        }
+        this.$inChange = false;
+    };
+
+    this.$findCellWidthsForBlock = function(row) {
+        var cellWidths = [], widths;
+        var rowIter = row;
+        while (rowIter >= 0) {
+            widths = this.$cellWidthsForRow(rowIter);
+            if (widths.length == 0)
+                break;
+
+            cellWidths.unshift(widths);
+            rowIter--;
+        }
+        var firstRow = rowIter + 1;
+        rowIter = row;
+        var numRows = this.$editor.session.getLength();
+
+        while (rowIter < numRows - 1) {
+            rowIter++;
+
+            widths = this.$cellWidthsForRow(rowIter);
+            if (widths.length == 0)
+                break;
+
+            cellWidths.push(widths);
+        }
+
+        return { cellWidths: cellWidths, firstRow: firstRow };
+    };
+
+    this.$cellWidthsForRow = function(row) {
+        var selectionColumns = this.$selectionColumnsForRow(row);
+
+        var tabs = [-1].concat(this.$tabsForRow(row));
+        var widths = tabs.map(function (el) { return 0; } ).slice(1);
+        var line = this.$editor.session.getLine(row);
+
+        for (var i = 0, len = tabs.length - 1; i < len; i++) {
+            var leftEdge = tabs[i]+1;
+            var rightEdge = tabs[i+1];
+
+            var rightmostSelection = this.$rightmostSelectionInCell(selectionColumns, rightEdge);
+            var cell = line.substring(leftEdge, rightEdge);
+            widths[i] = Math.max(cell.replace(/\s+$/g,'').length, rightmostSelection - leftEdge);
+        }
+        
+        return widths;
+    };
+
+    this.$selectionColumnsForRow = function(row) {
+        var selections = [], cursor = this.$editor.getCursorPosition();
+        if (this.$editor.session.getSelection().isEmpty()) {
+            if (row == cursor.row)
+                selections.push(cursor.column);   
+        }
+
+        return selections;
+    };
+
+    this.$setBlockCellWidthsToMax = function(cellWidths) {
+        var startingNewBlock = true, blockStartRow, blockEndRow, maxWidth;
+        var columnInfo = this.$izip_longest(cellWidths);
+
+        for (var c = 0, l = columnInfo.length; c < l; c++) {
+            var column = columnInfo[c];
+            if (!column.push) {
+                console.error(column);
+                continue;
+            }
+            column.push(NaN);
+
+            for (var r = 0, s = column.length; r < s; r++) {
+                var width = column[r];
+                if (startingNewBlock) {
+                    blockStartRow = r;
+                    maxWidth = 0;
+                    startingNewBlock = false;
+                }
+                if (isNaN(width)) {
+                    blockEndRow = r;
+
+                    for (var j = blockStartRow; j < blockEndRow; j++) {
+                        cellWidths[j][c] = maxWidth;
+                    }
+                    startingNewBlock = true;
+                }
+
+                maxWidth = Math.max(maxWidth, width);
+            }
+        }
+
+        return cellWidths;
+    };
+
+    this.$rightmostSelectionInCell = function(selectionColumns, cellRightEdge) {
+        var rightmost = 0;
+
+        if (selectionColumns.length) {
+            var lengths = [];
+            for (var s = 0, length = selectionColumns.length; s < length; s++) {
+                if (selectionColumns[s] <= cellRightEdge)
+                    lengths.push(s);
+                else 
+                    lengths.push(0);
+            }
+            rightmost = Math.max.apply(Math, lengths);
+        }
+
+        return rightmost;
+    };
+
+    this.$tabsForRow = function(row) {
+        var rowTabs = [], line = this.$editor.session.getLine(row),
+            re = /\t/g, match;
+
+        while ((match = re.exec(line)) != null) {
+            rowTabs.push(match.index);
+        }
+
+        return rowTabs;
+    };
+
+    this.$adjustRow = function(row, widths) {
+        var rowTabs = this.$tabsForRow(row);
+
+        if (rowTabs.length == 0)
+            return;
+        
+        var bias = 0, location = -1;
+        var expandedSet = this.$izip(widths, rowTabs);
+
+        for (var i = 0, l = expandedSet.length; i < l; i++) {
+            var w = expandedSet[i][0], it = expandedSet[i][1];
+            location += 1 + w;
+            it += bias;
+            var difference = location - it;
+
+            if (difference == 0)
+                continue;
+
+            var partialLine = this.$editor.session.getLine(row).substr(0, it );
+            var strippedPartialLine = partialLine.replace(/\s*$/g, "");
+            var ispaces = partialLine.length - strippedPartialLine.length;
+
+            if (difference > 0) {
+                this.$editor.session.getDocument().insertInLine({row: row, column: it + 1}, Array(difference + 1).join(" ") + "\t");
+                this.$editor.session.getDocument().removeInLine(row, it, it + 1);
+
+                bias += difference;
+            }
+
+            if (difference < 0 && ispaces >= -difference) {
+                this.$editor.session.getDocument().removeInLine(row, it + difference, it);
+                bias += difference;
+            }
+        }
+    };
+    this.$izip_longest = function(iterables) {
+        if (!iterables[0])
+            return [];
+        var longest = iterables[0].length;
+        var iterablesLength = iterables.length;
+
+        for (var i = 1; i < iterablesLength; i++) {
+            var iLength = iterables[i].length;
+            if (iLength > longest)
+                longest = iLength;
+        }
+        
+        var expandedSet = [];
+
+        for (var l = 0; l < longest; l++) {
+            var set = [];
+            for (var i = 0; i < iterablesLength; i++) {
+                if (iterables[i][l] === "")
+                    set.push(NaN);
+                else
+                    set.push(iterables[i][l]);
+            }
+
+            expandedSet.push(set);
+        }
+        
+
+        return expandedSet;
+    };
+    this.$izip = function(widths, tabs) {
+        var size = widths.length >= tabs.length ? tabs.length : widths.length;
+        
+        var expandedSet = [];
+        for (var i = 0; i < size; i++) {
+            var set = [ widths[i], tabs[i] ];
+            expandedSet.push(set);
+        }
+        return expandedSet;
+    };
+
+}).call(ElasticTabstopsLite.prototype);
+
+exports.ElasticTabstopsLite = ElasticTabstopsLite;
+
+var Editor = require("../editor").Editor;
+require("../config").defineOptions(Editor.prototype, "editor", {
+    useElasticTabstops: {
+        set: function(val) {
+            if (val) {
+                if (!this.elasticTabstops)
+                    this.elasticTabstops = new ElasticTabstopsLite(this);
+                this.commands.on("afterExec", this.elasticTabstops.onAfterExec);
+                this.commands.on("exec", this.elasticTabstops.onExec);
+                this.on("change", this.elasticTabstops.onChange);
+            } else if (this.elasticTabstops) {
+                this.commands.removeListener("afterExec", this.elasticTabstops.onAfterExec);
+                this.commands.removeListener("exec", this.elasticTabstops.onExec);
+                this.removeListener("change", this.elasticTabstops.onChange);
+            }
+        }
+    }
+});
+
+});
+
 define('ace/split', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/event_emitter', 'ace/editor', 'ace/virtual_renderer', 'ace/edit_session'], function(require, exports, module) {
 
 
@@ -1500,7 +1661,7 @@ var Split = function(container, theme, splits) {
             var undoManagerProxy = new UndoManagerProxy(undoManager, s);
             s.setUndoManager(undoManagerProxy);
         }
-        s.$informUndoManager = lang.deferredCall(function() { s.$deltas = []; });
+        s.$informUndoManager = lang.delayedCall(function() { s.$deltas = []; });
         s.setTabSize(session.getTabSize());
         s.setUseSoftTabs(session.getUseSoftTabs());
         s.setOverwrite(session.getOverwrite());
@@ -2004,7 +2165,7 @@ var actions = exports.actions = {
         fn: function(editor, range, count, param) {
             editor.modifyNumber(count || 1);
         }
-    },
+    }
 };
 
 var inputBuffer = exports.inputBuffer = {
@@ -3236,14 +3397,14 @@ var StatusBar = function(editor, parentNode) {
 	this.element.style.cssText = "color: gray; position:absolute; right:0; border-left:1px solid";
 	parentNode.appendChild(this.element);
 
-	var statusUpdate = lang.deferredCall(function(){
+	var statusUpdate = lang.delayedCall(function(){
 		this.updateStatus(editor)
 	}.bind(this));
 	editor.on("changeStatus", function() {
-		statusUpdate.schedule(50);
+		statusUpdate.schedule(100);
 	});
 	editor.on("changeSelection", function() {
-		statusUpdate.schedule(50);
+		statusUpdate.schedule(100);
 	});
 };
 
