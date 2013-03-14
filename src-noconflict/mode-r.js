@@ -198,8 +198,7 @@ ace.define('ace/mode/r_highlight_rules', ['require', 'exports', 'module' , 'ace/
                regex : "`.*?`"
             },
             {
-               token : function(value)
-               {
+               onMatch : function(value) {
                   if (keywords[value])
                      return "keyword";
                   else if (buildinConstants[value])
@@ -396,12 +395,7 @@ var MatchingBraceOutdent = function() {};
     };
 
     this.$getIndent = function(line) {
-        var match = line.match(/^(\s+)/);
-        if (match) {
-            return match[1];
-        }
-
-        return "";
+        return line.match(/^\s*/)[0];
     };
 
 }).call(MatchingBraceOutdent.prototype);

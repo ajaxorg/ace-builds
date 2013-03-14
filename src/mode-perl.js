@@ -42,13 +42,18 @@ var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 var Mode = function() {
     this.$tokenizer = new Tokenizer(new PerlHighlightRules().getRules());
     this.$outdent = new MatchingBraceOutdent();
-    this.foldingRules = new CStyleFoldMode();
+    this.foldingRules = new CStyleFoldMode({start: "^=(begin|item)\\b", end: "^=(cut)\\b"});
 };
 oop.inherits(Mode, TextMode);
 
 (function() {
 
     this.lineCommentStart = "#";
+    this.blockComment = [
+        {start: "=begin", end: "=cut"},
+        {start: "=item", end: "=cut"}
+    ];
+
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
@@ -135,6 +140,10 @@ var PerlHighlightRules = function() {
                 token : "comment",
                 regex : "#.*$"
             }, {
+                token : "comment.doc",
+                regex : "^=(?:begin|item)\\b",
+                next : "block_comment"
+            }, {
                 token : "string.regexp",
                 regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
             }, {
@@ -193,6 +202,16 @@ var PerlHighlightRules = function() {
                 token : "string",
                 regex : '.+'
             }
+        ],
+        "block_comment": [
+            {
+                token: "comment.doc", 
+                regex: "^=cut\\b",
+                next: "start"
+            },
+            {
+                defaultToken: "comment.doc"
+            }
         ]
     };
 };
@@ -234,12 +253,7 @@ var MatchingBraceOutdent = function() {};
     };
 
     this.$getIndent = function(line) {
-        var match = line.match(/^(\s+)/);
-        if (match) {
-            return match[1];
-        }
-
-        return "";
+        return line.match(/^\s*/)[0];
     };
 
 }).call(MatchingBraceOutdent.prototype);
@@ -254,7 +268,16 @@ var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
 
-var FoldMode = exports.FoldMode = function() {};
+var FoldMode = exports.FoldMode = function(commentRegex) {
+    if (commentRegex) {
+        this.foldingStartMarker = new RegExp(
+            this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start)
+        );
+        this.foldingStopMarker = new RegExp(
+            this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end)
+        );
+    }
+};
 oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {

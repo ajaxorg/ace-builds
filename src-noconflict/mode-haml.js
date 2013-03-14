@@ -287,7 +287,7 @@ var RubyHighlightRules = function() {
                 regex : "#.*$"
             }, {
                 token : "comment", // multi line comment
-                regex : "^=begin\\s",
+                regex : "^=begin(?:$|\\s.*$)",
                 next : "comment"
             }, {
                 token : "string.regexp",
@@ -324,7 +324,7 @@ var RubyHighlightRules = function() {
                 regex : "=>"
             }, {
                 stateName: "heredoc",
-                token : function(value, currentState, stack) {
+                onMatch : function(value, currentState, stack) {
                     var next = value[2] == '-' ? "indentedHeredoc" : "heredoc";
                     var tokens = value.split(this.splitRegex);
                     stack.push(next, tokens[3]);
@@ -338,7 +338,7 @@ var RubyHighlightRules = function() {
                 regex : "(<<-?)(['\"`]?)([\\w]+)(['\"`]?)",
                 rules: {
                     heredoc: [{
-                        token:  function(value, currentState, stack) {
+                        onMatch:  function(value, currentState, stack) {
                             if (value == stack[1]) {
                                 stack.shift();
                                 stack.shift();
@@ -353,7 +353,7 @@ var RubyHighlightRules = function() {
                         token: "string",
                         regex: "^ +"
                     }, {
-                        token:  function(value, currentState, stack) {
+                        onMatch:  function(value, currentState, stack) {
                             if (value == stack[1]) {
                                 stack.shift();
                                 stack.shift();
@@ -382,7 +382,7 @@ var RubyHighlightRules = function() {
         "comment" : [
             {
                 token : "comment", // closing comment
-                regex : "^=end\\s.*$",
+                regex : "^=end(?:$|\\s.*$)",
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line

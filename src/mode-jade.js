@@ -102,10 +102,11 @@ var JadeHighlightRules = function() {
             regex : "^\\s*\/\/(?:\\s*[^-\\s]|\\s+\\S)(?:.*$)"
         },
         {
-            token : function(space, text) {
-                return "punctuation.section.comment";
+            onMatch: function(value, currentState, stack) {
+                stack.unshift(this.next, value.length - 2, currentState);
+                return "comment";
             },
-            regex : "^((\\s*)\/\/)(?:\\s*$)",
+            regex: /^\s*\/\//,
             next: "comment_block"
         },
         mixin_embed("markdown", "markdown-"),
@@ -154,18 +155,18 @@ var JadeHighlightRules = function() {
         }
     ],
     "comment_block": [
-        {
-            token: function(text) {
+        {regex: /^\s*/, onMatch: function(value, currentState, stack) {
+            if (value.length <= stack[1]) {
+                stack.shift();
+                stack.shift();
+                this.next = stack.shift();
                 return "text";
-            },
-            regex: "^(\\1\\S|$)", 
-            "captures": "1",
-            next: "start"
-        },
-        {
-            token: "comment.block.jade",
-            regex : ".+"
-        }
+            } else {
+                this.next = "";
+                return "comment";
+            }
+        }, next: "start"},
+        {defaultToken: "comment"}
     ],
     "tag_single": [
         {
@@ -648,10 +649,10 @@ var JavaScriptHighlightRules = function() {
                 next: "no_regex",
             }, {
                 token : "invalid",
-                regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
+                regex: /\{\d+\b,?\d*\}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
             }, {
                 token : "constant.language.escape",
-                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[()$^+*?]/
+                regex: /\(\?[:=!]|\)|\{\d+\b,?\d*\}|[+*]\?|[()$^+*?]/
             }, {
                 token : "constant.language.delimiter",
                 regex: /\|/

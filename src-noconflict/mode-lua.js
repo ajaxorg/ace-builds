@@ -210,14 +210,14 @@ var LuaHighlightRules = function() {
     this.$rules = {
         "start" : [{
             stateName: "bracketedComment",
-            token : function(value, currentState, stack){
+            onMatch : function(value, currentState, stack){
                 stack.unshift(this.next, value.length, currentState);
                 return "comment";
             },
             regex : /\-\-\[=*\[/,
             next  : [
                 {
-                    token : function(value, currentState, stack) {
+                    onMatch : function(value, currentState, stack) {
                         if (value.length == stack[1]) {
                             stack.shift();
                             stack.shift();
@@ -241,14 +241,14 @@ var LuaHighlightRules = function() {
         },
         {
             stateName: "bracketedString",
-            token : function(value, currentState, stack){
+            onMatch : function(value, currentState, stack){
                 stack.unshift(this.next, value.length, currentState);
                 return "comment";
             },
             regex : /\[=*\[/,
             next  : [
                 {
-                    token : function(value, currentState, stack) {
+                    onMatch : function(value, currentState, stack) {
                         if (value.length == stack[1]) {
                             stack.shift();
                             stack.shift();
@@ -336,7 +336,7 @@ oop.inherits(FoldMode, BaseFoldMode);
                     return "start";
             } else if (match[2]) {
                 var type = session.bgTokenizer.getState(row) || "";
-                if (type.indexOf("comment") != -1 || type.indexOf("string") != -1)
+                if (type[0] == "bracketedComment" || type[0] == "bracketedString")
                     return "start";
             } else {
                 return "start";
@@ -351,7 +351,7 @@ oop.inherits(FoldMode, BaseFoldMode);
                 return "end";
         } else if (match[0][0] === "]") {
             var type = session.bgTokenizer.getState(row - 1) || "";
-            if (type.indexOf("comment") != -1 || type.indexOf("string") != -1)
+            if (type[0] == "bracketedComment" || type[0] == "bracketedString")
                 return "end";
         } else
             return "end";

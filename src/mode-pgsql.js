@@ -700,6 +700,10 @@ var PerlHighlightRules = function() {
                 token : "comment",
                 regex : "#.*$"
             }, {
+                token : "comment.doc",
+                regex : "^=(?:begin|item)\\b",
+                next : "block_comment"
+            }, {
                 token : "string.regexp",
                 regex : "[/](?:(?:\\[(?:\\\\]|[^\\]])+\\])|(?:\\\\/|[^\\]/]))*[/]\\w*\\s*(?=[).,;]|$)"
             }, {
@@ -757,6 +761,16 @@ var PerlHighlightRules = function() {
             }, {
                 token : "string",
                 regex : '.+'
+            }
+        ],
+        "block_comment": [
+            {
+                token: "comment.doc", 
+                regex: "^=cut\\b",
+                next: "start"
+            },
+            {
+                defaultToken: "comment.doc"
             }
         ]
     };

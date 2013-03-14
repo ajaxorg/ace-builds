@@ -346,10 +346,10 @@ var JavaScriptHighlightRules = function() {
                 next: "no_regex",
             }, {
                 token : "invalid",
-                regex: /\{\d+,?(?:\d+)?}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
+                regex: /\{\d+\b,?\d*\}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
             }, {
                 token : "constant.language.escape",
-                regex: /\(\?[:=!]|\)|{\d+,?(?:\d+)?}|{,\d+}|[+*]\?|[()$^+*?]/
+                regex: /\(\?[:=!]|\)|\{\d+\b,?\d*\}|[+*]\?|[()$^+*?]/
             }, {
                 token : "constant.language.delimiter",
                 regex: /\|/
@@ -527,12 +527,7 @@ var MatchingBraceOutdent = function() {};
     };
 
     this.$getIndent = function(line) {
-        var match = line.match(/^(\s+)/);
-        if (match) {
-            return match[1];
-        }
-
-        return "";
+        return line.match(/^\s*/)[0];
     };
 
 }).call(MatchingBraceOutdent.prototype);
@@ -870,7 +865,16 @@ var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
 
-var FoldMode = exports.FoldMode = function() {};
+var FoldMode = exports.FoldMode = function(commentRegex) {
+    if (commentRegex) {
+        this.foldingStartMarker = new RegExp(
+            this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start)
+        );
+        this.foldingStopMarker = new RegExp(
+            this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end)
+        );
+    }
+};
 oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
@@ -2051,14 +2055,14 @@ var LuaHighlightRules = function() {
     this.$rules = {
         "start" : [{
             stateName: "bracketedComment",
-            token : function(value, currentState, stack){
+            onMatch : function(value, currentState, stack){
                 stack.unshift(this.next, value.length, currentState);
                 return "comment";
             },
             regex : /\-\-\[=*\[/,
             next  : [
                 {
-                    token : function(value, currentState, stack) {
+                    onMatch : function(value, currentState, stack) {
                         if (value.length == stack[1]) {
                             stack.shift();
                             stack.shift();
@@ -2082,14 +2086,14 @@ var LuaHighlightRules = function() {
         },
         {
             stateName: "bracketedString",
-            token : function(value, currentState, stack){
+            onMatch : function(value, currentState, stack){
                 stack.unshift(this.next, value.length, currentState);
                 return "comment";
             },
             regex : /\[=*\[/,
             next  : [
                 {
-                    token : function(value, currentState, stack) {
+                    onMatch : function(value, currentState, stack) {
                         if (value.length == stack[1]) {
                             stack.shift();
                             stack.shift();
@@ -2177,7 +2181,7 @@ oop.inherits(FoldMode, BaseFoldMode);
                     return "start";
             } else if (match[2]) {
                 var type = session.bgTokenizer.getState(row) || "";
-                if (type.indexOf("comment") != -1 || type.indexOf("string") != -1)
+                if (type[0] == "bracketedComment" || type[0] == "bracketedString")
                     return "start";
             } else {
                 return "start";
@@ -2192,7 +2196,7 @@ oop.inherits(FoldMode, BaseFoldMode);
                 return "end";
         } else if (match[0][0] === "]") {
             var type = session.bgTokenizer.getState(row - 1) || "";
-            if (type.indexOf("comment") != -1 || type.indexOf("string") != -1)
+            if (type[0] == "bracketedComment" || type[0] == "bracketedString")
                 return "end";
         } else
             return "end";
