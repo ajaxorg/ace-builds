@@ -337,7 +337,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "string.regexp",
                 regex: "\\/",
-                next: "regex",
+                next: "regex"
             }, {
                 token : "text",
                 regex : "\\s+|^$",
@@ -355,7 +355,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "string.regexp",
                 regex: "/\\w*",
-                next: "no_regex",
+                next: "no_regex"
             }, {
                 token : "invalid",
                 regex: /\{\d+\b,?\d*\}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
@@ -368,7 +368,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "constant.language.escape",
                 regex: /\[\^?/,
-                next: "regex_character_class",
+                next: "regex_character_class"
             }, {
                 token: "empty",
                 regex: "$",
@@ -384,7 +384,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "constant.language.escape",
                 regex: "]",
-                next: "regex",
+                next: "regex"
             }, {
                 token: "constant.language.escape",
                 regex: "-"
@@ -402,10 +402,10 @@ var JavaScriptHighlightRules = function() {
                 regex: identifierRe
             }, {
                 token: "punctuation.operator",
-                regex: "[, ]+",
+                regex: "[, ]+"
             }, {
                 token: "punctuation.operator",
-                regex: "$",
+                regex: "$"
             }, {
                 token: "empty",
                 regex: "",
@@ -427,11 +427,11 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "string",
                 regex : "\\\\$",
-                next  : "qqstring",
+                next  : "qqstring"
             }, {
                 token : "string",
                 regex : '"|$',
-                next  : "no_regex",
+                next  : "no_regex"
             }, {
                 defaultToken: "string"
             }
@@ -443,11 +443,11 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "string",
                 regex : "\\\\$",
-                next  : "qstring",
+                next  : "qstring"
             }, {
                 token : "string",
                 regex : "'|$",
-                next  : "no_regex",
+                next  : "no_regex"
             }, {
                 defaultToken: "string"
             }

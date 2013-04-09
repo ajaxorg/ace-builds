@@ -253,7 +253,7 @@ var VBScriptHighlightRules = function() {
         },
         {
             token: "comment.line.apostrophe.asp",
-            regex: ".",
+            regex: "."
         }
     ],
     "string": [

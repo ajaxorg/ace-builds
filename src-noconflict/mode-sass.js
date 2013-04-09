@@ -74,7 +74,7 @@ var SassHighlightRules = function() {
             regex: "/\\*|[{;}]"
         }, {
             token: "support.type",
-            regex: /^\s*:[\w\-]+\s/,
+            regex: /^\s*:[\w\-]+\s/
         });
         
         this.$rules.comment = [

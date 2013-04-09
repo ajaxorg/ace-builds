@@ -101,7 +101,7 @@ var TomlHighlightRules = function() {
         {
             token : "string",
             regex : "\\\\$",
-            next  : "qqstring",
+            next  : "qqstring"
         },
         {
             token : "constant.language.escape",
@@ -110,7 +110,7 @@ var TomlHighlightRules = function() {
         {
             token : "string",
             regex : '"|$',
-            next  : "start",
+            next  : "start"
         },
         {
             defaultToken: "string"

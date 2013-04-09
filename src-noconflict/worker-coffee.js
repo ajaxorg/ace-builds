@@ -959,17 +959,15 @@ EventEmitter._dispatchEvent = function(eventName, e) {
         e.stopPropagation = stopPropagation;
     if (!e.preventDefault)
         e.preventDefault = preventDefault;
-    if (!e.target)
-        e.target = this;
 
     for (var i=0; i<listeners.length; i++) {
-        listeners[i](e);
+        listeners[i](e, this);
         if (e.propagationStopped)
             break;
     }
     
     if (defaultHandler && !e.defaultPrevented)
-        return defaultHandler(e);
+        return defaultHandler(e, this);
 };
 
 
@@ -979,16 +977,15 @@ EventEmitter._signal = function(eventName, e) {
         return;
 
     for (var i=0; i<listeners.length; i++)
-        listeners[i](e);
+        listeners[i](e, this);
 };
 
 EventEmitter.once = function(eventName, callback) {
     var _self = this;
-    var newCallback = function() {
-        fun && fun.apply(null, arguments);
-        _self.removeEventListener(event, newCallback);
-    };
-    this.addEventListener(event, newCallback);
+    callback && this.addEventListener(eventName, function newCallback() {
+        _self.removeEventListener(eventName, newCallback);
+        callback.apply(null, arguments);
+    });
 };
 
 
@@ -1014,6 +1011,7 @@ EventEmitter.addEventListener = function(eventName, callback, capturing) {
     return callback;
 };
 
+EventEmitter.off =
 EventEmitter.removeListener =
 EventEmitter.removeEventListener = function(eventName, callback) {
     this._eventRegistry = this._eventRegistry || {};
@@ -1052,6 +1050,7 @@ exports.mixin = function(obj, mixin) {
     for (var key in mixin) {
         obj[key] = mixin[key];
     }
+    return obj;
 };
 
 exports.implement = function(proto, mixin) {
@@ -1267,7 +1266,8 @@ var Document = function(text) {
         if (position.row >= length) {
             position.row = Math.max(0, length - 1);
             position.column = this.getLine(length-1).length;
-        }
+        } else if (position.row < 0)
+            position.row = 0;
         return position;
     };
     this.insert = function(position, text) {
@@ -1736,6 +1736,11 @@ Range.fromPoints = function(start, end) {
 };
 Range.comparePoints = comparePoints;
 
+Range.comparePoints = function(p1, p2) {
+    return p1.row - p2.row || p1.column - p2.column;
+};
+
+
 exports.Range = Range;
 });
 
@@ -1747,7 +1752,7 @@ var EventEmitter = require("./lib/event_emitter").EventEmitter;
 
 var Anchor = exports.Anchor = function(doc, row, column) {
     this.document = doc;
-    
+
     if (typeof column == "undefined")
         this.setPosition(row.row, row.column);
     else
@@ -1764,7 +1769,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
     this.getPosition = function() {
         return this.$clipPositionToDocument(this.row, this.column);
     };
-        
+
     this.getDocument = function() {
         return this.document;
     };
@@ -1772,60 +1777,57 @@ var Anchor = exports.Anchor = function(doc, row, column) {
     this.onChange = function(e) {
         var delta = e.data;
         var range = delta.range;
-            
+
         if (range.start.row == range.end.row && range.start.row != this.row)
             return;
-            
+
         if (range.start.row > this.row)
             return;
-            
+
         if (range.start.row == this.row && range.start.column > this.column)
             return;
-    
+
         var row = this.row;
         var column = this.column;
-        
+        var start = range.start;
+        var end = range.end;
+
         if (delta.action === "insertText") {
-            if (range.start.row === row && range.start.column <= column) {
-                if (range.start.row === range.end.row) {
-                    column += range.end.column - range.start.column;
+            if (start.row === row && start.column <= column) {
+                if (start.row === end.row) {
+                    column += end.column - start.column;
+                } else {
+                    column -= start.column;
+                    row += end.row - start.row;
                 }
-                else {
-                    column -= range.start.column;
-                    row += range.end.row - range.start.row;
-                }
-            }
-            else if (range.start.row !== range.end.row && range.start.row < row) {
-                row += range.end.row - range.start.row;
+            } else if (start.row !== end.row && start.row < row) {
+                row += end.row - start.row;
             }
         } else if (delta.action === "insertLines") {
-            if (range.start.row <= row) {
-                row += range.end.row - range.start.row;
+            if (start.row <= row) {
+                row += end.row - start.row;
             }
-        }
-        else if (delta.action == "removeText") {
-            if (range.start.row == row && range.start.column < column) {
-                if (range.end.column >= column)
-                    column = range.start.column;
+        } else if (delta.action === "removeText") {
+            if (start.row === row && start.column < column) {
+                if (end.column >= column)
+                    column = start.column;
                 else
-                    column = Math.max(0, column - (range.end.column - range.start.column));
-                
-            } else if (range.start.row !== range.end.row && range.start.row < row) {
-                if (range.end.row == row) {
-                    column = Math.max(0, column - range.end.column) + range.start.column;
-                }
-                row -= (range.end.row - range.start.row);
-            }
-            else if (range.end.row == row) {
-                row -= range.end.row - range.start.row;
-                column = Math.max(0, column - range.end.column) + range.start.column;
+                    column = Math.max(0, column - (end.column - start.column));
+
+            } else if (start.row !== end.row && start.row < row) {
+                if (end.row === row)
+                    column = Math.max(0, column - end.column) + start.column;
+                row -= (end.row - start.row);
+            } else if (end.row === row) {
+                row -= end.row - start.row;
+                column = Math.max(0, column - end.column) + start.column;
             }
         } else if (delta.action == "removeLines") {
-            if (range.start.row <= row) {
-                if (range.end.row <= row)
-                    row -= range.end.row - range.start.row;
+            if (start.row <= row) {
+                if (end.row <= row)
+                    row -= end.row - start.row;
                 else {
-                    row = range.start.row;
+                    row = start.row;
                     column = 0;
                 }
             }
@@ -1841,19 +1843,18 @@ var Anchor = exports.Anchor = function(doc, row, column) {
                 row: row,
                 column: column
             };
-        }
-        else {
+        } else {
             pos = this.$clipPositionToDocument(row, column);
         }
-        
+
         if (this.row == pos.row && this.column == pos.column)
             return;
-            
+
         var old = {
             row: this.row,
             column: this.column
         };
-        
+
         this.row = pos.row;
         this.column = pos.column;
         this._emit("change", {
@@ -1867,7 +1868,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
     };
     this.$clipPositionToDocument = function(row, column) {
         var pos = {};
-    
+
         if (row >= this.document.getLength()) {
             pos.row = Math.max(0, this.document.getLength() - 1);
             pos.column = this.document.getLine(pos.row).length;
@@ -1880,13 +1881,13 @@ var Anchor = exports.Anchor = function(doc, row, column) {
             pos.row = row;
             pos.column = Math.min(this.document.getLine(pos.row).length, Math.max(0, column));
         }
-        
+
         if (column < 0)
             pos.column = 0;
-            
+
         return pos;
     };
-    
+
 }).call(Anchor.prototype);
 
 });

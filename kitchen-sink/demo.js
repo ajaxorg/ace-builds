@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'kitchen-sink/doclist', 'kitchen-sink/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/split', 'ace/keyboard/vim', 'kitchen-sink/statusbar'], function(require, exports, module) {
+define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'kitchen-sink/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/split', 'ace/keyboard/vim', 'kitchen-sink/statusbar', 'ace/ext/emmet', 'ace/placeholder', 'ace/snippets', 'ace/snippets/javascript'], function(require, exports, module) {
 
 
 require("ace/lib/fixoldbrowsers");
@@ -52,6 +52,8 @@ var Renderer = require("ace/virtual_renderer").VirtualRenderer;
 var Editor = require("ace/editor").Editor;
 var MultiSelect = require("ace/multi_select").MultiSelect;
 
+var whitespace = require("ace/ext/whitespace");
+
 var doclist = require("./doclist");
 var modelist = require("./modelist");
 var layout = require("./layout");
@@ -63,6 +65,8 @@ var bindCheckbox = util.bindCheckbox;
 var bindDropdown = util.bindDropdown;
 
 var ElasticTabstopsLite = require("ace/ext/elastic_tabstops_lite").ElasticTabstopsLite;
+
+var IncrementalSearch = require("ace/incremental_search").IncrementalSearch;
 var container = document.getElementById("editor-container");
 var Split = require("ace/split").Split;
 var split = new Split(container, theme, 1);
@@ -85,6 +89,12 @@ border:1px solid #baf; zIndex:100";
 var cmdLine = new layout.singleLineEditor(consoleEl);
 cmdLine.editor = env.editor;
 env.editor.cmdLine = cmdLine;
+
+env.editor.showCommandLine = function(val) {
+    this.cmdLine.focus();
+    if (typeof val == "string")
+        this.cmdLine.setValue(val, 1);
+};
 env.editor.commands.addCommands([{
     name: "gotoline",
     bindKey: {win: "Ctrl-L", mac: "Command-L"},
@@ -100,20 +110,21 @@ env.editor.commands.addCommands([{
             editor.gotoLine(line);
     },
     readOnly: true
-}/*, {
-    name: "find",
-    bindKey: {win: "Ctrl-F", mac: "Command-F"},
+}, {
+    name: "snippet",
+    bindKey: {win: "Alt-C", mac: "Command-Alt-C"},
     exec: function(editor, needle) {
         if (typeof needle == "object") {
-            var arg = this.name + " " + editor.getCopyText();
-            editor.cmdLine.setValue(arg, 1);
+            editor.cmdLine.setValue("snippet ", 1);
             editor.cmdLine.focus();
             return;
         }
-        editor.find(needle);
+        var s = snippetManager.getSnippetByName(needle, editor);
+        if (s)
+            snippetManager.insertSnippet(editor, s.content);
     },
     readOnly: true
-}*/, {
+}, {
     name: "focusCommandLine",
     bindKey: "shift-esc",
     exec: function(editor, needle) { editor.cmdLine.focus(); },
@@ -131,6 +142,9 @@ env.editor.commands.addCommands([{
     },
     readOnly: true
 }]);
+
+
+env.editor.commands.addCommands(whitespace.commands);
 
 cmdLine.commands.bindKeys({
     "Shift-Return|Ctrl-Return|Alt-Return": function(cmdLine) { cmdLine.insert("\n"); },
@@ -152,7 +166,7 @@ commands.addCommand({
     exec: function() {alert("Fake Save File");}
 });
 
-var keybindings = {    
+var keybindings = {
     ace: null, // Null = use "default" keymapping
     vim: require("ace/keyboard/vim").handler,
     emacs: "ace/keyboard/emacs",
@@ -208,6 +222,7 @@ bindDropdown("doc", function(name) {
         if (!session)
             return;
         session = env.split.setSession(session);
+        whitespace.detectIndentation(session);
         updateUIEditorOptions();
         env.editor.focus();
     });
@@ -351,7 +366,7 @@ bindDropdown("split", function(value) {
         sp.setSplits(1);
     } else {
         var newEditor = (sp.getSplits() == 1);
-        sp.setOrientation(value == "below" ? sp.BELOW : sp.BESIDE);        
+        sp.setOrientation(value == "below" ? sp.BELOW : sp.BESIDE);
         sp.setSplits(2);
 
         if (newEditor) {
@@ -365,6 +380,14 @@ bindDropdown("split", function(value) {
 
 bindCheckbox("elastic_tabstops", function(checked) {
     env.editor.setOption("useElasticTabstops", checked);
+});
+
+var iSearchCheckbox = bindCheckbox("isearch", function(checked) {
+    env.editor.setOption("useIncrementalSearch", checked);
+});
+
+env.editor.addEventListener('incrementalSearchSettingChanged', function(event) {
+    iSearchCheckbox.checked = event.isEnabled;
 });
 
 
@@ -419,6 +442,231 @@ event.addListener(container, "drop", function(e) {
 var StatusBar = require("./statusbar").StatusBar;
 new StatusBar(env.editor, cmdLine.container);
 
+
+var Emmet = require("ace/ext/emmet");
+net.loadScript("https://rawgithub.com/nightwing/emmet-core/master/emmet.js", function() {
+    Emmet.setCore(window.emmet);
+    env.editor.setOption("enableEmmet", true);
+})
+
+
+require("ace/placeholder").PlaceHolder;
+
+var snippetManager = require("ace/snippets").snippetManager
+var jsSnippets = require("ace/snippets/javascript");
+window.snippetManager = snippetManager
+saveSnippets()
+
+function saveSnippets() {
+    jsSnippets.snippets = snippetManager.parseSnippetFile(jsSnippets.snippetText);
+    snippetManager.register(jsSnippets.snippets, "javascript")
+}
+
+env.editSnippets = function() {
+    var sp = env.split;
+    if (sp.getSplits() == 2) {
+        sp.setSplits(1);
+        return;
+    }
+    sp.setSplits(1);
+    sp.setSplits(2);
+    sp.setOrientation(sp.BESIDE);
+    var editor = sp.$editors[1]
+    if (!env.snippetSession) {
+        var file = jsSnippets.snippetText;
+        env.snippetSession = doclist.initDoc(file, "", {});
+        env.snippetSession.setMode("ace/mode/tmsnippet");
+        env.snippetSession.setUseSoftTabs(false);
+    }
+    editor.on("blur", function() {
+        jsSnippets.snippetText = editor.getValue();
+        saveSnippets();
+    })
+    editor.setSession(env.snippetSession, 1);
+    editor.focus();
+}
+
+ace.commands.bindKey("Tab", function(editor) {
+    var success = snippetManager.expandWithTab(editor);
+    if (!success)
+        editor.execCommand("indent");
+})
+
+});
+
+define('ace/ext/whitespace', ['require', 'exports', 'module' , 'ace/lib/lang'], function(require, exports, module) {
+
+
+var lang = require("../lib/lang");
+exports.$detectIndentation = function(lines, fallback) {
+    var stats = [];
+    var changes = [];
+    var tabIndents = 0;
+    var prevSpaces = 0;
+    var max = Math.min(lines.length, 1000);
+    for (var i = 0; i < max; i++) {
+        var line = lines[i];
+        if (!/^\s*[^*+\-\s]/.test(line))
+            continue;
+
+        var tabs = line.match(/^\t*/)[0].length;
+        if (line[0] == "\t")
+            tabIndents++;
+
+        var spaces = line.match(/^ */)[0].length;
+        if (spaces && line[spaces] != "\t") {
+            var diff = spaces - prevSpaces;
+            if (diff > 0 && !(prevSpaces%diff) && !(spaces%diff))
+                changes[diff] = (changes[diff] || 0) + 1;
+                
+            stats[spaces] = (stats[spaces] || 0) + 1;
+        }
+        prevSpaces = spaces;
+        while (line[line.length - 1] == "\\")
+            line = lines[i++];
+    };  
+    
+    function getScore(indent) {
+        var score = 0;
+        for (var i = indent; i < stats.length; i += indent)
+            score += stats[i] || 0;
+        return score;
+    }
+    
+    var changesTotal = changes.reduce(function(a,b){return a+b}, 0);
+
+    var first = {score: 0, length: 0};
+    var spaceIndents = 0;
+    for (var i = 1; i < 12; i++) {
+        if (i == 1) {
+            spaceIndents = getScore(i);
+            var score = 1;
+        } else
+            var score = getScore(i) / spaceIndents;
+
+        if (changes[i]) {
+            score += changes[i] / changesTotal;
+        }
+        
+        if (score > first.score)
+            first = {score: score, length: i};
+    }
+    
+    if (first.score && first.score > 1.4)
+        var tabLength = first.length;
+    
+    if (tabIndents > spaceIndents + 1)
+        return {ch: "\t", length: tabLength};
+    
+    if (spaceIndents + 1 > tabIndents)
+        return {ch: " ", length: tabLength};
+};
+
+exports.detectIndentation = function(session) {
+    var lines = session.getLines(0, 1000);
+    var indent = exports.$detectIndentation(lines) || {};
+    
+    if (indent.ch)
+        session.setUseSoftTabs(indent.ch == " ");
+    
+    if (indent.length)
+        session.setTabSize(indent.length);
+    return indent;
+};
+
+exports.trimTrailingSpace = function(session) {
+    var doc = session.getDocument();
+    var lines = doc.getAllLines();
+
+    for (var i = 0, l=lines.length; i < l; i++) {
+        var line = lines[i];
+        var index = line.search(/\s+$/);
+
+        if (index !== -1)
+            doc.removeInLine(i, index, line.length);
+    }
+};
+
+exports.convertIndentation = function(session, ch, len) {
+    var oldCh = session.getTabString()[0];
+    var oldLen = session.getTabSize();
+    if (!len) len = oldLen;
+    if (!ch) ch = oldCh;
+    
+    var tab = ch == "\t" ? ch: lang.stringRepeat(ch, len);
+    
+    var doc = session.doc;
+    var lines = doc.getAllLines();
+
+    var cache = {};
+    var spaceCache = {};
+    for (var i = 0, l=lines.length; i < l; i++) {
+        var line = lines[i];
+        var match = line.match(/^\s*/)[0];
+        if (match) {
+            var w = session.$getStringScreenWidth(match)[0];
+            var tabCount = Math.floor(w/oldLen);
+            var reminder = w%oldLen;
+            var toInsert = cache[tabCount] || (cache[tabCount] = lang.stringRepeat(tab, tabCount));
+            toInsert += spaceCache[reminder] || (spaceCache[reminder] = lang.stringRepeat(" ", reminder));
+            
+            if (toInsert != match) {
+                doc.removeInLine(i, 0, match.length);
+                doc.insertInLine({row: i, column: 0}, toInsert);                
+            }
+        }
+    }
+    session.setTabSize(len);
+    session.setUseSoftTabs(ch == " ");
+};
+
+exports.$parseStringArg = function(text) {
+    var indent = {}
+    if (/t/.test(text))
+        indent.ch = "\t";
+    else if (/s/.test(text))
+        indent.ch = " ";
+    var m = text.match(/\d+/);
+    if (m)
+        indent.length = parseInt(m[0]);
+    return indent;
+};
+
+exports.$parseArg = function(arg) {
+    if (!arg)
+        return {};
+    if (typeof arg == "string")
+        return exports.$parseStringArg(arg);
+    if (typeof arg.text == "string")
+        return exports.$parseStringArg(arg.text);
+    return arg;
+}
+
+exports.commands = [{
+    name: "detectIndentation",
+    exec: function(editor) {
+        exports.detectIndentation(editor.session);
+    }
+}, {
+    name: "trimTrailingSpace",
+    exec: function(editor) {
+        exports.trimTrailingSpace(editor.session);
+    }
+}, {
+    name: "convertIndentation",
+    exec: function(editor, arg) {
+        var indent = exports.$parseArg(arg);
+        exports.convertIndentation(editor.session, arg.ch, arg.length);
+    }
+}, {
+    name: "setIndentation",
+    exec: function(editor, arg) {
+        var indent = exports.$parseArg(arg);
+        indent.length && editor.session.setTabSize(indent.length);
+        indent.ch && editor.session.setUseSoftTabs(indent.ch == " ");
+    }
+}]
+
 });
 
  define('kitchen-sink/doclist', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/undomanager', 'ace/lib/net', 'kitchen-sink/modelist'], function(require, exports, module) {
@@ -446,6 +694,7 @@ function initDoc(file, path, doc) {
     var mode = modelist.getModeFromPath(path);
     session.modeName = mode.name;
     session.setMode(mode.mode);
+    return session;
 }
 
 
@@ -493,6 +742,7 @@ var docs = {
     "docs/luapage.lp": "LuaPage",
     "docs/Makefile": "Makefile",
     "docs/markdown.md": {name: "Markdown", wrapped: true},
+    "docs/tinymush.mc": {name: "TinyMUSH"},
     "docs/objectivec.m": {name: "Objective-C"},
     "docs/ocaml.ml": "OCaml",
     "docs/OpenSCAD.scad": "OpenSCAD",
@@ -522,6 +772,7 @@ var docs = {
     "docs/toml.toml": "TOML",
     "docs/typescript.ts": "Typescript",
     "docs/vbscript.vbs": "VBScript",
+    "docs/velocity.vm": "Velocity",
     "docs/xml.xml": "XML",
     "docs/xquery.xq": "XQuery",
     "docs/yaml.yaml": "YAML",
@@ -625,7 +876,7 @@ var Mode = function(name, desc, extensions) {
         }) + "$";
     } else {
         var re = "^.*\\.(" + extensions + ")$";
-    }   
+    }
 
     this.extRe = new RegExp(re, "gi");
 };
@@ -674,6 +925,7 @@ var modesByName = {
     lsl:        ["LSL"          , "lsl"],
     makefile:   ["Makefile"     , "^GNUmakefile|^makefile|^Makefile|^OCamlMakefile|make"],
     markdown:   ["Markdown"     , "md|markdown"],
+    mushcode:   ["TinyMUSH"     , "mc|mush"],
     objectivec: ["Objective-C"  , "m"],
     ocaml:      ["OCaml"        , "ml|mli"],
     pascal:     ["Pascal"       , "pas|p"],
@@ -698,10 +950,11 @@ var modesByName = {
     tex:        ["Tex"          , "tex"],
     text:       ["Text"         , "txt"],
     textile:    ["Textile"      , "textile"],
-    tm_snippet: ["tmSnippet"    , "tmSnippet"],
+    tmsnippet:  ["tmSnippet"    , "tmSnippet"],
     toml:       ["toml"         , "toml"],
     typescript: ["Typescript"   , "typescript|ts|str"],
     vbscript:   ["VBScript"     , "vbs"],
+    velocity:   ["Velocity"     , "vm"],
     xml:        ["XML"          , "xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl"],
     xquery:     ["XQuery"       , "xq"],
     yaml:       ["YAML"         , "yaml"]
@@ -1204,6 +1457,7 @@ exports.bindCheckbox = function(id, callback, noInit) {
     };
     el.onclick = onCheck;
     noInit || onCheck();
+    return el;
 };
 
 exports.bindDropdown = function(id, callback, noInit) {
@@ -1538,6 +1792,520 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         }
     }
 });
+
+});
+
+define('ace/incremental_search', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/search', 'ace/search_highlight', 'ace/commands/incremental_search_commands', 'ace/lib/dom', 'ace/commands/command_manager', 'ace/editor', 'ace/config'], function(require, exports, module) {
+
+
+var oop = require("./lib/oop");
+var Range = require("./range").Range;
+var Search = require("./search").Search;
+var SearchHighlight = require("./search_highlight").SearchHighlight;
+var iSearchCommandModule = require("./commands/incremental_search_commands");
+var ISearchKbd = iSearchCommandModule.IncrementalSearchKeyboardHandler;
+function IncrementalSearch() {
+    this.$options = {wrap: false, skipCurrent: false};
+    this.$keyboardHandler = new ISearchKbd(this);
+}
+
+oop.inherits(IncrementalSearch, Search);
+
+;(function() {
+
+    this.activate = function(ed, backwards) {
+        this.$editor = ed;
+        this.$startPos = this.$currentPos = ed.getCursorPosition();
+        this.$options.needle = '';
+        this.$options.backwards = backwards;
+        ed.keyBinding.addKeyboardHandler(this.$keyboardHandler);
+        this.$mousedownHandler = ed.addEventListener('mousedown', this.onMouseDown.bind(this));
+        this.selectionFix(ed);
+        this.statusMessage(true);
+    }
+
+    this.deactivate = function(reset) {
+        this.cancelSearch(reset);
+        this.$editor.keyBinding.removeKeyboardHandler(this.$keyboardHandler);
+        if (this.$mousedownHandler) {
+            this.$editor.removeEventListener('mousedown', this.$mousedownHandler);
+            delete this.$mousedownHandler;
+        }
+        this.message('');
+    }
+
+    this.selectionFix = function(editor) {
+        if (editor.selection.isEmpty() && !editor.session.$emacsMark) {
+            editor.clearSelection();
+        }
+    }
+
+    this.highlight = function(regexp) {
+        var sess = this.$editor.session,
+            hl = sess.$isearchHighlight = sess.$isearchHighlight || sess.addDynamicMarker(
+                new SearchHighlight(null, "ace_isearch-result", "text"));
+        hl.setRegexp(regexp);
+        sess._emit("changeBackMarker"); // force highlight layer redraw
+    }
+
+    this.cancelSearch = function(reset) {
+        var e = this.$editor;
+        this.$prevNeedle = this.$options.needle;
+        this.$options.needle = '';
+        if (reset) {
+            e.moveCursorToPosition(this.$startPos);
+            this.$currentPos = this.$startPos;
+        }
+        this.highlight(null);
+        return Range.fromPoints(this.$currentPos, this.$currentPos);
+    }
+
+    this.highlightAndFindWithNeedle = function(moveToNext, needleUpdateFunc) {
+        if (!this.$editor) return null;
+        var options = this.$options;
+        if (needleUpdateFunc) {
+            options.needle = needleUpdateFunc.call(this, options.needle || '') || '';
+        }
+        if (options.needle.length === 0) {
+            this.statusMessage(true);
+            return this.cancelSearch(true);
+        };
+        options.start = this.$currentPos;
+        var session = this.$editor.session,
+            found = this.find(session);
+        if (found) {
+            if (options.backwards) found = Range.fromPoints(found.end, found.start);
+            this.$editor.moveCursorToPosition(found.end);
+            if (moveToNext) this.$currentPos = found.end;
+            this.highlight(options.re)
+        }
+
+        this.statusMessage(found);
+
+        return found;
+    }
+
+    this.addChar = function(c) {
+        return this.highlightAndFindWithNeedle(false, function(needle) {
+            return needle + c;
+        });
+    }
+
+    this.removeChar = function(c) {
+        return this.highlightAndFindWithNeedle(false, function(needle) {
+            return needle.length > 0 ? needle.substring(0, needle.length-1) : needle;
+        });
+    }
+
+    this.next = function(options) {
+        options = options || {};
+        this.$options.backwards = !!options.backwards;
+        this.$currentPos = this.$editor.getCursorPosition();
+        return this.highlightAndFindWithNeedle(true, function(needle) {
+            return options.useCurrentOrPrevSearch && needle.length === 0 ?
+                this.$prevNeedle || '' : needle;
+        });
+    }
+
+    this.onMouseDown = function(evt) {
+        this.deactivate();
+        return true;
+    }
+
+    this.statusMessage = function(found) {
+        var options = this.$options, msg = '';
+        msg += options.backwards ? 'reverse-' : '';
+        msg += 'isearch: ' + options.needle;
+        msg += found ? '' : ' (not found)';
+        this.message(msg);
+    }
+
+    this.message = function(msg) {
+        if (this.$editor.showCommandLine) {
+            this.$editor.showCommandLine(msg);
+            this.$editor.focus();
+        } else {
+            console.log(msg);
+        }
+    }
+
+}).call(IncrementalSearch.prototype);
+
+
+exports.IncrementalSearch = IncrementalSearch;
+
+var dom = require('./lib/dom');
+dom.importCssString && dom.importCssString("\
+.ace_marker-layer .ace_isearch-result {\
+  position: absolute;\
+  z-index: 6;\
+  -moz-box-sizing: border-box;\
+  -webkit-box-sizing: border-box;\
+  box-sizing: border-box;\
+}\
+div.ace_isearch-result {\
+  border-radius: 4px;\
+  background-color: rgba(255, 200, 0, 0.5);\
+  box-shadow: 0 0 4px rgb(255, 200, 0);\
+}\
+.ace_dark div.ace_isearch-result {\
+  background-color: rgb(100, 110, 160);\
+  box-shadow: 0 0 4px rgb(80, 90, 140);\
+}", "incremental-search-highlighting");
+var commands = require("./commands/command_manager");
+(function() {
+    this.setupIncrementalSearch = function(editor, val) {
+        if (this.usesIncrementalSearch == val) return;
+        this.usesIncrementalSearch = val;
+        var iSearchCommands = iSearchCommandModule.iSearchStartCommands;
+        var method = val ? 'addCommands' : 'removeCommands';
+        this[method](iSearchCommands);
+    };
+}).call(commands.CommandManager.prototype);
+var Editor = require("./editor").Editor;
+require("./config").defineOptions(Editor.prototype, "editor", {
+    useIncrementalSearch: {
+        set: function(val) {
+            this.keyBinding.$handlers.forEach(function(handler) {
+                if (handler.setupIncrementalSearch) {
+                    handler.setupIncrementalSearch(this, val);
+                }
+            });
+            this._emit('incrementalSearchSettingChanged', {isEnabled: val});
+        }
+    }
+});
+
+});
+
+define('ace/commands/incremental_search_commands', ['require', 'exports', 'module' , 'ace/config', 'ace/lib/oop', 'ace/keyboard/hash_handler', 'ace/commands/occur_commands'], function(require, exports, module) {
+
+var config = require("../config");
+var oop = require("../lib/oop");
+var HashHandler = require("../keyboard/hash_handler").HashHandler;
+var occurStartCommand = require("./occur_commands").occurStartCommand;
+exports.iSearchStartCommands = [{
+    name: "iSearch",
+    bindKey: {win: "Ctrl-F", mac: "Command-F"},
+    exec: function(editor, options) {
+        config.loadModule(["core", "ace/incremental_search"], function(e) {
+            var iSearch = e.iSearch = e.iSearch || new e.IncrementalSearch();
+            iSearch.activate(editor, options.backwards);
+            if (options.jumpToFirstMatch) iSearch.next(options);
+        });
+    },
+    readOnly: true
+}, {
+    name: "iSearchBackwards",
+    exec: function(editor, jumpToNext) { editor.execCommand('iSearch', {backwards: true}); },
+    readOnly: true
+}, {
+    name: "iSearchAndGo",
+    bindKey: {win: "Ctrl-K", mac: "Command-G"},
+    exec: function(editor, jumpToNext) { editor.execCommand('iSearch', {jumpToFirstMatch: true, useCurrentOrPrevSearch: true}); },
+    readOnly: true
+}, {
+    name: "iSearchBackwardsAndGo",
+    bindKey: {win: "Ctrl-Shift-K", mac: "Command-Shift-G"},
+    exec: function(editor) { editor.execCommand('iSearch', {jumpToFirstMatch: true, backwards: true, useCurrentOrPrevSearch: true}); },
+    readOnly: true
+}];
+exports.iSearchCommands = [{
+    name: "restartSearch",
+    bindKey: {win: "Ctrl-F", mac: "Command-F"},
+    exec: function(iSearch) {
+        iSearch.cancelSearch(true);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: "searchForward",
+    bindKey: {win: "Ctrl-S|Ctrl-K", mac: "Ctrl-S|Command-G"},
+    exec: function(iSearch, options) {
+        options.useCurrentOrPrevSearch = true;
+        iSearch.next(options);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: "searchBackward",
+    bindKey: {win: "Ctrl-R|Ctrl-Shift-K", mac: "Ctrl-R|Command-Shift-G"},
+    exec: function(iSearch, options) {
+        options.useCurrentOrPrevSearch = true;
+        options.backwards = true;
+        iSearch.next(options);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: "extendSearchTerm",
+    exec: function(iSearch, string) {
+        iSearch.addChar(string);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: "extendSearchTermSpace",
+    bindKey: "space",
+    exec: function(iSearch) { iSearch.addChar(' '); },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: "shrinkSearchTerm",
+    bindKey: "backspace",
+    exec: function(iSearch) {
+        iSearch.removeChar();
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: 'confirmSearch',
+    bindKey: 'return',
+    exec: function(iSearch) { iSearch.deactivate(); },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: 'cancelSearch',
+    bindKey: 'esc|Ctrl-G',
+    exec: function(iSearch) { iSearch.deactivate(true); },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: 'occurisearch',
+    bindKey: 'Ctrl-O',
+    exec: function(iSearch) {
+        var options = oop.mixin({}, iSearch.$options);
+        iSearch.deactivate();
+        occurStartCommand.exec(iSearch.$editor, options);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}];
+
+function IncrementalSearchKeyboardHandler(iSearch) {
+    this.$iSearch = iSearch;
+}
+
+oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
+
+;(function() {
+
+    this.attach = function(editor) {
+        var iSearch = this.$iSearch;
+        HashHandler.call(this, exports.iSearchCommands, editor.commands.platform);
+        this.$commandExecHandler = editor.commands.addEventListener('exec', function(e) {
+            if (!e.command.isIncrementalSearchCommand) return undefined;
+            e.stopPropagation();
+            e.preventDefault();
+            return e.command.exec(iSearch, e.args || {});
+        });
+    }
+
+    this.detach = function(editor) {
+        if (!this.$commandExecHandler) return;
+        editor.commands.removeEventListener('exec', this.$commandExecHandler);
+        delete this.$commandExecHandler;
+    }
+
+    var handleKeyboard$super = this.handleKeyboard;
+    this.handleKeyboard = function(data, hashId, key, keyCode) {
+        var cmd = handleKeyboard$super.call(this, data, hashId, key, keyCode);
+        if (cmd.command) { return cmd; }
+        if (hashId == -1) {
+            var extendCmd = this.commands.extendSearchTerm;
+            if (extendCmd) { return {command: extendCmd, args: key}; }
+        }
+        return {command: "null", passEvent: hashId == 0 || hashId == 4};
+    }
+
+}).call(IncrementalSearchKeyboardHandler.prototype);
+
+
+exports.IncrementalSearchKeyboardHandler = IncrementalSearchKeyboardHandler;
+
+});
+
+define('ace/commands/occur_commands', ['require', 'exports', 'module' , 'ace/config', 'ace/occur', 'ace/keyboard/hash_handler', 'ace/lib/oop'], function(require, exports, module) {
+
+var config = require("../config"),
+    Occur = require("../occur").Occur;
+var occurStartCommand = {
+    name: "occur",
+    exec: function(editor, options) {
+        var alreadyInOccur = !!editor.session.$occur;
+        var occurSessionActive = new Occur().enter(editor, options);
+        if (occurSessionActive && !alreadyInOccur)
+            OccurKeyboardHandler.installIn(editor);
+    },
+    readOnly: true
+};
+
+var occurCommands = [{
+    name: "occurexit",
+    bindKey: 'esc|Ctrl-G',
+    exec: function(editor) {
+        var occur = editor.session.$occur;
+        if (!occur) return;
+        occur.exit(editor, {});
+        if (!editor.session.$occur) OccurKeyboardHandler.uninstallFrom(editor);
+    },
+    readOnly: true
+}, {
+    name: "occuraccept",
+    bindKey: 'enter',
+    exec: function(editor) {
+        var occur = editor.session.$occur;
+        if (!occur) return;
+        occur.exit(editor, {translatePosition: true});
+        if (!editor.session.$occur) OccurKeyboardHandler.uninstallFrom(editor);
+    },
+    readOnly: true
+}];
+
+var HashHandler = require("../keyboard/hash_handler").HashHandler;
+var oop = require("../lib/oop");
+
+
+function OccurKeyboardHandler() {}
+
+oop.inherits(OccurKeyboardHandler, HashHandler);
+
+;(function() {
+
+    this.isOccurHandler = true;
+
+    this.attach = function(editor) {
+        HashHandler.call(this, occurCommands, editor.commands.platform);
+        this.$editor = editor;
+    }
+
+    var handleKeyboard$super = this.handleKeyboard;
+    this.handleKeyboard = function(data, hashId, key, keyCode) {
+        var cmd = handleKeyboard$super.call(this, data, hashId, key, keyCode);
+        return (cmd && cmd.command) ? cmd : undefined;
+    }
+
+}).call(OccurKeyboardHandler.prototype);
+
+OccurKeyboardHandler.installIn = function(editor) {
+    var handler = new this();
+    editor.keyBinding.addKeyboardHandler(handler);
+    editor.commands.addCommands(occurCommands);
+}
+
+OccurKeyboardHandler.uninstallFrom = function(editor) {
+    editor.commands.removeCommands(occurCommands);
+    var handler = editor.getKeyboardHandler();
+    if (handler.isOccurHandler)
+        editor.keyBinding.removeKeyboardHandler(handler);
+}
+
+exports.occurStartCommand = occurStartCommand;
+
+});
+
+define('ace/occur', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/search', 'ace/edit_session', 'ace/search_highlight', 'ace/lib/dom'], function(require, exports, module) {
+
+
+var oop = require("./lib/oop");
+var Range = require("./range").Range;
+var Search = require("./search").Search;
+var EditSession = require("./edit_session").EditSession;
+var SearchHighlight = require("./search_highlight").SearchHighlight;
+function Occur() {}
+
+oop.inherits(Occur, Search);
+
+(function() {
+    this.enter = function(editor, options) {
+        if (!options.needle) return false;
+        var pos = editor.getCursorPosition();
+        this.displayOccurContent(editor, options);
+        var translatedPos = this.originalToOccurPosition(editor.session, pos);
+        editor.moveCursorToPosition(translatedPos);
+        return true;
+    }
+    this.exit = function(editor, options) {
+        var pos = options.translatePosition && editor.getCursorPosition();
+        var translatedPos = pos && this.occurToOriginalPosition(editor.session, pos);
+        this.displayOriginalContent(editor);
+        if (translatedPos)
+            editor.moveCursorToPosition(translatedPos);
+        return true;
+    }
+
+    this.highlight = function(sess, regexp) {
+        var hl = sess.$occurHighlight = sess.$occurHighlight || sess.addDynamicMarker(
+                new SearchHighlight(null, "ace_occur-highlight", "text"));
+        hl.setRegexp(regexp);
+        sess._emit("changeBackMarker"); // force highlight layer redraw
+    }
+
+    this.displayOccurContent = function(editor, options) {
+        this.$originalSession = editor.session;
+        var found = this.matchingLines(editor.session, options);
+        var lines = found.map(function(foundLine) { return foundLine.content; });
+        var occurSession = new EditSession(lines.join('\n'));
+        occurSession.$occur = this;
+        occurSession.$occurMatchingLines = found;
+        editor.setSession(occurSession);
+        this.highlight(occurSession, options.re);
+        occurSession._emit('changeBackMarker');
+    }
+
+    this.displayOriginalContent = function(editor) {
+        editor.setSession(this.$originalSession);
+    }
+    this.originalToOccurPosition = function(session, pos) {
+        var lines = session.$occurMatchingLines;
+        var nullPos = {row: 0, column: 0};
+        if (!lines) return nullPos;
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].row === pos.row)
+                return {row: i, column: pos.column};
+        }
+        return nullPos;
+    }
+    this.occurToOriginalPosition = function(session, pos) {
+        var lines = session.$occurMatchingLines;
+        if (!lines || !lines[pos.row])
+            return pos;
+        return {row: lines[pos.row].row, column: pos.column};
+    }
+
+    this.matchingLines = function(session, options) {
+        options = oop.mixin({}, options);
+        if (!session || !options.needle) return [];
+        var search = new Search();
+        search.set(options);
+        return search.findAll(session).reduce(function(lines, range) {
+            var row = range.start.row;
+            var last = lines[lines.length-1];
+            return last && last.row === row ?
+                lines :
+                lines.concat({row: row, content: session.getLine(row)});
+        }, []);
+    }
+
+}).call(Occur.prototype);
+
+var dom = require('./lib/dom');
+dom.importCssString(".ace_occur-highlight {\n\
+    border-radius: 4px;\n\
+    background-color: rgba(87, 255, 8, 0.25);\n\
+    position: absolute;\n\
+    z-index: 4;\n\
+    -moz-box-sizing: border-box;\n\
+    -webkit-box-sizing: border-box;\n\
+    box-sizing: border-box;\n\
+    box-shadow: 0 0 4px rgb(91, 255, 50);\n\
+}\n\
+.ace_dark .ace_occur-highlight {\n\
+    background-color: rgb(80, 140, 85);\n\
+    box-shadow: 0 0 4px rgb(60, 120, 70);\n\
+}\n", "incremental-occur-highlighting");
+
+exports.Occur = Occur;
 
 });
 
@@ -1894,10 +2662,11 @@ exports.onCursorMove = function(e) {
 
 });
  
-define('ace/keyboard/vim/commands', ['require', 'exports', 'module' , 'ace/keyboard/vim/maps/util', 'ace/keyboard/vim/maps/motions', 'ace/keyboard/vim/maps/operators', 'ace/keyboard/vim/maps/aliases', 'ace/keyboard/vim/registers'], function(require, exports, module) {
+define('ace/keyboard/vim/commands', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/keyboard/vim/maps/util', 'ace/keyboard/vim/maps/motions', 'ace/keyboard/vim/maps/operators', 'ace/keyboard/vim/maps/aliases', 'ace/keyboard/vim/registers'], function(require, exports, module) {
 
 "never use strict";
 
+var lang = require("../../lib/lang");
 var util = require("./maps/util");
 var motions = require("./maps/motions");
 var operators = require("./maps/operators");
@@ -1955,6 +2724,8 @@ var actions = exports.actions = {
         param: true,
         fn: function(editor, range, count, param) {
             if (param && param.length) {
+                if (param.length > 1)
+                    param = param == "return" ? "\n" : param == "tab" ? "\t" : param;
                 repeat(function() { editor.insert(param); }, count || 1);
                 editor.navigateLeft();
             }
@@ -2071,13 +2842,14 @@ var actions = exports.actions = {
             editor.setOverwrite(false);
             if (defaultReg.isLine) {
                 var pos = editor.getCursorPosition();
-                var lines = defaultReg.text.split("\n");
-                editor.session.getDocument().insertLines(pos.row + 1, lines);
+                pos.column = editor.session.getLine(pos.row).length;
+                var text = lang.stringRepeat("\n" + defaultReg.text, count || 1);
+                editor.session.insert(pos, text);
                 editor.moveCursorTo(pos.row + 1, 0);
             }
             else {
                 editor.navigateRight();
-                editor.insert(defaultReg.text);
+                editor.insert(lang.stringRepeat(defaultReg.text, count || 1));
                 editor.navigateLeft();
             }
             editor.setOverwrite(true);
@@ -2091,12 +2863,13 @@ var actions = exports.actions = {
 
             if (defaultReg.isLine) {
                 var pos = editor.getCursorPosition();
-                var lines = defaultReg.text.split("\n");
-                editor.session.getDocument().insertLines(pos.row, lines);
-                editor.moveCursorTo(pos.row, 0);
+                pos.column = 0;
+                var text = lang.stringRepeat(defaultReg.text + "\n", count || 1);
+                editor.session.insert(pos, text);
+                editor.moveCursorToPosition(pos);
             }
             else {
-                editor.insert(defaultReg.text);
+                editor.insert(lang.stringRepeat(defaultReg.text, count || 1));
             }
             editor.setOverwrite(true);
             editor.selection.clearSelection();
@@ -2144,14 +2917,23 @@ var actions = exports.actions = {
     },
     ":": {
         fn: function(editor, range, count, param) {
+            var val = ":";
+            if (count > 1)
+                val = ".,.+" + count + val;
+            if (editor.showCommandLine)
+                editor.showCommandLine(val);
         }
     },
     "/": {
         fn: function(editor, range, count, param) {
+            if (editor.showCommandLine)
+                editor.showCommandLine("/");
         }
     },
     "?": {
         fn: function(editor, range, count, param) {
+            if (editor.showCommandLine)
+                editor.showCommandLine("?");
         }
     },
     ".": {
@@ -2185,14 +2967,18 @@ var inputBuffer = exports.inputBuffer = {
     lastInsertCommands: [],
 
     push: function(editor, ch, keyId) {
+        var status = this.status;
         var isKeyHandled = true;
         this.idle = false;
         var wObj = this.waitingForParam;
+        if (/^numpad\d+$/i.test(ch))
+            ch = ch.substr(6);
+            
         if (wObj) {
             this.exec(editor, wObj, ch);
         }
         else if (!(ch === "0" && !this.currentCount.length) &&
-            (ch.match(/^\d+$/) && this.isAccepting(NUMBER))) {
+            (/^\d+$/.test(ch) && this.isAccepting(NUMBER))) {
             this.currentCount += ch;
             this.currentCmd = NUMBER;
             this.accepting = [NUMBER, OPERATOR, MOTION, ACTION];
@@ -2245,6 +3031,7 @@ var inputBuffer = exports.inputBuffer = {
                 this.idle = false;
         }
         else if (this.operator) {
+            this.operator.count = this.getCount();
             this.exec(editor, { operator: this.operator }, ch);
         }
         else {
@@ -2258,10 +3045,9 @@ var inputBuffer = exports.inputBuffer = {
             this.status = this.currentCount;
         } else if (this.status) {
             this.status = "";
-        } else {
-            return isKeyHandled;
         }
-        editor._emit("changeStatus");
+        if (this.status != status)
+            editor._emit("changeStatus");
         return isKeyHandled;
     },
 
@@ -2685,6 +3471,8 @@ function find(editor, needle, dir) {
 
 var Range = require("../../../range").Range;
 
+var LAST_SEARCH_MOTION = {};
+
 module.exports = {
     "w": new Motion(function(editor) {
         var str = new StringStream(editor);
@@ -2925,7 +3713,9 @@ module.exports = {
     "f": new Motion({
         param: true,
         handlesCount: true,
-        getPos: function(editor, range, count, param, isSel) {
+        getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (!isRepeat)
+                LAST_SEARCH_MOTION = {ch: "f", param: param};
             var cursor = editor.getCursorPosition();
             var column = util.getRightNthChar(editor, cursor, param, count || 1);
 
@@ -2938,7 +3728,9 @@ module.exports = {
     "F": new Motion({
         param: true,
         handlesCount: true,
-        getPos: function(editor, range, count, param, isSel) {
+        getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (!isRepeat)
+                LAST_SEARCH_MOTION = {ch: "F", param: param};
             var cursor = editor.getCursorPosition();
             var column = util.getLeftNthChar(editor, cursor, param, count || 1);
 
@@ -2951,10 +3743,15 @@ module.exports = {
     "t": new Motion({
         param: true,
         handlesCount: true,
-        getPos: function(editor, range, count, param, isSel) {
+        getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (!isRepeat)
+                LAST_SEARCH_MOTION = {ch: "t", param: param};
             var cursor = editor.getCursorPosition();
             var column = util.getRightNthChar(editor, cursor, param, count || 1);
 
+            if (isRepeat && column == 0 && !(count > 1))
+                var column = util.getRightNthChar(editor, cursor, param, 2);
+                
             if (typeof column === "number") {
                 cursor.column += column + (isSel ? 1 : 0);
                 return cursor;
@@ -2964,14 +3761,44 @@ module.exports = {
     "T": new Motion({
         param: true,
         handlesCount: true,
-        getPos: function(editor, range, count, param, isSel) {
+        getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (!isRepeat)
+                LAST_SEARCH_MOTION = {ch: "T", param: param};
             var cursor = editor.getCursorPosition();
             var column = util.getLeftNthChar(editor, cursor, param, count || 1);
 
+            if (isRepeat && column == 0 && !(count > 1))
+                var column = util.getLeftNthChar(editor, cursor, param, 2);
+            
             if (typeof column === "number") {
                 cursor.column -= column;
                 return cursor;
             }
+        }
+    }),
+    ";": new Motion({
+        handlesCount: true,
+        getPos: function(editor, range, count, param, isSel) {
+            var ch = LAST_SEARCH_MOTION.ch;
+            if (!ch)
+                return;
+            return module.exports[ch].getPos(
+                editor, range, count, LAST_SEARCH_MOTION.param, isSel, true
+            );
+        }
+    }),
+    ",": new Motion({
+        handlesCount: true,
+        getPos: function(editor, range, count, param, isSel) {
+            var ch = LAST_SEARCH_MOTION.ch;
+            if (!ch)
+                return;
+            var up = ch.toUpperCase();
+            ch = ch === up ? ch.toLowerCase() : up;
+            
+            return module.exports[ch].getPos(
+                editor, range, count, LAST_SEARCH_MOTION.param, isSel, true
+            );
         }
     }),
 
@@ -3154,11 +3981,11 @@ module.exports = {
                 return pos;
             }
         }
-    }),
+    })
 };
 
 module.exports.backspace = module.exports.left = module.exports.h;
-module.exports.right = module.exports.l;
+module.exports.space = module.exports.return = module.exports.right = module.exports.l;
 module.exports.up = module.exports.k;
 module.exports.down = module.exports.j;
 module.exports.pagedown = module.exports["ctrl-d"];
@@ -3168,7 +3995,7 @@ module.exports.pageup = module.exports["ctrl-u"];
  
 define('ace/keyboard/vim/maps/operators', ['require', 'exports', 'module' , 'ace/keyboard/vim/maps/util', 'ace/keyboard/vim/registers'], function(require, exports, module) {
 
-"never use strict";
+
 
 var util = require("./util");
 var registers = require("../registers");
@@ -3195,7 +4022,6 @@ module.exports = {
                         registers._default.text += editor.getCopyText();
                         var selRange = editor.getSelectionRange();
                         if (!selRange.isMultiLine()) {
-                            lastLineReached = true
                             var row = selRange.start.row - 1;
                             var col = editor.session.getLine(row).length
                             selRange.setStart(row, col);
@@ -3438,5 +4264,1188 @@ var StatusBar = function(editor, parentNode) {
 }).call(StatusBar.prototype);
 
 exports.StatusBar = StatusBar;
+
+});
+
+define('ace/ext/emmet', ['require', 'exports', 'module' , 'ace/keyboard/hash_handler', 'ace/editor', 'ace/config'], function(require, exports, module) {
+
+var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
+var Editor = require("ace/editor").Editor;
+var emmet;
+
+Editor.prototype.indexToPosition = function(index) {
+    return this.session.doc.indexToPosition(index);
+};
+
+Editor.prototype.positionToIndex = function(pos) {
+    return this.session.doc.positionToIndex(pos);
+};
+function AceEmmetEditor() {}
+
+AceEmmetEditor.prototype = {
+    setupContext: function(editor) {
+        this.ace = editor;
+        this.indentation = editor.session.getTabString();
+        emmet.require('resources').setVariable('indentation', this.indentation);
+        this.$syntax = null;
+        this.$syntax = this.getSyntax();
+    },
+    getSelectionRange: function() {
+        var range = this.ace.getSelectionRange();
+        return {
+            start: this.ace.positionToIndex(range.start),
+            end: this.ace.positionToIndex(range.end)
+        };
+    },
+    createSelection: function(start, end) {
+        this.ace.selection.setRange({
+            start: this.ace.indexToPosition(start),
+            end: this.ace.indexToPosition(end)
+        });
+    },
+    getCurrentLineRange: function() {
+        var row = this.ace.getCursorPosition().row;
+        var lineLength = this.ace.session.getLine(row).length;
+        var index = this.ace.positionToIndex({row: row, column: 0});
+        return {
+            start: index,
+            end: index + lineLength
+        };
+    },
+    getCaretPos: function(){
+        var pos = this.ace.getCursorPosition();
+        return this.ace.positionToIndex(pos);
+    },
+    setCaretPos: function(index){
+        var pos = this.ace.indexToPosition(index);
+        this.ace.clearSelection();
+        this.ace.selection.moveCursorToPosition(pos);
+    },
+    getCurrentLine: function() {
+        var row = this.ace.getCursorPosition().row;
+        return this.ace.session.getLine(row);
+    },
+    replaceContent: function(value, start, end, noIndent) {
+        if (end == null)
+            end = start == null ? content.length : start;
+        if (start == null)
+            start = 0;
+        var utils = emmet.require('utils');
+        if (!noIndent) {
+            value = utils.padString(value, utils.getLinePaddingFromPosition(this.getContent(), start));
+        }
+        var tabstopData = emmet.require('tabStops').extract(value, {
+            escape: function(ch) {
+                return ch;
+            }
+        });
+
+        value = tabstopData.text;
+        var firstTabStop = tabstopData.tabstops[0];
+
+        if (firstTabStop) {
+            firstTabStop.start += start;
+            firstTabStop.end += start;
+        } else {
+            firstTabStop = {
+                start: value.length + start,
+                end: value.length + start
+            };
+        }
+
+        var range = this.ace.getSelectionRange();
+        range.start = this.ace.indexToPosition(start);
+        range.end = this.ace.indexToPosition(end);
+
+        this.ace.session.replace(range, value);
+
+        range.start = this.ace.indexToPosition(firstTabStop.start);
+        range.end = this.ace.indexToPosition(firstTabStop.end);
+        this.ace.selection.setRange(range);
+    },
+    getContent: function(){
+        return this.ace.getValue();
+    },
+    getSyntax: function() {
+        if (this.$syntax)
+            return this.$syntax;
+        var syntax = this.ace.session.$modeId.split("/").pop();
+        if (syntax == 'html' || syntax == "php") {
+            var cursor = this.ace.getCursorPosition();
+            var state = this.ace.session.getState(cursor.row);
+            if (typeof state != "string")
+                state = state[0];
+            if (state) {
+                state = state.split("-");
+                if (state.length > 1)
+                    syntax = state[0];
+                else if (syntax == "php")
+                    syntax = "html"
+            }
+        }
+        return syntax;
+    },
+    getProfileName: function() {
+        switch(this.getSyntax()) {
+          case 'css': return css;
+          case 'xml':
+          case 'xsl':
+            return 'xml';
+          case 'html':
+            var profile = emmet.require('resources').getVariable('profile');
+            if (!profile)
+                profile = this.ace.session.getLines(0,2).join("").search(/<!DOCTYPE[^>]+XHTML/i) != -1 ? 'xhtml': 'html';
+            return profile;
+        }
+        return 'xhtml';
+    },
+    prompt: function(title) {
+        return prompt(title);
+    },
+    getSelection: function() {
+        return this.ace.session.getTextRange();
+    },
+    getFilePath: function() {
+        return '';
+    }
+};
+
+
+var keymap = {
+    expand_abbreviation: {"mac": "ctrl+alt+e", "win": "alt+e"},
+    match_pair_outward: {"mac": "ctrl+d", "win": "ctrl+,"},
+    match_pair_inward: {"mac": "ctrl+j", "win": "ctrl+shift+0"},
+    matching_pair: {"mac": "ctrl+alt+j", "win": "alt+j"},
+    next_edit_point: "alt+right",
+    prev_edit_point: "alt+left",
+    toggle_comment: {"mac": "command+shift+/", "win": "ctrl+shift+/"},
+    split_join_tag: {"mac": "shift+command+'", "win": "shift+ctrl+`"},
+    remove_tag: {"mac": "command+'", "win": "shift+ctrl+;"},
+    evaluate_math_expression: {"mac": "shift+command+y", "win": "shift+ctrl+y"},
+    increment_number_by_1: "ctrl+up",
+    decrement_number_by_1: "ctrl+down",
+    increment_number_by_01: "alt+up",
+    decrement_number_by_01: "alt+down",
+    increment_number_by_10: {"mac": "alt+command+up", "win": "shift+alt+up"},
+    decrement_number_by_10: {"mac": "alt+command+down", "win": "shift+alt+down"},
+    select_next_item: {"mac": "shift+command+.", "win": "shift+ctrl+."},
+    select_previous_item: {"mac": "shift+command+,", "win": "shift+ctrl+,"},
+    reflect_css_value: {"mac": "shift+command+r", "win": "shift+ctrl+r"},
+
+    encode_decode_data_url: {"mac": "shift+ctrl+d", "win": "ctrl+'"},
+    expand_abbreviation_with_tab: "Tab"
+};
+
+var editorProxy = new AceEmmetEditor();
+exports.commands = new HashHandler();
+function runEmmetCommand(editor) {
+    editorProxy.setupContext(editor);
+    if (editorProxy.getSyntax() == "php")
+        return false;
+    var actions = emmet.require('actions')
+
+    try {
+        var result = actions.run(this.name, editorProxy);
+    } catch(e) {
+        editor._signal("changeStatus", typeof e == "string" ? e : e.message);
+    }
+    return result;
+}
+
+for (var command in keymap) {
+    exports.commands.addCommand({
+        name: command,
+        bindKey: keymap[command],
+        exec: runEmmetCommand
+    });
+}
+
+var onChangeMode = function(e, target) {
+    var editor = target;
+    if (!editor)
+        return;
+    var modeId = editor.session.$modeId;
+    var enabled = modeId && /css|less|sass|html|php/.test(modeId);
+    if (e.enableEmmet === false)
+        enabled = false;
+    if (enabled)
+        editor.keyBinding.addKeyboardHandler(exports.commands);
+    else
+        editor.keyBinding.removeKeyboardHandler(exports.commands);
+};
+
+
+exports.AceEmmetEditor = AceEmmetEditor
+require("ace/config").defineOptions(Editor.prototype, "editor", {
+    enableEmmet: {
+        set: function(val) {
+            this[val ? "on" : "removeListener"]("changeMode", onChangeMode);
+            onChangeMode({enableEmmet: !!val}, this);
+        },
+        value: true
+    }
+});
+
+
+exports.setCore = function(e) {emmet = e;};
+});
+
+define('ace/snippets', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/range', 'ace/keyboard/hash_handler', 'ace/tokenizer', 'ace/lib/dom'], function(require, exports, module) {
+
+var lang = require("./lib/lang")
+var Range = require("./range").Range
+var HashHandler = require("./keyboard/hash_handler").HashHandler;
+var Tokenizer = require("./tokenizer").Tokenizer;
+var comparePoints = Range.comparePoints;
+
+var SnippetManager = function() {
+    this.snippetMap = {};
+    this.snippetNameMap = {};
+};
+
+(function() {
+    this.getTokenizer = function() {
+        function TabstopToken(str, _, stack) {
+            str = str.substr(1);
+            if (/^\d+$/.test(str) && !stack.inFormatString)
+                return [{tabstopId: parseInt(str, 10)}];
+            return [{text: str}]
+        }
+        function escape(ch) {
+            return "(?:[^\\\\" + ch + "]|\\\\.)";
+        }
+        SnippetManager.$tokenizer = new Tokenizer({
+            start: [
+                {regex: /:/, onMatch: function(val, state, stack) {
+                    if (stack.length && stack[0].expectIf) {
+                        stack[0].expectIf = false;
+                        stack[0].elseBranch = stack[0];
+                        return [stack[0]];
+                    }
+                    return ":";
+                }},
+                {regex: /\\./, onMatch: function(val, state, stack) {
+                    var ch = val[1];
+                    if (ch == "}" && stack.length) {
+                        val = ch;
+                    }else if ("`$\\".indexOf(ch) != -1) {
+                        val = ch;
+                    } else if (stack.inFormatString) {
+                        if (ch == "n")
+                            val = "\n";
+                        else if (ch == "t")
+                            val = "\n";
+                        else if ("ulULE".indexOf(ch) != -1) {
+                            val = {changeCase: ch, local: ch > "a"};
+                        }
+                    }
+
+                    return [val];
+                }},
+                {regex: /}/, onMatch: function(val, state, stack) {
+                    return [stack.length ? stack.shift() : val];
+                }},
+                {regex: /\$(?:\d+|\w+)/, onMatch: TabstopToken},
+                {regex: /\$\{[\dA-Z_a-z]+/, onMatch: function(str, state, stack) {
+                    var t = TabstopToken(str.substr(1), state, stack);
+                    stack.unshift(t[0]);
+                    return t;
+                }, next: "snippetVar"},
+                {regex: /\n/, token: "newline", merge: false}
+            ],
+            snippetVar: [
+                {regex: "\\|" + escape("\\|") + "*\\|", onMatch: function(val, state, stack) {
+                    stack[0].choices = val.slice(1, -1).split(",");
+                }, next: "start"},
+                {regex: "/(" + escape("/") + "+)/(?:(" + escape("/") + "*)/)(\\w*):?",
+                 onMatch: function(val, state, stack) {
+                    var ts = stack[0];
+                    ts.fmtString = val;
+
+                    val = this.splitRegex.exec(val);
+                    ts.guard = val[1];
+                    ts.fmt = val[2];
+                    ts.flag = val[3];
+                    return "";
+                }, next: "start"},
+                {regex: "`" + escape("`") + "*`", onMatch: function(val, state, stack) {
+                    stack[0].code = val.splice(1, -1);
+                    return "";
+                }, next: "start"},
+                {regex: "\\?", onMatch: function(val, state, stack) {
+                    if (stack[0])
+                        stack[0].expectIf = true;
+                }, next: "start"},
+                {regex: "([^:}\\\\]|\\\\.)*:?", token: "", next: "start"}
+            ],
+            formatString: [
+                {regex: "/(" + escape("/") + "+)/", token: "regex"},
+                {regex: "", onMatch: function(val, state, stack) {
+                    stack.inFormatString = true;
+                }, next: "start"}
+            ]
+        });
+        SnippetManager.prototype.getTokenizer = function() {
+            return SnippetManager.$tokenizer;
+        }
+        return SnippetManager.$tokenizer;
+    };
+
+    this.tokenizeTmSnippet = function(str, startState) {
+        return this.getTokenizer().getLineTokens(str, startState).tokens.map(function(x) {
+            return x.value || x;
+        });
+    };
+
+    this.$getDefaultValue = function(editor, name) {
+        if (/^[A-Z]\d+$/.test(name)) {
+            var i = name.substr(1);
+            return (this.variables[name[0] + "__"] || {})[i];
+        }
+        if (/^\d+$/.test(name)) {
+            return (this.variables.__ || {})[name];
+        }
+        name = name.replace(/^TM_/, "");
+
+        if (!editor)
+            return;
+        var s = editor.session;
+        switch(name) {
+            case "CURRENT_WORD":
+                var r = s.getWordRange();
+            case "SELECTION":
+            case "SELECTED_TEXT":
+                return s.getTextRange(r);
+            case "CURRENT_LINE":
+                return s.getLine(e.getCursorPosition().row);
+            case "LINE_INDEX":
+                return e.getCursorPosition().column;
+            case "LINE_NUMBER":
+                return e.getCursorPosition().row + 1;
+            case "SOFT_TABS":
+                return s.getUseSoftTabs() ? "YES" : "NO";
+            case "TAB_SIZE":
+                return s.getTabSize();
+            case "FILENAME":
+            case "FILEPATH":
+                return "ace.ajax.org";
+            case "FULLNAME":
+                return "Ace";
+        }
+    };
+    this.variables = {};
+    this.getVariableValue = function(editor, varName) {
+        if (this.variables.hasOwnProperty(varName))
+            return this.variables[varName](editor, varName) || "";
+        return this.$getDefaultValue(editor, varName) || "";
+    };
+    this.tmStrFormat = function(str, ch, editor) {
+        var flag = ch.flag || "";
+        var re = ch.guard;
+        re = new RegExp(re, flag.replace(/[^gi]/, ""));
+        var fmtTokens = this.tokenizeTmSnippet(ch.fmt, "formatString");
+        var _self = this;
+        var formatted = str.replace(re, function() {
+            _self.variables.__ = arguments;
+            var fmtParts = _self.resolveVariables(fmtTokens, editor);
+            var gChangeCase = "E";
+            for (var i  = 0; i < fmtParts.length; i++) {
+                var ch = fmtParts[i];
+                if (typeof ch == "object") {
+                    fmtParts[i] = "";
+                    if (ch.changeCase && ch.local) {
+                        var next = fmtParts[i + 1];
+                        if (next && typeof next == "string") {
+                            if (ch.changeCase == "u")
+                                fmtParts[i] = next[0].toUpperCase();
+                            else
+                                fmtParts[i] = next[0].toLowerCase();
+                            fmtParts[i + 1] = next.substr(1);
+                        }
+                    } else if (ch.changeCase) {
+                        gChangeCase = ch.changeCase;
+                    }
+                } else if (gChangeCase == "U") {
+                    fmtParts[i] = ch.toUpperCase();
+                } else if (gChangeCase == "L") {
+                    fmtParts[i] = ch.toLowerCase();
+                }
+            }
+            return fmtParts.join("");
+        });
+        this.variables.__ = null;
+        return formatted;
+    };
+
+    this.resolveVariables = function(snippet, editor) {
+        var result = [];
+        for (var i = 0; i < snippet.length; i++) {
+            var ch = snippet[i];
+            if (typeof ch == "string") {
+                result.push(ch);
+            } else if (typeof ch != "object") {
+                continue;
+            } else if (ch.skip) {
+                gotoNext(ch);
+            } else if (ch.processed < i) {
+                continue;
+            } else if (ch.text) {
+                var value = this.getVariableValue(editor, ch.text);
+                if (value && ch.fmtString)
+                    value = this.tmStrFormat(value, ch);
+                ch.processed = i;
+                if (ch.expectIf == null) {
+                    if (value) {
+                        result.push(value);
+                        gotoNext(ch);
+                    }
+                } else {
+                    if (value) {
+                        ch.skip = ch.elseBranch;
+                    } else
+                        gotoNext(ch);
+                }
+            } else if (ch.tabstopId != null) {
+                result.push(ch);
+            } else if (ch.changeCase != null) {
+                result.push(ch);
+            }
+        }
+        function gotoNext(ch) {
+            var i1 = snippet.indexOf(ch, i + 1);
+            if (i1 != -1)
+                i = i1;
+        }
+        return result;
+    };
+
+    this.insertSnippet = function(editor, snippetText) {
+        var cursor = editor.getCursorPosition();
+        var line = editor.session.getLine(cursor.row);
+        var indentString = line.match(/^\s*/)[0];
+        var tabString = editor.session.getTabString();
+
+        var tokens = this.tokenizeTmSnippet(snippetText);
+        tokens = this.resolveVariables(tokens, editor);
+        tokens = tokens.map(function(x) {
+            if (x == "\n")
+                return x + indentString;
+            if (typeof x == "string")
+                return x.replace(/\t/g, tabString);
+            return x;
+        });
+        var tabstops = [];
+        tokens.forEach(function(p, i) {
+            if (typeof p != "object")
+                return;
+            var id = p.tabstopId;
+            if (!tabstops[id]) {
+                tabstops[id] = [];
+                tabstops[id].index = id;
+                tabstops[id].value = "";
+            }
+            if (tabstops[id].indexOf(p) != -1)
+                return;
+            tabstops[id].push(p);
+            var i1 = tokens.indexOf(p, i + 1);
+            if (i1 == -1)
+                return;
+            var value = tokens.slice(i + 1, i1).join("");
+            if (value)
+                tabstops[id].value = value;
+        });
+
+        tabstops.forEach(function(ts) {
+            ts.value && ts.forEach(function(p) {
+                var i = tokens.indexOf(p);
+                var i1 = tokens.indexOf(p, i + 1);
+                if (i1 == -1)
+                    tokens.splice(i + 1, 0, ts.value, p);
+                else if (i1 == i + 1)
+                    tokens.splice(i + 1, 0, ts.value);
+            });
+        });
+        var row = 0, column = 0;
+        var text = "";
+        tokens.forEach(function(t) {
+            if (typeof t == "string") {
+                if (t[0] == "\n"){
+                    column = t.length - 1;
+                    row ++;
+                } else
+                    column += t.length;
+                text += t;
+            } else {
+                if (!t.start)
+                    t.start = {row: row, column: column};
+                else
+                    t.end = {row: row, column: column};
+            }
+        });
+        var range = editor.getSelectionRange();
+        var end = editor.session.replace(range, text);
+
+        var tabstopManager = new TabstopManager(editor);
+        tabstopManager.addTabstops(tabstops, range.start, end);
+        tabstopManager.tabNext();
+    };
+
+    this.$getScope = function(editor) {
+        var scope = editor.session.$mode.$id || "";
+        scope = scope.split("/").pop();
+        if (editor.session.$mode.$modes) {
+            var c = editor.getCursorPosition()
+            var state = editor.session.getState(c.row);
+            if (state.substring) {
+                if (state.substring(0, 3) == "js-")
+                    scope = "javascript";
+                else if (state.substring(0, 4) == "css-")
+                    scope = "css";
+                else if (state.substring(0, 4) == "php-")
+                    scope = "php";
+            }
+        }
+        return scope;
+    };
+
+    this.expandWithTab = function(editor) {
+        var cursor = editor.getCursorPosition();
+        var line = editor.session.getLine(cursor.row);
+        var before = line.substring(0, cursor.column);
+        var after = line.substr(cursor.column);
+
+        var scope = this.$getScope(editor);
+        var snippetMap = this.snippetMap;
+        var snippet;
+        [scope, "_"].some(function(scope) {
+            var snippets = snippetMap[scope];
+            if (snippets)
+                snippet = this.findMatchingSnippet(snippets, before, after);
+            return !!snippet;
+        }, this);
+        if (!snippet)
+            return false;
+
+        editor.session.doc.removeInLine(cursor.row,
+            cursor.column - snippet.replaceBefore.length,
+            cursor.column + snippet.replaceAfter.length
+        );
+
+        this.variables.M__ = snippet.matchBefore;
+        this.variables.T__ = snippet.matchAfter;
+        this.insertSnippet(editor, snippet.content);
+
+        this.variables.M__ = this.variables.T__ = null;
+        return true;
+    };
+
+    this.findMatchingSnippet = function(snippetList, before, after) {
+        for (var i = snippetList.length; i--;) {
+            var s = snippetList[i];
+            if (s.startRe && !s.startRe.test(before))
+                continue;
+            if (s.endRe && !s.endRe.test(after))
+                continue;
+            if (!s.startRe && !s.endRe)
+                continue;
+
+            s.matchBefore = s.startRe ? s.startRe.exec(before) : [""];
+            s.matchAfter = s.endRe ? s.endRe.exec(after) : [""];
+            s.replaceBefore = s.triggerRe ? s.triggerRe.exec(before)[0] : "";
+            s.replaceAfter = s.endTriggerRe ? s.endTriggerRe.exec(after)[0] : "";
+            return s;
+        }
+    };
+
+    this.snippetMap = {};
+    this.snippetNameMap = {};
+    this.register = function(snippets, scope) {
+        var snippetMap = this.snippetMap;
+        var snippetNameMap = this.snippetNameMap;
+        var self = this;
+        function wrapRegexp(src) {
+            if (src && !/^\^?\(.*\)\$?$|^\\b$/.test(src))
+                src = "(?:" + src + ")"
+
+            return src || "";
+        }
+        function guardedRegexp(re, guard, opening) {
+            re = wrapRegexp(re);
+            guard = wrapRegexp(guard);
+            if (opening) {
+                re = guard + re;
+                if (re && re[re.length - 1] != "$")
+                    re = re + "$";
+            } else {
+                re = re + guard;
+                if (re && re[0] != "^")
+                    re = "^" + re;
+            }
+            return new RegExp(re);
+        }
+
+        function addSnippet(s) {
+            if (!s.scope)
+                s.scope = scope || "_";
+            scope = s.scope
+            if (!snippetMap[scope]) {
+                snippetMap[scope] = [];
+                snippetNameMap[scope] = {};
+            }
+
+            var map = snippetNameMap[scope];
+            if (s.name) {
+                var old = map[s.name];
+                if (old)
+                    self.unregister(old);
+                map[s.name] = s;
+            }
+            snippetMap[scope].push(s);
+
+            if (s.tabTrigger && !s.trigger) {
+                if (!s.guard && /^\w/.test(s.tabTrigger))
+                    s.guard = "\\b";
+                s.trigger = lang.escapeRegExp(s.tabTrigger);
+            }
+
+            s.startRe = guardedRegexp(s.trigger, s.guard, true);
+            s.triggerRe = new RegExp(s.trigger, "", true);
+
+            s.endRe = guardedRegexp(s.endTrigger, s.endGuard, true);
+            s.endTriggerRe = new RegExp(s.endTrigger, "", true);
+        };
+
+        if (snippets.content)
+            addSnippet(snippets);
+        else if (Array.isArray(snippets))
+            snippets.forEach(addSnippet);
+    };
+    this.unregister = function(snippets, scope) {
+        var snippetMap = this.snippetMap;
+        var snippetNameMap = this.snippetNameMap;
+
+        function removeSnippet(s) {
+            var map = snippetNameMap[scope];
+            if (map && map[s.name]) {
+                delete map[s.name];
+                map = snippetMap[scope];
+                var i = map && map.indexOf(s);
+                if (i >= 0)
+                    map.splice(i, 1);
+            }
+        }
+        if (snippets.content)
+            removeSnippet(snippets);
+        else if (Array.isArray(snippets))
+            snippets.forEach(removeSnippet);
+    };
+    this.parseSnippetFile = function(str) {
+        str = str.replace(/\r/, "");
+        var list = [], snippet = {};
+        var re = /^#.*|^({[\s\S]*})\s*$|^(\S+) (.*)$|^((?:\n*\t.*)+)/gm;
+        var m;
+        while (m = re.exec(str)) {
+            if (m[1]) {
+                try {
+                    snippet = JSON.parse(m[1])
+                    list.push(snippet);
+                } catch (e) {}
+            } if (m[4]) {
+                snippet.content = m[4].replace(/^\t/gm, "");
+                list.push(snippet);
+                snippet = {};
+            } else {
+                var key = m[2], val = m[3];
+                if (key == "regex") {
+                    var guardRe = /\/((?:[^\/\\]|\\.)*)|$/g;
+                    snippet.guard = guardRe.exec(val)[1];
+                    snippet.trigger = guardRe.exec(val)[1];
+                    snippet.endTrigger = guardRe.exec(val)[1];
+                    snippet.endGuard = guardRe.exec(val)[1];
+                } else if (key == "snippet") {
+                    snippet.tabTrigger = val.match(/^\S*/)[0];
+                    if (!snippet.name)
+                        snippet.name = val;
+                } else {
+                    snippet[key] = val;
+                }
+            }
+        }
+        return list;
+    };
+    this.getSnippetByName = function(name, editor) {
+        var scope = editor && this.$getScope(editor);
+        var snippetMap = this.snippetNameMap;
+        var snippet;
+        [scope, "_"].some(function(scope) {
+            var snippets = snippetMap[scope];
+            if (snippets)
+                snippet = snippets[name];
+            return !!snippet;
+        }, this);
+        return snippet;
+    };
+
+}).call(SnippetManager.prototype);
+
+
+
+var TabstopManager = function(editor) {
+    if (editor.tabstopManager)
+        return editor.tabstopManager;
+    editor.tabstopManager = this;
+    this.$onChange = this.onChange.bind(this);
+    this.$onChangeSelection = lang.delayedCall(this.onChangeSelection.bind(this)).schedule;
+    this.$onChangeSession = this.onChangeSession.bind(this);
+    this.$onAfterExec = this.onAfterExec.bind(this);
+    this.attach(editor);
+};
+(function() {
+    this.attach = function(editor) {
+        this.index = -1;
+        this.ranges = [];
+        this.tabstops = [];
+        this.selectedTabstop = null;
+
+        this.editor = editor;
+        this.editor.on("change", this.$onChange);
+        this.editor.on("changeSelection", this.$onChangeSelection);
+        this.editor.on("changeSession", this.$onChangeSession);
+        this.editor.commands.on("afterExec", this.$onAfterExec);
+        this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+    };
+    this.detach = function() {
+        this.tabstops.forEach(this.removeTabstopMarkers, this);
+        this.ranges = null;
+        this.tabstops = null;
+        this.selectedTabstop = null;
+        this.editor.removeListener("change", this.$onChange);
+        this.editor.removeListener("changeSelection", this.$onChangeSelection);
+        this.editor.removeListener("changeSession", this.$onChangeSession);
+        this.editor.commands.removeListener("afterExec", this.$onAfterExec);
+        this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
+        this.editor.tabstopManager = null;
+        this.editor = null;
+    };
+
+    this.onChange = function(e) {
+        var changeRange = e.data.range;
+        var isRemove = e.data.action[0] == "r";
+        var start = changeRange.start;
+        var end = changeRange.end;
+        var startRow = start.row;
+        var endRow = end.row;
+        var lineDif = endRow - startRow;
+        var colDiff = end.column - start.column;
+
+        if (isRemove) {
+            lineDif = -lineDif;
+            colDiff = -colDiff;
+        }
+        if (!this.$inChange && isRemove) {
+            var ts = this.selectedTabstop;
+            var changedOutside = !ts.some(function(r) {
+                return comparePoints(r.start, start) <= 0 && comparePoints(r.end, end) >= 0;
+            });
+            if (changedOutside)
+                return this.detach();
+        }
+        var ranges = this.ranges;
+        for (var i = 0; i < ranges.length; i++) {
+            var r = ranges[i];
+            if (r.end.row < start.row)
+                continue;
+
+            if (comparePoints(start, r.start) < 0 && comparePoints(end, r.end) > 0) {
+                this.removeRange(r);
+                i--;
+                continue;
+            }
+
+            if (r.start.row == startRow && r.start.column > start.column)
+                r.start.column += colDiff;
+            if (r.end.row == startRow && r.end.column >= start.column)
+                r.end.column += colDiff;
+            if (r.start.row >= startRow)
+                r.start.row += lineDif;
+            if (r.end.row >= startRow)
+                r.end.row += lineDif;
+
+            if (comparePoints(r.start, r.end) > 0)
+                this.removeRange(r);
+        }
+        if (!ranges.length)
+            this.detach();
+    };
+    this.updateLinkedFields = function() {
+        var ts = this.selectedTabstop;
+        if (!ts.hasLinkedRanges)
+            return;
+        this.$inChange = true;
+        var session = this.editor.session;
+        var text = session.getTextRange(ts.firstNonLinked);
+        for (var i = ts.length; i--;) {
+            var range = ts[i];
+            if (!range.linked)
+                continue;
+            var fmt = exports.snippetManager.tmStrFormat(text, range.original)
+            session.replace(range, fmt);
+        }
+        this.$inChange = false;
+    };
+    this.onAfterExec = function(e) {
+        if (e.command && !e.command.readOnly)
+            this.updateLinkedFields();
+    };
+    this.onChangeSelection = function() {
+        if (!this.editor)
+            return
+        var lead = this.editor.selection.lead;
+        var anchor = this.editor.selection.anchor;
+        var isEmpty = this.editor.selection.isEmpty();
+        for (var i = this.ranges.length; i--;) {
+            if (this.ranges[i].linked)
+                continue;
+            var containsLead = this.ranges[i].contains(lead.row, lead.column);
+            var containsAnchor = isEmpty || this.ranges[i].contains(anchor.row, anchor.column);
+            if (containsLead && containsAnchor)
+                return;
+        }
+        this.detach();
+    };
+    this.onChangeSession = function() {
+        this.detach();
+    };
+    this.tabNext = function(dir) {
+        var max = this.tabstops.length - 1;
+        var index = this.index + (dir || 1);
+        index = Math.min(Math.max(index, 0), max);
+        this.selectTabstop(index);
+        if (index == max)
+            this.detach();
+    };
+    this.selectTabstop = function(index) {
+        var ts = this.tabstops[this.index];
+        if (ts)
+            this.addTabstopMarkers(ts);
+        this.index = index;
+        ts = this.tabstops[this.index];
+        if (!ts || !ts.length)
+            return;
+
+        this.selectedTabstop = ts;
+        var sel = this.editor.multiSelect;
+        sel.toSingleRange(ts.firstNonLinked.clone());
+        for (var i = ts.length; i--;) {
+            if (ts.hasLinkedRanges && ts[i].linked)
+                continue;
+            sel.addRange(ts[i].clone(), true);
+        }
+        this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+    };
+    this.addTabstops = function(tabstops, start, end) {
+        if (!tabstops[0]) {
+            var p = Range.fromPoints(end, end);
+            moveRelative(p.start, start);
+            moveRelative(p.end, start);
+            tabstops[0] = [p];
+            tabstops[0].index = 0;
+        }
+
+        var i = this.index;
+        var arg = [i, 0];
+        var ranges = this.ranges;
+        var editor = this.editor;
+        tabstops.forEach(function(ts) {
+            for (var i = ts.length; i--;) {
+                var p = ts[i];
+                var range = Range.fromPoints(p.start, p.end || p.start);
+                movePoint(range.start, start);
+                movePoint(range.end, start);
+                range.original = p;
+                range.tabstop = ts;
+                ranges.push(range);
+                ts[i] = range;
+                if (p.fmtString) {
+                    range.linked = true;
+                    ts.hasLinkedRanges = true;
+                } else if (!ts.firstNonLinked)
+                    ts.firstNonLinked = range;
+            }
+            if (!ts.firstNonLinked)
+                ts.hasLinkedRanges = false;
+            arg.push(ts);
+            this.addTabstopMarkers(ts);
+        }, this);
+        arg.push(arg.splice(2, 1)[0]);
+        this.tabstops.splice.apply(this.tabstops, arg);
+    };
+
+    this.addTabstopMarkers = function(ts) {
+        var session = this.editor.session;
+        ts.forEach(function(range) {
+            if  (!range.markerId)
+                range.markerId = session.addMarker(range, "ace_snippet-marker", "text");
+        });
+    };
+    this.removeTabstopMarkers = function(ts) {
+        var session = this.editor.session;
+        ts.forEach(function(range) {
+            session.removeMarker(range.markerId);
+            range.markerId = null;
+        });
+    };
+    this.removeRange = function(range) {
+        var i = range.tabstop.indexOf(range);
+        range.tabstop.splice(i, 1);
+        i = this.ranges.indexOf(range);
+        this.ranges.splice(i, 1);
+        this.editor.session.removeMarker(range.markerId);
+    };
+
+    this.keyboardHandler = new HashHandler();
+    this.keyboardHandler.bindKeys({
+        "Tab": function(ed) {
+            ed.tabstopManager.tabNext(1);
+        },
+        "Shift-Tab": function(ed) {
+            ed.tabstopManager.tabNext(-1);
+        },
+        "Esc": function(ed) {
+            ed.tabstopManager.detach();
+        },
+        "!Return": function(ed) {
+            return false;
+        }
+    });
+}).call(TabstopManager.prototype);
+
+
+var movePoint = function(point, diff) {
+    if (point.row == 0)
+        point.column += diff.column;
+    point.row += diff.row;
+};
+
+var moveRelative = function(point, start) {
+    if (point.row == start.row)
+        point.column -= start.column;
+    point.row -= start.row;
+};
+
+
+require("./lib/dom").importCssString("\
+.ace_snippet-marker {\
+    -moz-box-sizing: border-box;\
+    box-sizing: border-box;\
+    background: rgba(194, 193, 208, 0.09);\
+    border: 1px dotted rgba(211, 208, 235, 0.62);\
+    position: absolute;\
+}");
+
+exports.snippetManager = new SnippetManager();
+
+
+});
+define('ace/snippets/javascript', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.snippetText = "# Prototype\n\
+snippet proto\n\
+	${1:class_name}.prototype.${2:method_name} = function(${3:first_argument}) {\n\
+		${4:// body...}\n\
+	};\n\
+# Function\n\
+snippet fun\n\
+	function ${1?:function_name}(${2:argument}) {\n\
+		${3:// body...}\n\
+	}\n\
+# Anonymous Function\n\
+regex /((=)\\s*|(:)\\s*|(\\()|\\b)/f/(\\))?/\n\
+name f\n\
+	function${M1?: ${1:functionName}}($2) {\n\
+		${0:$TM_SELECTED_TEXT}\n\
+	}${M2?;}${M3?,}${M4?)}\n\
+# Immediate function\n\
+trigger \\(?f\\(\n\
+endTrigger \\)?\n\
+snippet f(\n\
+	(function(${1}) {\n\
+		${0:${TM_SELECTED_TEXT:/* code */}}\n\
+	}(${1}));\n\
+# if\n\
+snippet if\n\
+	if (${1:true}) {\n\
+		${0}\n\
+	}\n\
+# if ... else\n\
+snippet ife\n\
+	if (${1:true}) {\n\
+		${2}\n\
+	} else {\n\
+		${0}\n\
+	}\n\
+# tertiary conditional\n\
+snippet ter\n\
+	${1:/* condition */} ? ${2:a} : ${3:b}\n\
+# switch\n\
+snippet switch\n\
+	switch (${1:expression}) {\n\
+		case '${3:case}':\n\
+			${4:// code}\n\
+			break;\n\
+		${5}\n\
+		default:\n\
+			${2:// code}\n\
+	}\n\
+# case\n\
+snippet case\n\
+	case '${1:case}':\n\
+		${2:// code}\n\
+		break;\n\
+	${3}\n\
+\n\
+# while (...) {...}\n\
+snippet wh\n\
+	while (${1:/* condition */}) {\n\
+		${0:/* code */}\n\
+	}\n\
+# try\n\
+snippet try\n\
+	try {\n\
+		${0:/* code */}\n\
+	} catch (e) {}\n\
+# do...while\n\
+snippet do\n\
+	do {\n\
+		${2:/* code */}\n\
+	} while (${1:/* condition */});\n\
+# Object Method\n\
+snippet :f\n\
+regex /([,{[])|^\\s*/:f/\n\
+	${1:method_name}: function(${2:attribute}) {\n\
+		${0}\n\
+	}${3:,}\n\
+# setTimeout function\n\
+snippet setTimeout\n\
+regex /\\b/st|timeout|setTimeo?u?t?/\n\
+	setTimeout(function() {${3:$TM_SELECTED_TEXT}}, ${1:10});\n\
+# Get Elements\n\
+snippet gett\n\
+	getElementsBy${1:TagName}('${2}')${3}\n\
+# Get Element\n\
+snippet get\n\
+	getElementBy${1:Id}('${2}')${3}\n\
+# console.log (Firebug)\n\
+snippet cl\n\
+	console.log(${1});\n\
+# return\n\
+snippet ret\n\
+	return ${1:result}\n\
+# for (property in object ) { ... }\n\
+snippet fori\n\
+	for (var ${1:prop} in ${2:Things}) {\n\
+		${0:$2[$1]}\n\
+	}\n\
+# hasOwnProperty\n\
+snippet has\n\
+	hasOwnProperty(${1})\n\
+# docstring\n\
+snippet /**\n\
+	/**\n\
+	 * ${1:description}\n\
+	 *\n\
+	 */\n\
+snippet @par\n\
+regex /^\\s*\\*\\s*/@(para?m?)?/\n\
+	@param {${1:type}} ${2:name} ${3:description}\n\
+snippet @ret\n\
+	@return {${1:type}} ${2:description}\n\
+# JSON.parse\n\
+snippet jsonp\n\
+	JSON.parse(${1:jstr});\n\
+# JSON.stringify\n\
+snippet jsons\n\
+	JSON.stringify(${1:object});\n\
+# self-defining function\n\
+snippet sdf\n\
+	var ${1:function_name} = function(${2:argument}) {\n\
+		${3:// initial code ...}\n\
+\n\
+		$1 = function($2) {\n\
+			${4:// main code}\n\
+		};\n\
+	}\n\
+# singleton\n\
+snippet sing\n\
+	function ${1:Singleton} (${2:argument}) {\n\
+		// the cached instance\n\
+		var instance;\n\
+\n\
+		// rewrite the constructor\n\
+		$1 = function $1($2) {\n\
+			return instance;\n\
+		};\n\
+		\n\
+		// carry over the prototype properties\n\
+		$1.prototype = this;\n\
+\n\
+		// the instance\n\
+		instance = new $1();\n\
+\n\
+		// reset the constructor pointer\n\
+		instance.constructor = $1;\n\
+\n\
+		${3:// code ...}\n\
+\n\
+		return instance;\n\
+	}\n\
+# class\n\
+name class\n\
+regex /^\\s*/clas{0,2}/\n\
+	var ${1:class} = function(${20}) {\n\
+		$40$0\n\
+	};\n\
+	\n\
+	(function() {\n\
+		${60:this.prop = \"\"}\n\
+	}).call(${1:class}.prototype);\n\
+	\n\
+	exports.${1:class} = ${1:class};\n\
+# \n\
+snippet for-\n\
+	for (var ${1:i} = ${2:Things}.length; ${1:i}--; ) {\n\
+		${0:${2:Things}[${1:i}];}\n\
+	}\n\
+# for (...) {...}\n\
+snippet for\n\
+	for (var ${1:i} = 0; $1 < ${2:Things}.length; $1++) {\n\
+		${3:$2[$1]}$0\n\
+	}\n\
+# for (...) {...} (Improved Native For-Loop)\n\
+snippet forr\n\
+	for (var ${1:i} = ${2:Things}.length - 1; $1 >= 0; $1--) {\n\
+		${3:$2[$1]}$0\n\
+	}\n\
+\n\
+\n\
+#modules\n\
+snippet def\n\
+	define(function(require, exports, module) {\n\
+	\"use strict\";\n\
+	var ${1/.*\\///} = require(\"${1}\");\n\
+	\n\
+	$TM_SELECTED_TEXT\n\
+	});\n\
+snippet req\n\
+guard ^\\s*\n\
+	var ${1/.*\\///} = require(\"${1}\");\n\
+	$0\n\
+snippet requ\n\
+guard ^\\s*\n\
+	var ${1/.*\\/(.)/\\u$1/} = require(\"${1}\").${1/.*\\/(.)/\\u$1/};\n\
+	$0\n\
+";
+
 
 });

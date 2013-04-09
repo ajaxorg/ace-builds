@@ -16,14 +16,14 @@
     <link href="./doc/site/images/favicon.ico" rel="icon" type="image/x-icon">
     
       <link rel="stylesheet" href="kitchen-sink/styles.css" type="text/css" media="screen" charset="utf-8">
-      <script async="true" src="http://use.edgefonts.net/source-code-pro.js"></script> 
+      <script async="true" src="http://use.edgefonts.net/source-code-pro.js"></script>
     
 </head>
 <body>
 <div id="optionsPanel" style="position:absolute;height:100%;width:260px">
   <a href="http://ajaxorg.github.com/ace/" >
     <img id="logo" src="kitchen-sink/logo.png">
-  </a> 
+  </a>
   <div style="position: absolute; overflow: hidden; top:80px; bottom:0">
   <div style="width: 120%; height:100%; overflow-y: scroll">
 
@@ -86,11 +86,12 @@
             <option value="ace/theme/monokai">Monokai</option>
             <option value="ace/theme/pastel_on_dark">Pastel on dark</option>
             <option value="ace/theme/solarized_dark">Solarized Dark</option>
-            <option value="ace/theme/twilight">Twilight</option>
+            <option value="ace/theme/terminal">Terminal</option>
             <option value="ace/theme/tomorrow_night">Tomorrow Night</option>
             <option value="ace/theme/tomorrow_night_blue">Tomorrow Night Blue</option>
             <option value="ace/theme/tomorrow_night_bright">Tomorrow Night Bright</option>
             <option value="ace/theme/tomorrow_night_eighties">Tomorrow Night 80s</option>
+            <option value="ace/theme/twilight">Twilight</option>    
             <option value="ace/theme/vibrant_ink">Vibrant Ink</option>
           </optgroup>
         </select>
@@ -148,7 +149,7 @@
         </select>
       </td>
     </tr>
-  
+
     <tr><td colspan="2">
     <table id="more-controls">
     <tr>
@@ -248,6 +249,14 @@
     </tr>
     <tr>
       <td >
+        <label for="isearch">Incremental Search</label>
+      </td>
+      <td>
+        <input type="checkbox" id="isearch">
+      </td>
+    </tr>
+    <tr>
+      <td >
         <label for="highlight_token">Show token info</label>
       </td>
       <td>
@@ -262,10 +271,15 @@
         <input type="checkbox" id="read_only">
       </td>
     </tr>
+    <tr>
+      <td colspan="2">
+        <input type="button" value="Edit Snippets", onclick="env.editSnippets()">
+      </td>
+    </tr>
   </table>
   </td></tr>
   </table>
-  
+
   </div>
   </div>
 </div>

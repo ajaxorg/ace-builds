@@ -325,7 +325,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "string.regexp",
                 regex: "\\/",
-                next: "regex",
+                next: "regex"
             }, {
                 token : "text",
                 regex : "\\s+|^$",
@@ -343,7 +343,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "string.regexp",
                 regex: "/\\w*",
-                next: "no_regex",
+                next: "no_regex"
             }, {
                 token : "invalid",
                 regex: /\{\d+\b,?\d*\}[+*]|[+*$^?][+*]|[$^][?]|\?{3,}/
@@ -356,7 +356,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "constant.language.escape",
                 regex: /\[\^?/,
-                next: "regex_character_class",
+                next: "regex_character_class"
             }, {
                 token: "empty",
                 regex: "$",
@@ -372,7 +372,7 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token: "constant.language.escape",
                 regex: "]",
-                next: "regex",
+                next: "regex"
             }, {
                 token: "constant.language.escape",
                 regex: "-"
@@ -390,10 +390,10 @@ var JavaScriptHighlightRules = function() {
                 regex: identifierRe
             }, {
                 token: "punctuation.operator",
-                regex: "[, ]+",
+                regex: "[, ]+"
             }, {
                 token: "punctuation.operator",
-                regex: "$",
+                regex: "$"
             }, {
                 token: "empty",
                 regex: "",
@@ -415,11 +415,11 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "string",
                 regex : "\\\\$",
-                next  : "qqstring",
+                next  : "qqstring"
             }, {
                 token : "string",
                 regex : '"|$',
-                next  : "no_regex",
+                next  : "no_regex"
             }, {
                 defaultToken: "string"
             }
@@ -431,11 +431,11 @@ var JavaScriptHighlightRules = function() {
             }, {
                 token : "string",
                 regex : "\\\\$",
-                next  : "qstring",
+                next  : "qstring"
             }, {
                 token : "string",
                 regex : "'|$",
-                next  : "no_regex",
+                next  : "no_regex"
             }, {
                 defaultToken: "string"
             }
@@ -1873,7 +1873,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules', 'ace/mode/folding/lua', 'ace/range'], function(require, exports, module) {
+define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules', 'ace/mode/folding/lua', 'ace/range', 'ace/worker/worker_client'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -1882,6 +1882,7 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var LuaHighlightRules = require("./lua_highlight_rules").LuaHighlightRules;
 var LuaFoldMode = require("./folding/lua").FoldMode;
 var Range = require("../range").Range;
+var WorkerClient = require("../worker/worker_client").WorkerClient;
 
 var Mode = function() {
     this.$tokenizer = new Tokenizer(new LuaHighlightRules().getRules());
@@ -1980,6 +1981,21 @@ oop.inherits(Mode, TextMode);
             return;
         }
         session.outdentRows(new Range(row, 0, row + 2, 0));
+    };
+
+    this.createWorker = function(session) {
+        var worker = new WorkerClient(["ace"], "ace/mode/lua_worker", "Worker");
+        worker.attachToDocument(session.getDocument());
+        
+        worker.on("error", function(e) {
+            session.setAnnotations([e.data]);
+        });
+        
+        worker.on("ok", function(e) {
+            session.clearAnnotations();
+        });
+        
+        return worker;
     };
 
 }).call(Mode.prototype);
@@ -2238,7 +2254,7 @@ oop.inherits(FoldMode, BaseFoldMode);
             "elseif": -1,
             "end": -1,
             "repeat": 1,
-            "until": -1,
+            "until": -1
         };
 
         var token = stream.getCurrentToken();

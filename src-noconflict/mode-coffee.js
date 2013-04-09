@@ -289,7 +289,7 @@ ace.define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 
                 regex : '###',
                 next : "start"
             }, {
-                defaultToken : "comment",
+                defaultToken : "comment"
             }]
         };
         this.normalizeRules();

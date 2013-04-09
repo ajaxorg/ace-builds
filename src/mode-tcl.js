@@ -173,7 +173,7 @@ var TclHighlightRules = function() {
                 regex : '[ ]*["]',
                 next  : "qqstring"
             }, {
-                token : "variable.instance", // variable xotcl with braces
+                token : "variable.instance",
                 regex : "[$]",
                 next  : "variable"
             }, {
@@ -210,7 +210,7 @@ var TclHighlightRules = function() {
                 token : "string", // single line
                 regex : '[ ]*["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
             }, {
-                token : "variable.instance", // variable xotcl with braces
+                token : "variable.instance", 
                 regex : "[$]",
                 next  : "variable"
             }, {
@@ -254,10 +254,6 @@ var TclHighlightRules = function() {
             }],
         "variable" : [ 
             {
-                token : "variable.instance", // variable xotcl with braces
-                regex : "(?:[:][:])?[a-zA-Z_\\d]+(?:(?:[:][:])?[a-zA-Z_\\d]+)?(?:[(][a-zA-Z_\\d]+[)])?",
-                next : "start"
-            }, {
                 token : "variable.instance", // variable tcl
                 regex : "[a-zA-Z_\\d]+(?:[(][a-zA-Z_\\d]+[)])?",
                 next  : "start"

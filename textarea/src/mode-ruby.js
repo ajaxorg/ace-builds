@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of Ajax.org B.V. nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -48,7 +48,7 @@ oop.inherits(Mode, TextMode);
 
 (function() {
 
-       
+
     this.lineCommentStart = "#";
 
     this.getNextLineIndent = function(state, line, tab) {
@@ -60,10 +60,13 @@ oop.inherits(Mode, TextMode);
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
         }
-        
+
         if (state == "start") {
             var match = line.match(/^.*[\{\(\[]\s*$/);
-            if (match) {
+            var startingClassOrMethod = line.match(/^\s*(class|def)\s.*$/);
+            var startingDoBlock = line.match(/.*do(\s*|\s+\|.*\|\s*)$/);
+            var startingConditional = line.match(/^\s*(if|else)\s*/)
+            if (match || startingClassOrMethod || startingDoBlock || startingConditional) {
                 indent += tab;
             }
         }
@@ -72,11 +75,14 @@ oop.inherits(Mode, TextMode);
     };
 
     this.checkOutdent = function(state, line, input) {
-        return this.$outdent.checkOutdent(line, input);
+        return /\s+end$/.test(line + input) || /\s+}$/.test(line + input) || /\s+else$/.test(line + input);
     };
 
     this.autoOutdent = function(state, doc, row) {
-        this.$outdent.autoOutdent(doc, row);
+        var indent = this.$getIndent(doc.getLine(row));
+        var tab = doc.getTabString();
+        if (indent.slice(-tab.length) == tab)
+            doc.remove(new Range(row, indent.length-tab.length, row, indent.length));
     };
 
 }).call(Mode.prototype);
@@ -131,7 +137,7 @@ var RubyHighlightRules = function() {
         "attr|attr_writer|attr_reader|attr_accessor|attr_accessible|autoload|binding|block_given?|callcc|" +
         "caller|catch|chomp|chomp!|chop|chop!|defined?|delete_via_redirect|eval|exec|exit|" +
         "exit!|fail|Float|flunk|follow_redirect!|fork|form_for|form_tag|format|gets|global_variables|gsub|" +
-        "gsub!|get_via_redirect|h|host!|https?|https!|include|Integer|lambda|link_to|" +
+        "gsub!|get_via_redirect|host!|https?|https!|include|Integer|lambda|link_to|" +
         "link_to_unless_current|link_to_function|link_to_remote|load|local_variables|loop|open|open_session|" +
         "p|print|printf|proc|putc|puts|post_via_redirect|put_via_redirect|raise|rand|" +
         "raw|readline|readlines|redirect?|request_via_redirect|require|scan|select|" +
@@ -149,7 +155,7 @@ var RubyHighlightRules = function() {
         "validates_inclusion_of|validates_numericality_of|validates_with|validates_each|" +
         "authenticate_or_request_with_http_basic|authenticate_or_request_with_http_digest|" +
         "filter_parameter_logging|match|get|post|resources|redirect|scope|assert_routing|" +
-        "translate|localize|extract_locale_from_tld|t|l|caches_page|expire_page|caches_action|expire_action|" +
+        "translate|localize|extract_locale_from_tld|caches_page|expire_page|caches_action|expire_action|" +
         "cache|expire_fragment|expire_cache_for|observe|cache_sweeper|" +
         "has_many|has_one|belongs_to|has_and_belongs_to_many"
     );

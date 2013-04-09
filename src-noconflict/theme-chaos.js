@@ -159,7 +159,22 @@ content: '▴'\
 }\
 .ace-chaos .ace_fold-widget.ace_closed:after {\
 content: '‣'\
-}";
+}\
+.ace-chaos .ace_indent-guide {\
+border-right:1px dotted #333;\
+margin-right:-1px;\
+}\
+.ace-chaos .ace_fold { \
+background: #222; \
+border-radius: 3px; \
+color: #7AF; \
+border: none; \
+}\
+.ace-chaos .ace_fold:hover {\
+background: #CCC; \
+color: #000;\
+}\
+";
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);

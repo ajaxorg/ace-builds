@@ -1,4 +1,4 @@
-__ace_shadowed__.define('ace/mode/tmsnippet', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/tmsnippet', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/text_highlight_rules', 'ace/mode/folding/coffee'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -20,7 +20,7 @@ var SnippetHighlightRules = function() {
                 if (stack[1])
                     stack[1]++;
                 else
-                    stack.unshift("start", 1);
+                    stack.unshift(state, 1);
                 return this.tokenName;
             }, tokenName: "markup.list", regex: "\\${", next: "varDecl"},
             {onMatch: function(value, state, stack) {
@@ -31,7 +31,7 @@ var SnippetHighlightRules = function() {
                     stack.splice(0,2);
                 return this.tokenName;
             }, tokenName: "markup.list", regex: "}"},
-            {token: "doc,comment", regex:/^\${2}-{5,}$/}
+            {token: "doc.comment", regex:/^\${2}-{5,}$/}
         ],
         "varDecl" : [
             {regex: /\d+\b/, token: "constant.numeric"},
@@ -60,15 +60,44 @@ var SnippetHighlightRules = function() {
         ]
     };
 };
-
 oop.inherits(SnippetHighlightRules, TextHighlightRules);
 
 exports.SnippetHighlightRules = SnippetHighlightRules;
 
+var SnippetGroupHighlightRules = function() {
+    this.$rules = {
+        "start" : [
+			{token: "text", regex: "^\\t", next: "sn-start"},
+			{token:"invalid", regex: /^ \s*/},
+            {token:"comment", regex: /^#.*/},
+            {token:"constant.language.escape", regex: "^regex ", next: "regex"},
+            {token:"constant.language.escape", regex: "^(trigger|endTrigger|name|snippet|guard|endGuard|tabTrigger|key)\\b"}
+        ],
+		"regex" : [
+			{token:"text", regex: "\\."},
+			{token:"keyword", regex: "/"},
+			{token:"empty", regex: "$", next: "start"}
+		]
+    };
+	this.embedRules(SnippetHighlightRules, "sn-", [
+		{token: "text", regex: "^\\t", next: "sn-start"},
+		{onMatch: function(value, state, stack) {
+			stack.splice(stack.length);
+			return this.tokenName;
+		}, tokenName: "text", regex: "^(?!\t)", next: "start"},
+	])
+	
+};
+
+oop.inherits(SnippetGroupHighlightRules, TextHighlightRules);
+
+exports.SnippetGroupHighlightRules = SnippetGroupHighlightRules;
+
+var FoldMode = require("./folding/coffee").FoldMode;
 
 var Mode = function() {
-    var highlighter = new SnippetHighlightRules();
-
+    var highlighter = new SnippetGroupHighlightRules();
+    this.foldingRules = new FoldMode();
     this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
@@ -80,5 +109,92 @@ oop.inherits(Mode, TextMode);
 }).call(Mode.prototype);
 exports.Mode = Mode;
 
+
+});
+
+__ace_shadowed__.define('ace/mode/folding/coffee', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode', 'ace/range'], function(require, exports, module) {
+
+
+var oop = require("../../lib/oop");
+var BaseFoldMode = require("./fold_mode").FoldMode;
+var Range = require("../../range").Range;
+
+var FoldMode = exports.FoldMode = function() {};
+oop.inherits(FoldMode, BaseFoldMode);
+
+(function() {
+
+    this.getFoldWidgetRange = function(session, foldStyle, row) {
+        var range = this.indentationBlock(session, row);
+        if (range)
+            return range;
+
+        var re = /\S/;
+        var line = session.getLine(row);
+        var startLevel = line.search(re);
+        if (startLevel == -1 || line[startLevel] != "#")
+            return;
+
+        var startColumn = line.length;
+        var maxRow = session.getLength();
+        var startRow = row;
+        var endRow = row;
+
+        while (++row < maxRow) {
+            line = session.getLine(row);
+            var level = line.search(re);
+
+            if (level == -1)
+                continue;
+
+            if (line[level] != "#")
+                break;
+
+            endRow = row;
+        }
+
+        if (endRow > startRow) {
+            var endColumn = session.getLine(endRow).length;
+            return new Range(startRow, startColumn, endRow, endColumn);
+        }
+    };
+    this.getFoldWidget = function(session, foldStyle, row) {
+        var line = session.getLine(row);
+        var indent = line.search(/\S/);
+        var next = session.getLine(row + 1);
+        var prev = session.getLine(row - 1);
+        var prevIndent = prev.search(/\S/);
+        var nextIndent = next.search(/\S/);
+
+        if (indent == -1) {
+            session.foldWidgets[row - 1] = prevIndent!= -1 && prevIndent < nextIndent ? "start" : "";
+            return "";
+        }
+        if (prevIndent == -1) {
+            if (indent == nextIndent && line[indent] == "#" && next[indent] == "#") {
+                session.foldWidgets[row - 1] = "";
+                session.foldWidgets[row + 1] = "";
+                return "start";
+            }
+        } else if (prevIndent == indent && line[indent] == "#" && prev[indent] == "#") {
+            if (session.getLine(row - 2).search(/\S/) == -1) {
+                session.foldWidgets[row - 1] = "start";
+                session.foldWidgets[row + 1] = "";
+                return "";
+            }
+        }
+
+        if (prevIndent!= -1 && prevIndent < indent)
+            session.foldWidgets[row - 1] = "start";
+        else
+            session.foldWidgets[row - 1] = "";
+
+        if (indent < nextIndent)
+            return "start";
+        else
+            return "";
+    };
+
+}).call(FoldMode.prototype);
 
 });
