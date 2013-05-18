@@ -161,7 +161,7 @@ opacity: 0.7;\
 border: 1px solid rgba(100,100,100,0.23);\
 padding: 1px;\
 -moz-box-sizing: border-box;\
-box-sizing:	border-box;\
+box-sizing:    border-box;\
 color: black;\
 }\
 .ace_button:hover {\
@@ -271,9 +271,11 @@ var SearchBox = function(editor, range, showReplaceForm) {
         });
         event.addListener(this.searchInput, "focus", function() {
             _this.activeInput = _this.searchInput;
+            _this.searchInput.value && _this.highlight();
         });
         event.addListener(this.replaceInput, "focus", function() {
             _this.activeInput = _this.replaceInput;
+            _this.searchInput.value && _this.highlight();
         });
     };
     this.$closeSearchBarKb = new HashHandler([{
@@ -313,7 +315,7 @@ var SearchBox = function(editor, range, showReplaceForm) {
             (sb.activeInput == sb.replaceInput ? sb.searchInput : sb.replaceInput).focus();
         }
     });
-    
+
     this.$searchBarKb.addCommands([{
         name: "toggleRegexpMode",
         bindKey: {win: "Alt-R|Alt-/", mac: "Ctrl-Alt-R|Ctrl-Alt-/"},
@@ -336,7 +338,7 @@ var SearchBox = function(editor, range, showReplaceForm) {
             sb.$syncOptions();
         }
     }]);
-    
+
     this.$syncOptions = function() {
         dom.setCssClass(this.regExpOption, "checked", this.regExpOption.checked);
         dom.setCssClass(this.wholeWordOption, "checked", this.wholeWordOption.checked);
@@ -344,6 +346,10 @@ var SearchBox = function(editor, range, showReplaceForm) {
         this.find(false, false);
     };
 
+    this.highlight = function(re) {
+        this.editor.session.highlight(re || this.editor.$search.$options.re);
+        this.editor.renderer.updateBackMarkers()
+    };
     this.find = function(skipCurrent, backwards) {
         var range = this.editor.find(this.searchInput.value, {
             skipCurrent: skipCurrent,
@@ -354,7 +360,7 @@ var SearchBox = function(editor, range, showReplaceForm) {
             wholeWord: this.wholeWordOption.checked
         });
         dom.setCssClass(this.searchBox, "ace_nomatch", !range && this.searchInput.value);
-        this.editor.session.highlight(this.editor.$search.$options.re);
+        this.highlight();
     };
     this.findNext = function() {
         this.find(true, false);
@@ -369,7 +375,7 @@ var SearchBox = function(editor, range, showReplaceForm) {
         this.editor.replaceAll(this.replaceInput.value);
     };
 
-    this.hide = function () {
+    this.hide = function() {
         this.element.style.display = "none";
         this.editor.keyBinding.removeKeyboardHandler(this.$closeSearchBarKb);
         this.editor.focus();

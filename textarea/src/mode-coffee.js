@@ -192,6 +192,7 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                     regex : '"""',
                     next : [
                         {token : "string", regex : '"""', next : "start"},
+                        {token : "paren.string", regex : '#{', push : "start"},
                         {token : "constant.language.escape", regex : stringEscape},
                         {defaultToken: "string"}
                     ]
@@ -206,6 +207,7 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                     stateName: "qqstring",
                     token : "string.start", regex : '"', next : [
                         {token : "string.end", regex : '"', next : "start"},
+                        {token : "paren.string", regex : '#{', push : "start"},
                         {token : "constant.language.escape", regex : stringEscape},
                         {defaultToken: "string"}
                     ]
@@ -216,6 +218,21 @@ __ace_shadowed__.define('ace/mode/coffee_highlight_rules', ['require', 'exports'
                         {token : "constant.language.escape", regex : stringEscape},
                         {defaultToken: "string"}
                     ]
+                }, {
+                    regex: "[{}]", onMatch: function(val, state, stack) {
+                        this.next = "";
+                        if (val == "{" && stack.length) {
+                            stack.unshift("start", state);
+                            return "paren";
+                        }
+                        if (val == "}" && stack.length) {
+                            stack.shift();
+                            this.next = stack.shift();
+                            if (this.next.indexOf("string") != -1)
+                                return "paren.string";
+                        }
+                        return "paren";
+                    }
                 }, {
                     token : "string.regex",
                     regex : "///",

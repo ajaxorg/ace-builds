@@ -52,21 +52,21 @@ exports.$detectIndentation = function(lines, fallback) {
             var diff = spaces - prevSpaces;
             if (diff > 0 && !(prevSpaces%diff) && !(spaces%diff))
                 changes[diff] = (changes[diff] || 0) + 1;
-                
+
             stats[spaces] = (stats[spaces] || 0) + 1;
         }
         prevSpaces = spaces;
         while (line[line.length - 1] == "\\")
             line = lines[i++];
-    };  
-    
+    };
+
     function getScore(indent) {
         var score = 0;
         for (var i = indent; i < stats.length; i += indent)
             score += stats[i] || 0;
         return score;
     }
-    
+
     var changesTotal = changes.reduce(function(a,b){return a+b}, 0);
 
     var first = {score: 0, length: 0};
@@ -81,17 +81,17 @@ exports.$detectIndentation = function(lines, fallback) {
         if (changes[i]) {
             score += changes[i] / changesTotal;
         }
-        
+
         if (score > first.score)
             first = {score: score, length: i};
     }
-    
+
     if (first.score && first.score > 1.4)
         var tabLength = first.length;
-    
+
     if (tabIndents > spaceIndents + 1)
         return {ch: "\t", length: tabLength};
-    
+
     if (spaceIndents + 1 > tabIndents)
         return {ch: " ", length: tabLength};
 };
@@ -99,10 +99,10 @@ exports.$detectIndentation = function(lines, fallback) {
 exports.detectIndentation = function(session) {
     var lines = session.getLines(0, 1000);
     var indent = exports.$detectIndentation(lines) || {};
-    
+
     if (indent.ch)
         session.setUseSoftTabs(indent.ch == " ");
-    
+
     if (indent.length)
         session.setTabSize(indent.length);
     return indent;
@@ -126,9 +126,9 @@ exports.convertIndentation = function(session, ch, len) {
     var oldLen = session.getTabSize();
     if (!len) len = oldLen;
     if (!ch) ch = oldCh;
-    
+
     var tab = ch == "\t" ? ch: lang.stringRepeat(ch, len);
-    
+
     var doc = session.doc;
     var lines = doc.getAllLines();
 
@@ -143,10 +143,10 @@ exports.convertIndentation = function(session, ch, len) {
             var reminder = w%oldLen;
             var toInsert = cache[tabCount] || (cache[tabCount] = lang.stringRepeat(tab, tabCount));
             toInsert += spaceCache[reminder] || (spaceCache[reminder] = lang.stringRepeat(" ", reminder));
-            
+
             if (toInsert != match) {
                 doc.removeInLine(i, 0, match.length);
-                doc.insertInLine({row: i, column: 0}, toInsert);                
+                doc.insertInLine({row: i, column: 0}, toInsert);
             }
         }
     }

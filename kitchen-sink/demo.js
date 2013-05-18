@@ -29,11 +29,12 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'kitchen-sink/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/split', 'ace/keyboard/vim', 'kitchen-sink/statusbar', 'ace/ext/emmet', 'ace/placeholder', 'ace/snippets', 'ace/snippets/javascript'], function(require, exports, module) {
+define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/placeholder', 'ace/snippets', 'ace/snippets/javascript'], function(require, exports, module) {
 
 
 require("ace/lib/fixoldbrowsers");
-require("ace/config").init();
+var config = require("ace/config");
+config.init();
 var env = {};
 
 var dom = require("ace/lib/dom");
@@ -55,7 +56,7 @@ var MultiSelect = require("ace/multi_select").MultiSelect;
 var whitespace = require("ace/ext/whitespace");
 
 var doclist = require("./doclist");
-var modelist = require("./modelist");
+var modelist = require("ace/ext/modelist");
 var layout = require("./layout");
 var TokenTooltip = require("./token_tooltip").TokenTooltip;
 var util = require("./util");
@@ -84,7 +85,7 @@ require("ace/multi_select").MultiSelect(env.editor);
 var consoleEl = dom.createElement("div");
 container.parentNode.appendChild(consoleEl);
 consoleEl.style.cssText = "position:fixed; bottom:1px; right:0;\
-border:1px solid #baf; zIndex:100";
+border:1px solid #baf; z-index:100";
 
 var cmdLine = new layout.singleLineEditor(consoleEl);
 cmdLine.editor = env.editor;
@@ -126,8 +127,18 @@ env.editor.commands.addCommands([{
     readOnly: true
 }, {
     name: "focusCommandLine",
-    bindKey: "shift-esc",
+    bindKey: "shift-esc|ctrl-`",
     exec: function(editor, needle) { editor.cmdLine.focus(); },
+    readOnly: true
+}, {
+    name: "nextFile",
+    bindKey: "Ctrl-tab",
+    exec: function(editor) { doclist.cycleOpen(editor, 1); },
+    readOnly: true
+}, {
+    name: "previousFile",
+    bindKey: "Ctrl-shift-tab",
+    exec: function(editor) { doclist.cycleOpen(editor, -1); },
     readOnly: true
 }, {
     name: "execute",
@@ -141,6 +152,15 @@ env.editor.commands.addCommands([{
         editor.cmdLine.setValue(r + "")
     },
     readOnly: true
+}, {
+    name: "showKeyboardShortcuts",
+    bindKey: {win: "Ctrl-Alt-h", mac: "Command-Alt-h"},
+    exec: function(editor) {
+        config.loadModule("ace/ext/keybinding_menu", function(module) {
+            module.init(editor);
+            editor.showKeyboardShortcuts()
+        })
+    }
 }]);
 
 
@@ -217,16 +237,44 @@ bindDropdown("mode", function(value) {
     env.editor.session.modeName = value;
 });
 
+doclist.history = doclist.docs.map(function(doc) {
+    return doc.name;
+});
+doclist.history.index = 0;
+doclist.cycleOpen = function(editor, dir) {
+    var h = this.history
+    h.index += dir;
+    if (h.index >= h.length) 
+        h.index = 0;
+    else if (h.index <= 0)
+        h.index = h.length - 1;
+    var s = h[h.index];
+    docEl.value = s;
+    docEl.onchange();
+    h.index
+}
+doclist.addToHistory = function(name) {
+    var h = this.history
+    var i = h.indexOf(name);
+    if (i != h.index) {
+        if (i != -1)
+            h.splice(i, 1);
+        h.index = h.push(name);
+    }
+}
+
 bindDropdown("doc", function(name) {
     doclist.loadDoc(name, function(session) {
         if (!session)
             return;
+        doclist.addToHistory(session.name);
         session = env.split.setSession(session);
         whitespace.detectIndentation(session);
         updateUIEditorOptions();
         env.editor.focus();
     });
 });
+
 
 function updateUIEditorOptions() {
     var editor = env.editor;
@@ -422,7 +470,7 @@ event.addListener(container, "drop", function(e) {
         if (window.FileReader) {
             var reader = new FileReader();
             reader.onload = function() {
-                var mode = modelist.getModeFromPath(file.name);
+                var mode = modelist.getModeForPath(file.name);
 
                 env.editor.session.doc.setValue(reader.result);
                 modeEl.value = mode.name;
@@ -439,7 +487,7 @@ event.addListener(container, "drop", function(e) {
 
 
 
-var StatusBar = require("./statusbar").StatusBar;
+var StatusBar = require("ace/ext/statusbar").StatusBar;
 new StatusBar(env.editor, cmdLine.container);
 
 
@@ -518,21 +566,21 @@ exports.$detectIndentation = function(lines, fallback) {
             var diff = spaces - prevSpaces;
             if (diff > 0 && !(prevSpaces%diff) && !(spaces%diff))
                 changes[diff] = (changes[diff] || 0) + 1;
-                
+
             stats[spaces] = (stats[spaces] || 0) + 1;
         }
         prevSpaces = spaces;
         while (line[line.length - 1] == "\\")
             line = lines[i++];
-    };  
-    
+    };
+
     function getScore(indent) {
         var score = 0;
         for (var i = indent; i < stats.length; i += indent)
             score += stats[i] || 0;
         return score;
     }
-    
+
     var changesTotal = changes.reduce(function(a,b){return a+b}, 0);
 
     var first = {score: 0, length: 0};
@@ -547,17 +595,17 @@ exports.$detectIndentation = function(lines, fallback) {
         if (changes[i]) {
             score += changes[i] / changesTotal;
         }
-        
+
         if (score > first.score)
             first = {score: score, length: i};
     }
-    
+
     if (first.score && first.score > 1.4)
         var tabLength = first.length;
-    
+
     if (tabIndents > spaceIndents + 1)
         return {ch: "\t", length: tabLength};
-    
+
     if (spaceIndents + 1 > tabIndents)
         return {ch: " ", length: tabLength};
 };
@@ -565,10 +613,10 @@ exports.$detectIndentation = function(lines, fallback) {
 exports.detectIndentation = function(session) {
     var lines = session.getLines(0, 1000);
     var indent = exports.$detectIndentation(lines) || {};
-    
+
     if (indent.ch)
         session.setUseSoftTabs(indent.ch == " ");
-    
+
     if (indent.length)
         session.setTabSize(indent.length);
     return indent;
@@ -592,9 +640,9 @@ exports.convertIndentation = function(session, ch, len) {
     var oldLen = session.getTabSize();
     if (!len) len = oldLen;
     if (!ch) ch = oldCh;
-    
+
     var tab = ch == "\t" ? ch: lang.stringRepeat(ch, len);
-    
+
     var doc = session.doc;
     var lines = doc.getAllLines();
 
@@ -609,10 +657,10 @@ exports.convertIndentation = function(session, ch, len) {
             var reminder = w%oldLen;
             var toInsert = cache[tabCount] || (cache[tabCount] = lang.stringRepeat(tab, tabCount));
             toInsert += spaceCache[reminder] || (spaceCache[reminder] = lang.stringRepeat(" ", reminder));
-            
+
             if (toInsert != match) {
                 doc.removeInLine(i, 0, match.length);
-                doc.insertInLine({row: i, column: 0}, toInsert);                
+                doc.insertInLine({row: i, column: 0}, toInsert);
             }
         }
     }
@@ -669,14 +717,14 @@ exports.commands = [{
 
 });
 
- define('kitchen-sink/doclist', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/undomanager', 'ace/lib/net', 'kitchen-sink/modelist'], function(require, exports, module) {
+ define('kitchen-sink/doclist', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/undomanager', 'ace/lib/net', 'ace/ext/modelist'], function(require, exports, module) {
 
 
 var EditSession = require("ace/edit_session").EditSession;
 var UndoManager = require("ace/undomanager").UndoManager;
 var net = require("ace/lib/net");
 
-var modelist = require("./modelist");
+var modelist = require("ace/ext/modelist");
 var fileCache = {};
 
 function initDoc(file, path, doc) {
@@ -687,11 +735,12 @@ function initDoc(file, path, doc) {
     session.setUndoManager(new UndoManager());
     doc.session = session;
     doc.path = path;
+    session.name = doc.name;
     if (doc.wrapped) {
         session.setUseWrapMode(true);
         session.setWrapLimitRange(80, 80);
     }
-    var mode = modelist.getModeFromPath(path);
+    var mode = modelist.getModeForPath(path);
     session.modeName = mode.name;
     session.setMode(mode.mode);
     return session;
@@ -705,8 +754,8 @@ function makeHuge(txt) {
 }
 
 var docs = {
-    "docs/AsciiDoc.asciidoc": "AsciiDoc",
     "docs/javascript.js": "JavaScript",
+    "docs/AsciiDoc.asciidoc": "AsciiDoc",
     "docs/clojure.clj": "Clojure",
     "docs/coffeescript.coffee": "CoffeeScript",
     "docs/coldfusion.cfm": "ColdFusion",
@@ -724,6 +773,7 @@ var docs = {
     "docs/haml.haml": "Haml",
     "docs/Haxe.hx": "haXe",
     "docs/html.html": "HTML",
+    "docs/html_ruby.erb": "HTML (Ruby)",
     "docs/jade.jade": "Jade",
     "docs/java.java": "Java",
     "docs/jsp.jsp": "JSP",
@@ -742,7 +792,7 @@ var docs = {
     "docs/luapage.lp": "LuaPage",
     "docs/Makefile": "Makefile",
     "docs/markdown.md": {name: "Markdown", wrapped: true},
-    "docs/tinymush.mc": {name: "TinyMUSH"},
+    "docs/mushcode.mc": {name: "MUSHCode", wrapped: true},
     "docs/objectivec.m": {name: "Objective-C"},
     "docs/ocaml.ml": "OCaml",
     "docs/OpenSCAD.scad": "OpenSCAD",
@@ -752,6 +802,7 @@ var docs = {
     "docs/php.php": "PHP",
     "docs/plaintext.txt": {name: "Plain Text", prepare: makeHuge, wrapped: true},
     "docs/powershell.ps1": "Powershell",
+    "docs/properties.properties": "Properties",
     "docs/python.py": "Python",
     "docs/r.r": "R",
     "docs/rdoc.Rd": "RDoc",
@@ -768,7 +819,7 @@ var docs = {
     "docs/tcl.tcl": "Tcl",
     "docs/tex.tex": "Tex",
     "docs/textile.textile": {name: "Textile", wrapped: true},
-    "docs/tmSnippet.tmSnippet": "tmSnippet",
+    "docs/snippets.snippets": "snippets",
     "docs/toml.toml": "TOML",
     "docs/typescript.ts": "Typescript",
     "docs/vbscript.vbs": "VBScript",
@@ -776,7 +827,17 @@ var docs = {
     "docs/xml.xml": "XML",
     "docs/xquery.xq": "XQuery",
     "docs/yaml.yaml": "YAML",
-    "docs/c9search.c9search_results": "C9 Search Results"
+    "docs/c9search.c9search_results": "C9 Search Results",
+    
+    "docs/actionscript.as": "ActionScript",
+    "docs/autohotkey.ahk": "AutoHotKey",
+    "docs/batchfile.bat": "BatchFile",
+    "docs/erlang/erl": "Erlang",
+    "docs/forth.frt": "Forth",
+    "docs/haskell.hs": "Haskell",
+    "docs/julia.js": "Julia",
+    "docs/prolog/plg": "Prolog",
+    "docs/rust.rs": "Rust"
 };
 
 var ownSource = {
@@ -852,9 +913,11 @@ module.exports.all = {
 
 });
 
-define('kitchen-sink/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/ext/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
 var modes = [];
-function getModeFromPath(path) {
+function getModeForPath(path) {
     var mode = modesByName.text;
     var fileName = path.split(/[\/\\]/).pop();
     for (var i = 0; i < modes.length; i++) {
@@ -866,10 +929,11 @@ function getModeFromPath(path) {
     return mode;
 }
 
-var Mode = function(name, desc, extensions) {
+var Mode = function(name, caption, extensions) {
     this.name = name;
-    this.desc = desc;
+    this.caption = caption;
     this.mode = "ace/mode/" + name;
+    this.extensions = extensions;
     if (/\^/.test(extensions)) {
         var re = extensions.replace(/\|(\^)?/g, function(a, b){
             return "$|" + (b ? "^" : "^.*\\.");
@@ -884,91 +948,114 @@ var Mode = function(name, desc, extensions) {
 Mode.prototype.supportsFile = function(filename) {
     return filename.match(this.extRe);
 };
-
-var modesByName = {
-    abap:       ["ABAP"         , "abap"],
-    asciidoc:   ["AsciiDoc"     , "asciidoc"],
-    c9search:   ["C9Search"     , "c9search_results"],
-    coffee:     ["CoffeeScript" , "^Cakefile|coffee|cf|cson"],
-    coldfusion: ["ColdFusion"   , "cfm"],
-    csharp:     ["C#"           , "cs"],
-    css:        ["CSS"          , "css"],
-    curly:      ["Curly"        , "curly"],
-    dart:       ["Dart"         , "dart"],
-    diff:       ["Diff"         , "diff|patch"],
-    dot:        ["Dot"          , "dot"],
-    ftl:        ["FreeMarker"   , "ftl"],
-    glsl:       ["Glsl"         , "glsl|frag|vert"],
-    golang:     ["Go"           , "go"],
-    groovy:     ["Groovy"       , "groovy"],
-    haxe:       ["haXe"         , "hx"],
-    haml:       ["HAML"         , "haml"],
-    html:       ["HTML"         , "htm|html|xhtml"],
-    c_cpp:      ["C/C++"        , "c|cc|cpp|cxx|h|hh|hpp"],
-    clojure:    ["Clojure"      , "clj"],
-    jade:       ["Jade"         , "jade"],
-    java:       ["Java"         , "java"],
-    jsp:        ["JSP"          , "jsp"],
-    javascript: ["JavaScript"   , "js"],
-    json:       ["JSON"         , "json"],
-    jsx:        ["JSX"          , "jsx"],
-    latex:      ["LaTeX"        , "latex|tex|ltx|bib"],
-    less:       ["LESS"         , "less"],
-    lisp:       ["Lisp"         , "lisp"],
-    scheme:     ["Scheme"       , "scm|rkt"],
-    liquid:     ["Liquid"       , "liquid"],
-    livescript: ["LiveScript"   , "ls"],
-    logiql:     ["LogiQL"       , "logic|lql"],
-    lua:        ["Lua"          , "lua"],
-    luapage:    ["LuaPage"      , "lp"], // http://keplerproject.github.com/cgilua/manual.html#templates
-    lucene:     ["Lucene"       , "lucene"],
-    lsl:        ["LSL"          , "lsl"],
-    makefile:   ["Makefile"     , "^GNUmakefile|^makefile|^Makefile|^OCamlMakefile|make"],
-    markdown:   ["Markdown"     , "md|markdown"],
-    mushcode:   ["TinyMUSH"     , "mc|mush"],
-    objectivec: ["Objective-C"  , "m"],
-    ocaml:      ["OCaml"        , "ml|mli"],
-    pascal:     ["Pascal"       , "pas|p"],
-    perl:       ["Perl"         , "pl|pm"],
-    pgsql:      ["pgSQL"        , "pgsql"],
-    php:        ["PHP"          , "php|phtml"],
-    powershell: ["Powershell"   , "ps1"],
-    python:     ["Python"       , "py"],
-    r:          ["R"            , "r"],
-    rdoc:       ["RDoc"         , "Rd"],
-    rhtml:      ["RHTML"        , "Rhtml"],
-    ruby:       ["Ruby"         , "ru|gemspec|rake|rb"],
-    scad:       ["OpenSCAD"     , "scad"],
-    scala:      ["Scala"        , "scala"],
-    scss:       ["SCSS"         , "scss"],
-    sass:       ["SASS"         , "sass"],
-    sh:         ["SH"           , "sh|bash|bat"],
-    sql:        ["SQL"          , "sql"],
-    stylus:     ["Stylus"       , "styl|stylus"],
-    svg:        ["SVG"          , "svg"],
-    tcl:        ["Tcl"          , "tcl"],
-    tex:        ["Tex"          , "tex"],
-    text:       ["Text"         , "txt"],
-    textile:    ["Textile"      , "textile"],
-    tmsnippet:  ["tmSnippet"    , "tmSnippet"],
-    toml:       ["toml"         , "toml"],
-    typescript: ["Typescript"   , "typescript|ts|str"],
-    vbscript:   ["VBScript"     , "vbs"],
-    velocity:   ["Velocity"     , "vm"],
-    xml:        ["XML"          , "xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl"],
-    xquery:     ["XQuery"       , "xq"],
-    yaml:       ["YAML"         , "yaml"]
+var supportedModes = {
+    ABAP:        ["abap"],
+    ActionScript:["as"],
+    AsciiDoc:    ["asciidoc"],
+    AutoHotKey:  ["ahk"],
+    BatchFile:   ["bat|cmd"],
+    C9Search:    ["c9search_results"],
+    C_Cpp:       ["c|cc|cpp|cxx|h|hh|hpp"],
+    Clojure:     ["clj"],
+    coffee:      ["^Cakefile|coffee|cf|cson"],
+    ColdFusion:  ["cfm"],
+    CSharp:      ["cs"],
+    CSS:         ["css"],
+    Curly:       ["curly"],
+    Dart:        ["dart"],
+    Diff:        ["diff|patch"],
+    Dot:         ["dot"],
+    Erlang:      ["erl|hrl"],
+    Forth:       ["frt|fs|ldr"],
+    FreeMarker:  ["ftl"],
+    Glsl:        ["glsl|frag|vert"],
+    golang:      ["go"],
+    Groovy:      ["groovy"],
+    HAML:        ["haml"],
+    Haskell:     ["hs"],
+    haXe:        ["hx"],
+    HTML:        ["htm|html|xhtml"],
+    HTML_Ruby:   ["erb|rhtml|html.erb"],
+    Ini:         ["Ini|conf"],
+    Jade:        ["jade"],
+    Java:        ["java"],
+    JavaScript:  ["js"],
+    JSON:        ["json"],
+    JSONiq:      ["jq"],
+    JSP:         ["jsp"],
+    JSX:         ["jsx"],
+    Julia:       ["jl"],
+    LaTeX:       ["latex|tex|ltx|bib"],
+    LESS:        ["less"],
+    Liquid:      ["liquid"],
+    Lisp:        ["lisp"],
+    LiveScript:  ["ls"],
+    LogiQL:      ["logic|lql"],
+    LSL:         ["lsl"],
+    Lua:         ["lua"],
+    LuaPage:     ["lp"],
+    Lucene:      ["lucene"],
+    Makefile:    ["^GNUmakefile|^makefile|^Makefile|^OCamlMakefile|make"],
+    Markdown:    ["md|markdown"],
+    MUSHCode:    ["mc|mush"],
+    ObjectiveC:  ["m|mm"],
+    OCaml:       ["ml|mli"],
+    Pascal:      ["pas|p"],
+    Perl:        ["pl|pm"],
+    pgSQL:       ["pgsql"],
+    PHP:         ["php|phtml"],
+    Powershell:  ["ps1"],
+    Prolog:      ["plg|prolog"],
+    Properties:  ["properties"],
+    Python:      ["py"],
+    R:           ["r"],
+    RDoc:        ["Rd"],
+    RHTML:       ["Rhtml"],
+    Ruby:        ["ru|gemspec|rake|rb"],
+    Rust:        ["rs"],
+    SASS:        ["sass"],
+    SCAD:        ["scad"],
+    Scala:       ["scala"],
+    Scheme:      ["scm|rkt"],
+    SCSS:        ["scss"],
+    SH:          ["sh|bash"],
+    snippets:    ["snippets"],
+    SQL:         ["sql"],
+    Stylus:      ["styl|stylus"],
+    SVG:         ["svg"],
+    Tcl:         ["tcl"],
+    Tex:         ["tex"],
+    Text:        ["txt"],
+    Textile:     ["textile"],
+    Toml:        ["toml"],
+    Typescript:  ["typescript|ts|str"],
+    VBScript:    ["vbs"],
+    Velocity:    ["vm"],
+    XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl"],
+    XQuery:      ["xq"],
+    YAML:        ["yaml"]
 };
 
-for (var name in modesByName) {
-    var mode = modesByName[name];
-    mode = new Mode(name, mode[0], mode[1]);
-    modesByName[name] = mode;
+var nameOverrides = {
+    ObjectiveC: "Objective-C",
+    CSharp: "C#",
+    golang: "Go",
+    C_Cpp: "C/C++",
+    coffee: "CoffeeScript",
+    HTML_Ruby: "HTML (Ruby)"
+};
+var modesByName = {};
+for (var name in supportedModes) {
+    var data = supportedModes[name];
+    var displayName = nameOverrides[name] || name;
+    var filename = name.toLowerCase();
+    var mode = new Mode(filename, displayName, data[0]);
+    modesByName[filename] = mode;
     modes.push(mode);
 }
 
 module.exports = {
-    getModeFromPath: getModeFromPath,
+    getModeForPath: getModeForPath,
     modes: modes,
     modesByName: modesByName
 };
@@ -1491,7 +1578,7 @@ exports.fillDropdown = function(el, values) {
 function elt(tag, attributes, content) {
     var el = dom.createElement(tag);
     if (typeof content == "string") {
-        el.textContent = content;
+        el.appendChild(document.createTextNode(content));
     } else if (content) {
         content.forEach(function(ch) {
             el.appendChild(ch);
@@ -1506,8 +1593,8 @@ function elt(tag, attributes, content) {
 function optgroup(values) {
     return values.map(function(item) {
         if (typeof item == "string")
-            item = {name: item, desc: item};
-        return elt("option", {value: item.name}, item.desc);
+            item = {name: item, caption: item};
+        return elt("option", {value: item.name}, item.caption || item.desc);
     });
 }
 
@@ -1607,7 +1694,7 @@ var ElasticTabstopsLite = function(editor) {
         var selectionColumns = this.$selectionColumnsForRow(row);
 
         var tabs = [-1].concat(this.$tabsForRow(row));
-        var widths = tabs.map(function (el) { return 0; } ).slice(1);
+        var widths = tabs.map(function(el) { return 0; } ).slice(1);
         var line = this.$editor.session.getLine(row);
 
         for (var i = 0, len = tabs.length - 1; i < len; i++) {
@@ -1618,7 +1705,7 @@ var ElasticTabstopsLite = function(editor) {
             var cell = line.substring(leftEdge, rightEdge);
             widths[i] = Math.max(cell.replace(/\s+$/g,'').length, rightmostSelection - leftEdge);
         }
-        
+
         return widths;
     };
 
@@ -1626,7 +1713,7 @@ var ElasticTabstopsLite = function(editor) {
         var selections = [], cursor = this.$editor.getCursorPosition();
         if (this.$editor.session.getSelection().isEmpty()) {
             if (row == cursor.row)
-                selections.push(cursor.column);   
+                selections.push(cursor.column);
         }
 
         return selections;
@@ -1675,7 +1762,7 @@ var ElasticTabstopsLite = function(editor) {
             for (var s = 0, length = selectionColumns.length; s < length; s++) {
                 if (selectionColumns[s] <= cellRightEdge)
                     lengths.push(s);
-                else 
+                else
                     lengths.push(0);
             }
             rightmost = Math.max.apply(Math, lengths);
@@ -1700,7 +1787,7 @@ var ElasticTabstopsLite = function(editor) {
 
         if (rowTabs.length == 0)
             return;
-        
+
         var bias = 0, location = -1;
         var expandedSet = this.$izip(widths, rowTabs);
 
@@ -1741,7 +1828,7 @@ var ElasticTabstopsLite = function(editor) {
             if (iLength > longest)
                 longest = iLength;
         }
-        
+
         var expandedSet = [];
 
         for (var l = 0; l < longest; l++) {
@@ -1755,13 +1842,13 @@ var ElasticTabstopsLite = function(editor) {
 
             expandedSet.push(set);
         }
-        
+
 
         return expandedSet;
     };
     this.$izip = function(widths, tabs) {
         var size = widths.length >= tabs.length ? tabs.length : widths.length;
-        
+
         var expandedSet = [];
         for (var i = 0; i < size; i++) {
             var set = [ widths[i], tabs[i] ];
@@ -2576,6 +2663,7 @@ var startCommands = {
 };
 
 exports.handler = {
+	$id: "ace/keyboard/vim",
     handleMacRepeat: function(data, hashId, key) {
         if (hashId == -1) {
             data.inputChar = key;
@@ -3985,7 +4073,7 @@ module.exports = {
 };
 
 module.exports.backspace = module.exports.left = module.exports.h;
-module.exports.space = module.exports.return = module.exports.right = module.exports.l;
+module.exports.space = module.exports['return'] = module.exports.right = module.exports.l;
 module.exports.up = module.exports.k;
 module.exports.down = module.exports.j;
 module.exports.pagedown = module.exports["ctrl-d"];
@@ -4220,47 +4308,48 @@ module.exports = {
 };
 });
 
-define('kitchen-sink/statusbar', ['require', 'exports', 'module' , 'ace/lib/dom', 'ace/lib/lang'], function(require, exports, module) {
+define('ace/ext/statusbar', ['require', 'exports', 'module' , 'ace/lib/dom', 'ace/lib/lang'], function(require, exports, module) {
 var dom = require("ace/lib/dom");
 var lang = require("ace/lib/lang");
 
 var StatusBar = function(editor, parentNode) {
-	this.element = dom.createElement("div");
-	this.element.style.cssText = "color: gray; position:absolute; right:0; border-left:1px solid";
-	parentNode.appendChild(this.element);
+    this.element = dom.createElement("div");
+    this.element.className = "ace_status-indicator";
+    this.element.style.cssText = "display: inline-block;";
+    parentNode.appendChild(this.element);
 
-	var statusUpdate = lang.delayedCall(function(){
-		this.updateStatus(editor)
-	}.bind(this));
-	editor.on("changeStatus", function() {
-		statusUpdate.schedule(100);
-	});
-	editor.on("changeSelection", function() {
-		statusUpdate.schedule(100);
-	});
+    var statusUpdate = lang.delayedCall(function(){
+        this.updateStatus(editor)
+    }.bind(this));
+    editor.on("changeStatus", function() {
+        statusUpdate.schedule(100);
+    });
+    editor.on("changeSelection", function() {
+        statusUpdate.schedule(100);
+    });
 };
 
 (function(){
-	this.updateStatus = function(editor) {
-		var status = [];
-		function add(str, separator) {
-			str && status.push(str, separator || "|");
-		}
-		
-		if (editor.$vimModeHandler)
-			add(editor.$vimModeHandler.getStatusText());
-		else if (editor.commands.recording)
-			add("REC");
-		
-		var c = editor.selection.lead;
-		add(c.row + ":" + c.column, " ");
-		if (!editor.selection.isEmpty()) {
-			var r = editor.getSelectionRange();
-			add("(" + (r.end.row - r.start.row) + ":"  +(r.end.column - r.start.column) + ")");
-		}
-		status.pop();
-		this.element.textContent = status.join("");
-	};
+    this.updateStatus = function(editor) {
+        var status = [];
+        function add(str, separator) {
+            str && status.push(str, separator || "|");
+        }
+
+        if (editor.$vimModeHandler)
+            add(editor.$vimModeHandler.getStatusText());
+        else if (editor.commands.recording)
+            add("REC");
+
+        var c = editor.selection.lead;
+        add(c.row + ":" + c.column, " ");
+        if (!editor.selection.isEmpty()) {
+            var r = editor.getSelectionRange();
+            add("(" + (r.end.row - r.start.row) + ":"  +(r.end.column - r.start.column) + ")");
+        }
+        status.pop();
+        this.element.textContent = status.join("");
+    };
 }).call(StatusBar.prototype);
 
 exports.StatusBar = StatusBar;
@@ -4286,7 +4375,7 @@ AceEmmetEditor.prototype = {
     setupContext: function(editor) {
         this.ace = editor;
         this.indentation = editor.session.getTabString();
-        emmet.require('resources').setVariable('indentation', this.indentation);
+        emmet.require("resources").setVariable("indentation", this.indentation);
         this.$syntax = null;
         this.$syntax = this.getSyntax();
     },
@@ -4330,11 +4419,11 @@ AceEmmetEditor.prototype = {
             end = start == null ? content.length : start;
         if (start == null)
             start = 0;
-        var utils = emmet.require('utils');
+        var utils = emmet.require("utils");
         if (!noIndent) {
             value = utils.padString(value, utils.getLinePaddingFromPosition(this.getContent(), start));
         }
-        var tabstopData = emmet.require('tabStops').extract(value, {
+        var tabstopData = emmet.require("tabStops").extract(value, {
             escape: function(ch) {
                 return ch;
             }
@@ -4370,7 +4459,7 @@ AceEmmetEditor.prototype = {
         if (this.$syntax)
             return this.$syntax;
         var syntax = this.ace.session.$modeId.split("/").pop();
-        if (syntax == 'html' || syntax == "php") {
+        if (syntax == "html" || syntax == "php") {
             var cursor = this.ace.getCursorPosition();
             var state = this.ace.session.getState(cursor.row);
             if (typeof state != "string")
@@ -4387,17 +4476,17 @@ AceEmmetEditor.prototype = {
     },
     getProfileName: function() {
         switch(this.getSyntax()) {
-          case 'css': return css;
-          case 'xml':
-          case 'xsl':
-            return 'xml';
-          case 'html':
-            var profile = emmet.require('resources').getVariable('profile');
+          case "css": return "css";
+          case "xml":
+          case "xsl":
+            return "xml";
+          case "html":
+            var profile = emmet.require("resources").getVariable("profile");
             if (!profile)
-                profile = this.ace.session.getLines(0,2).join("").search(/<!DOCTYPE[^>]+XHTML/i) != -1 ? 'xhtml': 'html';
+                profile = this.ace.session.getLines(0,2).join("").search(/<!DOCTYPE[^>]+XHTML/i) != -1 ? "xhtml": "html";
             return profile;
         }
-        return 'xhtml';
+        return "xhtml";
     },
     prompt: function(title) {
         return prompt(title);
@@ -4406,7 +4495,7 @@ AceEmmetEditor.prototype = {
         return this.ace.session.getTextRange();
     },
     getFilePath: function() {
-        return '';
+        return "";
     }
 };
 
@@ -4418,7 +4507,7 @@ var keymap = {
     matching_pair: {"mac": "ctrl+alt+j", "win": "alt+j"},
     next_edit_point: "alt+right",
     prev_edit_point: "alt+left",
-    toggle_comment: {"mac": "command+shift+/", "win": "ctrl+shift+/"},
+    toggle_comment: {"mac": "command+/", "win": "ctrl+/"},
     split_join_tag: {"mac": "shift+command+'", "win": "shift+ctrl+`"},
     remove_tag: {"mac": "command+'", "win": "shift+ctrl+;"},
     evaluate_math_expression: {"mac": "shift+command+y", "win": "shift+ctrl+y"},
@@ -4442,21 +4531,29 @@ function runEmmetCommand(editor) {
     editorProxy.setupContext(editor);
     if (editorProxy.getSyntax() == "php")
         return false;
-    var actions = emmet.require('actions')
+    var actions = emmet.require("actions");
 
+    if (this.action == "expand_abbreviation_with_tab") {
+        if (!editor.selection.isEmpty())
+            return false;
+    }
+    
     try {
-        var result = actions.run(this.name, editorProxy);
+        var result = actions.run(this.action, editorProxy);
     } catch(e) {
         editor._signal("changeStatus", typeof e == "string" ? e : e.message);
+        console.log(e);
     }
     return result;
 }
 
 for (var command in keymap) {
     exports.commands.addCommand({
-        name: command,
+        name: "emmet:" + command,
+        action: command,
         bindKey: keymap[command],
-        exec: runEmmetCommand
+        exec: runEmmetCommand,
+        multiSelectAction: "forEach"
     });
 }
 
@@ -5214,7 +5311,7 @@ var TabstopManager = function(editor) {
         "Esc": function(ed) {
             ed.tabstopManager.detach();
         },
-        "!Return": function(ed) {
+        "Return": function(ed) {
             return false;
         }
     });

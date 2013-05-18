@@ -42,11 +42,6 @@ oop.inherits(Mode, HtmlMode);
       return this.$session.getState(position.row).match(/^r-/) ? 'R' : 'HTML';
    };
 
-   this.getNextLineIndent = function(state, line, tab, tabSize, row)
-   {
-      return this.codeModel.getNextLineIndent(row, line, state, tab, tabSize);
-   };
-
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -1325,7 +1320,7 @@ var HtmlHighlightRules = function() {
             next : "style"
         }, {
             token : "meta.tag", // opening tag
-            regex : "<\\/?",
+            regex : "<\\/?(?=\\S)",
             next : "tag"
         }, {
             token : "text",
@@ -1477,6 +1472,9 @@ var HtmlBehaviour = function () {
             var position = editor.getCursorPosition();
             var iterator = new TokenIterator(session, position.row, position.column);
             var token = iterator.getCurrentToken();
+
+            if (hasType(token, 'string') && iterator.getCurrentTokenColumn() + token.value.length > position.column)
+                return;
             var atCursor = false;
             if (!token || !hasType(token, 'meta.tag') && !(hasType(token, 'text') && token.value.match('/'))){
                 do {
@@ -1734,9 +1732,8 @@ oop.inherits(FoldMode, BaseFoldMode);
     this.tagRe = /^(\s*)(<?(\/?)([-_a-zA-Z0-9:!]*)\s*(\/?)>?)/;
     this._parseTag = function(tag) {
         
-        var match = this.tagRe.exec(tag);
-        var column = this.tagRe.lastIndex || 0;
-        this.tagRe.lastIndex = 0;
+        var match = tag.match(this.tagRe);
+        var column = 0;
 
         return {
             value: tag,

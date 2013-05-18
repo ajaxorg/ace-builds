@@ -108,7 +108,7 @@ var VelocityHighlightRules = function() {
                 next : "style"
             }, {
                 token : "meta.tag", // opening tag
-                regex : "<\\/?",
+                regex : "<\\/?(?:[a-z])",
                 next : "tag"
             }, {
                 token : "comment",
@@ -155,7 +155,7 @@ var VelocityHighlightRules = function() {
                 regex : "[a-zA-Z$#][a-zA-Z0-9_]*\\b"
             }, {
                 token : "keyword.operator",
-                regex : "!|&|\\*|\\-|\\+|=|!=|<=|>=<|>|&&|\\|\\|"
+                regex : "!|&|\\*|\\-|\\+|=|!=|<=|>=|<|>|&&|\\|\\|"
             }, {
                 token : "lparen",
                 regex : "[[({]"
@@ -182,12 +182,11 @@ var VelocityHighlightRules = function() {
         ],
         "comment" : [
             {
-                token : "comment.block", // closing comment
-                regex : ".*?\\*#",
+                token : "comment", // closing comment
+                regex : "\\*#|-->",
                 next : "start"
             }, {
-                token : "comment", // comment spanning whole line
-                regex : ".+"
+                defaultToken: "comment"
             }
         ],
         "vm_start" : [
@@ -233,7 +232,7 @@ var VelocityHighlightRules = function() {
                 regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
             }, {
                 token : "keyword.operator",
-                regex : "!|&|\\*|\\-|\\+|=|!=|<=|>=<|>|&&|\\|\\|"
+                regex : "!|&|\\*|\\-|\\+|=|!=|<=|>=|<|>|&&|\\|\\|"
             }, {
                 token : "lparen",
                 regex : "[[({]"

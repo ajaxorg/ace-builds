@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of Ajax.org B.V. nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-ace.define('ace/ext/static_highlight', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/layer/text'], function(require, exports, module) {
+ace.define('ace/ext/static_highlight', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/layer/text', 'ace/config'], function(require, exports, module) {
 
 
 var EditSession = require("../edit_session").EditSession;
@@ -37,12 +37,12 @@ var baseStyles = ".ace_editor {\
 font-family: 'Monaco', 'Menlo', 'Droid Sans Mono', 'Courier New', monospace;\
 font-size: 12px;\
 }\
-.ace_editor .ace_gutter { \
+.ace_editor .ace_gutter {\
 width: 25px !important;\
 display: block;\
 float: left;\
-text-align: right; \
-padding: 0 3px 0 0; \
+text-align: right;\
+padding: 0 3px 0 0;\
 margin-right: 3px;\
 }\
 .ace_line { clear: both; }\
@@ -52,23 +52,48 @@ margin-right: 3px;\
 -webkit-user-select: none;\
 user-select: none;\
 }";
+var config = require("../config");
 
-exports.render = function(input, mode, theme, lineStart, disableGutter) {
+exports.render = function(input, mode, theme, lineStart, disableGutter, callback) {
+    var waiting = 0
+    if (typeof theme == "string") {
+        waiting++;
+        config.loadModule(['theme', theme], function(m) {
+            theme = m;
+            --waiting || done();
+        });
+    }
+
+    if (typeof mode == "string") {
+        waiting++;
+        config.loadModule(['mode', mode], function(m) {
+            mode = new m.Mode()
+            --waiting || done();
+        });
+    }
+    function done() {
+        var result = exports.renderSync(input, mode, theme, lineStart, disableGutter);
+        return callback ? callback(result) : result;
+    }
+    return waiting || done();
+};
+
+exports.renderSync = function(input, mode, theme, lineStart, disableGutter) {
     lineStart = parseInt(lineStart || 1, 10);
-    
+
     var session = new EditSession("");
-    session.setMode(mode);
     session.setUseWorker(false);
-    
+    session.setMode(mode);
+
     var textLayer = new TextLayer(document.createElement("div"));
     textLayer.setSession(session);
     textLayer.config = {
         characterWidth: 10,
         lineHeight: 20
     };
-    
+
     session.setValue(input);
-            
+
     var stringBuilder = [];
     var length =  session.getLength();
 
@@ -84,9 +109,9 @@ exports.render = function(input, mode, theme, lineStart, disableGutter) {
             :code\
         </div>\
     </div>".replace(/:cssClass/, theme.cssClass).replace(/:code/, stringBuilder.join(""));
-        
+
     textLayer.destroy();
-            
+
     return {
         css: baseStyles + theme.cssText,
         html: html

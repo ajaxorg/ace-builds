@@ -58,6 +58,7 @@ var startCommands = {
 };
 
 exports.handler = {
+	$id: "ace/keyboard/vim",
     handleMacRepeat: function(data, hashId, key) {
         if (hashId == -1) {
             data.inputChar = key;
@@ -1467,7 +1468,7 @@ module.exports = {
 };
 
 module.exports.backspace = module.exports.left = module.exports.h;
-module.exports.space = module.exports.return = module.exports.right = module.exports.l;
+module.exports.space = module.exports['return'] = module.exports.right = module.exports.l;
 module.exports.up = module.exports.k;
 module.exports.down = module.exports.j;
 module.exports.pagedown = module.exports["ctrl-d"];

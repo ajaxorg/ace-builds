@@ -112,7 +112,7 @@ var ElasticTabstopsLite = function(editor) {
         var selectionColumns = this.$selectionColumnsForRow(row);
 
         var tabs = [-1].concat(this.$tabsForRow(row));
-        var widths = tabs.map(function (el) { return 0; } ).slice(1);
+        var widths = tabs.map(function(el) { return 0; } ).slice(1);
         var line = this.$editor.session.getLine(row);
 
         for (var i = 0, len = tabs.length - 1; i < len; i++) {
@@ -123,7 +123,7 @@ var ElasticTabstopsLite = function(editor) {
             var cell = line.substring(leftEdge, rightEdge);
             widths[i] = Math.max(cell.replace(/\s+$/g,'').length, rightmostSelection - leftEdge);
         }
-        
+
         return widths;
     };
 
@@ -131,7 +131,7 @@ var ElasticTabstopsLite = function(editor) {
         var selections = [], cursor = this.$editor.getCursorPosition();
         if (this.$editor.session.getSelection().isEmpty()) {
             if (row == cursor.row)
-                selections.push(cursor.column);   
+                selections.push(cursor.column);
         }
 
         return selections;
@@ -180,7 +180,7 @@ var ElasticTabstopsLite = function(editor) {
             for (var s = 0, length = selectionColumns.length; s < length; s++) {
                 if (selectionColumns[s] <= cellRightEdge)
                     lengths.push(s);
-                else 
+                else
                     lengths.push(0);
             }
             rightmost = Math.max.apply(Math, lengths);
@@ -205,7 +205,7 @@ var ElasticTabstopsLite = function(editor) {
 
         if (rowTabs.length == 0)
             return;
-        
+
         var bias = 0, location = -1;
         var expandedSet = this.$izip(widths, rowTabs);
 
@@ -246,7 +246,7 @@ var ElasticTabstopsLite = function(editor) {
             if (iLength > longest)
                 longest = iLength;
         }
-        
+
         var expandedSet = [];
 
         for (var l = 0; l < longest; l++) {
@@ -260,13 +260,13 @@ var ElasticTabstopsLite = function(editor) {
 
             expandedSet.push(set);
         }
-        
+
 
         return expandedSet;
     };
     this.$izip = function(widths, tabs) {
         var size = widths.length >= tabs.length ? tabs.length : widths.length;
-        
+
         var expandedSet = [];
         for (var i = 0; i < size; i++) {
             var set = [ widths[i], tabs[i] ];
