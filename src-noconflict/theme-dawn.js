@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -40,10 +40,8 @@ color: #333\
 width: 1px;\
 background: #e8e8e8\
 }\
-.ace-dawn .ace_scroller {\
-background-color: #F9F9F9\
-}\
-.ace-dawn .ace_text-layer {\
+.ace-dawn {\
+background-color: #F9F9F9;\
 color: #080808\
 }\
 .ace-dawn .ace_cursor {\
@@ -138,7 +136,7 @@ text-decoration: underline\
 color: #19356D\
 }\
 .ace-dawn .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4+fPnf4ZVq1b9BwAkVQboFQv98gAAAABJRU5ErkJggg==) right repeat-y\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYLh/5+x/AAizA4hxNNsZAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
 var dom = require("../lib/dom");

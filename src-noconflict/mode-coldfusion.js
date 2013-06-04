@@ -1702,6 +1702,10 @@ var ColdfusionHighlightRules = function() {
             next : "script"
         }, {
             token : "meta.tag",
+            regex : "<(?=cfscript)",
+            next : "cfscript"
+        }, {
+            token : "meta.tag",
             regex : "<(?=style)",
             next : "style"
         }, {
@@ -1728,7 +1732,8 @@ var ColdfusionHighlightRules = function() {
     xml_util.tag(this.$rules, "tag", "start");
     xml_util.tag(this.$rules, "style", "css-start");
     xml_util.tag(this.$rules, "script", "js-start");
-    
+    xml_util.tag(this.$rules, "cfscript", "js-start");
+
     this.embedRules(JavaScriptHighlightRules, "js-", [{
         token: "comment",
         regex: "\\/\\/.*(?=<\\/script>)",
@@ -1736,6 +1741,14 @@ var ColdfusionHighlightRules = function() {
     }, {
         token: "meta.tag",
         regex: "<\\/(?=script)",
+        next: "tag"
+    }, {
+        token: "comment",
+        regex: "\\/\\/.*(?=<\\/cfscript>)",
+        next: "tag"
+    }, {
+        token: "meta.tag",
+        regex: "<\\/(?=cfscript)",
         next: "tag"
     }]);
     

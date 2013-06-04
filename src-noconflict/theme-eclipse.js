@@ -41,13 +41,11 @@ color: rgb(136, 136, 136);\
 width: 1px;\
 background: #ebebeb;\
 }\
-.ace-eclipse .ace_scroller {\
+.ace-eclipse {\
 background-color: #FFFFFF;\
 }\
 .ace-eclipse .ace_fold {\
 background-color: rgb(60, 76, 114);\
-}\
-.ace-eclipse .ace_text-layer {\
 }\
 .ace-eclipse .ace_cursor {\
 border-left: 2px solid black;\

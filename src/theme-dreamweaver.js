@@ -39,13 +39,11 @@ color: #333;\
 width: 1px;\
 background: #e8e8e8;\
 }\
-.ace-dreamweaver .ace_scroller {\
+.ace-dreamweaver {\
 background-color: #FFFFFF;\
 }\
 .ace-dreamweaver .ace_fold {\
 background-color: #757AD8;\
-}\
-.ace-dreamweaver .ace_text-layer {\
 }\
 .ace-dreamweaver .ace_cursor {\
 border-left: 2px solid black;\

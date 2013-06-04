@@ -290,7 +290,10 @@ function github_embed(tag, prefix) {
 var MarkdownHighlightRules = function() {
 
     this.$rules = {
-        "basic" : [{ // code span `
+        "basic" : [{
+            token : "constant.language.escape",
+            regex : /\\[\\`*_{}\[\]()#+\-.!]/
+        }, { // code span `
             token : "support.function",
             regex : "(`+)(.*?[^`])(\\1)"
         }, { // reference

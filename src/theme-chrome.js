@@ -41,7 +41,7 @@ overflow : hidden;\
 width: 1px;\
 background: #e8e8e8;\
 }\
-.ace-chrome .ace_scroller {\
+.ace-chrome {\
 background-color: #FFFFFF;\
 }\
 .ace-chrome .ace_cursor {\

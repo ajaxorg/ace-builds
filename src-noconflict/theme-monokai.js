@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -40,10 +40,8 @@ color: #8F908A\
 width: 1px;\
 background: #555651\
 }\
-.ace-monokai .ace_scroller {\
-background-color: #272822\
-}\
-.ace-monokai .ace_text-layer {\
+.ace-monokai {\
+background-color: #272822;\
 color: #F8F8F2\
 }\
 .ace-monokai .ace_cursor {\
@@ -115,6 +113,7 @@ color: #66D9EF\
 }\
 .ace-monokai .ace_entity.ace_name.ace_function,\
 .ace-monokai .ace_entity.ace_other,\
+.ace-monokai .ace_entity.ace_other.ace_attribute-name,\
 .ace-monokai .ace_variable {\
 color: #A6E22E\
 }\
@@ -132,7 +131,7 @@ color: #75715E\
 text-decoration: underline\
 }\
 .ace-monokai .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNQ11D6z7Bq1ar/ABCKBG6g04U2AAAAAElFTkSuQmCC) right repeat-y\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPQ0FD0ZXBzd/wPAAjVAoxeSgNeAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
 var dom = require("../lib/dom");

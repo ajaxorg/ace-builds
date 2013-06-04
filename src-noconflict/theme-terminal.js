@@ -40,10 +40,8 @@ color: steelblue\
 width: 1px;\
 background: #1a1a1a\
 }\
-.ace-terminal-theme .ace_scroller {\
-background-color: black\
-}\
-.ace-terminal-theme .ace_text-layer {\
+.ace-terminal-theme {\
+background-color: black;\
 color: #DEDEDE\
 }\
 .ace-terminal-theme .ace_cursor {\
@@ -145,7 +143,7 @@ color: orangered\
 text-decoration: underline\
 }\
 .ace-terminal-theme .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGD4z7Bq1ar/AAz9A/2naJQKAAAAAElFTkSuQmCC) right repeat-y\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYLBWV/8PAAK4AYnhiq+xAAAAAElFTkSuQmCC) right repeat-y;\
 }\
 ";
 

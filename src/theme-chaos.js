@@ -50,11 +50,8 @@ border-left: 1px solid #555;\
 right: 0;\
 background: #1D1D1D;\
 }\
-.ace-chaos .ace_scroller {\
+.ace-chaos {\
 background-color: #161616;\
-}\
-.ace-chaos .ace_text-layer {\
-cursor: text;\
 color: #E6E1DC;\
 }\
 .ace-chaos .ace_cursor {\

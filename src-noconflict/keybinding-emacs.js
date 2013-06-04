@@ -93,14 +93,33 @@ exports.handler.attach = function(editor) {
     $formerLineStart = editor.session.$useEmacsStyleLineStart;
     editor.session.$useEmacsStyleLineStart = true;
 
-    editor.session.$emacsMark = null;
+    editor.session.$emacsMark = null; // the active mark
+    editor.session.$emacsMarkRing = editor.session.$emacsMarkRing || [];
 
-    editor.emacsMarkMode = function() {
+    editor.emacsMark = function() {
         return this.session.$emacsMark;
     }
 
-    editor.setEmacsMarkMode = function(p) {
+    editor.setEmacsMark = function(p) {
         this.session.$emacsMark = p;
+    }
+
+    editor.pushEmacsMark = function(p, activate) {
+        var prevMark = this.session.$emacsMark;
+        if (prevMark)
+            this.session.$emacsMarkRing.push(prevMark);
+        if (!p || activate) this.setEmacsMark(p)
+        else this.session.$emacsMarkRing.push(p);
+    }
+
+    editor.popEmacsMark = function() {
+        var mark = this.emacsMark();
+        if (mark) { this.setEmacsMark(null); return mark; }
+        return this.session.$emacsMarkRing.pop();
+    }
+
+    editor.getLastEmacsMark = function(p) {
+        return this.session.$emacsMark || this.session.$emacsMarkRing.slice(-1)[0];
     }
 
     editor.on("click", $resetMarkMode);
@@ -110,6 +129,8 @@ exports.handler.attach = function(editor) {
     editor.commands.addCommands(commands);
     exports.handler.platform = editor.commands.platform;
     editor.$emacsModeHandler = this;
+    editor.addEventListener('copy', this.onCopy);
+    editor.addEventListener('paste', this.onPaste);
 };
 
 exports.handler.detach = function(editor) {
@@ -120,6 +141,8 @@ exports.handler.detach = function(editor) {
     editor.removeEventListener("changeSession", $kbSessionChange);
     editor.unsetStyle("emacs-mode");
     editor.commands.removeCommands(commands);
+    editor.removeEventListener('copy', this.onCopy);
+    editor.removeEventListener('paste', this.onPaste);
 };
 
 var $kbSessionChange = function(e) {
@@ -135,6 +158,8 @@ var $kbSessionChange = function(e) {
 
     if (!e.session.hasOwnProperty('$emacsMark'))
         e.session.$emacsMark = null;
+    if (!e.session.hasOwnProperty('$emacsMarkRing'))
+        e.session.$emacsMarkRing = [];
 }
 
 var $resetMarkMode = function(e) {
@@ -155,6 +180,17 @@ combinations.forEach(function(c) {
     eMods[hashId] = c.toLowerCase() + "-";
 });
 
+exports.handler.onCopy = function(e, editor) {
+    if (editor.$handlesEmacsOnCopy) return;
+    editor.$handlesEmacsOnCopy = true;
+    exports.handler.commands.killRingSave.exec(editor);
+    delete editor.$handlesEmacsOnCopy;
+}
+
+exports.handler.onPaste = function(e, editor) {
+    editor.pushEmacsMark(editor.getCursorPosition());
+}
+
 exports.handler.bindKey = function(key, command) {
     if (!key)
         return;
@@ -163,17 +199,20 @@ exports.handler.bindKey = function(key, command) {
     key.split("|").forEach(function(keyPart) {
         keyPart = keyPart.toLowerCase();
         ckb[keyPart] = command;
-        keyPart = keyPart.split(" ")[0];
-        if (!ckb[keyPart])
-            ckb[keyPart] = "null";
+        var keyParts = keyPart.split(" ").slice(0,-1);
+        keyParts.reduce(function(keyMapKeys, keyPart, i) {
+            var prefix = keyMapKeys[i-1] ? keyMapKeys[i-1] + ' ' : '';
+            return keyMapKeys.concat([prefix + keyPart]);
+        }, []).forEach(function(keyPart) {
+            if (!ckb[keyPart]) ckb[keyPart] = "null";
+        });
     }, this);
-};
-
+}
 
 exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
     var editor = data.editor;
     if (hashId == -1) {
-        editor.setEmacsMarkMode(null);
+        editor.pushEmacsMark();
         if (data.count) {
             var str = Array(data.count + 1).join(key);
             data.count = null;
@@ -185,10 +224,13 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
 
     var modifier = eMods[hashId];
     if (modifier == "c-" || data.universalArgument) {
+        var prevCount = String(data.count || 0);
         var count = parseInt(key[key.length - 1]);
-        if (count) {
-            data.count = count;
+        if (typeof count === 'number' && !isNaN(count)) {
+            data.count = parseInt(prevCount + count);
             return {command: "null"};
+        } else if (data.universalArgument) {
+            data.count = 4;
         }
     }
     data.universalArgument = false;
@@ -208,7 +250,7 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
         args = command.args;
         if (command.command) command = command.command;
         if (command === "goorselect") {
-            command = editor.emacsMarkMode() ? args[1] : args[0];
+            command = editor.emacsMark() ? args[1] : args[0];
             args = null;
         }
     }
@@ -217,7 +259,7 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
         if (command === "insertstring" ||
             command === "splitline" ||
             command === "togglecomment") {
-            editor.setEmacsMarkMode(null);
+            editor.pushEmacsMark();
         }
         command = this.commands[command] || editor.commands.commands[command];
         if (!command) return undefined;
@@ -229,15 +271,20 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
     if (data.count) {
         var count = data.count;
         data.count = 0;
-        return {
-            args: args,
-            command: {
-                exec: function(editor, args) {
-                    for (var i = 0; i < count; i++)
-                        command.exec(editor, args);
+        if (!command || !command.handlesCount) {
+            return {
+                args: args,
+                command: {
+                    exec: function(editor, args) {
+                        for (var i = 0; i < count; i++)
+                            command.exec(editor, args);
+                    }
                 }
-            }
-        };
+            };
+        } else {
+            if (!args) args = {}
+            if (typeof args === 'object') args.count = count;
+        }
     }
 
     return {command: command, args: args};
@@ -335,27 +382,59 @@ exports.handler.addCommands({
     selectRectangularRegion:  function(editor) {
         editor.multiSelect.toggleBlockSelection();
     },
-    setMark:  function(editor) {
-        var markMode = editor.emacsMarkMode();
-        if (markMode) {
-            var cp = editor.getCursorPosition();
-            if (editor.selection.isEmpty() &&
-                markMode.row == cp.row && markMode.column == cp.column) {
-                editor.setEmacsMarkMode(null);
+    setMark:  {
+        exec: function(editor, args) {
+            if (args && args.count) {
+                var mark = editor.popEmacsMark();
+                mark && editor.selection.moveCursorToPosition(mark);
                 return;
             }
-        }
-        markMode = editor.getCursorPosition();
-        editor.setEmacsMarkMode(markMode);
-        editor.selection.setSelectionAnchor(markMode.row, markMode.column);
-    },
-    exchangePointAndMark: {
-        exec: function(editor) {
-            var range = editor.selection.getRange();
-            editor.selection.setSelectionRange(range, !editor.selection.isBackwards());
+
+            var mark = editor.emacsMark(),
+                transientMarkModeActive = true;
+            if (transientMarkModeActive && (mark || !editor.selection.isEmpty())) {
+                editor.pushEmacsMark();
+                editor.clearSelection();
+                return;
+            }
+
+            if (mark) {
+                var cp = editor.getCursorPosition();
+                if (editor.selection.isEmpty() &&
+                    mark.row == cp.row && mark.column == cp.column) {
+                    editor.pushEmacsMark();
+                    return;
+                }
+            }
+            mark = editor.getCursorPosition();
+            editor.setEmacsMark(mark);
+            editor.selection.setSelectionAnchor(mark.row, mark.column);
         },
         readonly: true,
-        multiselectAction: "forEach"
+        handlesCount: true,
+        multiSelectAction: "forEach"
+    },
+    exchangePointAndMark: {
+        exec: function(editor, args) {
+            var sel = editor.selection;
+            if (args.count) {
+                var pos = editor.getCursorPosition();
+                sel.clearSelection();
+                sel.moveCursorToPosition(editor.popEmacsMark());
+                editor.pushEmacsMark(pos);
+                return;
+            }
+            var lastMark = editor.getLastEmacsMark();
+            var range = sel.getRange();
+            if (range.isEmpty()) {
+                sel.selectToPosition(lastMark);
+                return;
+            }
+            sel.setSelectionRange(range, !sel.isBackwards());
+        },
+        readonly: true,
+        handlesCount: true,
+        multiSelectAction: "forEach"
     },
     killWord: {
         exec: function(editor, dir) {
@@ -372,10 +451,10 @@ exports.handler.addCommands({
             editor.session.remove(range);
             editor.clearSelection();
         },
-        multiselectAction: "forEach"
+        multiSelectAction: "forEach"
     },
     killLine: function(editor) {
-        editor.setEmacsMarkMode(null);
+        editor.pushEmacsMark(null);
         var pos = editor.getCursorPosition();
         if (pos.column == 0 &&
             editor.session.doc.getLine(pos.row).length == 0) {
@@ -392,7 +471,7 @@ exports.handler.addCommands({
         editor.clearSelection();
     },
     yank: function(editor) {
-        editor.onPaste(exports.killRing.get());
+        editor.onPaste(exports.killRing.get() || '');
         editor.keyBinding.$data.lastCommand = "yank";
     },
     yankRotate: function(editor) {
@@ -402,16 +481,29 @@ exports.handler.addCommands({
         editor.onPaste(exports.killRing.rotate());
         editor.keyBinding.$data.lastCommand = "yank";
     },
-    killRegion: function(editor) {
-        exports.killRing.add(editor.getCopyText());
-        editor.commands.byName.cut.exec(editor);
+    killRegion: {
+        exec: function(editor) {
+            exports.killRing.add(editor.getCopyText());
+            editor.commands.byName.cut.exec(editor);
+        },
+        readonly: true,
+        multiSelectAction: "forEach"
     },
-    killRingSave: function(editor) {
-        exports.killRing.add(editor.getCopyText());
+    killRingSave: {
+        exec: function(editor) {
+            exports.killRing.add(editor.getCopyText());
+            setTimeout(function() {
+                var sel = editor.selection,
+                    range = sel.getRange();
+                editor.pushEmacsMark(sel.isBackwards() ? range.end : range.start);
+                sel.clearSelection();
+            }, 0);
+        },
+        readonly: true
     },
     keyboardQuit: function(editor) {
         editor.selection.clearSelection();
-        editor.setEmacsMarkMode(null);
+        editor.setEmacsMark(null);
     },
     focusCommandLine: function(editor, arg) {
         if (editor.showCommandLine)
@@ -432,8 +524,9 @@ exports.killRing = {
         if (this.$data.length > 30)
             this.$data.shift();
     },
-    get: function() {
-        return this.$data[this.$data.length - 1] || "";
+    get: function(n) {
+        n = n || 1;
+        return this.$data.slice(this.$data.length-n, this.$data.length).reverse().join('\n');
     },
     pop: function() {
         if (this.$data.length > 1)
@@ -508,6 +601,8 @@ oop.inherits(IncrementalSearch, Search);
         if (reset) {
             e.moveCursorToPosition(this.$startPos);
             this.$currentPos = this.$startPos;
+        } else {
+            e.pushEmacsMark && e.pushEmacsMark(this.$startPos, false);
         }
         this.highlight(null);
         return Range.fromPoints(this.$currentPos, this.$currentPos);

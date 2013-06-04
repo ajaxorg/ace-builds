@@ -830,6 +830,7 @@ var docs = {
     "docs/c9search.c9search_results": "C9 Search Results",
     
     "docs/actionscript.as": "ActionScript",
+    "docs/assembly_x86.asm": "Assembly_x86",
     "docs/autohotkey.ahk": "AutoHotKey",
     "docs/batchfile.bat": "BatchFile",
     "docs/erlang/erl": "Erlang",
@@ -837,7 +838,8 @@ var docs = {
     "docs/haskell.hs": "Haskell",
     "docs/julia.js": "Julia",
     "docs/prolog/plg": "Prolog",
-    "docs/rust.rs": "Rust"
+    "docs/rust.rs": "Rust",
+    "docs/twig.twig": "Twig"
 };
 
 var ownSource = {
@@ -950,22 +952,27 @@ Mode.prototype.supportsFile = function(filename) {
 };
 var supportedModes = {
     ABAP:        ["abap"],
+    ADA:         ["ada|adb"],
     ActionScript:["as"],
     AsciiDoc:    ["asciidoc"],
+    Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
     C9Search:    ["c9search_results"],
     C_Cpp:       ["c|cc|cpp|cxx|h|hh|hpp"],
     Clojure:     ["clj"],
+    Cobol:       ["^CBL|COB"],
     coffee:      ["^Cakefile|coffee|cf|cson"],
     ColdFusion:  ["cfm"],
     CSharp:      ["cs"],
     CSS:         ["css"],
     Curly:       ["curly"],
+    D:           ["d|di"],
     Dart:        ["dart"],
     Diff:        ["diff|patch"],
     Dot:         ["dot"],
     Erlang:      ["erl|hrl"],
+    EJS:         ["ejs"],
     Forth:       ["frt|fs|ldr"],
     FreeMarker:  ["ftl"],
     Glsl:        ["glsl|frag|vert"],
@@ -996,7 +1003,9 @@ var supportedModes = {
     LuaPage:     ["lp"],
     Lucene:      ["lucene"],
     Makefile:    ["^GNUmakefile|^makefile|^Makefile|^OCamlMakefile|make"],
+    MATLAB:      ["matlab"],
     Markdown:    ["md|markdown"],
+    MySQL:       ["mysql"],
     MUSHCode:    ["mc|mush"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
@@ -1028,6 +1037,7 @@ var supportedModes = {
     Text:        ["txt"],
     Textile:     ["textile"],
     Toml:        ["toml"],
+    Twig:        ["twig"],
     Typescript:  ["typescript|ts|str"],
     VBScript:    ["vbs"],
     Velocity:    ["vm"],
@@ -1942,6 +1952,8 @@ oop.inherits(IncrementalSearch, Search);
         if (reset) {
             e.moveCursorToPosition(this.$startPos);
             this.$currentPos = this.$startPos;
+        } else {
+            e.pushEmacsMark && e.pushEmacsMark(this.$startPos, false);
         }
         this.highlight(null);
         return Range.fromPoints(this.$currentPos, this.$currentPos);
@@ -2684,11 +2696,23 @@ exports.handler = {
     handleKeyboard: function(data, hashId, key, keyCode, e) {
         if (hashId != 0 && (key == "" || key == "\x00"))
             return null;
-
+        
+        var editor = data.editor;
+        
         if (hashId == 1)
             key = "ctrl-" + key;
-        
-        if ((key == "esc" && hashId == 0) || key == "ctrl-[") {
+        if (key == "ctrl-c") {
+            if (!useragent.isMac && editor.getCopyText()) {
+                editor.once("copy", function() {
+                    if (data.state == "start")
+                        coreCommands.stop.exec(editor);
+                    else
+                        editor.selection.clearSelection();
+                });
+                return {command: "null", passEvent: true};
+            }
+            return {command: coreCommands.stop};            
+        } else if ((key == "esc" && hashId == 0) || key == "ctrl-[") {
             return {command: coreCommands.stop};
         } else if (data.state == "start") {
             if (useragent.isMac && this.handleMacRepeat(data, hashId, key)) {
@@ -2699,13 +2723,8 @@ exports.handler = {
             if (hashId == -1 || hashId == 1 || hashId == 0 && key.length > 1) {
                 if (cmds.inputBuffer.idle && startCommands[key])
                     return startCommands[key];
-                return {
-                    command: {
-                        exec: function(editor) { 
-                            return cmds.inputBuffer.push(editor, key);
-                        }
-                    }
-                };
+                cmds.inputBuffer.push(editor, key);
+                return {command: "null", passEvent: false}; 
             } // if no modifier || shift: wait for input.
             else if (key.length == 1 && (hashId == 0 || hashId == 4)) {
                 return {command: "null", passEvent: true};
@@ -4375,6 +4394,8 @@ AceEmmetEditor.prototype = {
     setupContext: function(editor) {
         this.ace = editor;
         this.indentation = editor.session.getTabString();
+        if (!emmet)
+            emmet = window.emmet;
         emmet.require("resources").setVariable("indentation", this.indentation);
         this.$syntax = null;
         this.$syntax = this.getSyntax();
@@ -4416,7 +4437,7 @@ AceEmmetEditor.prototype = {
     },
     replaceContent: function(value, start, end, noIndent) {
         if (end == null)
-            end = start == null ? content.length : start;
+            end = start == null ? this.getContent().length : start;
         if (start == null)
             start = 0;
         var utils = emmet.require("utils");
@@ -4469,7 +4490,7 @@ AceEmmetEditor.prototype = {
                 if (state.length > 1)
                     syntax = state[0];
                 else if (syntax == "php")
-                    syntax = "html"
+                    syntax = "html";
             }
         }
         return syntax;
@@ -4522,12 +4543,13 @@ var keymap = {
     reflect_css_value: {"mac": "shift+command+r", "win": "shift+ctrl+r"},
 
     encode_decode_data_url: {"mac": "shift+ctrl+d", "win": "ctrl+'"},
-    expand_abbreviation_with_tab: "Tab"
+    expand_abbreviation_with_tab: "Tab",
+    wrap_with_abbreviation: {"mac": "shift+ctrl+a", "win": "shift+ctrl+a"}
 };
 
 var editorProxy = new AceEmmetEditor();
 exports.commands = new HashHandler();
-function runEmmetCommand(editor) {
+exports.runEmmetCommand = function(editor) {
     editorProxy.setupContext(editor);
     if (editorProxy.getSyntax() == "php")
         return false;
@@ -4538,6 +4560,12 @@ function runEmmetCommand(editor) {
             return false;
     }
     
+    if (this.action == "wrap_with_abbreviation") {
+        return setTimeout(function() {
+            actions.run("wrap_with_abbreviation", editorProxy);
+        }, 0);
+    }
+    
     try {
         var result = actions.run(this.action, editorProxy);
     } catch(e) {
@@ -4545,14 +4573,14 @@ function runEmmetCommand(editor) {
         console.log(e);
     }
     return result;
-}
+};
 
 for (var command in keymap) {
     exports.commands.addCommand({
         name: "emmet:" + command,
         action: command,
         bindKey: keymap[command],
-        exec: runEmmetCommand,
+        exec: exports.runEmmetCommand,
         multiSelectAction: "forEach"
     });
 }
@@ -4572,7 +4600,7 @@ var onChangeMode = function(e, target) {
 };
 
 
-exports.AceEmmetEditor = AceEmmetEditor
+exports.AceEmmetEditor = AceEmmetEditor;
 require("ace/config").defineOptions(Editor.prototype, "editor", {
     enableEmmet: {
         set: function(val) {

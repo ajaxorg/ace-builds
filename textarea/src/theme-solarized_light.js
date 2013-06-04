@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -40,10 +40,8 @@ color: #333\
 width: 1px;\
 background: #e8e8e8\
 }\
-.ace-solarized-light .ace_scroller {\
-background-color: #FDF6E3\
-}\
-.ace-solarized-light .ace_text-layer {\
+.ace-solarized-light {\
+background-color: #FDF6E3;\
 color: #586E75\
 }\
 .ace-solarized-light .ace_cursor {\
@@ -54,7 +52,7 @@ border-left: 0px;\
 border-bottom: 1px solid #000000\
 }\
 .ace-solarized-light .ace_marker-layer .ace_selection {\
-background: #073642\
+background:  rgba(7, 54, 67, 0.09)\
 }\
 .ace-solarized-light.ace_multiselect .ace_selection.ace_start {\
 box-shadow: 0 0 3px 0px #FDF6E3;\
@@ -71,7 +69,7 @@ border: 1px solid rgba(147, 161, 161, 0.50)\
 background: #EEE8D5\
 }\
 .ace-solarized-light .ace_gutter-active-line {\
-background-color : #dcdcdc\
+background-color : #EDE5C1\
 }\
 .ace-solarized-light .ace_marker-layer .ace_selected-word {\
 border: 1px solid #073642\
@@ -123,7 +121,7 @@ color: #93A1A1\
 text-decoration: underline\
 }\
 .ace-solarized-light .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4++3xf4ZVq1b9BwAjxwbT1g3hiwAAAABJRU5ErkJggg==) right repeat-y\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHjy8NJ/AAjgA5fzQUmBAAAAAElFTkSuQmCC) right repeat-y;\
 }";
 
 var dom = require("../lib/dom");
