@@ -121,9 +121,6 @@ color: #AD2EA4\
 .ace-merbivore .ace_entity.ace_other.ace_attribute-name {\
 color: #FFFF89\
 }\
-.ace-merbivore .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
 .ace-merbivore .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWMQFxf3ZXB1df0PAAdsAmERTkEHAAAAAElFTkSuQmCC) right repeat-y;\
 }";

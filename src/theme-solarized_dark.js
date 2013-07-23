@@ -45,8 +45,7 @@ background-color: #002B36;\
 color: #93A1A1\
 }\
 .ace-solarized-dark .ace_entity.ace_other.ace_attribute-name,\
-.ace-solarized-dark .ace_storage,\
-.ace-solarized-dark .ace_text-layer {\
+.ace-solarized-dark .ace_storage {\
 color: #93A1A1\
 }\
 .ace-solarized-dark .ace_cursor {\
@@ -116,9 +115,6 @@ color: #D30102\
 .ace-solarized-dark .ace_comment {\
 font-style: italic;\
 color: #657B83\
-}\
-.ace-solarized-dark .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-solarized-dark .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNg0Db1ZVCxc/sPAAd4AlUHlLenAAAAAElFTkSuQmCC) right repeat-y;\

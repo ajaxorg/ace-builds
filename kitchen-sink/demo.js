@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/placeholder', 'ace/snippets', 'ace/snippets/javascript'], function(require, exports, module) {
+define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/worker/worker_client', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/snippets', 'ace/ext/language_tools'], function(require, exports, module) {
 
 
 require("ace/lib/fixoldbrowsers");
@@ -68,6 +68,12 @@ var bindDropdown = util.bindDropdown;
 var ElasticTabstopsLite = require("ace/ext/elastic_tabstops_lite").ElasticTabstopsLite;
 
 var IncrementalSearch = require("ace/incremental_search").IncrementalSearch;
+
+
+var workerModule = require("ace/worker/worker_client");
+if (location.href.indexOf("noworker") !== -1) {
+    workerModule.WorkerClient = workerModule.UIWorkerClient;
+}
 var container = document.getElementById("editor-container");
 var Split = require("ace/split").Split;
 var split = new Split(container, theme, 1);
@@ -145,7 +151,7 @@ env.editor.commands.addCommands([{
     bindKey: "ctrl+enter",
     exec: function(editor) {
         try {
-            var r = eval(editor.getCopyText()||editor.getValue());
+            var r = window.eval(editor.getCopyText()||editor.getValue());
         } catch(e) {
             r = e;
         }
@@ -186,7 +192,7 @@ commands.addCommand({
     exec: function() {alert("Fake Save File");}
 });
 
-var keybindings = {
+var keybindings = {    
     ace: null, // Null = use "default" keymapping
     vim: require("ace/keyboard/vim").handler,
     emacs: "ace/keyboard/emacs",
@@ -407,6 +413,9 @@ bindCheckbox("fade_fold_widgets", function(checked) {
 bindCheckbox("read_only", function(checked) {
     env.editor.setReadOnly(checked);
 });
+bindCheckbox("scrollPastEnd", function(checked) {
+    env.editor.setOption("scrollPastEnd", checked);
+});
 
 bindDropdown("split", function(value) {
     var sp = env.split;
@@ -414,7 +423,7 @@ bindDropdown("split", function(value) {
         sp.setSplits(1);
     } else {
         var newEditor = (sp.getSplits() == 1);
-        sp.setOrientation(value == "below" ? sp.BELOW : sp.BESIDE);
+        sp.setOrientation(value == "below" ? sp.BELOW : sp.BESIDE);        
         sp.setSplits(2);
 
         if (newEditor) {
@@ -492,23 +501,12 @@ new StatusBar(env.editor, cmdLine.container);
 
 
 var Emmet = require("ace/ext/emmet");
-net.loadScript("https://rawgithub.com/nightwing/emmet-core/master/emmet.js", function() {
+net.loadScript("http://nightwing.github.io/emmet-core/emmet.js", function() {
     Emmet.setCore(window.emmet);
     env.editor.setOption("enableEmmet", true);
-})
+});
 
-
-require("ace/placeholder").PlaceHolder;
-
-var snippetManager = require("ace/snippets").snippetManager
-var jsSnippets = require("ace/snippets/javascript");
-window.snippetManager = snippetManager
-saveSnippets()
-
-function saveSnippets() {
-    jsSnippets.snippets = snippetManager.parseSnippetFile(jsSnippets.snippetText);
-    snippetManager.register(jsSnippets.snippets, "javascript")
-}
+var snippetManager = require("ace/snippets").snippetManager;
 
 env.editSnippets = function() {
     var sp = env.split;
@@ -519,27 +517,168 @@ env.editSnippets = function() {
     sp.setSplits(1);
     sp.setSplits(2);
     sp.setOrientation(sp.BESIDE);
-    var editor = sp.$editors[1]
-    if (!env.snippetSession) {
-        var file = jsSnippets.snippetText;
-        env.snippetSession = doclist.initDoc(file, "", {});
-        env.snippetSession.setMode("ace/mode/tmsnippet");
-        env.snippetSession.setUseSoftTabs(false);
+    var editor = sp.$editors[1];
+    var id = sp.$editors[0].session.$mode.$id || "";
+    var m = snippetManager.files[id];
+    if (!doclist["snippets/" + id]) {
+        var text = m.snippetText;
+        var s = doclist.initDoc(text, "", {});
+        s.setMode("ace/mode/snippets");
+        doclist["snippets/" + id] = s
     }
     editor.on("blur", function() {
-        jsSnippets.snippetText = editor.getValue();
-        saveSnippets();
+        m.snippetText = editor.getValue();
+        snippetManager.unregister(m.snippets);
+        m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+        snippetManager.register(m.snippets);
     })
-    editor.setSession(env.snippetSession, 1);
+    sp.$editors[0].once("changeMode", function() {
+        sp.setSplits(1);
+    })
+    editor.setSession(doclist["snippets/" + id], 1);
     editor.focus();
 }
 
-ace.commands.bindKey("Tab", function(editor) {
-    var success = snippetManager.expandWithTab(editor);
-    if (!success)
-        editor.execCommand("indent");
+require("ace/ext/language_tools");
+env.editor.setOptions({
+    enableBasicAutocompletion: true,
+    enableSnippets: true
 })
 
+});
+
+define('ace/theme/textmate', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+
+
+exports.isDark = false;
+exports.cssClass = "ace-tm";
+exports.cssText = ".ace-tm .ace_gutter {\
+background: #f0f0f0;\
+color: #333;\
+}\
+.ace-tm .ace_print-margin {\
+width: 1px;\
+background: #e8e8e8;\
+}\
+.ace-tm .ace_fold {\
+background-color: #6B72E6;\
+}\
+.ace-tm {\
+background-color: #FFFFFF;\
+}\
+.ace-tm .ace_cursor {\
+border-left: 2px solid black;\
+}\
+.ace-tm .ace_overwrite-cursors .ace_cursor {\
+border-left: 0px;\
+border-bottom: 1px solid black;\
+}\
+.ace-tm .ace_invisible {\
+color: rgb(191, 191, 191);\
+}\
+.ace-tm .ace_storage,\
+.ace-tm .ace_keyword {\
+color: blue;\
+}\
+.ace-tm .ace_constant {\
+color: rgb(197, 6, 11);\
+}\
+.ace-tm .ace_constant.ace_buildin {\
+color: rgb(88, 72, 246);\
+}\
+.ace-tm .ace_constant.ace_language {\
+color: rgb(88, 92, 246);\
+}\
+.ace-tm .ace_constant.ace_library {\
+color: rgb(6, 150, 14);\
+}\
+.ace-tm .ace_invalid {\
+background-color: rgba(255, 0, 0, 0.1);\
+color: red;\
+}\
+.ace-tm .ace_support.ace_function {\
+color: rgb(60, 76, 114);\
+}\
+.ace-tm .ace_support.ace_constant {\
+color: rgb(6, 150, 14);\
+}\
+.ace-tm .ace_support.ace_type,\
+.ace-tm .ace_support.ace_class {\
+color: rgb(109, 121, 222);\
+}\
+.ace-tm .ace_keyword.ace_operator {\
+color: rgb(104, 118, 135);\
+}\
+.ace-tm .ace_string {\
+color: rgb(3, 106, 7);\
+}\
+.ace-tm .ace_comment {\
+color: rgb(76, 136, 107);\
+}\
+.ace-tm .ace_comment.ace_doc {\
+color: rgb(0, 102, 255);\
+}\
+.ace-tm .ace_comment.ace_doc.ace_tag {\
+color: rgb(128, 159, 191);\
+}\
+.ace-tm .ace_constant.ace_numeric {\
+color: rgb(0, 0, 205);\
+}\
+.ace-tm .ace_variable {\
+color: rgb(49, 132, 149);\
+}\
+.ace-tm .ace_xml-pe {\
+color: rgb(104, 104, 91);\
+}\
+.ace-tm .ace_entity.ace_name.ace_function {\
+color: #0000A2;\
+}\
+.ace-tm .ace_heading {\
+color: rgb(12, 7, 255);\
+}\
+.ace-tm .ace_list {\
+color:rgb(185, 6, 144);\
+}\
+.ace-tm .ace_meta.ace_tag {\
+color:rgb(0, 22, 142);\
+}\
+.ace-tm .ace_string.ace_regex {\
+color: rgb(255, 0, 0)\
+}\
+.ace-tm .ace_marker-layer .ace_selection {\
+background: rgb(181, 213, 255);\
+}\
+.ace-tm.ace_multiselect .ace_selection.ace_start {\
+box-shadow: 0 0 3px 0px white;\
+border-radius: 2px;\
+}\
+.ace-tm .ace_marker-layer .ace_step {\
+background: rgb(252, 255, 0);\
+}\
+.ace-tm .ace_marker-layer .ace_stack {\
+background: rgb(164, 229, 101);\
+}\
+.ace-tm .ace_marker-layer .ace_bracket {\
+margin: -1px 0 0 -1px;\
+border: 1px solid rgb(192, 192, 192);\
+}\
+.ace-tm .ace_marker-layer .ace_active-line {\
+background: rgba(0, 0, 0, 0.07);\
+}\
+.ace-tm .ace_gutter-active-line {\
+background-color : #dcdcdc;\
+}\
+.ace-tm .ace_marker-layer .ace_selected-word {\
+background: rgb(250, 250, 255);\
+border: 1px solid rgb(200, 200, 250);\
+}\
+.ace-tm .ace_indent-guide {\
+background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
+}\
+";
+
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass);
 });
 
 define('ace/ext/whitespace', ['require', 'exports', 'module' , 'ace/lib/lang'], function(require, exports, module) {
@@ -833,11 +972,11 @@ var docs = {
     "docs/assembly_x86.asm": "Assembly_x86",
     "docs/autohotkey.ahk": "AutoHotKey",
     "docs/batchfile.bat": "BatchFile",
-    "docs/erlang/erl": "Erlang",
+    "docs/erlang.erl": "Erlang",
     "docs/forth.frt": "Forth",
     "docs/haskell.hs": "Haskell",
     "docs/julia.js": "Julia",
-    "docs/prolog/plg": "Prolog",
+    "docs/prolog.plg": "Prolog",
     "docs/rust.rs": "Rust",
     "docs/twig.twig": "Twig"
 };
@@ -974,7 +1113,7 @@ var supportedModes = {
     Erlang:      ["erl|hrl"],
     EJS:         ["ejs"],
     Forth:       ["frt|fs|ldr"],
-    FreeMarker:  ["ftl"],
+    FTL:         ["ftl"],
     Glsl:        ["glsl|frag|vert"],
     golang:      ["go"],
     Groovy:      ["groovy"],
@@ -1052,7 +1191,8 @@ var nameOverrides = {
     golang: "Go",
     C_Cpp: "C/C++",
     coffee: "CoffeeScript",
-    HTML_Ruby: "HTML (Ruby)"
+    HTML_Ruby: "HTML (Ruby)",
+    FTL: "FreeMarker"
 };
 var modesByName = {};
 for (var name in supportedModes) {
@@ -1173,11 +1313,6 @@ var Split = function(){
 exports.singleLineEditor = function(el) {
     var renderer = new Renderer(el);
     el.style.overflow = "hidden";
-    renderer.scrollBar.element.style.top = "0";
-    renderer.scrollBar.element.style.display = "none";
-    renderer.scrollBar.orginalWidth = renderer.scrollBar.width;
-    renderer.scrollBar.width = 0;
-    renderer.content.style.height = "auto";
 
     renderer.screenToTextCoordinates = function(x, y) {
         var pos = this.pixelToScreenCoordinates(x, y);
@@ -1187,72 +1322,16 @@ exports.singleLineEditor = function(el) {
         );
     };
 
-    renderer.maxLines = 4;
-    renderer.$computeLayerConfigWithScroll = renderer.$computeLayerConfig;
-    renderer.$computeLayerConfig = function() {
-        var config = this.layerConfig;
-        var height = this.session.getScreenLength() * this.lineHeight;
-        if (config.height != height) {
-            var vScroll = height > this.maxLines * this.lineHeight;
-
-            if (vScroll != this.$vScroll) {
-                if (vScroll) {
-                    this.scrollBar.element.style.display = "";
-                    this.scrollBar.width = this.scrollBar.orginalWidth;
-                    this.container.style.height = config.height + "px";
-                    height = config.height;
-                    this.scrollTop = height - this.maxLines * this.lineHeight;
-                } else {
-                    this.scrollBar.element.style.display = "none";
-                    this.scrollBar.width = 0;
-                }
-
-                this.onResize();
-                this.$vScroll = vScroll;
-            }
-
-            if (this.$vScroll)
-                return renderer.$computeLayerConfigWithScroll();
-
-            this.container.style.height = height + "px";
-            this.scroller.style.height = height + "px";
-            this.content.style.height = height + "px";
-            this._emit("resize");
-        }
-
-        var longestLine = this.$getLongestLine();
-        var firstRow = 0;
-        var lastRow = this.session.getLength();
-
-        this.scrollTop = 0;
-        config.width = longestLine;
-        config.padding = this.$padding;
-        config.firstRow = 0;
-        config.firstRowScreen = 0;
-        config.lastRow = lastRow;
-        config.lineHeight = this.lineHeight;
-        config.characterWidth = this.characterWidth;
-        config.minHeight = height;
-        config.maxHeight = height;
-        config.offset = 0;
-        config.height = height;
-
-        this.$gutterLayer.element.style.marginTop = 0 + "px";
-        this.content.style.marginTop = 0 + "px";
-        this.content.style.width = longestLine + 2 * this.$padding + "px";
-    };
-    renderer.isScrollableBy=function(){return false};
+    renderer.$maxLines = 4;
 
     renderer.setStyle("ace_one-line");
     var editor = new Editor(renderer);
     new MultiSelect(editor);
     editor.session.setUndoManager(new UndoManager());
 
-    editor.setHighlightActiveLine(false);
     editor.setShowPrintMargin(false);
     editor.renderer.setShowGutter(false);
     editor.renderer.setHighlightGutterLine(false);
-
     editor.$mouseHandler.$focusWaitTimout = 0;
 
     return editor;
@@ -2692,6 +2771,38 @@ exports.handler = {
             data.lastEvent = "keypress";
         }
     },
+    updateMacCompositionHandlers: function(editor, enable) {
+        var onCompositionUpdateOverride = function(text) {
+            if (util.currentMode !== "insert") {
+                var el = this.textInput.getElement();
+                el.blur();
+                el.focus();
+                el.value = text;
+            } else {
+                this.onCompositionUpdateOrig(text);
+            }
+        };
+        var onCompositionStartOverride = function(text) {
+            if (util.currentMode === "insert") {            
+                this.onCompositionStartOrig(text);
+            }
+        }
+        if (enable) {
+            if (!editor.onCompositionUpdateOrig) {
+                editor.onCompositionUpdateOrig = editor.onCompositionUpdate;
+                editor.onCompositionUpdate = onCompositionUpdateOverride;
+                editor.onCompositionStartOrig = editor.onCompositionStart;
+                editor.onCompositionStart = onCompositionStartOverride;
+            }
+        } else {
+            if (editor.onCompositionUpdateOrig) {
+                editor.onCompositionUpdate = editor.onCompositionUpdateOrig;
+                editor.onCompositionUpdateOrig = null;
+                editor.onCompositionStart = editor.onCompositionStartOrig;
+                editor.onCompositionStartOrig = null;
+            }
+        }
+    },
 
     handleKeyboard: function(data, hashId, key, keyCode, e) {
         if (hashId != 0 && (key == "" || key == "\x00"))
@@ -2743,12 +2854,15 @@ exports.handler = {
         if (util.currentMode !== "insert")
             cmds.coreCommands.stop.exec(editor);
         editor.$vimModeHandler = this;
+        
+        this.updateMacCompositionHandlers(editor, true);
     },
 
     detach: function(editor) {
         editor.removeListener("click", exports.onCursorMove);
         util.noMode(editor);
         util.currentMode = "normal";
+        this.updateMacCompositionHandlers(editor, false);
     },
 
     actions: cmds.actions,
@@ -2823,6 +2937,18 @@ var actions = exports.actions = {
                     break;
                 case "b":
                     editor.renderer.alignCursor(null, 1);
+                    break;
+                case "c":
+                    editor.session.onFoldWidgetClick(range.start.row, {domEvent:{target :{}}});
+                    break;
+                case "o":
+                    editor.session.onFoldWidgetClick(range.start.row, {domEvent:{target :{}}});
+                    break;
+                case "C":
+                    editor.session.foldAll();
+                    break;
+                case "O":
+                    editor.session.unfold();
                     break;
             }
         }
@@ -5050,10 +5176,10 @@ var SnippetManager = function() {
         var snippetNameMap = this.snippetNameMap;
 
         function removeSnippet(s) {
-            var map = snippetNameMap[scope];
-            if (map && map[s.name]) {
-                delete map[s.name];
-                map = snippetMap[scope];
+            var nameMap = snippetNameMap[s.scope||scope];
+            if (nameMap && nameMap[s.name]) {
+                delete nameMap[s.name];
+                var map = snippetMap[s.scope||scope];
                 var i = map && map.indexOf(s);
                 if (i >= 0)
                     map.splice(i, 1);
@@ -5112,7 +5238,6 @@ var SnippetManager = function() {
     };
 
 }).call(SnippetManager.prototype);
-
 
 
 var TabstopManager = function(editor) {
@@ -5372,205 +5497,641 @@ exports.snippetManager = new SnippetManager();
 
 
 });
-define('ace/snippets/javascript', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+define('ace/ext/language_tools', ['require', 'exports', 'module' , 'ace/snippets', 'ace/autocomplete', 'ace/config', 'ace/autocomplete/text_completer', 'ace/editor'], function(require, exports, module) {
 
 
-exports.snippetText = "# Prototype\n\
-snippet proto\n\
-	${1:class_name}.prototype.${2:method_name} = function(${3:first_argument}) {\n\
-		${4:// body...}\n\
-	};\n\
-# Function\n\
-snippet fun\n\
-	function ${1?:function_name}(${2:argument}) {\n\
-		${3:// body...}\n\
-	}\n\
-# Anonymous Function\n\
-regex /((=)\\s*|(:)\\s*|(\\()|\\b)/f/(\\))?/\n\
-name f\n\
-	function${M1?: ${1:functionName}}($2) {\n\
-		${0:$TM_SELECTED_TEXT}\n\
-	}${M2?;}${M3?,}${M4?)}\n\
-# Immediate function\n\
-trigger \\(?f\\(\n\
-endTrigger \\)?\n\
-snippet f(\n\
-	(function(${1}) {\n\
-		${0:${TM_SELECTED_TEXT:/* code */}}\n\
-	}(${1}));\n\
-# if\n\
-snippet if\n\
-	if (${1:true}) {\n\
-		${0}\n\
-	}\n\
-# if ... else\n\
-snippet ife\n\
-	if (${1:true}) {\n\
-		${2}\n\
-	} else {\n\
-		${0}\n\
-	}\n\
-# tertiary conditional\n\
-snippet ter\n\
-	${1:/* condition */} ? ${2:a} : ${3:b}\n\
-# switch\n\
-snippet switch\n\
-	switch (${1:expression}) {\n\
-		case '${3:case}':\n\
-			${4:// code}\n\
-			break;\n\
-		${5}\n\
-		default:\n\
-			${2:// code}\n\
-	}\n\
-# case\n\
-snippet case\n\
-	case '${1:case}':\n\
-		${2:// code}\n\
-		break;\n\
-	${3}\n\
-\n\
-# while (...) {...}\n\
-snippet wh\n\
-	while (${1:/* condition */}) {\n\
-		${0:/* code */}\n\
-	}\n\
-# try\n\
-snippet try\n\
-	try {\n\
-		${0:/* code */}\n\
-	} catch (e) {}\n\
-# do...while\n\
-snippet do\n\
-	do {\n\
-		${2:/* code */}\n\
-	} while (${1:/* condition */});\n\
-# Object Method\n\
-snippet :f\n\
-regex /([,{[])|^\\s*/:f/\n\
-	${1:method_name}: function(${2:attribute}) {\n\
-		${0}\n\
-	}${3:,}\n\
-# setTimeout function\n\
-snippet setTimeout\n\
-regex /\\b/st|timeout|setTimeo?u?t?/\n\
-	setTimeout(function() {${3:$TM_SELECTED_TEXT}}, ${1:10});\n\
-# Get Elements\n\
-snippet gett\n\
-	getElementsBy${1:TagName}('${2}')${3}\n\
-# Get Element\n\
-snippet get\n\
-	getElementBy${1:Id}('${2}')${3}\n\
-# console.log (Firebug)\n\
-snippet cl\n\
-	console.log(${1});\n\
-# return\n\
-snippet ret\n\
-	return ${1:result}\n\
-# for (property in object ) { ... }\n\
-snippet fori\n\
-	for (var ${1:prop} in ${2:Things}) {\n\
-		${0:$2[$1]}\n\
-	}\n\
-# hasOwnProperty\n\
-snippet has\n\
-	hasOwnProperty(${1})\n\
-# docstring\n\
-snippet /**\n\
-	/**\n\
-	 * ${1:description}\n\
-	 *\n\
-	 */\n\
-snippet @par\n\
-regex /^\\s*\\*\\s*/@(para?m?)?/\n\
-	@param {${1:type}} ${2:name} ${3:description}\n\
-snippet @ret\n\
-	@return {${1:type}} ${2:description}\n\
-# JSON.parse\n\
-snippet jsonp\n\
-	JSON.parse(${1:jstr});\n\
-# JSON.stringify\n\
-snippet jsons\n\
-	JSON.stringify(${1:object});\n\
-# self-defining function\n\
-snippet sdf\n\
-	var ${1:function_name} = function(${2:argument}) {\n\
-		${3:// initial code ...}\n\
-\n\
-		$1 = function($2) {\n\
-			${4:// main code}\n\
-		};\n\
-	}\n\
-# singleton\n\
-snippet sing\n\
-	function ${1:Singleton} (${2:argument}) {\n\
-		// the cached instance\n\
-		var instance;\n\
-\n\
-		// rewrite the constructor\n\
-		$1 = function $1($2) {\n\
-			return instance;\n\
-		};\n\
-		\n\
-		// carry over the prototype properties\n\
-		$1.prototype = this;\n\
-\n\
-		// the instance\n\
-		instance = new $1();\n\
-\n\
-		// reset the constructor pointer\n\
-		instance.constructor = $1;\n\
-\n\
-		${3:// code ...}\n\
-\n\
-		return instance;\n\
-	}\n\
-# class\n\
-name class\n\
-regex /^\\s*/clas{0,2}/\n\
-	var ${1:class} = function(${20}) {\n\
-		$40$0\n\
-	};\n\
-	\n\
-	(function() {\n\
-		${60:this.prop = \"\"}\n\
-	}).call(${1:class}.prototype);\n\
-	\n\
-	exports.${1:class} = ${1:class};\n\
-# \n\
-snippet for-\n\
-	for (var ${1:i} = ${2:Things}.length; ${1:i}--; ) {\n\
-		${0:${2:Things}[${1:i}];}\n\
-	}\n\
-# for (...) {...}\n\
-snippet for\n\
-	for (var ${1:i} = 0; $1 < ${2:Things}.length; $1++) {\n\
-		${3:$2[$1]}$0\n\
-	}\n\
-# for (...) {...} (Improved Native For-Loop)\n\
-snippet forr\n\
-	for (var ${1:i} = ${2:Things}.length - 1; $1 >= 0; $1--) {\n\
-		${3:$2[$1]}$0\n\
-	}\n\
-\n\
-\n\
-#modules\n\
-snippet def\n\
-	define(function(require, exports, module) {\n\
-	\"use strict\";\n\
-	var ${1/.*\\///} = require(\"${1}\");\n\
-	\n\
-	$TM_SELECTED_TEXT\n\
-	});\n\
-snippet req\n\
-guard ^\\s*\n\
-	var ${1/.*\\///} = require(\"${1}\");\n\
-	$0\n\
-snippet requ\n\
-guard ^\\s*\n\
-	var ${1/.*\\/(.)/\\u$1/} = require(\"${1}\").${1/.*\\/(.)/\\u$1/};\n\
-	$0\n\
-";
+var snippetManager = require("../snippets").snippetManager;
+var Autocomplete = require("../autocomplete").Autocomplete;
+var config = require("../config");
+
+var textCompleter = require("../autocomplete/text_completer");
+var keyWordCompleter = {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+        var keywords = session.$mode.$keywordList || [];
+        keywords = keywords.filter(function(w) {
+            return w.lastIndexOf(prefix, 0) == 0;
+        });
+        callback(null, keywords.map(function(word) {
+            return {
+                name: word,
+                value: word,
+                score: 0,
+                meta: "keyword"
+            };
+        }));
+    }
+};
+
+var snippetCompleter = {
+    getCompletions: function(editor, session, pos, prefix, callback) {
+        var scope = snippetManager.$getScope(editor);
+        var snippetMap = snippetManager.snippetMap;
+        var completions = [];
+        [scope, "_"].forEach(function(scope) {
+            var snippets = snippetMap[scope] || [];
+            for (var i = snippets.length; i--;) {
+                var s = snippets[i];
+                if (s.tabTrigger && s.tabTrigger.indexOf(prefix) === 0)
+                    completions.push({
+                        caption: s.tabTrigger,
+                        snippet: s.content,
+                        meta: "snippet"
+                    });
+            }
+        }, this);
+        callback(null, completions);
+    }
+};
+
+var completers = [snippetCompleter, textCompleter, keyWordCompleter];
+exports.addCompleter = function(completer) {
+    completers.push(completer);
+};
+
+var expandSnippet = {
+    name: "expandSnippet",
+    exec: function(editor) {
+        var success = snippetManager.expandWithTab(editor);
+        if (!success)
+            editor.execCommand("indent");
+    },
+    bindKey: "tab"
+}
+
+var onChangeMode = function(e, editor) {
+    var mode = editor.session.$mode;
+    var id = mode.$id
+    if (!snippetManager.files) snippetManager.files = {};
+    if (id && !snippetManager.files[id]) {
+        var snippetFilePath = id.replace("mode", "snippets");
+        config.loadModule(snippetFilePath, function(m) {
+            if (m) {
+                snippetManager.files[id] = m;
+                m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+                snippetManager.register(m.snippets, m.scope);
+            }
+        });
+    }
+};
+
+var Editor = require("../editor").Editor;
+require("../config").defineOptions(Editor.prototype, "editor", {
+    enableBasicAutocompletion: {
+        set: function(val) {
+            if (val) {
+                this.completers = completers
+                this.commands.addCommand(Autocomplete.startCommand);
+            } else {
+                this.commands.removeCommand(Autocomplete.startCommand);
+            }
+        },
+        value: false
+    },
+    enableSnippets: {
+        set: function(val) {
+            if (val) {
+                this.commands.addCommand(expandSnippet);
+                this.on("changeMode", onChangeMode);
+                onChangeMode(null, this)
+            } else {
+                this.commands.removeCommand(expandSnippet);
+                this.off("changeMode", onChangeMode);
+            }
+        },
+        value: false
+    }
+});
+
+});
+
+define('ace/autocomplete', ['require', 'exports', 'module' , 'ace/keyboard/hash_handler', 'ace/autocomplete/popup', 'ace/autocomplete/util', 'ace/lib/event', 'ace/lib/lang', 'ace/snippets'], function(require, exports, module) {
 
 
+var HashHandler = require("./keyboard/hash_handler").HashHandler;
+var AcePopup = require("./autocomplete/popup").AcePopup;
+var util = require("./autocomplete/util");
+var event = require("./lib/event");
+var lang = require("./lib/lang");
+var snippetManager = require("./snippets").snippetManager;
+
+var Autocomplete = function() {
+    this.keyboardHandler = new HashHandler();
+    this.keyboardHandler.bindKeys(this.commands);
+
+    this.blurListener = this.blurListener.bind(this);
+    this.changeListener = this.changeListener.bind(this);
+    this.mousedownListener = this.mousedownListener.bind(this);
+    this.mousewheelListener = this.mousewheelListener.bind(this);
+    
+    this.changeTimer = lang.delayedCall(function() {
+        this.updateCompletions(true);
+    }.bind(this))
+};
+
+(function() {
+    this.$init = function() {
+        this.popup = new AcePopup(document.body || document.documentElement);
+        this.popup.on("click", function(e) {
+            this.insertMatch();
+            e.stop();
+        }.bind(this));
+    };
+
+    this.openPopup = function(editor, keepPopupPosition) {
+        if (!this.popup)
+            this.$init();
+
+        this.popup.setData(this.completions.filtered);
+
+        var renderer = editor.renderer;
+        if (!keepPopupPosition) {
+            var lineHeight = renderer.layerConfig.lineHeight;
+            var pos = renderer.$cursorLayer.getPixelPosition(null, true);
+            var rect = editor.container.getBoundingClientRect();
+            pos.top += rect.top - renderer.layerConfig.offset;
+            pos.left += rect.left;
+            pos.left += renderer.$gutterLayer.gutterWidth;
+
+            this.popup.show(pos, lineHeight);
+        }
+        renderer.updateText();
+    };
+
+    this.detach = function() {
+        this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
+        this.editor.removeEventListener("changeSelection", this.changeListener);
+        this.editor.removeEventListener("blur", this.changeListener);
+        this.editor.removeEventListener("mousedown", this.changeListener);
+        this.changeTimer.cancel();
+        
+        if (this.popup)
+            this.popup.hide();
+
+        this.activated = false;
+    };
+
+    this.changeListener = function(e) {
+        if (this.activated)
+            this.changeTimer.schedule();
+        else
+            this.detach();
+    };
+
+    this.blurListener = function() {
+        if (document.activeElement != this.editor.textInput.getElement())
+            this.detach();
+    };
+
+    this.mousedownListener = function(e) {
+        this.detach();
+    };
+
+    this.mousewheelListener = function(e) {
+        this.detach();
+    };
+
+    this.goTo = function(where) {
+        var row = this.popup.getRow();
+        var max = this.popup.session.getLength() - 1;
+
+        switch(where) {
+            case "up": row = row <= 0 ? max : row - 1; break;
+            case "down": row = row >= max ? 0 : row + 1; break;
+            case "start": row = 0; break;
+            case "end": row = max; break;
+        }
+
+        this.popup.setRow(row);
+    };
+
+    this.insertMatch = function(data) {
+        this.detach();
+        if (!data)
+            data = this.popup.getData(this.popup.getRow());
+        if (!data)
+            return false;
+        if (data.completer && data.completer.insertMatch) {
+            data.completer.insertMatch(this.editor);
+        } else {
+            if (this.completions.filterText) {
+                var range = this.editor.selection.getRange();
+                range.start.column -= this.completions.filterText.length;
+                this.editor.session.remove(range);
+            }
+            if (data.snippet)
+                snippetManager.insertSnippet(this.editor, data.snippet);
+            else
+                this.editor.insert(data.value || data);
+        }
+    };
+
+    this.commands = {
+        "Up": function(editor) { editor.completer.goTo("up"); },
+        "Down": function(editor) { editor.completer.goTo("down"); },
+        "Ctrl-Up|Ctrl-Home": function(editor) { editor.completer.goTo("start"); },
+        "Ctrl-Down|Ctrl-End": function(editor) { editor.completer.goTo("end"); },
+
+        "Esc": function(editor) { editor.completer.detach(); },
+        "Space": function(editor) { editor.completer.detach(); editor.insert(" ");},
+        "Return": function(editor) { editor.completer.insertMatch(); },
+        "Shift-Return": function(editor) { editor.completer.insertMatch(true); },
+        "Tab": function(editor) { editor.completer.insertMatch(); },
+
+        "PageUp": function(editor) { editor.completer.popup.gotoPageDown(); },
+        "PageDown": function(editor) { editor.completer.popup.gotoPageUp(); }
+    };
+
+    this.gatherCompletions = function(editor, callback) {
+        var session = editor.getSession();
+        var pos = editor.getCursorPosition();
+
+        var line = session.getLine(pos.row);
+        var prefix = util.retrievePrecedingIdentifier(line, pos.column);
+
+        var matches = [];
+        util.parForEach(editor.completers, function(completer, next) {
+            completer.getCompletions(editor, session, pos, prefix, function(err, results) {
+                if (!err)
+                    matches = matches.concat(results);
+                next();
+            });
+        }, function() {
+            matches.sort(function(a, b) {
+                return b.score - a.score;
+            });
+            callback(null, {
+                prefix: prefix,
+                matches: matches
+            });
+        });
+        return true;
+    };
+
+    this.showPopup = function(editor) {
+        if (this.editor)
+            this.detach();
+        
+        this.activated = true;
+
+        this.editor = editor;
+        if (editor.completer != this) {
+            if (editor.completer)
+                editor.completer.detach();
+            editor.completer = this;
+        }
+
+        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+        editor.on("changeSelection", this.changeListener);
+        editor.on("blur", this.blurListener);
+        editor.on("mousedown", this.mousedownListener);
+        this.updateCompletions();
+    }
+    
+    this.updateCompletions = function(keepPopupPosition) {
+        this.gatherCompletions(this.editor, function(err, results) {
+            var matches = results && results.matches;
+            if (!matches || !matches.length)
+                return this.detach();
+
+            this.completions = new FilteredList(matches);
+            this.completions.setFilter(results.prefix);
+            this.openPopup(this.editor, keepPopupPosition);
+            this.popup.setHighlight(results.prefix);
+        }.bind(this));
+    };
+
+    this.cancelContextMenu = function() {
+        var stop = function(e) {
+            this.editor.off("nativecontextmenu", stop);
+            if (e && e.domEvent)
+                event.stopEvent(e.domEvent);
+        }.bind(this);
+        setTimeout(stop, 10);
+        this.editor.on("nativecontextmenu", stop);
+    };
+
+}).call(Autocomplete.prototype);
+
+Autocomplete.startCommand = {
+    name: "startAutocomplete",
+    exec: function(editor) {
+        if (!editor.completer)
+            editor.completer = new Autocomplete();
+        editor.completer.showPopup(editor);
+        editor.completer.cancelContextMenu();
+    },
+    bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
+};
+
+var FilteredList = function(array, mutateData) {
+    this.all = array;
+    this.filtered = array.concat();
+    this.filterText = "";
+};
+(function(){
+    this.setFilter = function(str) {
+        this.filterText = str;
+    };
+
+}).call(FilteredList.prototype);
+
+exports.Autocomplete = Autocomplete;
+exports.FilteredList = FilteredList;
+
+});
+
+define('ace/autocomplete/popup', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/virtual_renderer', 'ace/editor', 'ace/range', 'ace/lib/event', 'ace/lib/lang', 'ace/lib/dom'], function(require, exports, module) {
+
+
+var EditSession = require("../edit_session").EditSession;
+var Renderer = require("../virtual_renderer").VirtualRenderer;
+var Editor = require("../editor").Editor;
+var Range = require("../range").Range;
+var event = require("../lib/event");
+var lang = require("../lib/lang");
+var dom = require("../lib/dom");
+
+var $singleLineEditor = function(el) {
+    var renderer = new Renderer(el);
+
+    renderer.$maxLines = 4;
+    
+    var editor = new Editor(renderer);
+
+    editor.setHighlightActiveLine(false);
+    editor.setShowPrintMargin(false);
+    editor.renderer.setShowGutter(false);
+    editor.renderer.setHighlightGutterLine(false);
+
+    editor.$mouseHandler.$focusWaitTimout = 0;
+
+    return editor;
+};
+
+var AcePopup = function(parentNode) {
+    var el = dom.createElement("div");
+    var popup = new $singleLineEditor(el);
+    
+    if (parentNode)
+        parentNode.appendChild(el);
+    el.style.display = "none";
+    popup.renderer.content.style.cursor = "default";
+    popup.renderer.setStyle("ace_autocomplete");
+
+    var noop = function(){};
+
+    popup.focus = noop;
+    popup.$isFocused = true;
+
+    popup.renderer.$cursorLayer.restartTimer = noop;
+    popup.renderer.$cursorLayer.element.style.opacity = 0;
+
+    popup.renderer.$maxLines = 8;
+    popup.renderer.$keepTextAreaAtCursor = false;
+
+    popup.setHighlightActiveLine(true);
+    popup.session.highlight("");
+    popup.session.$searchHighlight.clazz = "ace_highlight-marker";
+
+    popup.on("mousedown", function(e) {
+        var pos = e.getDocumentPosition();
+        popup.moveCursorToPosition(pos);
+        popup.selection.clearSelection();
+        e.stop();
+    });
+
+    var hoverMarker = new Range(-1,0,-1,Infinity);
+    hoverMarker.id = popup.session.addMarker(hoverMarker, "ace_line-hover", "fullLine");
+    popup.on("mousemove", function(e) {
+        var row = e.getDocumentPosition().row;
+        hoverMarker.start.row = hoverMarker.end.row = row;
+        popup.session._emit("changeBackMarker");
+    });
+    var hideHoverMarker = function() {
+        hoverMarker.start.row = hoverMarker.end.row = -1;
+        popup.session._emit("changeBackMarker");
+    };
+    event.addListener(popup.container, "mouseout", hideHoverMarker);
+    popup.on("hide", hideHoverMarker);
+    popup.on("changeSelection", hideHoverMarker);
+    popup.on("mousewheel", function(e) {
+        setTimeout(function() {
+            popup._signal("mousemove", e);
+        });
+    });
+
+    popup.session.doc.getLength = function() {
+        return popup.data.length;
+    };
+    popup.session.doc.getLine = function(i) {
+        var data = popup.data[i];
+        if (typeof data == "string")
+            return data;
+        return (data && data.value) || "";
+    };
+
+    var bgTokenizer = popup.session.bgTokenizer;
+    bgTokenizer.$tokenizeRow = function(i) {
+        var data = popup.data[i];
+        var tokens = [];
+        if (!data)
+            return tokens;
+        if (typeof data == "string")
+            data = {value: data};
+        if (!data.caption)
+            data.caption = data.value;
+
+        tokens.push({type: data.className || "", value: data.caption});
+        if (data.meta) {
+            var maxW = popup.renderer.$size.scrollerWidth / popup.renderer.layerConfig.characterWidth;
+            if (data.meta.length + data.caption.length < maxW - 2)
+                tokens.push({type: "rightAlignedText", value: data.meta});
+        }
+        return tokens;
+    };
+    bgTokenizer.$updateOnChange = noop;
+    
+    popup.session.$computeWidth = function() {
+        return this.screenWidth = 0;
+    }
+    popup.data = [];
+    popup.setData = function(list) {
+        popup.data = list || [];
+        popup.setValue(lang.stringRepeat("\n", list.length), -1);
+    };
+    popup.getData = function(row) {
+        return popup.data[row];
+    };
+	
+	popup.getRow = function() {
+        var line = this.getCursorPosition().row;
+        if (line == 0 && !this.getHighlightActiveLine())
+            line = -1;
+        return line;
+    };
+    popup.setRow = function(line) {
+        popup.setHighlightActiveLine(line != -1);
+        popup.selection.clearSelection();
+        popup.moveCursorTo(line, 0 || 0);
+    };
+
+    popup.setHighlight = function(re) {
+        popup.session.highlight(re);
+        popup.session._emit("changeFrontMarker");
+    };
+
+    popup.hide = function() {
+        this.container.style.display = "none";
+        this._signal("hide");
+    };
+    popup.show = function(pos, lineHeight) {
+        var el = this.container;
+        if (pos.top > window.innerHeight / 2  + lineHeight) {
+            el.style.top = "";
+            el.style.bottom = window.innerHeight - pos.top + "px";
+        } else {
+            pos.top += lineHeight;
+            el.style.top = pos.top + "px";
+            el.style.bottom = "";
+        }
+
+        el.style.left = pos.left + "px";
+        el.style.display = "";
+        this.renderer.$textLayer.checkForSizeChanges();
+
+        this._signal("show");
+    };
+
+    return popup;
+};
+
+dom.importCssString("\
+.ace_autocomplete.ace-tm .ace_marker-layer .ace_active-line {\
+    background-color: #abbffe;\
+}\
+.ace_autocomplete.ace-tm .ace_line-hover {\
+    border: 1px solid #abbffe;\
+    position: absolute;\
+    background: rgba(233,233,253,0.4);\
+    z-index: 2;\
+    margin-top: -1px;\
+}\
+.ace_rightAlignedText {\
+    color: gray;\
+    display: inline-block;\
+    position: absolute;\
+    right: 4px;\
+    text-align: right;\
+    z-index: -1;\
+}\
+.ace_autocomplete {\
+    width: 200px;\
+    z-index: 200000;\
+    background: #f8f8f8;\
+    border: 1px lightgray solid;\
+    position: fixed;\
+    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\
+}");
+
+exports.AcePopup = AcePopup;
+
+});
+
+define('ace/autocomplete/util', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+exports.parForEach = function(array, fn, callback) {
+    var completed = 0;
+    var arLength = array.length;
+    if (arLength === 0)
+        callback();
+    for (var i = 0; i < arLength; i++) {
+        fn(array[i], function(result, err) {
+            completed++;
+            if (completed === arLength)
+                callback(result, err);
+        });
+    }
+}
+
+var ID_REGEX = /[a-zA-Z_0-9\$-]/;
+
+exports.retrievePrecedingIdentifier = function(text, pos, regex) {
+    regex = regex || ID_REGEX;
+    var buf = [];
+    for (var i = pos-1; i >= 0; i--) {
+        if (regex.test(text[i]))
+            buf.push(text[i]);
+        else
+            break;
+    }
+    return buf.reverse().join("");
+}
+
+exports.retrieveFollowingIdentifier = function(text, pos, regex) {
+    regex = regex || ID_REGEX;
+    var buf = [];
+    for (var i = pos; i < text.length; i++) {
+        if (regex.test(text[i]))
+            buf.push(text[i]);
+        else
+            break;
+    }
+    return buf;
+}
+
+});
+
+define('ace/autocomplete/text_completer', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+    var Range = require("ace/range").Range;
+    
+    var splitRegex = /[^a-zA-Z_0-9\$\-]+/;
+
+    function getWordIndex(doc, pos) {
+        var textBefore = doc.getTextRange(Range.fromPoints({row: 0, column:0}, pos));
+        return textBefore.split(splitRegex).length - 1;
+    }
+    function filterPrefix(prefix, words) {
+        var results = [];
+        for (var i = 0; i < words.length; i++) {
+            if (words[i].lastIndexOf(prefix, 0) === 0) {
+                results.push(words[i]);
+            }
+        }
+        return results;
+    }
+    function wordDistance(doc, pos) {
+        var prefixPos = getWordIndex(doc, pos);
+        var words = doc.getValue().split(splitRegex);
+        var wordScores = Object.create(null);
+        
+        var currentWord = words[prefixPos];
+
+        words.forEach(function(word, idx) {
+            if (!word || word === currentWord) return;
+
+            var distance = Math.abs(prefixPos - idx);
+            var score = words.length - distance;
+            if (wordScores[word]) {
+                wordScores[word] = Math.max(score, wordScores[word]);
+            } else {
+                wordScores[word] = score;
+            }
+        });
+        return wordScores;
+    }
+
+    exports.getCompletions = function(editor, session, pos, prefix, callback) {
+        var wordScore = wordDistance(session, pos, prefix);
+        var wordList = filterPrefix(prefix, Object.keys(wordScore));
+        callback(null, wordList.map(function(word) {
+            return {
+                name: word,
+                value: word,
+                score: wordScore[word],
+                meta: "local"
+            };
+        }));
+    };
 });

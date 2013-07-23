@@ -119,7 +119,7 @@ color: #7AA6DA\
 .ace-tomorrow-night-bright .ace_support.ace_type {\
 color: #E7C547\
 }\
-.ace-tomorrow-night-bright .ace_markup.ace_heading,\
+.ace-tomorrow-night-bright .ace_heading,\
 .ace-tomorrow-night-bright .ace_string {\
 color: #B9CA4A\
 }\
@@ -132,9 +132,6 @@ color: #D54E53\
 }\
 .ace-tomorrow-night-bright .ace_comment {\
 color: #969896\
-}\
-.ace-tomorrow-night-bright .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-tomorrow-night-bright .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYFBXV/8PAAJoAXX4kT2EAAAAAElFTkSuQmCC) right repeat-y;\

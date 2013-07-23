@@ -198,7 +198,7 @@ var html = '<div class="ace_search right">\
     </div>\
     <div class="ace_replace_form">\
         <input class="ace_search_field" placeholder="Replace with" spellcheck="false"></input>\
-        <button type="button" action="replace" class="ace_replacebtn">Replace</button>\
+        <button type="button" action="replaceAndFindNext" class="ace_replacebtn">Replace</button>\
         <button type="button" action="replaceAll" class="ace_replacebtn">All</button>\
     </div>\
     <div class="ace_search_options">\
@@ -244,7 +244,7 @@ var SearchBox = function(editor, range, showReplaceForm) {
             event.stopPropagation(e);
         });
         event.addListener(sb, "click", function(e) {
-            var t = e.target;
+            var t = e.target || e.srcElement;
             var action = t.getAttribute("action");
             if (action && _this[action])
                 _this[action]();
@@ -369,10 +369,18 @@ var SearchBox = function(editor, range, showReplaceForm) {
         this.find(true, true);
     };
     this.replace = function() {
-        this.editor.replace(this.replaceInput.value);
+        if (!this.editor.getReadOnly())
+            this.editor.replace(this.replaceInput.value);
+    };    
+    this.replaceAndFindNext = function() {
+        if (!this.editor.getReadOnly()) {
+            this.editor.replace(this.replaceInput.value);
+            this.findNext()
+        }
     };
     this.replaceAll = function() {
-        this.editor.replaceAll(this.replaceInput.value);
+        if (!this.editor.getReadOnly())
+            this.editor.replaceAll(this.replaceInput.value);
     };
 
     this.hide = function() {
@@ -402,46 +410,5 @@ exports.Search = function(editor, isReplace) {
     var sb = editor.searchBox || new SearchBox(editor);
     sb.show(editor.session.getTextRange(), isReplace);
 };
-
-
-exports.ISearch = function(session, options) {
-    this.$changeListener = this.$changeListener.bind(this);
-    this.startRange = session.selection.toOrientedRange();
-    this.options = options || {};
-};
-
-(function(){
-    this.setSession = function(session) {
-        if (this.session) {
-            this.session.removeListener(this.$changeListener);
-        }
-        this.session = session;
-        this.session.addListener(this.$changeListener);
-    };
-    this.setSearchString = function() {
-
-    };
-    this.getValue = function() {
-        if (this.value == null)
-            this.value = this.session.getValue();
-        return this.value;
-    };
-    this.$changeListener = function() {
-        this.value = null;
-    };
-    this.find = function() {
-
-    };
-    this.$edgeBefore = function() {
-        this.cursor = this.startRange[this.options.backwards ? "start" : "end"];
-    };
-    this.$edgeAfter = function() {
-
-    };
-    this.next = function(dir) {
-
-    };
-}).call(exports.ISearch.prototype);
-
 
 });

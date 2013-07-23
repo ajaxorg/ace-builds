@@ -108,7 +108,7 @@ color: #B4371F\
 background-color: #794938;\
 border-color: #080808\
 }\
-.ace-dawn .ace_markup.ace_list,\
+.ace-dawn .ace_list,\
 .ace-dawn .ace_support.ace_function {\
 color: #693A17\
 }\
@@ -129,10 +129,7 @@ color: #5A525F\
 .ace-dawn .ace_variable {\
 color: #234A97\
 }\
-.ace-dawn .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
-.ace-dawn .ace_markup.ace_heading {\
+.ace-dawn .ace_heading {\
 color: #19356D\
 }\
 .ace-dawn .ace_indent-guide {\

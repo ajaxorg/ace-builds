@@ -108,10 +108,10 @@ color: rgb(104, 104, 91);\
 .ace-chrome .ace_entity.ace_name.ace_function {\
 color: #0000A2;\
 }\
-.ace-chrome .ace_markup.ace_heading {\
+.ace-chrome .ace_heading {\
 color: rgb(12, 7, 255);\
 }\
-.ace-chrome .ace_markup.ace_list {\
+.ace-chrome .ace_list {\
 color:rgb(185, 6, 144);\
 }\
 .ace-chrome .ace_marker-layer .ace_selection {\

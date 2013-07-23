@@ -75,6 +75,38 @@ exports.handler = {
             data.lastEvent = "keypress";
         }
     },
+    updateMacCompositionHandlers: function(editor, enable) {
+        var onCompositionUpdateOverride = function(text) {
+            if (util.currentMode !== "insert") {
+                var el = this.textInput.getElement();
+                el.blur();
+                el.focus();
+                el.value = text;
+            } else {
+                this.onCompositionUpdateOrig(text);
+            }
+        };
+        var onCompositionStartOverride = function(text) {
+            if (util.currentMode === "insert") {            
+                this.onCompositionStartOrig(text);
+            }
+        }
+        if (enable) {
+            if (!editor.onCompositionUpdateOrig) {
+                editor.onCompositionUpdateOrig = editor.onCompositionUpdate;
+                editor.onCompositionUpdate = onCompositionUpdateOverride;
+                editor.onCompositionStartOrig = editor.onCompositionStart;
+                editor.onCompositionStart = onCompositionStartOverride;
+            }
+        } else {
+            if (editor.onCompositionUpdateOrig) {
+                editor.onCompositionUpdate = editor.onCompositionUpdateOrig;
+                editor.onCompositionUpdateOrig = null;
+                editor.onCompositionStart = editor.onCompositionStartOrig;
+                editor.onCompositionStartOrig = null;
+            }
+        }
+    },
 
     handleKeyboard: function(data, hashId, key, keyCode, e) {
         if (hashId != 0 && (key == "" || key == "\x00"))
@@ -126,12 +158,15 @@ exports.handler = {
         if (util.currentMode !== "insert")
             cmds.coreCommands.stop.exec(editor);
         editor.$vimModeHandler = this;
+        
+        this.updateMacCompositionHandlers(editor, true);
     },
 
     detach: function(editor) {
         editor.removeListener("click", exports.onCursorMove);
         util.noMode(editor);
         util.currentMode = "normal";
+        this.updateMacCompositionHandlers(editor, false);
     },
 
     actions: cmds.actions,
@@ -206,6 +241,18 @@ var actions = exports.actions = {
                     break;
                 case "b":
                     editor.renderer.alignCursor(null, 1);
+                    break;
+                case "c":
+                    editor.session.onFoldWidgetClick(range.start.row, {domEvent:{target :{}}});
+                    break;
+                case "o":
+                    editor.session.onFoldWidgetClick(range.start.row, {domEvent:{target :{}}});
+                    break;
+                case "C":
+                    editor.session.foldAll();
+                    break;
+                case "O":
+                    editor.session.unfold();
                     break;
             }
         }

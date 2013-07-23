@@ -110,6 +110,9 @@ var DiffHighlightRules = function() {
                 regex: "^Index.+$",
                 token: "variable"
             }, {
+                regex: "^\\s+$",
+                token: "text"
+            }, {
                 regex: "\\s*$",
                 token: "invalid"
             }, {

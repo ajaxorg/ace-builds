@@ -44,9 +44,6 @@ background: #3b3b3b\
 background-color: #323232;\
 color: #FFFFFF\
 }\
-.ace-idle-fingers .ace_text-layer {\
-color: #FFFFFF\
-}\
 .ace-idle-fingers .ace_cursor {\
 border-left: 2px solid #91FF00\
 }\
@@ -120,9 +117,6 @@ color: #FFE5BB\
 }\
 .ace-idle-fingers .ace_entity.ace_name {\
 color: #FFC66D\
-}\
-.ace-idle-fingers .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-idle-fingers .ace_collab.ace_user1 {\
 color: #323232;\

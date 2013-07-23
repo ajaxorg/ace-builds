@@ -117,9 +117,6 @@ color: #D30102\
 .ace-solarized-light .ace_entity.ace_other.ace_attribute-name {\
 color: #93A1A1\
 }\
-.ace-solarized-light .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
 .ace-solarized-light .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHjy8NJ/AAjgA5fzQUmBAAAAAElFTkSuQmCC) right repeat-y;\
 }";

@@ -129,14 +129,11 @@ color: #FF80E1\
 .ace-cobalt .ace_meta.ace_tag {\
 color: #9EFFFF\
 }\
-.ace-cobalt .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
-.ace-cobalt .ace_markup.ace_heading {\
+.ace-cobalt .ace_heading {\
 color: #C8E4FD;\
 background-color: #001221\
 }\
-.ace-cobalt .ace_markup.ace_list {\
+.ace-cobalt .ace_list {\
 background-color: #130D26\
 }\
 .ace-cobalt .ace_indent-guide {\

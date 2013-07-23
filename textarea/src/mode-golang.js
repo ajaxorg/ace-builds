@@ -9,7 +9,10 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    this.$tokenizer = new Tokenizer(new GolangHighlightRules().getRules());
+    var highlighter = new GolangHighlightRules();
+
+    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.$keywordList = highlighter.$keywordList;
     this.$outdent = new MatchingBraceOutdent();
     this.foldingRules = new CStyleFoldMode();
 };
@@ -60,7 +63,7 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
 
     var GolangHighlightRules = function() {
         var keywords = (
-            "true|else|false|break|case|return|goto|if|const|" +
+            "else|break|case|return|goto|if|const|" +
             "continue|struct|default|switch|for|" +
             "func|import|package|chan|defer|fallthrough|go|interface|map|range" +
             "select|type|var"
@@ -68,7 +71,6 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
         var buildinConstants = ("nil|true|false|iota");
 
         var keywordMapper = this.createKeywordMapper({
-            "variable.language": "this",
             "keyword": keywords,
             "constant.language": buildinConstants
         }, "identifier");
@@ -88,16 +90,16 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
                     token : "string", // single line
                     regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
                 }, {
-                    token : "string", // multi line string start
-                    regex : '["].*\\\\$',
-                    next : "qqstring"
-                }, {
                     token : "string", // single line
-                    regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
+                    regex : '[`](?:[^`]*)[`]'
                 }, {
                     token : "string", // multi line string start
-                    regex : "['].*\\\\$",
-                    next : "qstring"
+                    merge : true,
+                    regex : '[`](?:[^`]*)$',
+                    next : "bqstring"
+                }, {
+                    token : "constant.numeric", // rune
+                    regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))[']"
                 }, {
                     token : "constant.numeric", // hex
                     regex : "0[xX][0-9a-fA-F]+\\b"
@@ -105,17 +107,11 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
                     token : "constant.numeric", // float
                     regex : "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"
                 }, {
-                    token : "constant", // <CONSTANT>
-                    regex : "<[a-zA-Z0-9.]+>"
-                }, {
-                    token : "keyword", // pre-compiler directivs
-                    regex : "(?:#include|#pragma|#line|#define|#undef|#ifdef|#else|#elif|#endif|#ifndef)"
-                }, {
                     token : keywordMapper,
                     regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
                 }, {
                     token : "keyword.operator",
-                    regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|==|=|!=|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|new|delete|typeof|void)"
+                    regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|==|=|!=|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^="
                 }, {
                     token : "punctuation.operator",
                     regex : "\\?|\\:|\\,|\\;|\\."
@@ -125,6 +121,9 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
                 }, {
                     token : "paren.rparen",
                     regex : "[\\])}]"
+                }, {
+                    token: "invalid",
+                    regex: "\\s+$"
                 }, {
                     token : "text",
                     regex : "\\s+"
@@ -140,20 +139,10 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
                     regex : ".+"
                 }
             ],
-            "qqstring" : [
+            "bqstring" : [
                 {
                     token : "string",
-                    regex : '(?:(?:\\\\.)|(?:[^"\\\\]))*?"',
-                    next : "start"
-                }, {
-                    token : "string",
-                    regex : '.+'
-                }
-            ],
-            "qstring" : [
-                {
-                    token : "string",
-                    regex : "(?:(?:\\\\.)|(?:[^'\\\\]))*?'",
+                    regex : '(?:[^`]*)`',
                     next : "start"
                 }, {
                     token : "string",
@@ -164,7 +153,7 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
 
         this.embedRules(DocCommentHighlightRules, "doc-",
             [ DocCommentHighlightRules.getEndRule("start") ]);
-    }
+    };
     oop.inherits(GolangHighlightRules, TextHighlightRules);
 
     exports.GolangHighlightRules = GolangHighlightRules;

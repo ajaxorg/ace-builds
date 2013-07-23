@@ -130,9 +130,6 @@ background-color: #151C19\
 .ace-mono-industrial .ace_entity.ace_other.ace_attribute-name {\
 color: #909993\
 }\
-.ace-mono-industrial .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
 .ace-mono-industrial .ace_entity.ace_name.ace_tag {\
 color: #A65EFF\
 }\

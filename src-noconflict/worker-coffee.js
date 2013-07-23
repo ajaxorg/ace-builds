@@ -4,16 +4,15 @@ if (typeof window.window != "undefined" && window.document) {
     return;
 }
 
-window.console = {
-    log: function() {
-        var msgs = Array.prototype.slice.call(arguments, 0);
-        postMessage({type: "log", data: msgs});
-    },
-    error: function() {
-        var msgs = Array.prototype.slice.call(arguments, 0);
-        postMessage({type: "log", data: msgs});
-    }
+window.console = function() {
+    var msgs = Array.prototype.slice.call(arguments, 0);
+    postMessage({type: "log", data: msgs});
 };
+window.console.error =
+window.console.warn = 
+window.console.log =
+window.console.trace = window.console;
+
 window.window = window;
 window.ace = window;
 
@@ -86,10 +85,9 @@ window.define = function(id, deps, factory) {
     };
 
     require.modules[id] = {
+        exports: {},
         factory: function() {
-            var module = {
-                exports: {}
-            };
+            var module = this;
             var returnExports = factory(req, module.exports, module);
             if (returnExports)
                 module.exports = returnExports;
@@ -1179,7 +1177,7 @@ var Document = function(text) {
     };
     this.getTextRange = function(range) {
         if (range.start.row == range.end.row) {
-            return this.$lines[range.start.row]
+            return this.getLine(range.start.row)
                 .substring(range.start.column, range.end.column);
         }
         var lines = this.getLines(range.start.row, range.end.row);
@@ -1691,29 +1689,24 @@ var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
 
 var Anchor = exports.Anchor = function(doc, row, column) {
-    this.document = doc;
-
+    this.$onChange = this.onChange.bind(this);
+    this.attach(doc);
+    
     if (typeof column == "undefined")
         this.setPosition(row.row, row.column);
     else
         this.setPosition(row, column);
-
-    this.$onChange = this.onChange.bind(this);
-    doc.on("change", this.$onChange);
 };
 
 (function() {
 
     oop.implement(this, EventEmitter);
-
     this.getPosition = function() {
         return this.$clipPositionToDocument(this.row, this.column);
     };
-
     this.getDocument = function() {
         return this.document;
     };
-
     this.onChange = function(e) {
         var delta = e.data;
         var range = delta.range;
@@ -1775,7 +1768,6 @@ var Anchor = exports.Anchor = function(doc, row, column) {
 
         this.setPosition(row, column, true);
     };
-
     this.setPosition = function(row, column, noClip) {
         var pos;
         if (noClip) {
@@ -1802,9 +1794,12 @@ var Anchor = exports.Anchor = function(doc, row, column) {
             value: pos
         });
     };
-
     this.detach = function() {
         this.document.removeEventListener("change", this.$onChange);
+    };
+    this.attach = function(doc) {
+        this.document = doc || this.document;
+        this.document.on("change", this.$onChange);
     };
     this.$clipPositionToDocument = function(row, column) {
         var pos = {};
@@ -2044,12 +2039,12 @@ ace.define('ace/mode/coffee/coffee-script', ['require', 'exports', 'module' , 'a
 
 ace.define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coffee/rewriter', 'ace/mode/coffee/helpers'], function(require, exports, module) {
 
-  var BOM, BOOL, CALLABLE, CODE, COFFEE_ALIASES, COFFEE_ALIAS_MAP, COFFEE_KEYWORDS, COMMENT, COMPARE, COMPOUND_ASSIGN, HEREDOC, HEREDOC_ILLEGAL, HEREDOC_INDENT, HEREGEX, HEREGEX_OMIT, IDENTIFIER, INDEXABLE, INVERSES, JSTOKEN, JS_FORBIDDEN, JS_KEYWORDS, LINE_BREAK, LINE_CONTINUER, LOGIC, Lexer, MATH, MULTILINER, MULTI_DENT, NOT_REGEX, NOT_SPACED_REGEX, NUMBER, OPERATOR, REGEX, RELATION, RESERVED, Rewriter, SHIFT, SIMPLESTR, STRICT_PROSCRIBED, TRAILING_SPACES, UNARY, WHITESPACE, compact, count, invertLiterate, key, last, locationDataToString, starts, throwSyntaxError, _ref, _ref1,
+  var BOM, BOOL, CALLABLE, CODE, COFFEE_ALIASES, COFFEE_ALIAS_MAP, COFFEE_KEYWORDS, COMMENT, COMPARE, COMPOUND_ASSIGN, HEREDOC, HEREDOC_ILLEGAL, HEREDOC_INDENT, HEREGEX, HEREGEX_OMIT, IDENTIFIER, INDEXABLE, INVERSES, JSTOKEN, JS_FORBIDDEN, JS_KEYWORDS, LINE_BREAK, LINE_CONTINUER, LOGIC, Lexer, MATH, MULTILINER, MULTI_DENT, NOT_REGEX, NOT_SPACED_REGEX, NUMBER, OPERATOR, REGEX, RELATION, RESERVED, Rewriter, SHIFT, SIMPLESTR, STRICT_PROSCRIBED, TRAILING_SPACES, UNARY, WHITESPACE, compact, count, invertLiterate, key, last, locationDataToString, repeat, starts, throwSyntaxError, _ref, _ref1,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   _ref = require('./rewriter'), Rewriter = _ref.Rewriter, INVERSES = _ref.INVERSES;
 
-  _ref1 = require('./helpers'), count = _ref1.count, starts = _ref1.starts, compact = _ref1.compact, last = _ref1.last, invertLiterate = _ref1.invertLiterate, locationDataToString = _ref1.locationDataToString, throwSyntaxError = _ref1.throwSyntaxError;
+  _ref1 = require('./helpers'), count = _ref1.count, starts = _ref1.starts, compact = _ref1.compact, last = _ref1.last, repeat = _ref1.repeat, invertLiterate = _ref1.invertLiterate, locationDataToString = _ref1.locationDataToString, throwSyntaxError = _ref1.throwSyntaxError;
 
   exports.Lexer = Lexer = (function() {
     function Lexer() {}
@@ -2199,10 +2194,10 @@ ace.define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/
       }
       lexedLength = number.length;
       if (octalLiteral = /^0o([0-7]+)/.exec(number)) {
-        number = '0x' + (parseInt(octalLiteral[1], 8)).toString(16);
+        number = '0x' + parseInt(octalLiteral[1], 8).toString(16);
       }
       if (binaryLiteral = /^0b([01]+)/.exec(number)) {
-        number = '0x' + (parseInt(binaryLiteral[1], 2)).toString(16);
+        number = '0x' + parseInt(binaryLiteral[1], 2).toString(16);
       }
       this.token('NUMBER', number, 0, lexedLength);
       return lexedLength;
@@ -2272,7 +2267,7 @@ ace.define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/
       if (here) {
         this.token('HERECOMMENT', this.sanitizeHeredoc(here, {
           herecomment: true,
-          indent: Array(this.indent + 1).join(' ')
+          indent: repeat(' ', this.indent)
         }), 0, comment.length);
       }
       return comment.length;
@@ -2754,7 +2749,7 @@ ace.define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/
       column = this.chunkColumn;
       if (lineCount > 0) {
         lines = string.split('\n');
-        column = (last(lines)).length;
+        column = last(lines).length;
       } else {
         column += string.length;
       }
@@ -2920,9 +2915,9 @@ ace.define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/
 
   BOOL = ['TRUE', 'FALSE'];
 
-  NOT_REGEX = ['NUMBER', 'REGEX', 'BOOL', 'NULL', 'UNDEFINED', '++', '--', ']'];
+  NOT_REGEX = ['NUMBER', 'REGEX', 'BOOL', 'NULL', 'UNDEFINED', '++', '--'];
 
-  NOT_SPACED_REGEX = NOT_REGEX.concat(')', '}', 'THIS', 'IDENTIFIER', 'STRING');
+  NOT_SPACED_REGEX = NOT_REGEX.concat(')', '}', 'THIS', 'IDENTIFIER', 'STRING', ']');
 
   CALLABLE = ['IDENTIFIER', 'STRING', 'REGEX', ')', ']', '}', '?', '::', '@', 'THIS', 'SUPER'];
 
@@ -2935,7 +2930,7 @@ ace.define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/
 
 ace.define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-  var BALANCED_PAIRS, EXPRESSION_CLOSE, EXPRESSION_END, EXPRESSION_START, IMPLICIT_BLOCK, IMPLICIT_CALL, IMPLICIT_END, IMPLICIT_FUNC, IMPLICIT_UNSPACED_CALL, INVERSES, LINEBREAKS, SINGLE_CLOSERS, SINGLE_LINERS, generate, left, rite, _i, _len, _ref,
+  var BALANCED_PAIRS, EXPRESSION_CLOSE, EXPRESSION_END, EXPRESSION_START, IMPLICIT_CALL, IMPLICIT_END, IMPLICIT_FUNC, IMPLICIT_UNSPACED_CALL, INVERSES, LINEBREAKS, SINGLE_CLOSERS, SINGLE_LINERS, generate, left, rite, _i, _len, _ref,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = [].slice;
 
@@ -3208,7 +3203,7 @@ ace.define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], functi
           startImplicitCall(i + 1);
           return forward(2);
         }
-        if (this.matchTags(i, IMPLICIT_FUNC, 'INDENT', null, ':') && !this.findTagsBackwards(i, ['CLASS', 'EXTENDS', 'IF', 'CATCH', 'SWITCH', 'LEADING_WHEN', 'FOR', 'WHILE', 'UNTIL'])) {
+        if (__indexOf.call(IMPLICIT_FUNC, tag) >= 0 && this.matchTags(i + 1, 'INDENT', null, ':') && !this.findTagsBackwards(i, ['CLASS', 'EXTENDS', 'IF', 'CATCH', 'SWITCH', 'LEADING_WHEN', 'FOR', 'WHILE', 'UNTIL'])) {
           startImplicitCall(i + 1);
           stack.push(['INDENT', i + 2]);
           return forward(3);
@@ -3293,8 +3288,8 @@ ace.define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], functi
       var action, condition, indent, outdent, starter;
       starter = indent = outdent = null;
       condition = function(token, i) {
-        var _ref;
-        return token[1] !== ';' && (_ref = token[0], __indexOf.call(SINGLE_CLOSERS, _ref) >= 0) && !(token[0] === 'ELSE' && (starter !== 'IF' && starter !== 'THEN'));
+        var _ref, _ref1;
+        return token[1] !== ';' && (_ref = token[0], __indexOf.call(SINGLE_CLOSERS, _ref) >= 0) && !(token[0] === 'ELSE' && starter !== 'THEN') && !(((_ref1 = token[0]) === 'CATCH' || _ref1 === 'FINALLY') && (starter === '->' || starter === '=>'));
       };
       action = function(token, i) {
         return this.tokens.splice((this.tag(i - 1) === ',' ? i - 1 : i), 0, outdent);
@@ -3408,8 +3403,6 @@ ace.define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], functi
   IMPLICIT_CALL = ['IDENTIFIER', 'NUMBER', 'STRING', 'JS', 'REGEX', 'NEW', 'PARAM_START', 'CLASS', 'IF', 'TRY', 'SWITCH', 'THIS', 'BOOL', 'NULL', 'UNDEFINED', 'UNARY', 'SUPER', 'THROW', '@', '->', '=>', '[', '(', '{', '--', '++'];
 
   IMPLICIT_UNSPACED_CALL = ['+', '-'];
-
-  IMPLICIT_BLOCK = ['->', '=>', '{', '[', ','];
 
   IMPLICIT_END = ['POST_IF', 'FOR', 'WHILE', 'UNTIL', 'WHEN', 'BY', 'LOOP', 'TERMINATOR'];
 
@@ -3611,11 +3604,11 @@ ace.define('ace/mode/coffee/helpers', ['require', 'exports', 'module' ], functio
   };
 
   exports.throwSyntaxError = function(message, location) {
-    var error, _ref1, _ref2;
-    if ((_ref1 = location.last_line) == null) {
+    var error;
+    if (location.last_line == null) {
       location.last_line = location.first_line;
     }
-    if ((_ref2 = location.last_column) == null) {
+    if (location.last_column == null) {
       location.last_column = location.first_column;
     }
     error = new SyntaxError(message);
@@ -3623,11 +3616,13 @@ ace.define('ace/mode/coffee/helpers', ['require', 'exports', 'module' ], functio
     throw error;
   };
 
-  exports.prettyErrorMessage = function(error, fileName, code, useColors) {
+  exports.prettyErrorMessage = function(error, filename, code, useColors) {
     var codeLine, colorize, end, first_column, first_line, last_column, last_line, marker, message, start, _ref1;
     if (!error.location) {
       return error.stack || ("" + error);
     }
+    filename = error.filename || filename;
+    code = error.code || code;
     _ref1 = error.location, first_line = _ref1.first_line, first_column = _ref1.first_column, last_line = _ref1.last_line, last_column = _ref1.last_column;
     codeLine = code.split('\n')[first_line];
     start = first_column;
@@ -3640,7 +3635,7 @@ ace.define('ace/mode/coffee/helpers', ['require', 'exports', 'module' ], functio
       codeLine = codeLine.slice(0, start) + colorize(codeLine.slice(start, end)) + codeLine.slice(end);
       marker = colorize(marker);
     }
-    message = "" + fileName + ":" + (first_line + 1) + ":" + (first_column + 1) + ": error: " + error.message + "\n" + codeLine + "\n" + marker;
+    message = "" + filename + ":" + (first_line + 1) + ":" + (first_column + 1) + ": error: " + error.message + "\n" + codeLine + "\n" + marker;
     return message;
   };
 
@@ -4293,7 +4288,7 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
     }
 
     CodeFragment.prototype.toString = function() {
-      return "" + this.code + [this.locationData ? ": " + locationDataToString(this.locationData) : void 0];
+      return "" + this.code + (this.locationData ? ": " + locationDataToString(this.locationData) : '');
     };
 
     return CodeFragment;
@@ -4725,6 +4720,8 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
             fragments.push(this.makeCode(scope.assignedVariables().join(",\n" + (this.tab + TAB))));
           }
           fragments.push(this.makeCode(";\n" + (this.spaced ? '\n' : '')));
+        } else if (fragments.length && post.length) {
+          fragments.push(this.makeCode("\n"));
         }
       }
       return fragments.concat(post);
@@ -4884,7 +4881,7 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
     Return.prototype.compileNode = function(o) {
       var answer;
       answer = [];
-      answer.push(this.makeCode(this.tab + ("return" + [this.expression ? " " : void 0])));
+      answer.push(this.makeCode(this.tab + ("return" + (this.expression ? " " : ""))));
       if (this.expression) {
         answer = answer.concat(this.expression.compileToFragments(o, LEVEL_PAREN));
       }
@@ -5023,17 +5020,16 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
     };
 
     Value.prototype.unfoldSoak = function(o) {
-      var _ref4,
-        _this = this;
-      return (_ref4 = this.unfoldedSoak) != null ? _ref4 : this.unfoldedSoak = (function() {
-        var fst, i, ifn, prop, ref, snd, _i, _len, _ref5, _ref6;
+      var _this = this;
+      return this.unfoldedSoak != null ? this.unfoldedSoak : this.unfoldedSoak = (function() {
+        var fst, i, ifn, prop, ref, snd, _i, _len, _ref4, _ref5;
         if (ifn = _this.base.unfoldSoak(o)) {
-          (_ref5 = ifn.body.properties).push.apply(_ref5, _this.properties);
+          (_ref4 = ifn.body.properties).push.apply(_ref4, _this.properties);
           return ifn;
         }
-        _ref6 = _this.properties;
-        for (i = _i = 0, _len = _ref6.length; _i < _len; i = ++_i) {
-          prop = _ref6[i];
+        _ref5 = _this.properties;
+        for (i = _i = 0, _len = _ref5.length; _i < _len; i = ++_i) {
+          prop = _ref5[i];
           if (!prop.soak) {
             continue;
           }
@@ -5558,7 +5554,7 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
         }
         answer.push.apply(answer, fragments);
       }
-      if ((fragmentsToText(answer)).indexOf('\n') >= 0) {
+      if (fragmentsToText(answer).indexOf('\n') >= 0) {
         answer.unshift(this.makeCode("[\n" + o.indent));
         answer.push(this.makeCode("\n" + this.tab + "]"));
       } else {
@@ -6556,7 +6552,7 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
 
     Op.prototype.compileExistence = function(o) {
       var fst, ref;
-      if (this.first.isComplex()) {
+      if (!o.isExistentialEquals && this.first.isComplex()) {
         ref = new Literal(o.scope.freeVariable('ref'));
         fst = new Parens(new Assign(ref, this.first));
       } else {
@@ -6660,7 +6656,7 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
       var fragments, ref, sub, _ref4;
       _ref4 = this.object.cache(o, LEVEL_LIST), sub = _ref4[0], ref = _ref4[1];
       fragments = [].concat(this.makeCode(utility('indexOf') + ".call("), this.array.compileToFragments(o, LEVEL_LIST), this.makeCode(", "), ref, this.makeCode(") " + (this.negated ? '< 0' : '>= 0')));
-      if ((fragmentsToText(sub)) === (fragmentsToText(ref))) {
+      if (fragmentsToText(sub) === fragmentsToText(ref)) {
         return fragments;
       }
       fragments = sub.concat(this.makeCode(', '), fragments);
@@ -6831,6 +6827,9 @@ ace.define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/
       }
       if (this.range && this.pattern) {
         this.name.error('cannot pattern match over range loops');
+      }
+      if (this.own && !this.object) {
+        this.index.error('cannot use own with for-in');
       }
       this.returns = false;
     }

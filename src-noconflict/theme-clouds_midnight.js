@@ -122,9 +122,6 @@ color: #3C403B\
 .ace-clouds-midnight .ace_entity.ace_other.ace_attribute-name {\
 color: #606060\
 }\
-.ace-clouds-midnight .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
 .ace-clouds-midnight .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHB3d/8PAAOIAdULw8qMAAAAAElFTkSuQmCC) right repeat-y;\
 }";

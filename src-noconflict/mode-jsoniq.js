@@ -2594,14 +2594,9 @@ var CstyleBehaviour = require("./cstyle").CstyleBehaviour;
 var TokenIterator = require("../../token_iterator").TokenIterator;
 
 function hasType(token, type) {
-    var hasType = true;
-    var typeList = token.type.split('.');
-    var needleList = type.split('.');
-    needleList.forEach(function(needle){
-        if (typeList.indexOf(needle) == -1) {
-            hasType = false;
-            return false;
-        }
+    var tokenTypes = token.type.split('.');
+    return type.split('.').every(function(type){
+        return (tokenTypes.indexOf(type) !== -1);
     });
     return hasType;
 }
@@ -2615,6 +2610,9 @@ var XmlBehaviour = function () {
             var position = editor.getCursorPosition();
             var iterator = new TokenIterator(session, position.row, position.column);
             var token = iterator.getCurrentToken();
+
+            if (token && hasType(token, 'string') && iterator.getCurrentTokenColumn() + token.value.length > position.column)
+                return;
             var atCursor = false;
             if (!token || !hasType(token, 'meta.tag') && !(hasType(token, 'text') && token.value.match('/'))){
                 do {
@@ -2623,8 +2621,8 @@ var XmlBehaviour = function () {
             } else {
                 atCursor = true;
             }
-            if (!token || !hasType(token, 'meta.tag-name') || iterator.stepBackward().value.match('/')) {
-                return
+            if (!token || !hasType(token, 'meta.tag.name') || iterator.stepBackward().value.match('/')) {
+                return;
             }
             var tag = token.value;
             if (atCursor){
@@ -2641,11 +2639,11 @@ var XmlBehaviour = function () {
     this.add('autoindent', 'insertion', function (state, action, editor, session, text) {
         if (text == "\n") {
             var cursor = editor.getCursorPosition();
-            var line = session.doc.getLine(cursor.row);
+            var line = session.getLine(cursor.row);
             var rightChars = line.substring(cursor.column, cursor.column + 2);
             if (rightChars == '</') {
-                var indent = this.$getIndent(session.doc.getLine(cursor.row)) + session.getTabString();
-                var next_indent = this.$getIndent(session.doc.getLine(cursor.row));
+                var next_indent = this.$getIndent(line);
+                var indent = next_indent + session.getTabString();
 
                 return {
                     text: '\n' + indent + '\n' + next_indent,

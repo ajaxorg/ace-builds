@@ -120,7 +120,7 @@ color: #4271AE\
 .ace-tomorrow .ace_support.ace_type {\
 color: #C99E00\
 }\
-.ace-tomorrow .ace_markup.ace_heading,\
+.ace-tomorrow .ace_heading,\
 .ace-tomorrow .ace_string {\
 color: #718C00\
 }\
@@ -133,9 +133,6 @@ color: #C82829\
 }\
 .ace-tomorrow .ace_comment {\
 color: #8E908C\
-}\
-.ace-tomorrow .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-tomorrow .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bdu3f/BwAlfgctduB85QAAAABJRU5ErkJggg==) right repeat-y\

@@ -83,6 +83,10 @@ color: #52524d\
 .ace-monokai .ace_storage {\
 color: #F92672\
 }\
+.ace-monokai .ace_punctuation,\
+.ace-monokai .ace_punctuation.ace_tag {\
+color: #fff\
+}\
 .ace-monokai .ace_constant.ace_character,\
 .ace-monokai .ace_constant.ace_language,\
 .ace-monokai .ace_constant.ace_numeric,\
@@ -126,9 +130,6 @@ color: #E6DB74\
 }\
 .ace-monokai .ace_comment {\
 color: #75715E\
-}\
-.ace-monokai .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-monokai .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPQ0FD0ZXBzd/wPAAjVAoxeSgNeAAAAAElFTkSuQmCC) right repeat-y;\

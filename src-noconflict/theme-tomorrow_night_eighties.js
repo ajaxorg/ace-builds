@@ -119,7 +119,7 @@ color: #6699CC\
 .ace-tomorrow-night-eighties .ace_support.ace_type {\
 color: #FFCC66\
 }\
-.ace-tomorrow-night-eighties .ace_markup.ace_heading,\
+.ace-tomorrow-night-eighties .ace_heading,\
 .ace-tomorrow-night-eighties .ace_string {\
 color: #99CC99\
 }\
@@ -131,9 +131,6 @@ color: #999999\
 .ace-tomorrow-night-eighties .ace_meta.ace_tag,\
 .ace-tomorrow-night-eighties .ace_variable {\
 color: #F2777A\
-}\
-.ace-tomorrow-night-eighties .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-tomorrow-night-eighties .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWPQ09NrYAgMjP4PAAtGAwchHMyAAAAAAElFTkSuQmCC) right repeat-y\

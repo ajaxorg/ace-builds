@@ -125,7 +125,7 @@ color: #7AA6DA\
 .ace-terminal-theme .ace_support.ace_type {\
 color: #E7C547\
 }\
-.ace-terminal-theme .ace_markup.ace_heading,\
+.ace-terminal-theme .ace_heading,\
 .ace-terminal-theme .ace_string {\
 color: #B9CA4A\
 }\
@@ -138,9 +138,6 @@ color: #D54E53\
 }\
 .ace-terminal-theme .ace_comment {\
 color: orangered\
-}\
-.ace-terminal-theme .ace_markup.ace_underline {\
-text-decoration: underline\
 }\
 .ace-terminal-theme .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYLBWV/8PAAK4AYnhiq+xAAAAAElFTkSuQmCC) right repeat-y;\

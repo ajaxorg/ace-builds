@@ -38,7 +38,10 @@ var ShHighlightRules = require("./sh_highlight_rules").ShHighlightRules;
 var Range = require("../range").Range;
 
 var Mode = function() {
-    this.$tokenizer = new Tokenizer(new ShHighlightRules().getRules());
+    var highlighter = new ShHighlightRules();
+    
+    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.$keywordList = highlighter.$keywordList;
 };
 oop.inherits(Mode, TextMode);
 
@@ -155,12 +158,28 @@ var ShHighlightRules = function() {
     var func = "(?:" + variableName + "\\s*\\(\\))";
 
     this.$rules = {
-        "start" : [ {
+        "start" : [{
+            token : "constant",
+            regex : /\\./
+        }, {
             token : ["text", "comment"],
             regex : /(^|\s)(#.*)$/
         }, {
-            token : "string",           // " string
-            regex : '"(?:[^\\\\]|\\\\.)*?"'
+            token : "string",
+            regex : '"',
+            push : [{
+                token : "constant.language.escape",
+                regex : /\\(?:[$abeEfnrtv\\'"]|x[a-fA-F\d]{1,2}|u[a-fA-F\d]{4}([a-fA-F\d]{4})?|c.|\d{1,3})/
+            }, {
+                token : "constant",
+                regex : /\$\w+/
+            }, {
+                token : "string",
+                regex : '"',
+                next: "pop"
+            }, {
+                defaultToken: "string"
+            }]
         }, {
             token : "variable.language",
             regex : builtinVariable
@@ -175,7 +194,7 @@ var ShHighlightRules = function() {
             regex : fileDescriptor
         }, {
             token : "string",           // ' string
-            regex : "'(?:[^\\\\]|\\\\.)*?'"
+            start : "'", end : "'"
         }, {
             token : "constant.numeric", // float
             regex : floatNumber
@@ -196,6 +215,8 @@ var ShHighlightRules = function() {
             regex : "[\\]\\)\\}]"
         } ]
     };
+    
+    this.normalizeRules();
 };
 
 oop.inherits(ShHighlightRules, TextHighlightRules);

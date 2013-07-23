@@ -126,10 +126,7 @@ color: #FF80E1\
 .ace-kr-theme .ace_meta.ace_tag {\
 color: #BABD9C\
 }\
-.ace-kr-theme .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
-.ace-kr-theme .ace_markup.ace_list {\
+.ace-kr-theme .ace_list {\
 background-color: #0F0040\
 }\
 .ace-kr-theme .ace_indent-guide {\

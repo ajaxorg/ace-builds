@@ -134,9 +134,6 @@ color: #C1C144\
 .ace-pastel-on-dark .ace_xml-pe {\
 color: #494949\
 }\
-.ace-pastel-on-dark .ace_markup.ace_underline {\
-text-decoration: underline\
-}\
 .ace-pastel-on-dark .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYIiPj/8PAARgAh2NTMh8AAAAAElFTkSuQmCC) right repeat-y;\
 }";

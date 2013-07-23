@@ -112,10 +112,10 @@ color: rgb(104, 104, 91);\
 .ace-dreamweaver .ace_entity.ace_name.ace_function {\
 color: #00F;\
 }\
-.ace-dreamweaver .ace_markup.ace_heading {\
+.ace-dreamweaver .ace_heading {\
 color: rgb(12, 7, 255);\
 }\
-.ace-dreamweaver .ace_markup.ace_list {\
+.ace-dreamweaver .ace_list {\
 color:rgb(185, 6, 144);\
 }\
 .ace-dreamweaver .ace_marker-layer .ace_selection {\
