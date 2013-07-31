@@ -12770,7 +12770,7 @@ var VirtualRenderer = function(container, theme) {
 
         var changes = this.$updateCachedSize(force, gutterWidth, width, height);
         
-        if (!this.$size.scrollerHeight)
+        if (!this.$size.scrollerHeight || (!width && !height))
             return this.resizing = 0;
 
         if (force)
@@ -12779,7 +12779,7 @@ var VirtualRenderer = function(container, theme) {
         if (force)
             this.$renderChanges(changes, true);
         else
-            this.$loop.schedule(changes);
+            this.$loop.schedule(changes || this.$changes);
 
         if (this.resizing)
             this.resizing = 0;
@@ -13031,14 +13031,16 @@ var VirtualRenderer = function(container, theme) {
     };
 
     this.$renderChanges = function(changes, force) {
-        if ((!this.session || !this.container.offsetWidth) || (!changes && !force)) {
-            this.$changes |= changes;
-            return; 
-        }
         if (this.$changes) {
             changes |= this.$changes;
             this.$changes = 0;
         }
+        if ((!this.session || !this.container.offsetWidth) || (!changes && !force)) {
+            this.$changes |= changes;
+            return; 
+        } 
+        if (!this.$size.width)
+            return this.onResize(true);
         
         this._signal("beforeRender");
         if (changes & this.CHANGE_FULL ||
