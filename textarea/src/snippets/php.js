@@ -19,12 +19,12 @@ snippet use\n\
 	use ${1:Foo\\Bar\\Baz};\n\
 	${2}\n\
 snippet c\n\
-	${1:abstract }class ${2:`Filename()`}\n\
+	${1:abstract }class ${2:$FILENAME}\n\
 	{\n\
 		${3}\n\
 	}\n\
 snippet i\n\
-	interface ${1:`Filename()`}\n\
+	interface ${1:$FILENAME}\n\
 	{\n\
 		${2}\n\
 	}\n\
@@ -48,7 +48,7 @@ snippet sm \n\
 	 *\n\
 	 * @param ${2:$1} $$1 ${3:description}\n\
 	 *\n\
-	 * @return ${4:`Filename()`}\n\
+	 * @return ${4:$FILENAME}\n\
 	 */\n\
 	${5:public} function set${6:$2}(${7:$2 }$$1)\n\
 	{\n\
@@ -205,7 +205,7 @@ snippet interface\n\
 	 * @package ${3:default}\n\
 	 * @author ${4:`g:snips_author`}\n\
 	 */\n\
-	interface ${1:`Filename()`}\n\
+	interface ${1:$FILENAME}\n\
 	{\n\
 		${5}\n\
 	}\n\
@@ -214,7 +214,7 @@ snippet class\n\
 	/**\n\
 	 * ${1}\n\
 	 */\n\
-	class ${2:`Filename()`}\n\
+	class ${2:$FILENAME}\n\
 	{\n\
 		${3}\n\
 		/**\n\
@@ -348,7 +348,7 @@ snippet gs\n\
 	 *\n\
 	 * @param $2 $$1 ${5:description}\n\
 	 *\n\
-	 * @return ${6:`Filename()`}\n\
+	 * @return ${6:$FILENAME}\n\
 	 */\n\
 	public function set$3(${7:$2 }$$1)\n\
 	{\n\

@@ -1352,7 +1352,7 @@ var TwigHighlightRules = function() {
         }, {
             token : "string",
             regex : '"',
-            next  : "twig-start",
+            next  : "twig-start"
         }, {
             defaultToken : "string"
         }
@@ -1364,7 +1364,7 @@ var TwigHighlightRules = function() {
         }, {
             token : "string",
             regex : "'",
-            next  : "twig-start",
+            next  : "twig-start"
         }, {
             defaultToken : "string"
         }
@@ -1419,7 +1419,7 @@ var HtmlHighlightRules = function() {
             token : "keyword.operator.separator",
             regex : "=",
             push : [{
-                include: "space",
+                include: "space"
             }, {
                 token : "string",
                 regex : "[^<>='\"`\\s]+",

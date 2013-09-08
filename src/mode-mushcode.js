@@ -665,7 +665,7 @@ var MushCodeRules = function() {
         }, {
             token : "text",
             regex : "\\s+"
-        } ],
+        } ]
     };
 };
 

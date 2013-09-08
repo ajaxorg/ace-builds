@@ -69,7 +69,7 @@ var PropertiesHighlightRules = function() {
                 next  : "value"
             }, {
                 token : "constant.language.escape",
-                regex : escapeRe,
+                regex : escapeRe
             }, {
                 defaultToken: "variable"
             }

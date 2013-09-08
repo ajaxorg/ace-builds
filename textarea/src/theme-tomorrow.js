@@ -40,8 +40,7 @@ color: #4D4D4C\
 width: 1px;\
 background: #f6f6f6\
 }\
-.ace-tomorrow,\
-.ace-tomorrow .ace_scroller {\
+.ace-tomorrow {\
 background-color: #FFFFFF;\
 color: #4D4D4C\
 }\

@@ -158,7 +158,7 @@ var LogiQLHighlightRules = function() {
            regex: '//.*',
             },
          { token: 'constant.numeric',
-           regex: '\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?',
+           regex: '\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?[fd]?',
             },
          { token: 'string',
            regex: '"',

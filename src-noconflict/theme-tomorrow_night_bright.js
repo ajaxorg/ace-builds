@@ -71,6 +71,9 @@ background: #2A2A2A\
 .ace-tomorrow-night-bright .ace_gutter-active-line {\
 background-color: #2A2A2A\
 }\
+.ace-tomorrow-night-bright .ace_stack {\
+background-color: rgb(66, 90, 44);\
+}\
 .ace-tomorrow-night-bright .ace_marker-layer .ace_selected-word {\
 border: 1px solid #424242\
 }\

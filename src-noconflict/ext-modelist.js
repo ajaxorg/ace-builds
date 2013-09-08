@@ -90,6 +90,7 @@ var supportedModes = {
     Markdown:    ["md|markdown"],
     MySQL:       ["mysql"],
     MUSHCode:    ["mc|mush"],
+    Nix:         ["nix"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],

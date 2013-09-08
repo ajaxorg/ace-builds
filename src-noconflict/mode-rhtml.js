@@ -47,7 +47,7 @@ oop.inherits(Mode, HtmlMode);
 exports.Mode = Mode;
 });
 
-ace.define('ace/mode/html', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/css', 'ace/tokenizer', 'ace/mode/html_highlight_rules', 'ace/mode/behaviour/html', 'ace/mode/folding/html'], function(require, exports, module) {
+ace.define('ace/mode/html', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/css', 'ace/tokenizer', 'ace/mode/html_highlight_rules', 'ace/mode/behaviour/html', 'ace/mode/folding/html', 'ace/mode/html/html_completions'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -58,11 +58,13 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var HtmlHighlightRules = require("./html_highlight_rules").HtmlHighlightRules;
 var HtmlBehaviour = require("./behaviour/html").HtmlBehaviour;
 var HtmlFoldMode = require("./folding/html").FoldMode;
+var HtmlCompletions = require("./html/html_completions").HtmlCompletions;
 
 var Mode = function() {
     var highlighter = new HtmlHighlightRules();
     this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.$behaviour = new HtmlBehaviour();
+    this.$completer = new HtmlCompletions();
     
     this.$embeds = highlighter.getEmbeds();
     this.createModeDelegates({
@@ -84,6 +86,10 @@ oop.inherits(Mode, TextMode);
 
     this.checkOutdent = function(state, line, input) {
         return false;
+    };
+
+    this.getCompletions = function(state, session, pos, prefix) {
+        return this.$completer.getCompletions(state, session, pos, prefix);
     };
 
 }).call(Mode.prototype);
@@ -1285,7 +1291,7 @@ var HtmlHighlightRules = function() {
             token : "keyword.operator.separator",
             regex : "=",
             push : [{
-                include: "space",
+                include: "space"
             }, {
                 token : "string",
                 regex : "[^<>='\"`\\s]+",

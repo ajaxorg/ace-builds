@@ -68,6 +68,9 @@ background: rgb(102, 82, 0)\
 margin: -1px 0 0 -1px;\
 border: 1px solid #6A6A6A\
 }\
+.ace-tomorrow-night-bright .ace_stack {\
+background: rgb(66, 90, 44)\
+}\
 .ace-tomorrow-night-eighties .ace_marker-layer .ace_active-line {\
 background: #393939\
 }\

@@ -127,7 +127,7 @@ var MysqlHighlightRules = function() {
         "comment" : [
             {token : "comment", regex : "\\*\\/", next : "start"},
             {defaultToken : "comment"}
-        ],
+        ]
     };
 
     this.embedRules(DocCommentHighlightRules, "doc-", [ DocCommentHighlightRules.getEndRule("start") ]);

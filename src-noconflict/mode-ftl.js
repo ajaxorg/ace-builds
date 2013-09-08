@@ -253,7 +253,7 @@ var HtmlHighlightRules = function() {
             token : "keyword.operator.separator",
             regex : "=",
             push : [{
-                include: "space",
+                include: "space"
             }, {
                 token : "string",
                 regex : "[^<>='\"`\\s]+",

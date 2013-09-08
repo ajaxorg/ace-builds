@@ -26,11 +26,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *
- * Contributor(s):
- *
- *
- *
  * ***** END LICENSE BLOCK ***** */
 
 __ace_shadowed__.define('ace/mode/erlang', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/erlang_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
