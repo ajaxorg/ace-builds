@@ -780,7 +780,7 @@ ace.define('ace/mode/nix_highlight_rules', ['require', 'exports', 'module' , 'ac
     var NixHighlightRules = function() {
 
         var constantLanguage = "true|false";
-        var keywordControl = "with|import|if|else|then";
+        var keywordControl = "with|import|if|else|then|inherit";
         var keywordDeclaration = "let|in|rec";
 
         var keywordMapper = this.createKeywordMapper({

@@ -63,14 +63,14 @@ __ace_shadowed__.define('ace/mode/golang_highlight_rules', ['require', 'exports'
 
     var GolangHighlightRules = function() {
         var keywords = (
-            "else|break|case|return|goto|if|const|" +
+            "else|break|case|return|goto|if|const|select|" +
             "continue|struct|default|switch|for|range|" +
             "func|import|package|chan|defer|fallthrough|go|interface|map|range" +
             "select|type|var"
         );
         var builtinTypes = (
             "string|uint8|uint16|uint32|uint64|int8|int16|int32|int64|float32|" +
-            "float64|complex64|complex128|byte|rune|uint|int|uintptr"
+            "float64|complex64|complex128|byte|rune|uint|int|uintptr|bool"
         );
         var builtinFunctions = (
             "make|close|new"

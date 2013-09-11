@@ -100,6 +100,7 @@ var supportedModes = {
     Powershell:  ["ps1"],
     Prolog:      ["plg|prolog"],
     Properties:  ["properties"],
+    Protobuf:    ["proto"],
     Python:      ["py"],
     R:           ["r"],
     RDoc:        ["Rd"],

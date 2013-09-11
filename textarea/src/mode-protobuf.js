@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2012, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of Ajax.org B.V. nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,23 +28,23 @@
  *
  *
  * Contributor(s):
- * 
+ *
  *    Zef Hemel
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/nix', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/c_cpp', 'ace/tokenizer', 'ace/mode/nix_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/protobuf', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/c_cpp', 'ace/tokenizer', 'ace/mode/protobuf_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var CMode = require("./c_cpp").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
-var NixHighlightRules = require("./nix_highlight_rules").NixHighlightRules;
+var ProtobufHighlightRules = require("./protobuf_highlight_rules").ProtobufHighlightRules;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
     CMode.call(this);
-    var highlighter = new NixHighlightRules();
+    var highlighter = new ProtobufHighlightRules();
     this.foldingRules = new CStyleFoldMode();
 
     this.$tokenizer = new Tokenizer(highlighter.getRules());
@@ -53,14 +53,14 @@ var Mode = function() {
 oop.inherits(Mode, CMode);
 
 (function() {
-    this.lineCommentStart = "#";
+    this.lineCommentStart = "//";
     this.blockComment = {start: "/*", end: "*/"};
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
 });
 
-define('ace/mode/c_cpp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/c_cpp_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/c_cpp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/c_cpp_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -133,7 +133,7 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
-define('ace/mode/c_cpp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/c_cpp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -311,7 +311,7 @@ oop.inherits(c_cppHighlightRules, TextHighlightRules);
 exports.c_cppHighlightRules = c_cppHighlightRules;
 });
 
-define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
@@ -355,7 +355,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
 });
 
-define('ace/mode/matching_brace_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/matching_brace_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
 
 
 var Range = require("../range").Range;
@@ -395,7 +395,7 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator', 'ace/lib/lang'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator', 'ace/lib/lang'], function(require, exports, module) {
 
 
 var oop = require("../../lib/oop");
@@ -718,7 +718,7 @@ oop.inherits(CstyleBehaviour, Behaviour);
 exports.CstyleBehaviour = CstyleBehaviour;
 });
 
-define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
 
 
 var oop = require("../../lib/oop");
@@ -771,28 +771,29 @@ oop.inherits(FoldMode, BaseFoldMode);
 }).call(FoldMode.prototype);
 
 });
-define('ace/mode/nix_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/protobuf_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
     
 
     var oop = require("../lib/oop");
     var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
-    var NixHighlightRules = function() {
+    var ProtobufHighlightRules = function() {
 
-        var constantLanguage = "true|false";
-        var keywordControl = "with|import|if|else|then|inherit";
-        var keywordDeclaration = "let|in|rec";
+        var builtinTypes = "double|float|int32|int64|uint32|uint64|sint32|" +
+                           "sint64|fixed32|fixed64|sfixed32|sfixed64|bool|" +
+                           "string|bytes";
+        var keywordDeclaration = "message|required|optional|repeated|package|" +
+                                 "import|option|enum";
 
         var keywordMapper = this.createKeywordMapper({
-            "constant.language.nix": constantLanguage,
-            "keyword.control.nix": keywordControl,
-            "keyword.declaration.nix": keywordDeclaration
+            "keyword.declaration.protobuf": keywordDeclaration,
+            "support.type": builtinTypes
         }, "identifier");
 
         this.$rules = {
             "start": [{
                     token: "comment",
-                    regex: /#.*$/
+                    regex: /\/\/.*$/
                 }, {
                     token: "comment",
                     regex: /\/\*/,
@@ -801,26 +802,14 @@ define('ace/mode/nix_highlight_rules', ['require', 'exports', 'module' , 'ace/li
                     token: "constant",
                     regex: "<[^>]+>"
                 }, {
-                    regex: "(==|!=|<=?|>=?)",
-                    token: ["keyword.operator.comparison.nix"]
-                }, {
-                    regex: "((?:[+*/%-]|\\~)=)",
-                    token: ["keyword.operator.assignment.arithmetic.nix"]
-                }, {
                     regex: "=",
-                    token: "keyword.operator.assignment.nix"
+                    token: "keyword.operator.assignment.protobuf"
                 }, {
-                    token: "string",
-                    regex: "''",
-                    next: "qqdoc"
+                    token : "string", // single line
+                    regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
                 }, {
-                    token: "string",
-                    regex: "'",
-                    next: "qstring"
-                }, {
-                    token: "string",
-                    regex: '"',
-                    push: "qqstring"
+                    token : "string", // single line
+                    regex : '[\'](?:(?:\\\\.)|(?:[^\'\\\\]))*?[\']'
                 }, {
                     token: "constant.numeric", // hex
                     regex: "0[xX][0-9a-fA-F]+\\b"
@@ -830,63 +819,21 @@ define('ace/mode/nix_highlight_rules', ['require', 'exports', 'module' , 'ace/li
                 }, {
                     token: keywordMapper,
                     regex: "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
-                }, {
-                    regex: "}",
-                    token: function(val, start, stack) {
-                        return stack[1] && stack[1].charAt(0) == "q" ? "constant.language.escape" : "text";
-                    },
-                    next: "pop"
                 }],
             "comment": [{
-                token: "comment", // closing comment
-                regex: ".*?\\*\\/",
-                next: "start"
-            }, {
-                token: "comment", // comment spanning whole line
-                regex: ".+"
-            }],
-            "qqdoc": [
-                {
-                    token: "constant.language.escape",
-                    regex: /\$\{/,
-                    push: "start"
+                    token: "comment", // closing comment
+                    regex: ".*?\\*\\/",
+                    next: "start"
                 }, {
-                    token: "string",
-                    regex: "''",
-                    next: "pop"
-                }, {
-                    defaultToken: "string"
-                }],
-            "qqstring": [
-                {
-                    token: "constant.language.escape",
-                    regex: /\$\{/,
-                    push: "start"
-                }, {
-                    token: "string",
-                    regex: '"',
-                    next: "pop"
-                }, {
-                    defaultToken: "string"
-                }],
-            "qstring": [
-                {
-                    token: "constant.language.escape",
-                    regex: /\$\{/,
-                    push: "start"
-                }, {
-                    token: "string",
-                    regex: "'",
-                    next: "pop"
-                }, {
-                    defaultToken: "string"
+                    token: "comment", // comment spanning whole line
+                    regex: ".+"
                 }]
         };
 
         this.normalizeRules();
     };
 
-    oop.inherits(NixHighlightRules, TextHighlightRules);
+    oop.inherits(ProtobufHighlightRules, TextHighlightRules);
 
-    exports.NixHighlightRules = NixHighlightRules;
+    exports.ProtobufHighlightRules = ProtobufHighlightRules;
 });
