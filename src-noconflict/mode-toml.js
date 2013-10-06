@@ -33,19 +33,18 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-ace.define('ace/mode/toml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/toml_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+ace.define('ace/mode/toml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/toml_highlight_rules', 'ace/mode/folding/ini'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var TomlHighlightRules = require("./toml_highlight_rules").TomlHighlightRules;
-var FoldMode = require("./folding/cstyle").FoldMode;
+var FoldMode = require("./folding/ini").FoldMode;
 
 var Mode = function() {
-    var highlighter = new TomlHighlightRules();
+    this.HighlightRules = TomlHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 
@@ -125,53 +124,50 @@ oop.inherits(TomlHighlightRules, TextHighlightRules);
 exports.TomlHighlightRules = TomlHighlightRules;
 });
 
-ace.define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
+ace.define('ace/mode/folding/ini', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
 
 
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
 
-var FoldMode = exports.FoldMode = function(commentRegex) {
-    if (commentRegex) {
-        this.foldingStartMarker = new RegExp(
-            this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start)
-        );
-        this.foldingStopMarker = new RegExp(
-            this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end)
-        );
-    }
+var FoldMode = exports.FoldMode = function() {
 };
 oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
 
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /^\s*\[([^\])]*)]\s*(?:$|[;#])/;
 
     this.getFoldWidgetRange = function(session, foldStyle, row) {
+        var re = this.foldingStartMarker;
         var line = session.getLine(row);
-        var match = line.match(this.foldingStartMarker);
-        if (match) {
-            var i = match.index;
+        
+        var m = line.match(re);
+        
+        if (!m) return;
+        
+        var startName = m[1] + ".";
+        
+        var startColumn = line.length;
+        var maxRow = session.getLength();
+        var startRow = row;
+        var endRow = row;
 
-            if (match[1])
-                return this.openingBracketBlock(session, match[1], row, i);
+        while (++row < maxRow) {
+            line = session.getLine(row);
+            if (/^\s*$/.test(line))
+                continue;
+            m = line.match(re);
+            if (m && m[1].lastIndexOf(startName, 0) !== 0)
+                break;
 
-            return session.getCommentFoldRange(row, i + match[0].length, 1);
+            endRow = row;
         }
 
-        if (foldStyle !== "markbeginend")
-            return;
-
-        var match = line.match(this.foldingStopMarker);
-        if (match) {
-            var i = match.index + match[0].length;
-
-            if (match[1])
-                return this.closingBracketBlock(session, match[1], row, i);
-
-            return session.getCommentFoldRange(row, i, -1);
+        if (endRow > startRow) {
+            var endColumn = session.getLine(endRow).length;
+            return new Range(startRow, startColumn, endRow, endColumn);
         }
     };
 

@@ -45,11 +45,7 @@ background-color: #222C28;\
 color: #FFFFFF\
 }\
 .ace-mono-industrial .ace_cursor {\
-border-left: 2px solid #FFFFFF\
-}\
-.ace-mono-industrial .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #FFFFFF\
+color: #FFFFFF\
 }\
 .ace-mono-industrial .ace_marker-layer .ace_selection {\
 background: rgba(145, 153, 148, 0.40)\

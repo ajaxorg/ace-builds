@@ -43,9 +43,8 @@ var JuliaHighlightRules = require("./julia_highlight_rules").JuliaHighlightRules
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new JuliaHighlightRules();
+    this.HighlightRules = JuliaHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

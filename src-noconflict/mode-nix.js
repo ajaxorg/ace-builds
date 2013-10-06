@@ -44,15 +44,12 @@ var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
     CMode.call(this);
-    var highlighter = new NixHighlightRules();
+    this.HighlightRules = NixHighlightRules;
     this.foldingRules = new CStyleFoldMode();
-
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
-    this.$keywordList = highlighter.$keywordList;
 };
 oop.inherits(Mode, CMode);
 
-(function() {
+(function() { 
     this.lineCommentStart = "#";
     this.blockComment = {start: "/*", end: "*/"};
 }).call(Mode.prototype);
@@ -73,12 +70,10 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new c_cppHighlightRules();
+    this.HighlightRules = c_cppHighlightRules;
 
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CstyleBehaviour();
-    this.$keywordList = highlighter.$keywordList;
 
     this.foldingRules = new CStyleFoldMode();
 };
@@ -92,7 +87,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
         var endState = tokenizedLine.state;
 

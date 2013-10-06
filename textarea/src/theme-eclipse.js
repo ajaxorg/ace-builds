@@ -48,7 +48,7 @@ background-color: #FFFFFF;\
 background-color: rgb(60, 76, 114);\
 }\
 .ace-eclipse .ace_cursor {\
-border-left: 2px solid black;\
+color: black;\
 }\
 .ace-eclipse .ace_storage,\
 .ace-eclipse .ace_keyword,\

@@ -46,11 +46,7 @@ background-color: #FFFFFF;\
 color: #000000\
 }\
 .ace-xcode .ace_cursor {\
-border-left: 2px solid #000000\
-}\
-.ace-xcode .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #000000\
+color: #000000\
 }\
 .ace-xcode .ace_marker-layer .ace_selection {\
 background: #B5D5FF\

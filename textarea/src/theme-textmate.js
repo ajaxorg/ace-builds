@@ -48,11 +48,7 @@ background-color: #6B72E6;\
 background-color: #FFFFFF;\
 }\
 .ace-tm .ace_cursor {\
-border-left: 2px solid black;\
-}\
-.ace-tm .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid black;\
+color: black;\
 }\
 .ace-tm .ace_invisible {\
 color: rgb(191, 191, 191);\

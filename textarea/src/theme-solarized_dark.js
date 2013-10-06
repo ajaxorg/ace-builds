@@ -49,11 +49,7 @@ color: #93A1A1\
 color: #93A1A1\
 }\
 .ace-solarized-dark .ace_cursor {\
-border-left: 2px solid #D30102\
-}\
-.ace-solarized-dark .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #D30102\
+color: #D30102\
 }\
 .ace-solarized-dark .ace_marker-layer .ace_active-line,\
 .ace-solarized-dark .ace_marker-layer .ace_selection {\

@@ -48,11 +48,7 @@ background-color: #FFFFFF;\
 color: rgb(64, 64, 64);\
 }\
 .ace-crimson-editor .ace_cursor {\
-border-left: 2px solid black;\
-}\
-.ace-crimson-editor .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid black;\
+color: black;\
 }\
 .ace-crimson-editor .ace_invisible {\
 color: rgb(191, 191, 191);\

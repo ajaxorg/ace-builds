@@ -92,9 +92,7 @@ var RubyMode = require("./ruby").Mode;
 
 var Mode = function() {
     HtmlMode.call(this);
-    var highlighter = new EjsHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());    
-    this.$embeds = highlighter.getEmbeds();
+    this.HighlightRules = EjsHighlightRules;    
     this.createModeDelegates({
         "js-": JavaScriptMode,
         "css-": CssMode,
@@ -971,12 +969,10 @@ var HtmlFoldMode = require("./folding/html").FoldMode;
 var HtmlCompletions = require("./html_completions").HtmlCompletions;
 
 var Mode = function() {
-    var highlighter = new HtmlHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = HtmlHighlightRules;
     this.$behaviour = new HtmlBehaviour();
     this.$completer = new HtmlCompletions();
     
-    this.$embeds = highlighter.getEmbeds();
     this.createModeDelegates({
         "js-": JavaScriptMode,
         "css-": CssMode
@@ -1021,12 +1017,10 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new JavaScriptHighlightRules();
+    this.HighlightRules = JavaScriptHighlightRules;
     
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CstyleBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -1039,7 +1033,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
         var endState = tokenizedLine.state;
 
@@ -1526,11 +1520,9 @@ var CssBehaviour = require("./behaviour/css").CssBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new CssHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = CssHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CssBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -1542,7 +1534,7 @@ oop.inherits(Mode, TextMode);
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
-        var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
+        var tokens = this.getTokenizer().getLineTokens(line, state).tokens;
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
         }
@@ -2410,10 +2402,7 @@ var Range = require("../range").Range;
 var FoldMode = require("./folding/coffee").FoldMode;
 
 var Mode = function() {
-    var highlighter = new RubyHighlightRules();
-    
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
-    this.$keywordList = highlighter.$keywordList;
+    this.HighlightRules = RubyHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.foldingRules = new FoldMode();
 };
@@ -2427,7 +2416,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
 
         if (tokens.length && tokens[tokens.length-1].type == "comment") {

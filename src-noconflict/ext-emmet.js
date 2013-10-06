@@ -420,11 +420,13 @@ var SnippetManager = function() {
             case "SELECTED_TEXT":
                 return s.getTextRange(r);
             case "CURRENT_LINE":
-                return s.getLine(e.getCursorPosition().row);
+                return s.getLine(editor.getCursorPosition().row);
+            case "PREV_LINE": // not possible in textmate
+                return s.getLine(editor.getCursorPosition().row - 1);
             case "LINE_INDEX":
-                return e.getCursorPosition().column;
+                return editor.getCursorPosition().column;
             case "LINE_NUMBER":
-                return e.getCursorPosition().row + 1;
+                return editor.getCursorPosition().row + 1;
             case "SOFT_TABS":
                 return s.getUseSoftTabs() ? "YES" : "NO";
             case "TAB_SIZE":
@@ -628,9 +630,14 @@ var SnippetManager = function() {
     this.$getScope = function(editor) {
         var scope = editor.session.$mode.$id || "";
         scope = scope.split("/").pop();
-        if (editor.session.$mode.$modes) {
+        if (scope === "html" || scope === "php") {
+            if (scope === "php") 
+                scope = "html";
             var c = editor.getCursorPosition()
             var state = editor.session.getState(c.row);
+            if (typeof state === "object") {
+                state = state[0];
+            }
             if (state.substring) {
                 if (state.substring(0, 3) == "js-")
                     scope = "javascript";
@@ -640,6 +647,7 @@ var SnippetManager = function() {
                     scope = "php";
             }
         }
+        
         return scope;
     };
 

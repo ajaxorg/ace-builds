@@ -43,9 +43,8 @@ var BatchFileHighlightRules = require("./batchfile_highlight_rules").BatchFileHi
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new BatchFileHighlightRules();
+    this.HighlightRules = BatchFileHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

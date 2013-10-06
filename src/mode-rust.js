@@ -43,9 +43,8 @@ var RustHighlightRules = require("./rust_highlight_rules").RustHighlightRules;
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new RustHighlightRules();
+    this.HighlightRules = RustHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

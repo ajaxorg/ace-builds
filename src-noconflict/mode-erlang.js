@@ -38,9 +38,8 @@ var ErlangHighlightRules = require("./erlang_highlight_rules").ErlangHighlightRu
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new ErlangHighlightRules();
+    this.HighlightRules = ErlangHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

@@ -45,11 +45,7 @@ background-color: #F9F9F9;\
 color: #080808\
 }\
 .ace-dawn .ace_cursor {\
-border-left: 2px solid #000000\
-}\
-.ace-dawn .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #000000\
+color: #000000\
 }\
 .ace-dawn .ace_marker-layer .ace_selection {\
 background: rgba(39, 95, 255, 0.30)\

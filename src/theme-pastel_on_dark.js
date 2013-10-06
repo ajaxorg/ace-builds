@@ -45,11 +45,7 @@ background-color: #2C2828;\
 color: #8F938F\
 }\
 .ace-pastel-on-dark .ace_cursor {\
-border-left: 2px solid #A7A7A7\
-}\
-.ace-pastel-on-dark .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #A7A7A7\
+color: #A7A7A7\
 }\
 .ace-pastel-on-dark .ace_marker-layer .ace_selection {\
 background: rgba(221, 240, 255, 0.20)\

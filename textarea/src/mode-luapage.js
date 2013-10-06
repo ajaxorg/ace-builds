@@ -8,10 +8,9 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var LuaPageHighlightRules = require("./luapage_highlight_rules").LuaPageHighlightRules;
 
 var Mode = function() {
-    var highlighter = new LuaPageHighlightRules();
+    this.HighlightRules = LuaPageHighlightRules;
     
-    this.$tokenizer = new Tokenizer(new LuaPageHighlightRules().getRules());
-    this.$embeds = highlighter.getEmbeds();
+    this.HighlightRules = LuaPageHighlightRules;
     this.createModeDelegates({
         "lua-": LuaMode
     });
@@ -35,12 +34,10 @@ var HtmlFoldMode = require("./folding/html").FoldMode;
 var HtmlCompletions = require("./html_completions").HtmlCompletions;
 
 var Mode = function() {
-    var highlighter = new HtmlHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = HtmlHighlightRules;
     this.$behaviour = new HtmlBehaviour();
     this.$completer = new HtmlCompletions();
     
-    this.$embeds = highlighter.getEmbeds();
     this.createModeDelegates({
         "js-": JavaScriptMode,
         "css-": CssMode
@@ -85,12 +82,10 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new JavaScriptHighlightRules();
+    this.HighlightRules = JavaScriptHighlightRules;
     
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CstyleBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -103,7 +98,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
         var endState = tokenizedLine.state;
 
@@ -943,11 +938,9 @@ var CssBehaviour = require("./behaviour/css").CssBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new CssHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = CssHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CssBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -959,7 +952,7 @@ oop.inherits(Mode, TextMode);
 
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
-        var tokens = this.$tokenizer.getLineTokens(line, state).tokens;
+        var tokens = this.getTokenizer().getLineTokens(line, state).tokens;
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
         }
@@ -2321,11 +2314,9 @@ var Range = require("../range").Range;
 var WorkerClient = require("../worker/worker_client").WorkerClient;
 
 var Mode = function() {
-    var highlighter = new LuaHighlightRules();
+    this.HighlightRules = LuaHighlightRules;
     
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.foldingRules = new LuaFoldMode();
-    this.$keywordList = highlighter.$keywordList;
 };
 oop.inherits(Mode, TextMode);
 
@@ -2378,7 +2369,7 @@ oop.inherits(Mode, TextMode);
         var indent = this.$getIndent(line);
         var level = 0;
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
 
         if (state == "start") {
@@ -2401,7 +2392,7 @@ oop.inherits(Mode, TextMode);
         if (line.match(/^\s*[\)\}\]]$/))
             return true;
 
-        var tokens = this.$tokenizer.getLineTokens(line.trim(), state).tokens;
+        var tokens = this.getTokenizer().getLineTokens(line.trim(), state).tokens;
 
         if (!tokens || !tokens.length)
             return false;
@@ -2412,7 +2403,7 @@ oop.inherits(Mode, TextMode);
     this.autoOutdent = function(state, session, row) {
         var prevLine = session.getLine(row - 1);
         var prevIndent = this.$getIndent(prevLine).length;
-        var prevTokens = this.$tokenizer.getLineTokens(prevLine, "start").tokens;
+        var prevTokens = this.getTokenizer().getLineTokens(prevLine, "start").tokens;
         var tabLength = session.getTabString().length;
         var expectedIndent = prevIndent + tabLength * getNetIndentLevel(prevTokens);
         var curIndent = this.$getIndent(session.getLine(row)).length;

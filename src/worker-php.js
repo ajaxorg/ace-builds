@@ -54,6 +54,8 @@ window.require = function(parentId, id) {
     }
     
     var chunks = id.split("/");
+    if (!require.tlns)
+        return console.log("unable to load " + id);
     chunks[0] = require.tlns[chunks[0]] || chunks[0];
     var path = chunks.join("/") + ".js";
     
@@ -2674,7 +2676,7 @@ PHP.Lexer = function( src, ini ) {
 
                                 result = result.substring( match[ 0 ].length );
 
-                                match = result.match(/^(\-\>)([a-zA-Z0-9_\x7f-\xff]*)/);
+                                match = result.match(/^(\-\>)\s*([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)\s*(\()/);
 
                                 if ( match !== null ) {
 
@@ -2688,6 +2690,9 @@ PHP.Lexer = function( src, ini ) {
                                         match[ 2 ],
                                         line
                                         ]);
+                                    if (match[3]) {
+                                        results.push(match[3]);
+                                    }
                                     result = result.substring( match[ 0 ].length );
                                 }
 
@@ -2699,9 +2704,9 @@ PHP.Lexer = function( src, ini ) {
 
                             var re;
                             if ( curlyOpen > 0) {
-                                re = /^([^\\\$"{}\]]|\\.)+/g;
+                                re = /^([^\\\$"{}\]\)]|\\.)+/g;
                             } else {
-                                re = /^([^\\\$"{]|\\.|{[^\$])+/g;
+                                re = /^([^\\\$"{]|\\.|{[^\$]|\$(?=[^a-zA-Z_\x7f-\xff]))+/g;;
                             }
 
                             while(( match = result.match( re )) !== null ) {

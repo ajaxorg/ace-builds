@@ -45,11 +45,7 @@ background-color: #FDF6E3;\
 color: #586E75\
 }\
 .ace-solarized-light .ace_cursor {\
-border-left: 2px solid #000000\
-}\
-.ace-solarized-light .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #000000\
+color: #000000\
 }\
 .ace-solarized-light .ace_marker-layer .ace_selection {\
 background:  rgba(7, 54, 67, 0.09)\

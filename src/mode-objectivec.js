@@ -43,10 +43,8 @@ var ObjectiveCHighlightRules = require("./objectivec_highlight_rules").Objective
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new ObjectiveCHighlightRules();
+    this.HighlightRules = ObjectiveCHighlightRules;
     this.foldingRules = new CStyleFoldMode();
-
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

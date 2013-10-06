@@ -42,9 +42,7 @@ var Tokenizer = require("../tokenizer").Tokenizer;
 var VBScriptHighlightRules = require("./vbscript_highlight_rules").VBScriptHighlightRules;
 
 var Mode = function() {
-    var highlighter = new VBScriptHighlightRules();
-    
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = VBScriptHighlightRules;
 };
 oop.inherits(Mode, TextMode);
 
@@ -168,7 +166,7 @@ var VBScriptHighlightRules = function() {
             token: [
                 "support.function.asp"
             ],
-            regex: "(?:\\b(Lock|Unlock|SetAbort|SetComplete|BianryRead|AddHeader|AppendToLog|BinaryWrite|Clear|End|Flush|Redirect|Write|CreateObject|HTMLEncode|MapPath|URLEncode|Abandon|Convert|Regex)\\b)"
+            regex: "(?:\\b(Lock|Unlock|SetAbort|SetComplete|BinaryRead|AddHeader|AppendToLog|BinaryWrite|Clear|End|Flush|Redirect|Write|CreateObject|HTMLEncode|MapPath|URLEncode|Abandon|Convert|Regex)\\b)"
         },
         {
             token: [

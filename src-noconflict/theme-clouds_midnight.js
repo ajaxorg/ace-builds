@@ -45,11 +45,7 @@ background-color: #191919;\
 color: #929292\
 }\
 .ace-clouds-midnight .ace_cursor {\
-border-left: 2px solid #7DA5DC\
-}\
-.ace-clouds-midnight .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #7DA5DC\
+color: #7DA5DC\
 }\
 .ace-clouds-midnight .ace_marker-layer .ace_selection {\
 background: #000000\

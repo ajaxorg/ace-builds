@@ -43,9 +43,8 @@ var ForthHighlightRules = require("./forth_highlight_rules").ForthHighlightRules
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new ForthHighlightRules();
+    this.HighlightRules = ForthHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

@@ -43,9 +43,8 @@ var AutoHotKeyHighlightRules = require("./autohotkey_highlight_rules").AutoHotKe
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new AutoHotKeyHighlightRules();
+    this.HighlightRules = AutoHotKeyHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

@@ -43,10 +43,8 @@ var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 var Mode = function() {
     XmlMode.call(this);
     
-    this.highlighter = new SvgHighlightRules();
-    this.$tokenizer = new Tokenizer(this.highlighter.getRules());
+    this.HighlightRules = SvgHighlightRules;
     
-    this.$embeds = this.highlighter.getEmbeds();
     this.createModeDelegates({
         "js-": JavaScriptMode
     });
@@ -81,7 +79,7 @@ var XmlBehaviour = require("./behaviour/xml").XmlBehaviour;
 var XmlFoldMode = require("./folding/xml").FoldMode;
 
 var Mode = function() {
-    this.$tokenizer = new Tokenizer(new XmlHighlightRules().getRules());
+    this.HighlightRules = XmlHighlightRules;
     this.$behaviour = new XmlBehaviour();
     this.foldingRules = new XmlFoldMode();
 };
@@ -986,12 +984,10 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new JavaScriptHighlightRules();
+    this.HighlightRules = JavaScriptHighlightRules;
     
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CstyleBehaviour();
-    this.$keywordList = highlighter.$keywordList;
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -1004,7 +1000,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
         var endState = tokenizedLine.state;
 

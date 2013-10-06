@@ -45,11 +45,7 @@ background-color: #1C1C1C;\
 color: #E6E1DC\
 }\
 .ace-merbivore-soft .ace_cursor {\
-border-left: 2px solid #FFFFFF\
-}\
-.ace-merbivore-soft .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #FFFFFF\
+color: #FFFFFF\
 }\
 .ace-merbivore-soft .ace_marker-layer .ace_selection {\
 background: #494949\

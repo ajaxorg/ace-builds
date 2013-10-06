@@ -48,11 +48,7 @@ color: #CCCCCC\
 color: #CCCCCC\
 }\
 .ace-tomorrow-night-eighties .ace_cursor {\
-border-left: 2px solid #CCCCCC\
-}\
-.ace-tomorrow-night-eighties .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #CCCCCC\
+color: #CCCCCC\
 }\
 .ace-tomorrow-night-eighties .ace_marker-layer .ace_selection {\
 background: #515151\

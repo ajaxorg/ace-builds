@@ -45,11 +45,7 @@ background-color: black;\
 color: #DEDEDE\
 }\
 .ace-terminal-theme .ace_cursor {\
-border-left: 2px solid springgreen\
-}\
-.ace-terminal-theme .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #9F9F9F\
+color: #9F9F9F\
 }\
 .ace-terminal-theme .ace_marker-layer .ace_selection {\
 background: #424242\

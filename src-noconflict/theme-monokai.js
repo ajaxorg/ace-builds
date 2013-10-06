@@ -45,11 +45,7 @@ background-color: #272822;\
 color: #F8F8F2\
 }\
 .ace-monokai .ace_cursor {\
-border-left: 2px solid #F8F8F0\
-}\
-.ace-monokai .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #F8F8F0\
+color: #F8F8F0\
 }\
 .ace-monokai .ace_marker-layer .ace_selection {\
 background: #49483E\

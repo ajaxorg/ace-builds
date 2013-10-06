@@ -2,16 +2,19 @@ define('ace/snippets/dart', ['require', 'exports', 'module' ], function(require,
 
 
 exports.snippetText = "snippet lib\n\
-	#library('${1}');\n\
+	library ${1};\n\
 	${2}\n\
 snippet im\n\
-	#import('${1}');\n\
+	import '${1}';\n\
 	${2}\n\
-snippet so\n\
-	#source('${1}');\n\
+snippet pa\n\
+	part '${1}';\n\
+	${2}\n\
+snippet pao\n\
+	part of ${1};\n\
 	${2}\n\
 snippet main\n\
-	static void main() {\n\
+	void main() {\n\
 	  ${1:/* code */}\n\
 	}\n\
 snippet st\n\
@@ -26,8 +29,6 @@ snippet th\n\
 	throw ${1}\n\
 snippet cl\n\
 	class ${1:`Filename(\"\", \"untitled\")`} ${2}\n\
-snippet in\n\
-	interface ${1:`Filename(\"\", \"untitled\")`} ${2}\n\
 snippet imp\n\
 	implements ${1}\n\
 snippet ext\n\

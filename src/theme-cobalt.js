@@ -45,11 +45,7 @@ background-color: #002240;\
 color: #FFFFFF\
 }\
 .ace-cobalt .ace_cursor {\
-border-left: 2px solid #FFFFFF\
-}\
-.ace-cobalt .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #FFFFFF\
+color: #FFFFFF\
 }\
 .ace-cobalt .ace_marker-layer .ace_selection {\
 background: rgba(179, 101, 57, 0.75)\

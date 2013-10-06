@@ -45,11 +45,7 @@ background-color: #0F0F0F;\
 color: #FFFFFF\
 }\
 .ace-vibrant-ink .ace_cursor {\
-border-left: 2px solid #FFFFFF\
-}\
-.ace-vibrant-ink .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #FFFFFF\
+color: #FFFFFF\
 }\
 .ace-vibrant-ink .ace_marker-layer .ace_selection {\
 background: #6699CC\

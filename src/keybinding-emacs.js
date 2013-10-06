@@ -71,7 +71,7 @@ exports.handler.attach = function(editor) {
                 background-color: rgba(0,250,0,0.9);\
                 opacity: 0.5;\
             }\
-            .emacs-mode .ace_cursor.ace_hidden{\
+            .emacs-mode .ace_hidden-cursors .ace_cursor{\
                 opacity: 1;\
                 background-color: transparent;\
             }\
@@ -195,7 +195,7 @@ exports.handler.bindKey = function(key, command) {
     if (!key)
         return;
 
-    var ckb = this.commmandKeyBinding;
+    var ckb = this.commandKeyBinding;
     key.split("|").forEach(function(keyPart) {
         keyPart = keyPart.toLowerCase();
         ckb[keyPart] = command;
@@ -236,7 +236,7 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
     data.universalArgument = false;
     if (modifier) key = modifier + key;
     if (data.keyChain) key = data.keyChain += " " + key;
-    var command = this.commmandKeyBinding[key];
+    var command = this.commandKeyBinding[key];
     data.keyChain = command == "null" ? key : "";
     if (!command) return undefined;
     if (command === "null") return {command: "null"};

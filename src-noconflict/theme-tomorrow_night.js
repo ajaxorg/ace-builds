@@ -45,11 +45,7 @@ background-color: #1D1F21;\
 color: #C5C8C6\
 }\
 .ace-tomorrow-night .ace_cursor {\
-border-left: 2px solid #AEAFAD\
-}\
-.ace-tomorrow-night .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #AEAFAD\
+color: #AEAFAD\
 }\
 .ace-tomorrow-night .ace_marker-layer .ace_selection {\
 background: #373B41\

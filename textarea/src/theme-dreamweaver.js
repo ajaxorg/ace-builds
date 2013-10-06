@@ -46,11 +46,7 @@ background-color: #FFFFFF;\
 background-color: #757AD8;\
 }\
 .ace-dreamweaver .ace_cursor {\
-border-left: 2px solid black;\
-}\
-.ace-dreamweaver .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid black;\
+color: black;\
 }\
 .ace-dreamweaver .ace_invisible {\
 color: rgb(191, 191, 191);\

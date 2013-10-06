@@ -43,9 +43,8 @@ var ActionScriptHighlightRules = require("./actionscript_highlight_rules").Actio
 var FoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new ActionScriptHighlightRules();
+    this.HighlightRules = ActionScriptHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
 };
 oop.inherits(Mode, TextMode);
 

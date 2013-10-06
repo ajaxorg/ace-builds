@@ -45,11 +45,7 @@ background-color: #323232;\
 color: #FFFFFF\
 }\
 .ace-idle-fingers .ace_cursor {\
-border-left: 2px solid #91FF00\
-}\
-.ace-idle-fingers .ace_overwrite-cursors .ace_cursor {\
-border-left: 0px;\
-border-bottom: 1px solid #91FF00\
+color: #91FF00\
 }\
 .ace-idle-fingers .ace_marker-layer .ace_selection {\
 background: rgba(90, 100, 126, 0.88)\

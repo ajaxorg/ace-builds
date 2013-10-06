@@ -9,10 +9,7 @@ var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
-    var highlighter = new GolangHighlightRules();
-
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
-    this.$keywordList = highlighter.$keywordList;
+    this.HighlightRules = GolangHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.foldingRules = new CStyleFoldMode();
 };
@@ -26,7 +23,7 @@ oop.inherits(Mode, TextMode);
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
 
-        var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
         var endState = tokenizedLine.state;
 
@@ -65,15 +62,15 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
         var keywords = (
             "else|break|case|return|goto|if|const|select|" +
             "continue|struct|default|switch|for|range|" +
-            "func|import|package|chan|defer|fallthrough|go|interface|map|range" +
+            "func|import|package|chan|defer|fallthrough|go|interface|map|range|" +
             "select|type|var"
         );
         var builtinTypes = (
             "string|uint8|uint16|uint32|uint64|int8|int16|int32|int64|float32|" +
-            "float64|complex64|complex128|byte|rune|uint|int|uintptr|bool"
+            "float64|complex64|complex128|byte|rune|uint|int|uintptr|bool|error"
         );
         var builtinFunctions = (
-            "make|close|new"
+            "make|close|new|panic|recover"
         );
         var builtinConstants = ("nil|true|false|iota");
 
