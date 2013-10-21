@@ -21,8 +21,7 @@
   - Protobuf (Zef Hemel)
   - Soy
   - Handlebars
-  - SJS (Tim Cuthbertson)
-  - Jack (Tim Caswell)
+  - 
 
 2013.06.04 Version 1.1.01
 

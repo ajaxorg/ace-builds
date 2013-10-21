@@ -29,10 +29,14 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/multi_select', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/worker/worker_client', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/snippets', 'ace/ext/language_tools'], function(require, exports, module) {
+define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/multi_select', 'ace/ext/spellcheck', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/worker/worker_client', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/snippets', 'ace/ext/language_tools'], function(require, exports, module) {
 
 
 require("ace/lib/fixoldbrowsers");
+
+require("ace/multi_select")
+require("ace/ext/spellcheck");
+
 var config = require("ace/config");
 config.init();
 var env = {};
@@ -51,7 +55,6 @@ var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
 
 var Renderer = require("ace/virtual_renderer").VirtualRenderer;
 var Editor = require("ace/editor").Editor;
-var MultiSelect = require("ace/multi_select").MultiSelect;
 
 var whitespace = require("ace/ext/whitespace");
 
@@ -84,7 +87,7 @@ split.on("focus", function(editor) {
 });
 env.split = split;
 window.env = env;
-require("ace/multi_select").MultiSelect(env.editor);
+
 
 var consoleEl = dom.createElement("div");
 container.parentNode.appendChild(consoleEl);
@@ -543,6 +546,12 @@ event.addListener(container, "drop", function(e) {
 
 
 
+
+
+
+
+
+
 var StatusBar = require("ace/ext/statusbar").StatusBar;
 new StatusBar(env.editor, cmdLine.container);
 
@@ -591,7 +600,6 @@ env.editor.setOptions({
     enableBasicAutocompletion: true,
     enableSnippets: true
 })
-
 });
 void function() {
 function isStrict() {
@@ -618,7 +626,73 @@ def(window, "editor", function(){ warn(); return env.editor });
 def(window, "session", function(){ warn(); return env.editor.session });
 def(window, "split", function(){ warn(); return env.split });
 
-}();
+}();define('ace/ext/spellcheck', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/editor', 'ace/config'], function(require, exports, module) {
+
+var event = require("../lib/event");
+
+exports.contextMenuHandler = function(e){
+    var host = e.target;
+    var text = host.textInput.getElement();
+    if (!host.selection.isEmpty())
+        return;
+    var c = host.getCursorPosition();
+    var r = host.session.getWordRange(c.row, c.column);
+    var w = host.session.getTextRange(r);
+
+    host.session.tokenRe.lastIndex = 0;
+    if (!host.session.tokenRe.test(w))
+        return;
+    var PLACEHOLDER = "\x01\x01";
+    var value = w + " " + PLACEHOLDER;
+    text.value = value;
+    text.setSelectionRange(w.length, w.length + 1);
+    text.setSelectionRange(0, 0);
+    text.setSelectionRange(0, w.length);
+
+    var afterKeydown = false;
+    event.addListener(text, "keydown", function onKeydown() {
+        event.removeListener(text, "keydown", onKeydown);
+        afterKeydown = true;
+    });
+
+    host.textInput.setInputHandler(function(newVal) {
+        console.log(newVal , value, text.selectionStart, text.selectionEnd)
+        if (newVal == value)
+            return '';
+        if (newVal.lastIndexOf(value, 0) === 0)
+            return newVal.slice(value.length);
+        if (newVal.substr(text.selectionEnd) == value)
+            return newVal.slice(0, -value.length);
+        if (newVal.slice(-2) == PLACEHOLDER) {
+            var val = newVal.slice(0, -2);
+            if (val.slice(-1) == " ") {
+                if (afterKeydown)
+                    return val.substring(0, text.selectionEnd);
+                val = val.slice(0, -1);
+                host.session.replace(r, val);
+                return "";
+            }
+        }
+
+        return newVal;
+    });
+};
+var Editor = require("../editor").Editor;
+require("../config").defineOptions(Editor.prototype, "editor", {
+    spellcheck: {
+        set: function(val) {
+            var text = this.textInput.getElement();
+            text.spellcheck = !!val;
+            if (!val)
+                this.removeListener("nativecontextmenu", exports.contextMenuHandler);
+            else
+                this.on("nativecontextmenu", exports.contextMenuHandler);
+        },
+        value: true
+    }
+});
+
+});
 
 define('ace/theme/textmate', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
 

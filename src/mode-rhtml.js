@@ -1279,6 +1279,7 @@ var tagMap = lang.createMap({
     img         : 'image',
     input       : 'form',
     label       : 'form',
+    option      : 'form',
     script      : 'script',
     select      : 'form',
     textarea    : 'form',

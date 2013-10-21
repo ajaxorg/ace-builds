@@ -3721,7 +3721,10 @@ config.defineOptions(Editor.prototype, "editor", {
         initialValue: true
     },
     readOnly: {
-        set: function(readOnly) { this.$resetCursorStyle(); },
+        set: function(readOnly) {
+            this.textInput.setReadOnly(readOnly); 
+            this.$resetCursorStyle(); 
+        },
         initialValue: false
     },
     cursorStyle: {
@@ -3962,6 +3965,7 @@ var BROKEN_SETDATA = useragent.isChrome < 18;
 var TextInput = function(parentNode, host) {
     var text = dom.createElement("textarea");
     text.className = "ace_text-input";
+
     if (useragent.isTouchPad)
         text.setAttribute("x-palm-disable-auto-cap", true);
 
@@ -4288,6 +4292,7 @@ var TextInput = function(parentNode, host) {
         var c = inComposition;
         inComposition = false;
         var timer = setTimeout(function() {
+            timer = null;
             var str = text.value.replace(/\x01/g, "");
             if (inComposition)
                 return
@@ -4299,14 +4304,15 @@ var TextInput = function(parentNode, host) {
             }
         });
         inputHandler = function compositionInputHandler(str) {
-            clearTimeout(timer);
+            if (timer)
+                clearTimeout(timer);
             str = str.replace(/\x01/g, "");
             if (str == c.lastValue)
                 return "";
-            if (c.lastValue)
+            if (c.lastValue && timer)
                 host.undo();
             return str;
-        }        
+        };
         host.onCompositionEnd();
         host.removeListener("mousedown", onCompositionEnd);
         if (e.type == "compositionend" && c.range) {
@@ -12648,12 +12654,14 @@ overflow: hidden;\
 font: inherit;\
 padding: 0 1px;\
 margin: 0 -1px;\
+text-indent: -1em;\
 }\
 .ace_text-input.ace_composition {\
 background: #f8f8f8;\
 color: #111;\
 z-index: 1000;\
 opacity: 1;\
+text-indent: 0;\
 }\
 .ace_layer {\
 z-index: 1;\
@@ -12908,7 +12916,7 @@ var VirtualRenderer = function(container, theme) {
     var _self = this;
 
     this.container = container || dom.createElement("div");
-    this.$keepTextAreaAtCursor = !useragent.isIE;
+    this.$keepTextAreaAtCursor = true;
 
     dom.addCssClass(this.container, "ace_editor");
 
@@ -15295,6 +15303,7 @@ var ScrollBarV = function(parent, renderer) {
     this.element.style.overflowY = "scroll";
     
     event.addListener(this.element, "scroll", this.onScrollV.bind(this));
+    event.addListener(this.element, "mousedown", event.preventDefault);
 };
 
 var ScrollBarH = function(parent, renderer) {
@@ -15314,6 +15323,7 @@ var ScrollBarH = function(parent, renderer) {
     this.element.style.overflowX = "scroll";
 
     event.addListener(this.element, "scroll", this.onScrollH.bind(this));
+    event.addListener(this.element, "mousedown", event.preventDefault);
 };
 
 (function() {

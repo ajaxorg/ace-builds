@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/ext/static_highlight', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/layer/text', 'ace/config'], function(require, exports, module) {
+define('ace/ext/static_highlight', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/layer/text', 'ace/config', 'ace/lib/dom'], function(require, exports, module) {
 
 
 var EditSession = require("../edit_session").EditSession;
@@ -54,6 +54,7 @@ position: static !important;\
 user-select: none;\
 }";
 var config = require("../config");
+var dom = require("../lib/dom");
 
 exports.render = function(input, mode, theme, lineStart, disableGutter, callback) {
     var waiting = 0;
@@ -121,4 +122,43 @@ exports.renderSync = function(input, mode, theme, lineStart, disableGutter) {
     };
 };
 
+
+
+exports.highlight = function(el, opts) {
+    var m = el.className.match(/lang-(\w+)/);
+    var mode = opts.mode || m && ("ace/mode/" + m[1]);
+    if (!mode)
+        return false;
+    var theme = opts.theme || "ace/theme/textmate";
+    
+    var data = "";
+    var nodes = [];
+
+    if (el.firstElementChild) {
+        var textLen = 0;
+        for (var i = 0; i < el.childNodes.length; i++) {
+            var ch = el.childNodes[i];
+            if (ch.nodeType == 3) {
+                textLen += ch.data.length;
+                data += ch.data;
+            } else {
+                nodes.push(textLen, ch);
+            }
+        }
+    } else {
+        data = dom.getInnerText(el);
+    }
+    
+    exports.render(data, mode, theme, 1, true, function (highlighted) {
+        dom.importCssString(highlighted.css, "ace_highlight");
+        el.innerHTML = highlighted.html;
+        var container = el.firstChild.firstChild
+        for (var i = 0; i < nodes.length; i += 2) {
+            var pos = highlighted.session.doc.indexToPosition(nodes[i])
+            var node = nodes[i + 1];
+            var lineEl = container.children[pos.row];
+            lineEl && lineEl.appendChild(nodes[i+1]);
+        }
+    });
+};
 });
