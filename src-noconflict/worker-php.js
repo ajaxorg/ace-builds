@@ -2763,7 +2763,7 @@ PHP.Lexer = function( src, ini ) {
                         return undefined;
 
                     } else {
-                        result = result.replace(/\n/g,"\\n").replace(/\r/g,"");
+                        result = result.replace(/\r/g,"");
                     }
                     return result;
                 }

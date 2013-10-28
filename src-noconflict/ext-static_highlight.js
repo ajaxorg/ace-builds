@@ -124,7 +124,7 @@ exports.renderSync = function(input, mode, theme, lineStart, disableGutter) {
 
 
 
-exports.highlight = function(el, opts) {
+exports.highlight = function(el, opts, callback) {
     var m = el.className.match(/lang-(\w+)/);
     var mode = opts.mode || m && ("ace/mode/" + m[1]);
     if (!mode)
@@ -159,6 +159,7 @@ exports.highlight = function(el, opts) {
             var lineEl = container.children[pos.row];
             lineEl && lineEl.appendChild(nodes[i+1]);
         }
+        callback && callback();
     });
 };
 });

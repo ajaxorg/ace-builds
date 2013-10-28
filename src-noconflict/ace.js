@@ -3903,10 +3903,12 @@ var TextInput = function(parentNode, host) {
         }, 0);
     }
     if (!useragent.isGecko || useragent.isMac) {
-        event.addListener(text, "contextmenu", function(e) {
+        var onContextMenu = function(e) {
             host.textInput.onContextMenu(e);
             onContextMenuClose();
-        });
+        };
+        event.addListener(host.renderer.scroller, "contextmenu", onContextMenu);
+        event.addListener(text, "contextmenu", onContextMenu);
     }
 };
 
@@ -4118,8 +4120,8 @@ function DefaultHandlers(mouseHandler) {
                 editor.selection.clearSelection();
             }
         }.bind(this), 0);
-        if (editor.container.setCapture) {
-            editor.container.setCapture();
+        if (editor.renderer.scroller.setCapture) {
+            editor.renderer.scroller.setCapture();
         }
         editor.setStyle("ace_selecting");
         this.setState("select");
@@ -4185,8 +4187,8 @@ function DefaultHandlers(mouseHandler) {
     this.selectByWordsEnd =
     this.selectByLinesEnd = function() {
         this.editor.unsetStyle("ace_selecting");
-        if (this.editor.container.releaseCapture) {
-            this.editor.container.releaseCapture();
+        if (this.editor.renderer.scroller.releaseCapture) {
+            this.editor.renderer.scroller.releaseCapture();
         }
     };
 
@@ -4493,13 +4495,11 @@ var SCROLL_CURSOR_HYSTERESIS = 5;
 function DragdropHandler(mouseHandler) {
 
     var editor = mouseHandler.editor;
-    var proxy = dom.createElement("img");
-    proxy.src = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
-    if (useragent.isOpera) {
-        proxy.style.cssText = "width:1px;height:1px;position:fixed;top:0;left:0;z-index:2147483647;opacity:0;visibility:hidden";
-        editor.container.appendChild(proxy);
-    }
+    var blankImage = dom.createElement("img");
+    blankImage.src = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+    if (useragent.isOpera)
+        blankImage.style.cssText = "width:1px;height:1px;position:fixed;top:0;left:0;z-index:2147483647;opacity:0;";
 
     var exports = ["dragWait", "dragWaitEnd", "startDrag", "dragReadyEnd", "onMouseDrag"];
 
@@ -4514,6 +4514,7 @@ function DragdropHandler(mouseHandler) {
     var timerId, range;
     var dragCursor, counter = 0;
     var dragOperation;
+    var isInternal;
     var autoScrollStartTime;
     var cursorMovedTime;
     var cursorPointOnCaretMoved;
@@ -4527,25 +4528,28 @@ function DragdropHandler(mouseHandler) {
             }, 0);
             return e.preventDefault();
         }
-        if (useragent.isOpera) {
-            proxy.style.visibility = "visible";
-            setTimeout(function(){
-                proxy.style.visibility = "hidden";
-            }, 0);
-        }
         range = editor.getSelectionRange();
 
         var dataTransfer = e.dataTransfer;
         dataTransfer.effectAllowed = editor.getReadOnly() ? "copy" : "copyMove";
-        dataTransfer.setDragImage && dataTransfer.setDragImage(proxy, 0, 0);
+        if (useragent.isOpera) {
+            editor.container.appendChild(blankImage);
+            blankImage._top = blankImage.offsetTop;
+        }
+        dataTransfer.setDragImage && dataTransfer.setDragImage(blankImage, 0, 0);
+        if (useragent.isOpera) {
+            editor.container.removeChild(blankImage);
+        }
         dataTransfer.clearData();
         dataTransfer.setData("Text", editor.session.getTextRange());
 
+        isInternal = true;
         this.setState("drag");
     };
 
     this.onDragEnd = function(e) {
         mouseTarget.draggable = false;
+        isInternal = false;
         this.setState(null);
         if (!editor.getReadOnly()) {
             var dropEffect = e.dataTransfer.dropEffect;
@@ -4595,7 +4599,6 @@ function DragdropHandler(mouseHandler) {
         if (!dragSelectionMarker)
             return;
         var dataTransfer = e.dataTransfer;
-        var isInternal = this.state == "drag";
         if (isInternal) {
             switch (dragOperation) {
                 case "move":
@@ -4701,6 +4704,8 @@ function DragdropHandler(mouseHandler) {
         range = editor.selection.toOrientedRange();
         dragSelectionMarker = editor.session.addMarker(range, "ace_selection", editor.getSelectionStyle());
         editor.clearSelection();
+        if (editor.isFocused())
+            editor.renderer.$cursorLayer.setBlinking(false);
         clearInterval(timerId);
         timerId = setInterval(onDragInterval, 20);
         counter = 0;
@@ -4714,6 +4719,8 @@ function DragdropHandler(mouseHandler) {
         editor.$blockScrolling += 1;
         editor.selection.fromOrientedRange(range);
         editor.$blockScrolling -= 1;
+        if (editor.isFocused() && !isInternal)
+            editor.renderer.$cursorLayer.setBlinking(!editor.getReadOnly());
         range = null;
         counter = 0;
         autoScrollStartTime = null;
