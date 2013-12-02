@@ -320,8 +320,8 @@ var MarkdownHighlightRules = function() {
         regex : "^```\\s*[a-zA-Z]*(?:{.*?\\})?\\s*$",
         next  : "githubblock"
     }, { // block quote
-        token : "string",
-        regex : "^>[ ].+$",
+        token : "string.blockquote",
+        regex : "^\\s*>\\s*(?:[*+-]|\\d+\\.)?\\s+",
         next  : "blockquote"
     }, { // HR * - _
         token : "constant",
@@ -357,10 +357,10 @@ var MarkdownHighlightRules = function() {
                     '(\\s*"' +  escaped('"') + '"\\s*)?' +            // "title"
                     "(\\))"                                           // )
         }, { // strong ** __
-            token : "string",
+            token : "string.strong",
             regex : "([*]{2}|[_]{2}(?=\\S))(.*?\\S[*_]*)(\\1)"
         }, { // emphasis * _
-            token : "string",
+            token : "string.emphasis",
             regex : "([*]|[_](?=\\S))(.*?\\S[*_]*)(\\1)"
         }, { //
             token : ["text", "url", "text"],
@@ -401,16 +401,21 @@ var MarkdownHighlightRules = function() {
         }, {
             include : "basic", noEscape: true
         }, {
-            defaultToken : "list"
+            defaultToken : "list" //do not use markup.list to allow stling leading `*` differntly
         } ],
 
         "blockquote" : [ { // BLockquotes only escape on blank lines.
             token : "empty_line",
             regex : "^\\s*$",
             next  : "start"
+        }, { // block quote
+            token : "string.blockquote",
+            regex : "^\\s*>\\s*(?:[*+-]|\\d+\\.)?\\s+",
+            next  : "blockquote"
         }, {
-            token : "string",
-            regex : ".+"
+            include : "basic", noEscape: true
+        }, {
+            defaultToken : "string.blockquote"
         } ],
 
         "githubblock" : [ {
@@ -1798,7 +1803,7 @@ ace.define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 
 
         var keywords = (
             "this|throw|then|try|typeof|super|switch|return|break|by|continue|" +
-            "catch|class|in|instanceof|is|isnt|if|else|extends|for|forown|" +
+            "catch|class|in|instanceof|is|isnt|if|else|extends|for|own|" +
             "finally|function|while|when|new|no|not|delete|debugger|do|loop|of|off|" +
             "or|on|unless|until|and|yes"
         );

@@ -1420,6 +1420,9 @@ var AcePopup = function(parentNode) {
     popup.session.$computeWidth = function() {
         return this.screenWidth = 0;
     }
+    popup.isOpen = false;
+    popup.isTopdown = false;
+    
     popup.data = [];
     popup.setData = function(list) {
         popup.data = list || [];
@@ -1444,25 +1447,32 @@ var AcePopup = function(parentNode) {
                 popup._signal("select");
         }
     };
+    
+    popup.on("changeSelection", function() {
+        if (popup.isOpen)
+            popup.setRow(popup.selection.lead.row);
+    });
 
     popup.hide = function() {
         this.container.style.display = "none";
         this._signal("hide");
         popup.isOpen = false;
     };
-    popup.show = function(pos, lineHeight) {
+    popup.show = function(pos, lineHeight, topdownOnly) {
         var el = this.container;
         var screenHeight = window.innerHeight;
         var renderer = this.renderer;
         var maxH = renderer.$maxLines * lineHeight * 1.4;
         var top = pos.top + this.$borderSize;
-        if (top + maxH > screenHeight - lineHeight) {
+        if (top + maxH > screenHeight - lineHeight && !topdownOnly) {
             el.style.top = "";
             el.style.bottom = screenHeight - top + "px";
+            popup.isTopdown = false;
         } else {
             top += lineHeight;
             el.style.top = top + "px";
             el.style.bottom = "";
+            popup.isTopdown = true;
         }
 
         el.style.left = pos.left + "px";

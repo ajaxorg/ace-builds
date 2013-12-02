@@ -59,7 +59,14 @@ background: rgb(102, 82, 0)\
 }\
 .ace-tomorrow-night-bright .ace_marker-layer .ace_bracket {\
 margin: -1px 0 0 -1px;\
-border: 1px solid #343434\
+border: 1px solid #888888\
+}\
+.ace-tomorrow-night-bright .ace_marker-layer .ace_highlight {\
+border: 1px solid rgb(110, 119, 0);\
+border-bottom: 0;\
+box-shadow: inset 0 -1px rgb(110, 119, 0);\
+margin: -1px 0 0 -1px;\
+background: rgba(255, 235, 0, 0.1);\
 }\
 .ace-tomorrow-night-bright .ace_marker-layer .ace_active-line {\
 background: #2A2A2A\
@@ -71,7 +78,7 @@ background-color: #2A2A2A\
 background-color: rgb(66, 90, 44);\
 }\
 .ace-tomorrow-night-bright .ace_marker-layer .ace_selected-word {\
-border: 1px solid #424242\
+border: 1px solid #888888\
 }\
 .ace-tomorrow-night-bright .ace_invisible {\
 color: #343434\
@@ -131,6 +138,9 @@ color: #D54E53\
 }\
 .ace-tomorrow-night-bright .ace_comment {\
 color: #969896\
+}\
+.ace-tomorrow-night-bright .ace_c9searchresults.ace_keyword {\
+color: #C2C280;\
 }\
 .ace-tomorrow-night-bright .ace_indent-guide {\
 background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYFBXV/8PAAJoAXX4kT2EAAAAAElFTkSuQmCC) right repeat-y;\

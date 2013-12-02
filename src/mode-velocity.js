@@ -1423,7 +1423,7 @@ var CstyleBehaviour = function () {
             }
             var rightChar = line.substring(cursor.column, cursor.column + 1);
             if (rightChar == '}' || closing !== "") {
-                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column}, '}');
+                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column+1}, '}');
                 if (!openBracePos)
                      return null;
 

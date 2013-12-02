@@ -56,7 +56,49 @@ user-select: none;\
 var config = require("../config");
 var dom = require("../lib/dom");
 
-exports.render = function(input, mode, theme, lineStart, disableGutter, callback) {
+
+var highlight = function(el, opts, callback) {
+    var m = el.className.match(/lang-(\w+)/);
+    var mode = opts.mode || m && ("ace/mode/" + m[1]);
+    if (!mode)
+        return false;
+    var theme = opts.theme || "ace/theme/textmate";
+    
+    var data = "";
+    var nodes = [];
+
+    if (el.firstElementChild) {
+        var textLen = 0;
+        for (var i = 0; i < el.childNodes.length; i++) {
+            var ch = el.childNodes[i];
+            if (ch.nodeType == 3) {
+                textLen += ch.data.length;
+                data += ch.data;
+            } else {
+                nodes.push(textLen, ch);
+            }
+        }
+    } else {
+        data = dom.getInnerText(el);
+        if (opts.trim)
+            data = data.trim();
+    }
+    
+    highlight.render(data, mode, theme, opts.firstLineNumber, !opts.showGutter, function (highlighted) {
+        dom.importCssString(highlighted.css, "ace_highlight");
+        el.innerHTML = highlighted.html;
+        var container = el.firstChild.firstChild;
+        for (var i = 0; i < nodes.length; i += 2) {
+            var pos = highlighted.session.doc.indexToPosition(nodes[i]);
+            var node = nodes[i + 1];
+            var lineEl = container.children[pos.row];
+            lineEl && lineEl.appendChild(node);
+        }
+        callback && callback();
+    });
+};
+
+highlight.render = function(input, mode, theme, lineStart, disableGutter, callback) {
     var waiting = 0;
     var modeCache = EditSession.prototype.$modes;
     if (typeof theme == "string") {
@@ -76,13 +118,13 @@ exports.render = function(input, mode, theme, lineStart, disableGutter, callback
         });
     }
     function done() {
-        var result = exports.renderSync(input, mode, theme, lineStart, disableGutter);
+        var result = highlight.renderSync(input, mode, theme, lineStart, disableGutter);
         return callback ? callback(result) : result;
     }
     return waiting || done();
 };
 
-exports.renderSync = function(input, mode, theme, lineStart, disableGutter) {
+highlight.renderSync = function(input, mode, theme, lineStart, disableGutter) {
     lineStart = parseInt(lineStart || 1, 10);
 
     var session = new EditSession("");
@@ -106,7 +148,7 @@ exports.renderSync = function(input, mode, theme, lineStart, disableGutter) {
         if (!disableGutter)
             stringBuilder.push("<span class='ace_gutter ace_gutter-cell' unselectable='on'>" + (ix + lineStart) + "</span>");
         textLayer.$renderLine(stringBuilder, ix, true, false);
-        stringBuilder.push("</div>");
+        stringBuilder.push("\n</div>");
     }
     var html = "<div class='" + theme.cssClass + "'>" +
         "<div class='ace_static_highlight'>" +
@@ -118,48 +160,11 @@ exports.renderSync = function(input, mode, theme, lineStart, disableGutter) {
 
     return {
         css: baseStyles + theme.cssText,
-        html: html
+        html: html,
+        session: session
     };
 };
 
-
-
-exports.highlight = function(el, opts, callback) {
-    var m = el.className.match(/lang-(\w+)/);
-    var mode = opts.mode || m && ("ace/mode/" + m[1]);
-    if (!mode)
-        return false;
-    var theme = opts.theme || "ace/theme/textmate";
-    
-    var data = "";
-    var nodes = [];
-
-    if (el.firstElementChild) {
-        var textLen = 0;
-        for (var i = 0; i < el.childNodes.length; i++) {
-            var ch = el.childNodes[i];
-            if (ch.nodeType == 3) {
-                textLen += ch.data.length;
-                data += ch.data;
-            } else {
-                nodes.push(textLen, ch);
-            }
-        }
-    } else {
-        data = dom.getInnerText(el);
-    }
-    
-    exports.render(data, mode, theme, 1, true, function (highlighted) {
-        dom.importCssString(highlighted.css, "ace_highlight");
-        el.innerHTML = highlighted.html;
-        var container = el.firstChild.firstChild
-        for (var i = 0; i < nodes.length; i += 2) {
-            var pos = highlighted.session.doc.indexToPosition(nodes[i])
-            var node = nodes[i + 1];
-            var lineEl = container.children[pos.row];
-            lineEl && lineEl.appendChild(nodes[i+1]);
-        }
-        callback && callback();
-    });
-};
+module.exports = highlight;
+module.exports.highlight =highlight;
 });
