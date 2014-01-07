@@ -57,6 +57,7 @@ ace.define('ace/mode/r', ['require', 'exports', 'module' , 'ace/range', 'ace/lib
    (function()
    {
       this.lineCommentStart = "#";
+       this.$id = "ace/mode/r";
    }).call(Mode.prototype);
    exports.Mode = Mode;
 });

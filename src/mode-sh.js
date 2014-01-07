@@ -104,6 +104,7 @@ oop.inherits(Mode, TextMode);
             doc.remove(new Range(row, indent.length-tab.length, row, indent.length));
     };
 
+    this.$id = "ace/mode/sh";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

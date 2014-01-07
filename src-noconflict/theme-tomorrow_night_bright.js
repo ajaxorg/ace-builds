@@ -75,7 +75,7 @@ background: #2A2A2A\
 background-color: #2A2A2A\
 }\
 .ace-tomorrow-night-bright .ace_stack {\
-background-color: rgb(66, 90, 44);\
+background-color: rgb(66, 90, 44)\
 }\
 .ace-tomorrow-night-bright .ace_marker-layer .ace_selected-word {\
 border: 1px solid #888888\
@@ -126,6 +126,7 @@ color: #7AA6DA\
 color: #E7C547\
 }\
 .ace-tomorrow-night-bright .ace_heading,\
+.ace-tomorrow-night-bright .ace_markup.ace_heading,\
 .ace-tomorrow-night-bright .ace_string {\
 color: #B9CA4A\
 }\
@@ -143,7 +144,7 @@ color: #969896\
 color: #C2C280;\
 }\
 .ace-tomorrow-night-bright .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYFBXV/8PAAJoAXX4kT2EAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYFBXV/8PAAJoAXX4kT2EAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

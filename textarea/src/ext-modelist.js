@@ -37,6 +37,7 @@ var supportedModes = {
     ABAP:        ["abap"],
     ActionScript:["as"],
     ADA:         ["ada|adb"],
+    Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
     AsciiDoc:    ["asciidoc"],
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
@@ -90,6 +91,7 @@ var supportedModes = {
     Makefile:    ["^Makefile|^GNUmakefile|^makefile|^OCamlMakefile|make"],
     MATLAB:      ["matlab"],
     Markdown:    ["md|markdown"],
+    MEL:         ["mel"],
     MySQL:       ["mysql"],
     MUSHCode:    ["mc|mush"],
     Nix:         ["nix"],
@@ -149,7 +151,7 @@ var nameOverrides = {
 var modesByName = {};
 for (var name in supportedModes) {
     var data = supportedModes[name];
-    var displayName = nameOverrides[name] || name;
+    var displayName = (nameOverrides[name] || name).replace(/_/g, " ");
     var filename = name.toLowerCase();
     var mode = new Mode(filename, displayName, data[0]);
     modesByName[filename] = mode;

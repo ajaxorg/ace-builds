@@ -22,7 +22,6 @@
   - Protobuf (Zef Hemel)
   - Soy
   - Handlebars
-  - 
 
 2013.06.04 Version 1.1.1
 

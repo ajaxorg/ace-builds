@@ -116,6 +116,7 @@ color: #4271AE\
 color: #C99E00\
 }\
 .ace-tomorrow .ace_heading,\
+.ace-tomorrow .ace_markup.ace_heading,\
 .ace-tomorrow .ace_string {\
 color: #718C00\
 }\

@@ -60,6 +60,7 @@ oop.inherits(Mode, TextMode);
         this.$outdent.autoOutdent(doc, row);
     };
 
+    this.$id = "ace/mode/c9search";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -98,23 +99,24 @@ var C9SearchHighlightRules = function() {
                     
                     var regex = stack[1];
                     var str = values[3];
-                    if (regex && str) 
-                        values = str.split(regex); // this doesn't work on ie8 but we don't care:)
-                    else
-                        values = [str];
                     
-                    for (var i = 0, l = values.length; i < l; i+=2) {
-                        if (values[i])
-                            tokens.push({
-                                type: types[2],
-                                value: values[i]
-                            });
-                        if (values[i+1])
-                            tokens.push({
-                                type: types[3],
-                                value: values[i + 1]
-                            });
+                    var m;
+                    var last = 0;
+                    if (regex) {
+                        regex.lastIndex = 0;
+                        while (m = regex.exec(str)) {
+                            var skipped = str.substring(last, m.index);
+                            last = regex.lastIndex;
+                            if (skipped)
+                                tokens.push({type: types[2], value: skipped});
+                            if (m[0])
+                                tokens.push({type: types[3], value: m[0]});
+                            else if (!skipped)
+                                break;
+                        }
                     }
+                    if (last < str.length)
+                        tokens.push({type: types[2], value: str.substr(last)});
                     return tokens;
                 }
             },
@@ -135,9 +137,9 @@ var C9SearchHighlightRules = function() {
                         search = lang.escapeRegExp(search);
                     if (/whole/.test(options))
                         search = "\\b" + search + "\\b";
-                    var regex = safeCreateRegexp(
+                    var regex = search && safeCreateRegexp(
                         "(" + search + ")",
-                        / sensitive/.test(options) ? "" : "i"
+                        / sensitive/.test(options) ? "g" : "ig"
                     );
                     if (regex) {
                         stack[0] = state;

@@ -56,6 +56,7 @@ oop.inherits(Mode, TextMode);
         {start: "{", end: "}"}
     ];
     
+    this.$id = "ace/mode/pascal";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

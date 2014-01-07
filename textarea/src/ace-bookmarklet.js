@@ -691,12 +691,14 @@ exports.capture = function(el, eventHandler, releaseCaptureHandler) {
     exports.addListener(document, "mousemove", eventHandler, true);
     exports.addListener(document, "mouseup", onMouseUp, true);
     exports.addListener(document, "dragstart", onMouseUp, true);
+    
+    return onMouseUp;
 };
 
 exports.addMouseWheelListener = function(el, callback) {
     if ("onmousewheel" in el) {
-        var factor = 8;
         exports.addListener(el, "mousewheel", function(e) {
+            var factor = 8;
             if (e.wheelDeltaX !== undefined) {
                 e.wheelX = -e.wheelDeltaX / factor;
                 e.wheelY = -e.wheelDeltaY / factor;
@@ -708,8 +710,19 @@ exports.addMouseWheelListener = function(el, callback) {
         });
     } else if ("onwheel" in el) {
         exports.addListener(el, "wheel",  function(e) {
-            e.wheelX = (e.deltaX || 0) * 5;
-            e.wheelY = (e.deltaY || 0) * 5;
+            var factor = 0.35;
+            switch (e.deltaMode) {
+                case e.DOM_DELTA_PIXEL:
+                    e.wheelX = e.deltaX * factor || 0;
+                    e.wheelY = e.deltaY * factor || 0;
+                    break;
+                case e.DOM_DELTA_LINE:
+                case e.DOM_DELTA_PAGE:
+                    e.wheelX = (e.deltaX || 0) * 5;
+                    e.wheelY = (e.deltaY || 0) * 5;
+                    break;
+            }
+            
             callback(e);
         });
     } else {
@@ -1016,28 +1029,17 @@ exports.keyCodeToString = function(keyCode) {
 __ace_shadowed__.define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
-exports.inherits = (function() {
-    var createObject = Object.create || function(prototype, properties) {
-        var Type = function () {};
-        Type.prototype = prototype;
-        object = new Type();
-        object.__proto__ = prototype;
-        if (typeof properties !== 'undefined' && Object.defineProperties) {
-            Object.defineProperties(object, properties);
+exports.inherits = function(ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+            value: ctor,
+            enumerable: false,
+            writable: true,
+            configurable: true
         }
-    };
-    return function(ctor, superCtor) {
-        ctor.super_ = superCtor;
-        ctor.prototype = createObject(superCtor.prototype, {
-            constructor: {
-                value: ctor,
-                enumerable: false,
-                writable: true,
-                configurable: true
-            }
-        });
-    };
-}());
+    });
+};
 
 exports.mixin = function(obj, mixin) {
     for (var key in mixin) {
@@ -1360,7 +1362,7 @@ exports.loadScript = function(path, callback) {
 
 });
 
-__ace_shadowed__.define('ace/ace', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/lib/dom', 'ace/lib/event', 'ace/editor', 'ace/edit_session', 'ace/undomanager', 'ace/virtual_renderer', 'ace/multi_select', 'ace/worker/worker_client', 'ace/keyboard/hash_handler', 'ace/placeholder', 'ace/mode/folding/fold_mode', 'ace/theme/textmate', 'ace/config'], function(require, exports, module) {
+__ace_shadowed__.define('ace/ace', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/lib/dom', 'ace/lib/event', 'ace/editor', 'ace/edit_session', 'ace/undomanager', 'ace/virtual_renderer', 'ace/multi_select', 'ace/worker/worker_client', 'ace/keyboard/hash_handler', 'ace/placeholder', 'ace/mode/folding/fold_mode', 'ace/theme/textmate', 'ace/ext/error_marker', 'ace/config'], function(require, exports, module) {
 
 
 require("./lib/fixoldbrowsers");
@@ -1378,6 +1380,7 @@ require("./keyboard/hash_handler");
 require("./placeholder");
 require("./mode/folding/fold_mode");
 require("./theme/textmate");
+require("./ext/error_marker");
 
 exports.config = require("./config");
 exports.require = require;
@@ -2258,17 +2261,17 @@ var Editor = function(renderer, session) {
     oop.implement(this, EventEmitter);
 
     this.$initOperationListeners = function() {
-        function last(a) {return a[a.length - 1]};
+        function last(a) {return a[a.length - 1]}
 
         this.selections = [];
         this.commands.on("exec", function(e) {
             this.startOperation(e);
 
             var command = e.command;
-            if (command.group == "fileJump") {
+            if (command.aceCommandGroup == "fileJump") {
                 var prev = this.prevOp;
-                if (!prev || prev.command.group != "fileJump") {
-                    this.lastFileJumpPos = last(this.selections)
+                if (!prev || prev.command.aceCommandGroup != "fileJump") {
+                    this.lastFileJumpPos = last(this.selections);
                 }
             } else {
                 this.lastFileJumpPos = null;
@@ -2278,10 +2281,9 @@ var Editor = function(renderer, session) {
         this.commands.on("afterExec", function(e) {
             var command = e.command;
 
-            if (command.group == "fileJump") {
+            if (command.aceCommandGroup == "fileJump") {
                 if (this.lastFileJumpPos && !this.curOp.selectionChanged) {
                     this.selection.fromJSON(this.lastFileJumpPos);
-                    return
                 }
             }
             this.endOperation(e);
@@ -2298,7 +2300,7 @@ var Editor = function(renderer, session) {
             this.curOp || this.startOperation();
             this.curOp.selectionChanged = true;
         }.bind(this), true);
-    }
+    };
 
     this.curOp = null;
     this.prevOp = {};
@@ -2316,7 +2318,8 @@ var Editor = function(renderer, session) {
         this.$opResetTimer.schedule();
         this.curOp = {
             command: commadEvent.command || {},
-            args: commadEvent.args
+            args: commadEvent.args,
+            scrollTop: this.renderer.scrollTop
         };
         
         var command = this.curOp.command;
@@ -2335,16 +2338,24 @@ var Editor = function(renderer, session) {
                     case "center":
                         this.renderer.scrollCursorIntoView(null, 0.5);
                         break;
+                    case "animate":
                     case "cursor":
                         this.renderer.scrollCursorIntoView();
                         break;
                     case "selectionPart":
-                        this.renderer.scrollCursorIntoView();
+                        var range = this.selection.getRange();
+                        var config = this.renderer.layerConfig;
+                        if (range.start.row >= config.lastRow || range.end.row <= config.firstRow) {
+                            this.renderer.scrollSelectionIntoView(this.selection.anchor, this.selection.lead);
+                        }
                         break;
                     default:
                         break;
                 }
+                if (command.scrollIntoView == "animate")
+                    this.renderer.animateScrolling(this.curOp.scrollTop);
             }
+            
             this.prevOp = this.curOp;
             this.curOp = null;
         }
@@ -2365,12 +2376,12 @@ var Editor = function(renderer, session) {
 
             shouldMerge = shouldMerge
                 && this.mergeNextCommand // previous command allows to coalesce with
-                && (!/\s/.test(text) || /\s/.test(prev.args)) // previous insertion was of same type
+                && (!/\s/.test(text) || /\s/.test(prev.args)); // previous insertion was of same type
 
             this.mergeNextCommand = true;
         } else {
             shouldMerge = shouldMerge
-                && mergeableCommands.indexOf(e.command.name) !== -1// the command is mergeable
+                && mergeableCommands.indexOf(e.command.name) !== -1; // the command is mergeable
         }
 
         if (
@@ -2388,7 +2399,7 @@ var Editor = function(renderer, session) {
     this.setKeyboardHandler = function(keyboardHandler) {
         if (!keyboardHandler) {
             this.keyBinding.setKeyboardHandler(null);
-        } else if (typeof keyboardHandler == "string") {
+        } else if (typeof keyboardHandler === "string") {
             this.$keybindingId = keyboardHandler;
             var _self = this;
             config.loadModule(["keybinding", keyboardHandler], function(module) {
@@ -2684,7 +2695,7 @@ var Editor = function(renderer, session) {
             this.$updateHighlightActiveLine();
         }
 
-        var re = this.$highlightSelectedWord && this.$getSelectionHighLightRegexp()
+        var re = this.$highlightSelectedWord && this.$getSelectionHighLightRegexp();
         this.session.highlight(re);
 
         this._emit("changeSelection");
@@ -2814,7 +2825,7 @@ var Editor = function(renderer, session) {
         }
 
         if (text == "\n" || text == "\r\n") {
-            var line = session.getLine(cursor.row)
+            var line = session.getLine(cursor.row);
             if (cursor.column > line.search(/\S|$/)) {
                 var d = line.substr(cursor.column).search(/\S|$/);
                 session.doc.removeInLine(cursor.row, cursor.column, cursor.column + d);
@@ -2985,12 +2996,12 @@ var Editor = function(renderer, session) {
             var state = session.getState(range.start.row);
             var new_range = session.getMode().transformAction(state, 'deletion', this, session, range);
 
-            if (range.end.column == 0) {
+            if (range.end.column === 0) {
                 var text = session.getTextRange(range);
                 if (text[text.length - 1] == "\n") {
-                    var line = session.getLine(range.end.row)
+                    var line = session.getLine(range.end.row);
                     if (/^\s+$/.test(line)) {
-                        range.end.column = line.length
+                        range.end.column = line.length;
                     }
                 }
             }
@@ -3098,7 +3109,7 @@ var Editor = function(renderer, session) {
             session.indentRows(rows.first, rows.last, "\t");
             return;
         } else if (range.start.column < range.end.column) {
-            var text = session.getTextRange(range)
+            var text = session.getTextRange(range);
             if (!/^\s+$/.test(text)) {
                 var rows = this.$getSelectedRows();
                 session.indentRows(rows.first, rows.last, "\t");
@@ -3106,7 +3117,7 @@ var Editor = function(renderer, session) {
             }
         }
         
-        var line = session.getLine(range.start.row)
+        var line = session.getLine(range.start.row);
         var position = range.start;
         var size = session.getTabSize();
         var column = session.documentToScreenColumn(position.row, position.column);
@@ -3168,19 +3179,19 @@ var Editor = function(renderer, session) {
         var range = this.getSelectionRange();
         this.session.getMode().toggleBlockComment(state, this.session, range, cursor);
     };
-    this.getNumberAt = function( row, column ) {
-        var _numberRx = /[\-]?[0-9]+(?:\.[0-9]+)?/g
-        _numberRx.lastIndex = 0
+    this.getNumberAt = function(row, column) {
+        var _numberRx = /[\-]?[0-9]+(?:\.[0-9]+)?/g;
+        _numberRx.lastIndex = 0;
 
-        var s = this.session.getLine(row)
+        var s = this.session.getLine(row);
         while (_numberRx.lastIndex < column) {
-            var m = _numberRx.exec(s)
+            var m = _numberRx.exec(s);
             if(m.index <= column && m.index+m[0].length >= column){
                 var number = {
                     value: m[0],
                     start: m.index,
                     end: m.index+m[0].length
-                }
+                };
                 return number;
             }
         }
@@ -3246,7 +3257,7 @@ var Editor = function(renderer, session) {
             range.start = point;
             range.end = endPoint;
 
-            sel.setSelectionRange(range, reverse)
+            sel.setSelectionRange(range, reverse);
         }
     };
     this.moveLinesDown = function() {
@@ -3291,7 +3302,7 @@ var Editor = function(renderer, session) {
                 var last = rows.end.row;
                 var first = rows.start.row;
                 while (i--) {
-                    var rows = ranges[i].collapseRows();
+                    rows = ranges[i].collapseRows();
                     if (first - rows.end.row <= 1)
                         first = rows.end.row;
                     else
@@ -3351,11 +3362,11 @@ var Editor = function(renderer, session) {
         var rows = dir * Math.floor(config.height / config.lineHeight);
 
         this.$blockScrolling++;
-        if (select == true) {
+        if (select === true) {
             this.selection.$moveSelection(function(){
                 this.moveCursorBy(rows, 0);
             });
-        } else if (select == false) {
+        } else if (select === false) {
             this.selection.moveCursorBy(rows, 0);
             this.selection.clearSelection();
         }
@@ -3398,7 +3409,7 @@ var Editor = function(renderer, session) {
         var pos = {
             row: Math.floor(range.start.row + (range.end.row - range.start.row) / 2),
             column: Math.floor(range.start.column + (range.end.column - range.start.column) / 2)
-        }
+        };
         this.renderer.alignCursor(pos, 0.5);
     };
     this.getCursorPosition = function() {
@@ -3523,16 +3534,12 @@ var Editor = function(renderer, session) {
         this.clearSelection();
     };
     this.navigateFileEnd = function() {
-        var scrollTop = this.renderer.scrollTop;
         this.selection.moveCursorFileEnd();
         this.clearSelection();
-        this.renderer.animateScrolling(scrollTop);
     };
     this.navigateFileStart = function() {
-        var scrollTop = this.renderer.scrollTop;
         this.selection.moveCursorFileStart();
         this.clearSelection();
-        this.renderer.animateScrolling(scrollTop);
     };
     this.navigateWordRight = function() {
         this.selection.moveCursorWordRight();
@@ -3654,7 +3661,7 @@ var Editor = function(renderer, session) {
 
         var scrollTop = this.renderer.scrollTop;
         this.renderer.scrollSelectionIntoView(range.start, range.end, 0.5);
-        if (animate != false)
+        if (animate !== false)
             this.renderer.animateScrolling(scrollTop);
     };
     this.undo = function() {
@@ -3791,6 +3798,7 @@ config.defineOptions(Editor.prototype, "editor", {
     minLines: "renderer",
     scrollPastEnd: "renderer",
     fixedWidthGutter: "renderer",
+    theme: "renderer",
 
     scrollSpeed: "$mouseHandler",
     dragDelay: "$mouseHandler",
@@ -3804,7 +3812,8 @@ config.defineOptions(Editor.prototype, "editor", {
     useSoftTabs: "session",
     tabSize: "session",
     wrap: "session",
-    foldStyle: "session"
+    foldStyle: "session",
+    mode: "session"
 });
 
 exports.Editor = Editor;
@@ -4522,6 +4531,8 @@ var MouseHandler = function(editor) {
             self.x = e.clientX;
             self.y = e.clientY;
             mouseMoveHandler && mouseMoveHandler(e);
+            self.mouseEvent = new MouseEvent(e, self.editor);
+            self.$mouseMoved = true;
         };
 
         var onCaptureEnd = function(e) {
@@ -4534,20 +4545,24 @@ var MouseHandler = function(editor) {
                 renderer.$moveTextAreaToCursor();
             }
             self.isMousePressed = false;
+            self.$onCaptureMouseMove = self.releaseMouse = null;
             self.onMouseEvent("mouseup", e);
         };
 
         var onCaptureInterval = function() {
             self[self.state] && self[self.state]();
+            self.$mouseMoved = false;
         };
 
         if (useragent.isOldIE && ev.domEvent.type == "dblclick") {
             return setTimeout(function() {onCaptureEnd(ev);});
         }
 
-        event.capture(this.editor.container, onMouseMove, onCaptureEnd);
+        self.$onCaptureMouseMove = onMouseMove;
+        self.releaseMouse = event.capture(this.editor.container, onMouseMove, onCaptureEnd);
         var timerId = setInterval(onCaptureInterval, 20);
     };
+    this.releaseMouse = null;
 }).call(MouseHandler.prototype);
 
 config.defineOptions(MouseHandler.prototype, "mouseHandler", {
@@ -4614,7 +4629,7 @@ function DefaultHandlers(mouseHandler) {
         if (inSelection && !editor.isFocused()) {
             editor.focus();
             if (this.$focusTimout && !this.$clickSelection && !editor.inMultiSelectMode) {
-                this.mousedownEvent.time = (new Date()).getTime();
+                this.mousedownEvent.time = Date.now();
                 this.setState("focusWait");
                 this.captureMouse(ev);
                 return;
@@ -4624,7 +4639,7 @@ function DefaultHandlers(mouseHandler) {
         if (!inSelection || this.$clickSelection || ev.getShiftKey() || editor.inMultiSelectMode) {
             this.startSelect(pos);
         } else if (inSelection) {
-            this.mousedownEvent.time = (new Date()).getTime();
+            this.mousedownEvent.time = Date.now();
             this.startSelect(pos);
         }
         this.captureMouse(ev);
@@ -4635,15 +4650,13 @@ function DefaultHandlers(mouseHandler) {
         pos = pos || this.editor.renderer.screenToTextCoordinates(this.x, this.y);
         var editor = this.editor;
         var shiftPressed = this.mousedownEvent.getShiftKey();
-        setTimeout(function(){
-            if (shiftPressed) {
-                editor.selection.selectToPosition(pos);
-            }
-            else if (!this.$clickSelection) {
-                editor.moveCursorToPosition(pos);
-                editor.selection.clearSelection();
-            }
-        }.bind(this), 0);
+        if (shiftPressed) {
+            editor.selection.selectToPosition(pos);
+        }
+        else if (!this.$clickSelection) {
+            editor.moveCursorToPosition(pos);
+            editor.selection.clearSelection();
+        }
         if (editor.renderer.scroller.setCapture) {
             editor.renderer.scroller.setCapture();
         }
@@ -4718,7 +4731,7 @@ function DefaultHandlers(mouseHandler) {
 
     this.focusWait = function() {
         var distance = calcDistance(this.mousedownEvent.x, this.mousedownEvent.y, this.x, this.y);
-        var time = (new Date()).getTime();
+        var time = Date.now();
 
         if (distance > DRAG_OFFSET || time - this.mousedownEvent.time > this.$focusTimout)
             this.startSelect(this.mousedownEvent.getDocumentPosition());
@@ -4735,13 +4748,13 @@ function DefaultHandlers(mouseHandler) {
                 range.start.column--;
                 range.end.column++;
             }
-            this.$clickSelection = range;
             this.setState("select");
-            return;
+        } else {
+            range = editor.selection.getWordRange(pos.row, pos.column);
+            this.setState("selectByWords");
         }
-
-        this.$clickSelection = editor.selection.getWordRange(pos.row, pos.column);
-        this.setState("selectByWords");
+        this.$clickSelection = range;
+        this[this.state] && this[this.state](ev);
     };
 
     this.onTripleClick = function(ev) {
@@ -4750,6 +4763,7 @@ function DefaultHandlers(mouseHandler) {
 
         this.setState("selectByLines");
         this.$clickSelection = editor.selection.getLineRange(pos.row);
+        this[this.state] && this[this.state](ev);
     };
 
     this.onQuadClick = function(ev) {
@@ -5160,7 +5174,7 @@ function DragdropHandler(mouseHandler) {
     event.addListener(mouseTarget, "drop", this.onDrop.bind(mouseHandler));
 
     function scrollCursorIntoView(cursor, prevCursor) {
-        var now = new Date().getTime();
+        var now = Date.now();
         var vMovement = !prevCursor || cursor.row != prevCursor.row;
         var hMovement = !prevCursor || cursor.column != prevCursor.column;
         if (!cursorMovedTime || vMovement || hMovement) {
@@ -5181,7 +5195,7 @@ function DragdropHandler(mouseHandler) {
     }
 
     function autoScroll(cursor, prevCursor) {
-        var now = new Date().getTime();
+        var now = Date.now();
         var lineHeight = editor.renderer.layerConfig.lineHeight;
         var characterWidth = editor.renderer.layerConfig.characterWidth;
         var editorRect = editor.renderer.scroller.getBoundingClientRect();
@@ -5293,7 +5307,7 @@ function DragdropHandler(mouseHandler) {
 (function() {
 
     this.dragWait = function() {
-        var interval = (new Date()).getTime() - this.mousedownEvent.time;
+        var interval = Date.now() - this.mousedownEvent.time;
         if (interval > this.editor.getDragDelay())
             this.startDrag();
     };
@@ -5346,13 +5360,15 @@ function DragdropHandler(mouseHandler) {
         var button = e.getButton();
         var clickCount = e.domEvent.detail || 1;
         if (clickCount === 1 && button === 0 && inSelection) {
-            this.mousedownEvent.time = (new Date()).getTime();
+            if (e.editor.inMultiSelectMode && (e.getAccelKey() || e.getShiftKey()))
+                return;
+            this.mousedownEvent.time = Date.now();
             var eventTarget = e.domEvent.target || e.domEvent.srcElement;
             if ("unselectable" in eventTarget)
                 eventTarget.unselectable = "on";
             if (editor.getDragDelay()) {
                 if (useragent.isWebKit) {
-                    self.cancelDrag = true;
+                    this.cancelDrag = true;
                     var mouseTarget = editor.container;
                     mouseTarget.draggable = true;
                 }
@@ -6446,8 +6462,8 @@ var EditSession = function(text, mode) {
         if (!$isPlaceholder) {
             this.$options.wrapMethod.set.call(this, this.$wrapMethod);
             this.$setFolding(mode.foldingRules);
-            this._emit("changeMode");
             this.bgTokenizer.start(0);
+            this._emit("changeMode");
         }
     };
 
@@ -7542,7 +7558,14 @@ config.defineOptions(EditSession.prototype, "session", {
             this.$wrap = value;
         },
         get: function() {
-            return this.getUseWrapMode() ? this.getWrapLimitRange().min || "free" : "off";
+            if (this.getUseWrapMode()) {
+                if (this.$wrap == -1)
+                    return "printMargin";
+                if (!this.getWrapLimitRange().min)
+                    return "free";
+                return this.$wrap;
+            }
+            return "off";
         },
         handlesSet: true
     },    
@@ -7597,6 +7620,10 @@ config.defineOptions(EditSession.prototype, "session", {
         set: function(val) {this.doc.setNewLineMode(val)},
         get: function() {return this.doc.getNewLineMode()},
         handlesSet: true
+    },
+    mode: {
+        set: function(val) { this.setMode(val) },
+        get: function() { return this.$modeId }
     }
 });
 
@@ -8776,6 +8803,7 @@ var Mode = function() {
         });
     };
 
+    this.$id = "ace/mode/text";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
@@ -8830,7 +8858,7 @@ var Tokenizer = function(rules) {
 
             if (matchcount > 1) {
                 if (/\\\d/.test(rule.regex)) {
-                    adjustedregex = rule.regex.replace(/\\([0-9]+)/g, function (match, digit) {
+                    adjustedregex = rule.regex.replace(/\\([0-9]+)/g, function(match, digit) {
                         return "\\" + (parseInt(digit, 10) + matchTotal + 1);
                     });
                 } else {
@@ -8948,6 +8976,10 @@ var Tokenizer = function(rules) {
 
         var currentState = startState || "start";
         var state = this.states[currentState];
+        if (!state) {
+            currentState = "start";
+            state = this.states[currentState];
+        }
         var mapping = this.matchMappings[currentState];
         var re = this.regExps[currentState];
         re.lastIndex = 0;
@@ -10225,13 +10257,9 @@ function Folding() {
         var folds = [];
         var foldLines = this.$foldData;
         
-        function addFold(fold) {
-            folds.push(fold);
-        }
-        
         for (var i = 0; i < foldLines.length; i++)
             for (var j = 0; j < foldLines[i].folds.length; j++)
-                addFold(foldLines[i].folds[j]);
+                folds.push(foldLines[i].folds[j]);
 
         return folds;
     };
@@ -10501,11 +10529,14 @@ function Folding() {
         if (expandInner) {
             this.removeFolds(folds);
         } else {
-            while (folds.length) {
-                this.expandFolds(folds);
-                folds = this.getFoldsInRangeList(range);
+            var subFolds = folds;
+            while (subFolds.length) {
+                this.expandFolds(subFolds);
+                subFolds = this.getFoldsInRangeList(range);
             }
         }
+        if (folds.length)
+            return folds;
     };
     this.isRowFolded = function(docRow, startFoldRow) {
         return !!this.getFoldLine(docRow, startFoldRow);
@@ -10687,11 +10718,14 @@ function Folding() {
             if (range && range.isMultiLine()
                 && range.end.row <= endRow
                 && range.start.row >= startRow
-            ) try {
-                var fold = this.addFold("...", range);
-                fold.collapseChildren = depth;
+            ) {
                 row = range.end.row;
-            } catch(e) {}
+                try {
+                    var fold = this.addFold("...", range);
+                    if (fold)
+                        fold.collapseChildren = depth;
+                } catch(e) {}
+            }
         }
     };
     this.$foldStyles = {
@@ -10775,11 +10809,16 @@ function Folding() {
         };
         
         var range = this.$toggleFoldWidget(row, options);
-        if (!range)
-            (e.target || e.srcElement).className += " ace_invalid";
+        if (!range) {
+            var el = (e.target || e.srcElement)
+            if (el && /ace_fold-widget/.test(el.className))
+                el.className += " ace_invalid";
+        }
     };
     
     this.$toggleFoldWidget = function(row, options) {
+        if (!this.getFoldWidget)
+            return;
         var type = this.getFoldWidget(row);
         var line = this.getLine(row);
 
@@ -12147,6 +12186,26 @@ exports.commands = [{
     },
     readOnly: true
 }, {
+    name: "goToNextError",
+    bindKey: bindKey("Alt-E", "Ctrl-E"),
+    exec: function(editor) {
+        config.loadModule("ace/ext/error_marker", function(module) {
+            module.showErrorMarker(editor, 1);
+        });
+    },
+    scrollIntoView: "center",
+    readOnly: true
+}, {
+    name: "goToPreviousError",
+    bindKey: bindKey("Alt-Shift-E", "Ctrl-Shift-E"),
+    exec: function(editor) {
+        config.loadModule("ace/ext/error_marker", function(module) {
+            module.showErrorMarker(editor, -1);
+        });
+    },
+    scrollIntoView: "center",
+    readOnly: true
+}, {
     name: "selectall",
     bindKey: bindKey("Ctrl-A", "Command-A"),
     exec: function(editor) { editor.selectAll(); },
@@ -12222,6 +12281,26 @@ exports.commands = [{
     exec: function(editor) { editor.findPrevious(); },
     readOnly: true
 }, {
+    name: "selectOrFindNext",
+    bindKey: bindKey("ALt-K", "Ctrl-G"),
+    exec: function(editor) {
+        if (editor.selection.isEmpty())
+            editor.selection.selectWord();
+        else
+            editor.findNext(); 
+    },
+    readOnly: true
+}, {
+    name: "selectOrFindPrevious",
+    bindKey: bindKey("Alt-Shift-K", "Ctrl-Shift-G"),
+    exec: function(editor) { 
+        if (editor.selection.isEmpty())
+            editor.selection.selectWord();
+        else
+            editor.findPrevious();
+    },
+    readOnly: true
+}, {
     name: "find",
     bindKey: bindKey("Ctrl-F", "Command-F"),
     exec: function(editor) {
@@ -12239,14 +12318,16 @@ exports.commands = [{
     exec: function(editor) { editor.getSelection().selectFileStart(); },
     multiSelectAction: "forEach",
     readOnly: true,
-    group: "fileJump"
+    scrollIntoView: "animate",
+    aceCommandGroup: "fileJump"
 }, {
     name: "gotostart",
     bindKey: bindKey("Ctrl-Home", "Command-Home|Command-Up"),
     exec: function(editor) { editor.navigateFileStart(); },
     multiSelectAction: "forEach",
     readOnly: true,
-    group: "fileJump"
+    scrollIntoView: "animate",
+    aceCommandGroup: "fileJump"
 }, {
     name: "selectup",
     bindKey: bindKey("Shift-Up", "Shift-Up"),
@@ -12265,97 +12346,113 @@ exports.commands = [{
     exec: function(editor) { editor.getSelection().selectFileEnd(); },
     multiSelectAction: "forEach",
     readOnly: true,
-    group: "fileJump"
+    scrollIntoView: "animate",
+    aceCommandGroup: "fileJump"
 }, {
     name: "gotoend",
     bindKey: bindKey("Ctrl-End", "Command-End|Command-Down"),
     exec: function(editor) { editor.navigateFileEnd(); },
     multiSelectAction: "forEach",
     readOnly: true,
-    group: "fileJump"
+    scrollIntoView: "animate",
+    aceCommandGroup: "fileJump"
 }, {
     name: "selectdown",
     bindKey: bindKey("Shift-Down", "Shift-Down"),
     exec: function(editor) { editor.getSelection().selectDown(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "golinedown",
     bindKey: bindKey("Down", "Down|Ctrl-N"),
     exec: function(editor, args) { editor.navigateDown(args.times); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selectwordleft",
     bindKey: bindKey("Ctrl-Shift-Left", "Option-Shift-Left"),
     exec: function(editor) { editor.getSelection().selectWordLeft(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "gotowordleft",
     bindKey: bindKey("Ctrl-Left", "Option-Left"),
     exec: function(editor) { editor.navigateWordLeft(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selecttolinestart",
     bindKey: bindKey("Alt-Shift-Left", "Command-Shift-Left"),
     exec: function(editor) { editor.getSelection().selectLineStart(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "gotolinestart",
     bindKey: bindKey("Alt-Left|Home", "Command-Left|Home|Ctrl-A"),
     exec: function(editor) { editor.navigateLineStart(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selectleft",
     bindKey: bindKey("Shift-Left", "Shift-Left"),
     exec: function(editor) { editor.getSelection().selectLeft(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "gotoleft",
     bindKey: bindKey("Left", "Left|Ctrl-B"),
     exec: function(editor, args) { editor.navigateLeft(args.times); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selectwordright",
     bindKey: bindKey("Ctrl-Shift-Right", "Option-Shift-Right"),
     exec: function(editor) { editor.getSelection().selectWordRight(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "gotowordright",
     bindKey: bindKey("Ctrl-Right", "Option-Right"),
     exec: function(editor) { editor.navigateWordRight(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selecttolineend",
     bindKey: bindKey("Alt-Shift-Right", "Command-Shift-Right"),
     exec: function(editor) { editor.getSelection().selectLineEnd(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "gotolineend",
     bindKey: bindKey("Alt-Right|End", "Command-Right|End|Ctrl-E"),
     exec: function(editor) { editor.navigateLineEnd(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selectright",
     bindKey: bindKey("Shift-Right", "Shift-Right"),
     exec: function(editor) { editor.getSelection().selectRight(); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "gotoright",
     bindKey: bindKey("Right", "Right|Ctrl-F"),
     exec: function(editor, args) { editor.navigateRight(args.times); },
     multiSelectAction: "forEach",
+    scrollIntoView: "cursor",
     readOnly: true
 }, {
     name: "selectpagedown",
@@ -12691,8 +12788,8 @@ var GutterLayer = require("./layer/gutter").Gutter;
 var MarkerLayer = require("./layer/marker").Marker;
 var TextLayer = require("./layer/text").Text;
 var CursorLayer = require("./layer/cursor").Cursor;
-var ScrollBarH = require("./scrollbar").ScrollBarH;
-var ScrollBarV = require("./scrollbar").ScrollBarV;
+var HScrollBar = require("./scrollbar").HScrollBar;
+var VScrollBar = require("./scrollbar").VScrollBar;
 var RenderLoop = require("./renderloop").RenderLoop;
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
 var editorCss = ".ace_editor {\
@@ -12702,10 +12799,10 @@ font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', mo
 font-size: 12px;\
 line-height: normal;\
 color: black;\
--ms-user-select: none;\
--moz-user-select: none;\
--webkit-user-select: none;\
-user-select: none;\
+}\
+.ace_editor .ace_line {\
+direction: ltr;\
+unicode-bidi: bidi-override;\
 }\
 .ace_scroller {\
 position: absolute;\
@@ -12713,6 +12810,10 @@ overflow: hidden;\
 top: 0;\
 bottom: 0;\
 background-color: inherit;\
+-ms-user-select: none;\
+-moz-user-select: none;\
+-webkit-user-select: none;\
+user-select: none;\
 }\
 .ace_content {\
 position: absolute;\
@@ -12720,6 +12821,7 @@ position: absolute;\
 -webkit-box-sizing: border-box;\
 box-sizing: border-box;\
 cursor: text;\
+min-width: 100%;\
 }\
 .ace_dragging, .ace_dragging * {\
 cursor: move !important;\
@@ -12781,10 +12883,7 @@ background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCA
 }\
 .ace_scrollbar {\
 position: absolute;\
-overflow-x: hidden;\
-overflow-y: auto;\
 right: 0;\
-top: 0;\
 bottom: 0;\
 z-index: 6;\
 }\
@@ -12794,14 +12893,15 @@ cursor: text;\
 left: 0;\
 top: 0;\
 }\
+.ace_scrollbar-v{\
+overflow-x: hidden;\
+overflow-y: scroll;\
+top: 0;\
+}\
 .ace_scrollbar-h {\
-position: absolute;\
-overflow-x: auto;\
+overflow-x: scroll;\
 overflow-y: hidden;\
-right: 0;\
 left: 0;\
-bottom: 0;\
-z-index: 6;\
 }\
 .ace_print-margin {\
 position: absolute;\
@@ -13119,8 +13219,8 @@ var VirtualRenderer = function(container, theme) {
     this.$vScroll = false;
 
     this.scrollBar = 
-    this.scrollBarV = new ScrollBarV(this.container, this);
-    this.scrollBarH = new ScrollBarH(this.container, this);
+    this.scrollBarV = new VScrollBar(this.container, this);
+    this.scrollBarH = new HScrollBar(this.container, this);
     this.scrollBarV.addEventListener("scroll", function(e) {
         if (!_self.$scrollAnimation)
             _self.session.setScrollTop(e.data - _self.scrollMargin.top);
@@ -13140,7 +13240,7 @@ var VirtualRenderer = function(container, theme) {
 
     this.$textLayer.addEventListener("changeCharacterSize", function() {
         _self.updateCharacterSize();
-        _self.onResize(true);
+        _self.onResize(true, _self.gutterWidth, _self.$size.width, _self.$size.height);
         _self._signal("changeCharacterSize");
     });
 
@@ -13220,8 +13320,6 @@ var VirtualRenderer = function(container, theme) {
         
         if (this.scrollMargin.top && session.getScrollTop() <= 0)
             session.setScrollTop(-this.scrollMargin.top);
-
-        this.scroller.className = "ace_scroller";
 
         this.$cursorLayer.setSession(session);
         this.$markerBack.setSession(session);
@@ -13308,6 +13406,7 @@ var VirtualRenderer = function(container, theme) {
     };
     
     this.$updateCachedSize = function(force, gutterWidth, width, height) {
+        height -= (this.$extraHeight || 0);
         var changes = 0;
         var size = this.$size;
         var oldSize = {
@@ -13351,8 +13450,7 @@ var VirtualRenderer = function(container, theme) {
                 changes = changes | this.CHANGE_FULL;
         }
         
-        if (size.$dirty)
-            size.$dirty = !width && !height;
+        size.$dirty = !width || !height;
 
         if (changes)
             this._signal("resize", oldSize);
@@ -13556,12 +13654,21 @@ var VirtualRenderer = function(container, theme) {
     };
 
     this.$updateScrollBarV = function() {
-        this.scrollBarV.setInnerHeight(this.layerConfig.maxHeight + this.scrollMargin.v);
+        this.scrollBarV.setScrollHeight(this.layerConfig.maxHeight + this.scrollMargin.v);
         this.scrollBarV.setScrollTop(this.scrollTop + this.scrollMargin.top);
     };
     this.$updateScrollBarH = function() {
-        this.scrollBarH.setInnerWidth(this.layerConfig.width + 2 * this.$padding + this.scrollMargin.h);
+        this.scrollBarH.setScrollWidth(this.layerConfig.width + 2 * this.$padding + this.scrollMargin.h);
         this.scrollBarH.setScrollLeft(this.scrollLeft + this.scrollMargin.left);
+    };
+    
+    this.$frozen = false;
+    this.freeze = function() {
+        this.$frozen = true;
+    };
+    
+    this.unfreeze = function() {
+        this.$frozen = false;
     };
 
     this.$renderChanges = function(changes, force) {
@@ -13569,7 +13676,7 @@ var VirtualRenderer = function(container, theme) {
             changes |= this.$changes;
             this.$changes = 0;
         }
-        if ((!this.session || !this.container.offsetWidth) || (!changes && !force)) {
+        if ((!this.session || !this.container.offsetWidth || this.$frozen) || (!changes && !force)) {
             this.$changes |= changes;
             return; 
         } 
@@ -13582,45 +13689,51 @@ var VirtualRenderer = function(container, theme) {
         }
         
         this._signal("beforeRender");
+        var config = this.layerConfig;
         if (changes & this.CHANGE_FULL ||
             changes & this.CHANGE_SIZE ||
             changes & this.CHANGE_TEXT ||
             changes & this.CHANGE_LINES ||
             changes & this.CHANGE_SCROLL ||
             changes & this.CHANGE_H_SCROLL
-        )
+        ) {
             changes |= this.$computeLayerConfig();
+            config = this.layerConfig;
+            this.$updateScrollBarV();
+            if (changes & this.CHANGE_H_SCROLL)
+                this.$updateScrollBarH();
+            this.$gutterLayer.element.style.marginTop = (-config.offset) + "px";
+            this.content.style.marginTop = (-config.offset) + "px";
+            this.content.style.width = config.width + 2 * this.$padding + "px";
+            this.content.style.height = config.minHeight + "px";
+        }
         if (changes & this.CHANGE_H_SCROLL) {
-            this.$updateScrollBarH();
             this.content.style.marginLeft = -this.scrollLeft + "px";
             this.scroller.className = this.scrollLeft <= 0 ? "ace_scroller" : "ace_scroller ace_scroll-left";
         }
         if (changes & this.CHANGE_FULL) {
-            this.$updateScrollBarV();
-            this.$updateScrollBarH();
-            this.$textLayer.update(this.layerConfig);
+            this.$textLayer.update(config);
             if (this.$showGutter)
-                this.$gutterLayer.update(this.layerConfig);
-            this.$markerBack.update(this.layerConfig);
-            this.$markerFront.update(this.layerConfig);
-            this.$cursorLayer.update(this.layerConfig);
+                this.$gutterLayer.update(config);
+            this.$markerBack.update(config);
+            this.$markerFront.update(config);
+            this.$cursorLayer.update(config);
             this.$moveTextAreaToCursor();
             this.$highlightGutterLine && this.$updateGutterLineHighlight();
             this._signal("afterRender");
             return;
         }
         if (changes & this.CHANGE_SCROLL) {
-            this.$updateScrollBarV();
             if (changes & this.CHANGE_TEXT || changes & this.CHANGE_LINES)
-                this.$textLayer.update(this.layerConfig);
+                this.$textLayer.update(config);
             else
-                this.$textLayer.scrollLines(this.layerConfig);
+                this.$textLayer.scrollLines(config);
 
             if (this.$showGutter)
-                this.$gutterLayer.update(this.layerConfig);
-            this.$markerBack.update(this.layerConfig);
-            this.$markerFront.update(this.layerConfig);
-            this.$cursorLayer.update(this.layerConfig);
+                this.$gutterLayer.update(config);
+            this.$markerBack.update(config);
+            this.$markerFront.update(config);
+            this.$cursorLayer.update(config);
             this.$highlightGutterLine && this.$updateGutterLineHighlight();
             this.$moveTextAreaToCursor();
             this._signal("afterRender");
@@ -13628,49 +13741,44 @@ var VirtualRenderer = function(container, theme) {
         }
 
         if (changes & this.CHANGE_TEXT) {
-            this.$textLayer.update(this.layerConfig);
+            this.$textLayer.update(config);
             if (this.$showGutter)
-                this.$gutterLayer.update(this.layerConfig);
+                this.$gutterLayer.update(config);
         }
         else if (changes & this.CHANGE_LINES) {
             if (this.$updateLines() || (changes & this.CHANGE_GUTTER) && this.$showGutter)
-                this.$gutterLayer.update(this.layerConfig);
+                this.$gutterLayer.update(config);
         }
         else if (changes & this.CHANGE_TEXT || changes & this.CHANGE_GUTTER) {
             if (this.$showGutter)
-                this.$gutterLayer.update(this.layerConfig);
+                this.$gutterLayer.update(config);
         }
 
         if (changes & this.CHANGE_CURSOR) {
-            this.$cursorLayer.update(this.layerConfig);
+            this.$cursorLayer.update(config);
             this.$moveTextAreaToCursor();
             this.$highlightGutterLine && this.$updateGutterLineHighlight();
         }
 
         if (changes & (this.CHANGE_MARKER | this.CHANGE_MARKER_FRONT)) {
-            this.$markerFront.update(this.layerConfig);
+            this.$markerFront.update(config);
         }
 
         if (changes & (this.CHANGE_MARKER | this.CHANGE_MARKER_BACK)) {
-            this.$markerBack.update(this.layerConfig);
-        }
-
-        if (changes & this.CHANGE_SIZE || changes & this.CHANGE_LINES) {
-            this.$updateScrollBarV();
-            this.$updateScrollBarH();
+            this.$markerBack.update(config);
         }
 
         this._signal("afterRender");
     };
 
     
-    this.$autosize = function(height, width) {
+    this.$autosize = function() {
         var height = this.session.getScreenLength() * this.lineHeight;
         var maxHeight = this.$maxLines * this.lineHeight;
         var desiredHeight = Math.max(
             (this.$minLines||1) * this.lineHeight,
             Math.min(maxHeight, height)
-        );
+        ) + this.scrollMargin.v + (this.$extraHeight || 0);
         var vScroll = height > maxHeight;
         
         if (desiredHeight != this.desiredHeight ||
@@ -13694,7 +13802,7 @@ var VirtualRenderer = function(container, theme) {
         var session = this.session;
         
         var hideScrollbars = this.$size.height <= 2 * this.lineHeight;
-        var screenLines = this.session.getScreenLength()
+        var screenLines = this.session.getScreenLength();
         var maxHeight = screenLines * this.lineHeight;
 
         var offset = this.scrollTop % this.lineHeight;
@@ -13775,12 +13883,6 @@ var VirtualRenderer = function(container, theme) {
             height : this.$size.scrollerHeight
         };
 
-        this.$gutterLayer.element.style.marginTop = (-offset) + "px";
-        this.content.style.marginTop = (-offset) + "px";
-        this.content.style.width = longestLine + 2 * this.$padding + "px";
-        this.content.style.height = minHeight + "px";
-
-        return changes;
         return changes;
     };
 
@@ -13961,6 +14063,7 @@ var VirtualRenderer = function(container, theme) {
         clearInterval(this.$timer);
 
         _self.session.setScrollTop(steps.shift());
+        _self.session.$scrollTop = toValue;
         this.$timer = setInterval(function() {
             if (steps.length) {
                 _self.session.setScrollTop(steps.shift());
@@ -14074,18 +14177,18 @@ var VirtualRenderer = function(container, theme) {
     };
     this.setTheme = function(theme, cb) {
         var _self = this;
-        this.$themeValue = theme;
+        this.$themeId = theme;
         _self._dispatchEvent('themeChange',{theme:theme});
 
         if (!theme || typeof theme == "string") {
-            var moduleName = theme || "ace/theme/textmate";
+            var moduleName = theme || this.$options.theme.initialValue;
             config.loadModule(["theme", moduleName], afterLoad);
         } else {
             afterLoad(theme);
         }
 
         function afterLoad(module) {
-            if (_self.$themeValue != theme)
+            if (_self.$themeId != theme)
                 return cb && cb();
             if (!module.cssClass)
                 return;
@@ -14097,18 +14200,19 @@ var VirtualRenderer = function(container, theme) {
 
             if (_self.theme)
                 dom.removeCssClass(_self.container, _self.theme.cssClass);
+
+            var padding = "padding" in module ? module.padding 
+                : "padding" in (_self.theme || {}) ? 4 : _self.$padding;
+            if (_self.$padding && padding != _self.$padding)
+                _self.setPadding(padding);
             _self.$theme = module.cssClass;
 
             _self.theme = module;
             dom.addCssClass(_self.container, module.cssClass);
             dom.setCssClass(_self.container, "ace_dark", module.isDark);
-
-            var padding = "padding" in module ? module.padding : 4;
-            if (_self.$padding && padding != _self.$padding)
-                _self.setPadding(padding);
             if (_self.$size) {
                 _self.$size.width = 0;
-                _self.onResize();
+                _self.$updateSizeAsync();
             }
 
             _self._dispatchEvent('themeLoaded', {theme:module});
@@ -14116,13 +14220,18 @@ var VirtualRenderer = function(container, theme) {
         }
     };
     this.getTheme = function() {
-        return this.$themeValue;
+        return this.$themeId;
     };
     this.setStyle = function(style, include) {
-        dom.setCssClass(this.container, style, include != false);
+        dom.setCssClass(this.container, style, include !== false);
     };
     this.unsetStyle = function(style) {
         dom.removeCssClass(this.container, style);
+    };
+    
+    this.setCursorStyle = function(style) {
+        if (this.content.style.cursor != style)
+            this.content.style.cursor = style;
     };
     this.setMouseCursor = function(cursorStyle) {
         this.content.style.cursor = cursorStyle;
@@ -14258,6 +14367,12 @@ config.defineOptions(VirtualRenderer.prototype, "renderer", {
             this.$gutterLayer.$fixedWidth = !!val;
             this.$loop.schedule(this.CHANGE_GUTTER);
         }
+    },
+    theme: {
+        set: function(val) { this.setTheme(val) },
+        get: function() { return this.$themeId || this.theme; },
+        initialValue: "./theme/textmate",
+        handlesSet: true
     }
 });
 
@@ -14447,7 +14562,7 @@ var Gutter = function(parentEl) {
         this.element.style.height = config.minHeight + "px";
 
         if (this.$fixedWidth || session.$useWrapMode)
-            lastLineNumber = session.getLength();
+            lastLineNumber = session.getLength() + firstLineNumber;
 
         var gutterWidth = gutterRenderer 
             ? gutterRenderer.getWidth(session, lastLineNumber, config)
@@ -15480,104 +15595,103 @@ var oop = require("./lib/oop");
 var dom = require("./lib/dom");
 var event = require("./lib/event");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
-var ScrollBarV = function(parent, renderer) {
+var ScrollBar = function(parent) {
     this.element = dom.createElement("div");
-    this.element.className = "ace_scrollbar";
+    this.element.className = "ace_scrollbar ace_scrollbar" + this.classSuffix;
 
     this.inner = dom.createElement("div");
     this.inner.className = "ace_scrollbar-inner";
     this.element.appendChild(this.inner);
 
     parent.appendChild(this.element);
-    renderer.$scrollbarWidth = 
-    this.width = dom.scrollbarWidth(parent.ownerDocument);
-    renderer.$scrollbarWidth = 
-    this.width = dom.scrollbarWidth(parent.ownerDocument);
-    this.fullWidth = this.width;
-    this.inner.style.width =
-    this.element.style.width = (this.width || 15) + 5 + "px";
+
     this.setVisible(false);
-    this.element.style.overflowY = "scroll";
-    
-    event.addListener(this.element, "scroll", this.onScrollV.bind(this));
-    event.addListener(this.element, "mousedown", event.preventDefault);
-};
+    this.skipEvent = false;
 
-var ScrollBarH = function(parent, renderer) {
-    this.element = dom.createElement("div");
-    this.element.className = "ace_scrollbar-h";
-
-    this.inner = dom.createElement("div");
-    this.inner.className = "ace_scrollbar-inner";
-    this.element.appendChild(this.inner);
-
-    parent.appendChild(this.element);
-    this.height = renderer.$scrollbarWidth;
-    this.fullHeight = this.height;
-    this.inner.style.height =
-    this.element.style.height = (this.height || 15) + 5 + "px";
-    this.setVisible(false);
-    this.element.style.overflowX = "scroll";
-
-    event.addListener(this.element, "scroll", this.onScrollH.bind(this));
+    event.addListener(this.element, "scroll", this.onScroll.bind(this));
     event.addListener(this.element, "mousedown", event.preventDefault);
 };
 
 (function() {
     oop.implement(this, EventEmitter);
 
-    this.setVisible = function(show) {
-        if (show) {
-            this.element.style.display = "";
-            if (this.fullWidth)
-                this.width = this.fullWidth;
-            if (this.fullHeight)
-                this.height = this.fullHeight;
-        } else {
-            this.element.style.display = "none";
-            this.height = this.width = 0;
-        }
+    this.setVisible = function(isVisible) {
+        this.element.style.display = isVisible ? "" : "none";
+        this.isVisible = isVisible;
     };
-    this.onScrollV = function() {
+}).call(ScrollBar.prototype);
+var VScrollBar = function(parent, renderer) {
+    ScrollBar.call(this, parent);
+    this.scrollTop = 0;
+    renderer.$scrollbarWidth = 
+    this.width = dom.scrollbarWidth(parent.ownerDocument);
+    this.inner.style.width =
+    this.element.style.width = (this.width || 15) + 5 + "px";
+};
+
+oop.inherits(VScrollBar, ScrollBar);
+
+(function() {
+
+    this.classSuffix = '-v';
+    this.onScroll = function() {
         if (!this.skipEvent) {
             this.scrollTop = this.element.scrollTop;
             this._emit("scroll", {data: this.scrollTop});
         }
         this.skipEvent = false;
     };
-    this.onScrollH = function() {
-        if (!this.skipEvent) {
-            this.scrollLeft = this.element.scrollLeft;
-            this._emit("scroll", {data: this.scrollLeft});
-        }
-        this.skipEvent = false;
-    };
     this.getWidth = function() {
-        return this.width;
-    };
-
-    this.getHeight = function() {
-        return this.height;
+        return this.isVisible ? this.width : 0;
     };
     this.setHeight = function(height) {
         this.element.style.height = height + "px";
     };
-    
-    this.setWidth = function(width) {
-        this.element.style.width = width + "px";
-    };
     this.setInnerHeight = function(height) {
         this.inner.style.height = height + "px";
     };
-    
-    this.setInnerWidth = function(width) {
-        this.inner.style.width = width + "px";
+    this.setScrollHeight = function(height) {
+        this.inner.style.height = height + "px";
     };
     this.setScrollTop = function(scrollTop) {
         if (this.scrollTop != scrollTop) {
             this.skipEvent = true;
             this.scrollTop = this.element.scrollTop = scrollTop;
         }
+    };
+
+}).call(VScrollBar.prototype);
+var HScrollBar = function(parent, renderer) {
+    ScrollBar.call(this, parent);
+    this.scrollLeft = 0;
+    this.height = renderer.$scrollbarWidth;
+    this.inner.style.height =
+    this.element.style.height = (this.height || 15) + 5 + "px";
+};
+
+oop.inherits(HScrollBar, ScrollBar);
+
+(function() {
+
+    this.classSuffix = '-h';
+    this.onScroll = function() {
+        if (!this.skipEvent) {
+            this.scrollLeft = this.element.scrollLeft;
+            this._emit("scroll", {data: this.scrollLeft});
+        }
+        this.skipEvent = false;
+    };
+    this.getHeight = function() {
+        return this.isVisible ? this.height : 0;
+    };
+    this.setWidth = function(width) {
+        this.element.style.width = width + "px";
+    };
+    this.setInnerWidth = function(width) {
+        this.inner.style.width = width + "px";
+    };
+    this.setScrollWidth = function(width) {
+        this.inner.style.width = width + "px";
     };
     this.setScrollLeft = function(scrollLeft) {
         if (this.scrollLeft != scrollLeft) {
@@ -15586,14 +15700,15 @@ var ScrollBarH = function(parent, renderer) {
         }
     };
 
-}).call(ScrollBarV.prototype);
-ScrollBarH.prototype = ScrollBarV.prototype;
+}).call(HScrollBar.prototype);
 
 
+exports.ScrollBar = VScrollBar; // backward compatibility
+exports.ScrollBarV = VScrollBar; // backward compatibility
+exports.ScrollBarH = HScrollBar; // backward compatibility
 
-exports.ScrollBar = ScrollBarV; // backward compatibility
-exports.ScrollBarV = ScrollBarV;
-exports.ScrollBarH = ScrollBarH;
+exports.VScrollBar = VScrollBar;
+exports.HScrollBar = HScrollBar;
 });
 
 __ace_shadowed__.define('ace/renderloop', ['require', 'exports', 'module' , 'ace/lib/event'], function(require, exports, module) {
@@ -15614,7 +15729,7 @@ var RenderLoop = function(onRender, win) {
 
     this.schedule = function(change) {
         this.changes = this.changes | change;
-        if (!this.pending) {
+        if (!this.pending && this.changes) {
             this.pending = true;
             var _self = this;
             event.nextFrame(function() {
@@ -16174,7 +16289,6 @@ var Editor = require("./editor").Editor;
             range = session.getWordRange(range.start.row, range.start.column);
             range.cursor = dir == -1 ? range.start : range.end;
             this.multiSelect.addRange(range);
-            return;
         }
         var needle = session.getTextRange(range);
 
@@ -16489,7 +16603,8 @@ function onMouseDown(e) {
         }
 
         var oldRange = selection.rangeList.rangeAtPoint(pos);
-
+        
+        editor.$blockScrolling++;
         editor.once("mouseup", function() {
             var tmpSel = selection.toOrientedRange();
 
@@ -16502,6 +16617,7 @@ function onMouseDown(e) {
                 }
                 selection.addRange(tmpSel);
             }
+            editor.$blockScrolling--;
         });
 
     } else if (alt && button == 0) {
@@ -17181,6 +17297,455 @@ background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZ
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 });
+
+__ace_shadowed__.define('ace/ext/error_marker', ['require', 'exports', 'module' , 'ace/line_widgets', 'ace/lib/dom', 'ace/range'], function(require, exports, module) {
+
+var LineWidgets = require("ace/line_widgets").LineWidgets;
+var dom = require("ace/lib/dom");
+var Range = require("ace/range").Range;
+
+function binarySearch(array, needle, comparator) {
+    var first = 0;
+    var last = array.length - 1;
+
+    while (first <= last) {
+        var mid = (first + last) >> 1;
+        var c = comparator(needle, array[mid]);
+        if (c > 0)
+            first = mid + 1;
+        else if (c < 0)
+            last = mid - 1;
+        else
+            return mid;
+    }
+    return -(first + 1);
+}
+
+function findAnnotations(session, row, dir) {
+    var annotations = session.getAnnotations().sort(Range.comparePoints);
+    if (!annotations.length)
+        return;
+    
+    var i = binarySearch(annotations, {row: row, column: -1}, Range.comparePoints);
+    if (i < 0)
+        i = -i - 1;
+    
+    if (i >= annotations.length - 1)
+        i = dir > 0 ? 0 : annotations.length - 1;
+    else if (i === 0 && dir < 0)
+        i = annotations.length - 1;
+    
+    var annotation = annotations[i];
+    if (!annotation || !dir)
+        return;
+
+    if (annotation.row === row) {
+        do {
+            annotation = annotations[i += dir];
+        } while (annotation && annotation.row === row);
+        if (!annotation)
+            return annotations.slice();
+    }
+    
+    
+    var matched = [];
+    row = annotation.row;
+    do {
+        matched[dir < 0 ? "unshift" : "push"](annotation);
+        annotation = annotations[i += dir];
+    } while (annotation && annotation.row == row);
+    return matched.length && matched;
+}
+
+exports.showErrorMarker = function(editor, dir) {
+    var session = editor.session;
+    if (!session.widgetManager) {
+        session.widgetManager = new LineWidgets(session);
+        session.widgetManager.attach(editor);
+    }
+    
+    var pos = editor.getCursorPosition();
+    var row = pos.row;
+    var oldWidget = session.lineWidgets && session.lineWidgets[row];
+    if (oldWidget) {
+        oldWidget.destroy();
+    } else {
+        row -= dir;
+    }
+    var annotations = findAnnotations(session, row, dir);
+    var gutterAnno;
+    if (annotations) {
+        var annotation = annotations[0];
+        if (annotation.pos && annotation.column == null)
+            pos.column = annotation.pos.sc;
+        pos.row = annotation.row;
+        gutterAnno = editor.renderer.$gutterLayer.$annotations[pos.row];
+    } else if (oldWidget) {
+        return;
+    } else {
+        gutterAnno = {
+            text: ["Looks good!"],
+            className: "ace_ok"
+        };
+    }
+    editor.session.unfold(pos.row);
+    editor.selection.moveCursorToPosition(pos);
+    editor.selection.clearSelection();
+    
+    var w = {
+        row: pos.row, 
+        fixedWidth: true,
+        coverGutter: true,
+        el: dom.createElement("div")
+    };
+    var el = w.el.appendChild(dom.createElement("div"));
+    var arrow = w.el.appendChild(dom.createElement("div"));
+    arrow.className = "error_widget_arrow " + gutterAnno.className;
+    
+    var left = editor.renderer.$cursorLayer
+        .getPixelPosition(pos).left;
+    arrow.style.left = left + editor.renderer.gutterWidth - 5 + "px";
+    
+    w.el.className = "error_widget_wrapper";
+    el.className = "error_widget " + gutterAnno.className;
+    el.innerHTML = gutterAnno.text.join("<br>");
+    
+    var kb = {
+        handleKeyboard:function(_,hashId, keyString) {
+            if (hashId === 0 && keyString === "esc") {
+                w.destroy();
+                return true;
+            }
+        }
+    };
+    
+    w.destroy = function() {
+        if (editor.$mouseHandler.isMousePressed)
+            return;
+        editor.keyBinding.removeKeyboardHandler(kb);
+        session.widgetManager.removeLineWidget(w);
+        editor.off("changeSelection", w.destroy);
+        editor.off("changeSession", w.destroy);
+        editor.off("mouseup", w.destroy);
+        editor.off("change", w.destroy);
+    };
+    
+    editor.keyBinding.addKeyboardHandler(kb);
+    editor.on("changeSelection", w.destroy);
+    editor.on("changeSession", w.destroy);
+    editor.on("mouseup", w.destroy);
+    editor.on("change", w.destroy);
+    
+    editor.session.widgetManager.addLineWidget(w);
+    
+    w.el.onmousedown = editor.focus.bind(editor);
+};
+
+
+dom.importCssString("\
+    .error_widget_wrapper {\
+        background: inherit;\
+        color: inherit;\
+        border:none\
+    }\
+    .error_widget {\
+        border-top: solid 2px;\
+        border-bottom: solid 2px;\
+        margin: 5px 0;\
+        padding: 10px 40px;\
+        white-space: pre-wrap;\
+    }\
+    .error_widget.ace_error, .error_widget_arrow.ace_error{\
+        border-color: #ff5a5a\
+    }\
+    .error_widget.ace_warning, .error_widget_arrow.ace_warning{\
+        border-color: #F1D817\
+    }\
+    .error_widget.ace_info, .error_widget_arrow.ace_info{\
+        border-color: #5a5a5a\
+    }\
+    .error_widget.ace_ok, .error_widget_arrow.ace_ok{\
+        border-color: #5aaa5a\
+    }\
+    .error_widget_arrow {\
+        position: absolute;\
+        border: solid 5px;\
+        border-top-color: transparent!important;\
+        border-right-color: transparent!important;\
+        border-left-color: transparent!important;\
+        top: -5px;\
+    }\
+", "");
+
+});
+
+__ace_shadowed__.define('ace/line_widgets', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/range'], function(require, exports, module) {
+
+
+var oop = require("./lib/oop");
+var dom = require("./lib/dom");
+var Range = require("./range").Range;
+
+
+function LineWidgets(session) {
+    this.session = session;
+    this.session.widgetManager = this;
+    this.session.getRowLength = this.getRowLength;
+    this.session.$getWidgetScreenLength = this.$getWidgetScreenLength;
+    this.updateOnChange = this.updateOnChange.bind(this);
+    this.renderWidgets = this.renderWidgets.bind(this);
+    this.measureWidgets = this.measureWidgets.bind(this);
+    this.session._changedWidgets = [];
+    this.detach = this.detach.bind(this);
+    
+    this.session.on("change", this.updateOnChange);
+}
+
+(function() {
+    this.getRowLength = function(row) {
+        var h;
+        if (this.lineWidgets)
+            h = this.lineWidgets[row] && this.lineWidgets[row].rowCount || 0;
+        else 
+            h = 0;
+        if (!this.$useWrapMode || !this.$wrapData[row]) {
+            return 1 + h;
+        } else {
+            return this.$wrapData[row].length + 1 + h;
+        }
+    };
+
+    this.$getWidgetScreenLength = function() {
+        var screenRows = 0;
+        this.lineWidgets.forEach(function(w){
+            if (w && w.rowCount)
+                screenRows +=w.rowCount;
+        });
+        return screenRows;
+    };    
+    
+    this.attach = function(editor) {
+        if (editor.widgetManager && editor.widgetManager != this)
+            editor.widgetManager.detach();
+
+        if (this.editor == editor)
+            return;
+
+        this.detach();
+        this.editor = editor;
+        
+        this.editor.on("changeSession", this.detach);
+        
+        editor.widgetManager = this;
+
+        editor.setOption("enableLineWidgets", true);
+        editor.renderer.on("beforeRender", this.measureWidgets);
+        editor.renderer.on("afterRender", this.renderWidgets);
+    };
+    this.detach = function(e) {
+        if (e && e.session == this.session)
+            return; // sometimes attach can be called before setSession
+        var editor = this.editor;
+        if (!editor)
+            return;
+
+        editor.off("changeSession", this.detach);
+        
+        this.editor = null;
+        editor.widgetManager = null;
+        
+        editor.renderer.off("beforeRender", this.measureWidgets);
+        editor.renderer.off("afterRender", this.renderWidgets);
+        var lineWidgets = this.session.lineWidgets;
+        lineWidgets && lineWidgets.forEach(function(w) {
+            if (w && w.el && w.el.parentNode) {
+                w._inDocument = false;
+                w.el.parentNode.removeChild(w.el);
+            }
+        });
+    };
+
+    this.updateOnChange = function(e) {
+        var lineWidgets = this.session.lineWidgets;
+        if (!lineWidgets) return;
+            
+        var delta = e.data;
+        var range = delta.range;
+        var startRow = range.start.row;
+        var len = range.end.row - startRow;
+
+        if (len === 0) {
+        } else if (delta.action == "removeText" || delta.action == "removeLines") {
+            var removed = lineWidgets.splice(startRow + 1, len);
+            removed.forEach(function(w) {
+                w && this.removeLineWidget(w);
+            }, this);
+            this.$updateRows();
+        } else {
+            var args = new Array(len);
+            args.unshift(startRow, 0);
+            lineWidgets.splice.apply(lineWidgets, args);
+            this.$updateRows();
+        }
+    };
+    
+    this.$updateRows = function() {
+        var lineWidgets = this.session.lineWidgets;
+        if (!lineWidgets) return;
+        var noWidgets = true;
+        lineWidgets.forEach(function(w, i) {
+            if (w) {
+                noWidgets = false;
+                w.row = i;
+            }
+        });
+        if (noWidgets)
+            this.session.lineWidgets = null;
+    };
+
+    this.addLineWidget = function(w) {
+        if (!this.session.lineWidgets)
+            this.session.lineWidgets = new Array(this.session.getLength());
+        
+        this.session.lineWidgets[w.row] = w;
+        
+        var renderer = this.editor.renderer;
+        if (w.html && !w.el) {
+            w.el = dom.createElement("div");
+            w.el.innerHTML = w.html;
+        }
+        if (w.el) {
+            dom.addCssClass(w.el, "ace_lineWidgetContainer");
+            w.el.style.position = "absolute";
+            w.el.style.zIndex = 5;
+            renderer.container.appendChild(w.el);
+            w._inDocument = true;
+        }
+        
+        if (!w.coverGutter) {
+            w.el.style.zIndex = 3;
+        }
+        if (!w.pixelHeight) {
+            w.pixelHeight = w.el.offsetHeight;
+        }
+        if (w.rowCount == null)
+            w.rowCount = w.pixelHeight / renderer.layerConfig.lineHeight;
+        
+        this.session._emit("changeFold", {data:{start:{row: w.row}}});
+        
+        this.$updateRows();
+        this.renderWidgets(null, renderer);
+        return w;
+    };
+    
+    this.removeLineWidget = function(w) {
+        w._inDocument = false;
+        if (w.el && w.el.parentNode)
+            w.el.parentNode.removeChild(w.el);
+        if (w.editor && w.editor.destroy) try {
+            w.editor.destroy();
+        } catch(e){}
+        if (this.session.lineWidgets)
+            this.session.lineWidgets[w.row] = undefined;
+        this.session._emit("changeFold", {data:{start:{row: w.row}}});
+        this.$updateRows();
+    };
+    
+    this.onWidgetChanged = function(w) {
+        this.session._changedWidgets.push(w);
+        this.editor && this.editor.renderer.updateFull();
+    };
+    
+    this.measureWidgets = function(e, renderer) {
+        var changedWidgets = this.session._changedWidgets;
+        var config = renderer.layerConfig;
+        
+        if (!changedWidgets || !changedWidgets.length) return;
+        var min = Infinity;
+        for (var i = 0; i < changedWidgets.length; i++) {
+            var w = changedWidgets[i];
+            if (!w._inDocument) {
+                w._inDocument = true;
+                renderer.container.appendChild(w.el);
+            }
+            
+            w.h = w.el.offsetHeight;
+            
+            if (!w.fixedWidth) {
+                w.w = w.el.offsetWidth;
+                w.screenWidth = Math.ceil(w.w / config.characterWidth);
+            }
+            
+            var rowCount = w.h / config.lineHeight;
+            if (w.coverLine) {
+                rowCount -= this.session.getRowLineCount(w.row);
+                if (rowCount < 0)
+                    rowCount = 0;
+            }
+            if (w.rowCount != rowCount) {
+                w.rowCount = rowCount;
+                if (w.row < min)
+                    min = w.row;
+            }
+        }
+        if (min != Infinity) {
+            this.session._emit("changeFold", {data:{start:{row: min}}});
+            this.session.lineWidgetWidth = null;
+        }
+        this.session._changedWidgets = [];
+    };
+    
+    this.renderWidgets = function(e, renderer) {
+        var config = renderer.layerConfig;
+        var lineWidgets = this.session.lineWidgets;
+        if (!lineWidgets)
+            return;
+        var first = Math.min(this.firstRow, config.firstRow);
+        var last = Math.max(this.lastRow, config.lastRow, lineWidgets.length);
+        
+        while (first > 0 && !lineWidgets[first])
+            first--;
+        
+        this.firstRow = config.firstRow;
+        this.lastRow = config.lastRow;
+
+        renderer.$cursorLayer.config = config;
+        for (var i = first; i <= last; i++) {
+            var w = lineWidgets[i];
+            if (!w || !w.el) continue;
+
+            if (!w._inDocument) {
+                w._inDocument = true;
+                renderer.container.appendChild(w.el);
+            }
+            var top = renderer.$cursorLayer.getPixelPosition({row: i, column:0}, true).top;
+            if (!w.coverLine)
+                top += config.lineHeight * this.session.getRowLineCount(w.row);
+            w.el.style.top = top - config.offset + "px";
+            
+            var left = w.coverGutter ? 0 : renderer.gutterWidth;
+            if (!w.fixedWidth)
+                left -= renderer.scrollLeft;
+            w.el.style.left = left + "px";
+
+            if (w.fixedWidth) {
+                w.el.style.right = renderer.scrollBar.getWidth() + "px";
+            } else {
+                w.el.style.right = "";
+            }
+        }
+    };
+    
+}).call(LineWidgets.prototype);
+
+
+exports.LineWidgets = LineWidgets;
+
+});
+
+
+    
+
 ;
             (function() {
                 __ace_shadowed__.require(["ace/ext/textarea"], function(a) {

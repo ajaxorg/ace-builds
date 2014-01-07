@@ -116,17 +116,18 @@ color: #706D5B\
 .ace-kr-theme .ace_variable {\
 color: #D1A796\
 }\
+.ace-kr-theme .ace_list,\
+.ace-kr-theme .ace_markup.ace_list {\
+background-color: #0F0040\
+}\
 .ace-kr-theme .ace_variable.ace_language {\
 color: #FF80E1\
 }\
 .ace-kr-theme .ace_meta.ace_tag {\
 color: #BABD9C\
 }\
-.ace-kr-theme .ace_list {\
-background-color: #0F0040\
-}\
 .ace-kr-theme .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYFBXV/8PAAJoAXX4kT2EAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYFBXV/8PAAJoAXX4kT2EAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

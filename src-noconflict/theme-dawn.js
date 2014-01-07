@@ -105,6 +105,7 @@ background-color: #794938;\
 border-color: #080808\
 }\
 .ace-dawn .ace_list,\
+.ace-dawn .ace_markup.ace_list,\
 .ace-dawn .ace_support.ace_function {\
 color: #693A17\
 }\
@@ -122,14 +123,15 @@ color: #CF5628\
 font-style: italic;\
 color: #5A525F\
 }\
+.ace-dawn .ace_heading,\
+.ace-dawn .ace_markup.ace_heading {\
+color: #19356D\
+}\
 .ace-dawn .ace_variable {\
 color: #234A97\
 }\
-.ace-dawn .ace_heading {\
-color: #19356D\
-}\
 .ace-dawn .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYLh/5+x/AAizA4hxNNsZAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYLh/5+x/AAizA4hxNNsZAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

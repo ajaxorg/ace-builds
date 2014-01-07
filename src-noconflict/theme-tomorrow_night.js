@@ -40,7 +40,7 @@ color: #C5C8C6\
 width: 1px;\
 background: #25282c\
 }\
-.ace-tomorrow-night  {\
+.ace-tomorrow-night {\
 background-color: #1D1F21;\
 color: #C5C8C6\
 }\
@@ -116,6 +116,7 @@ color: #81A2BE\
 color: #F0C674\
 }\
 .ace-tomorrow-night .ace_heading,\
+.ace-tomorrow-night .ace_markup.ace_heading,\
 .ace-tomorrow-night .ace_string {\
 color: #B5BD68\
 }\
@@ -130,7 +131,7 @@ color: #CC6666\
 color: #969896\
 }\
 .ace-tomorrow-night .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHB3d/8PAAOIAdULw8qMAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHB3d/8PAAOIAdULw8qMAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

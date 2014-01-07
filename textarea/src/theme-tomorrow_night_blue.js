@@ -44,9 +44,7 @@ background: #00204b\
 background-color: #002451;\
 color: #FFFFFF\
 }\
-.ace-tomorrow-night-blue .ace_constant.ace_other {\
-color: #FFFFFF\
-}\
+.ace-tomorrow-night-blue .ace_constant.ace_other,\
 .ace-tomorrow-night-blue .ace_cursor {\
 color: #FFFFFF\
 }\
@@ -116,6 +114,7 @@ color: #BBDAFF\
 color: #FFEEAD\
 }\
 .ace-tomorrow-night-blue .ace_heading,\
+.ace-tomorrow-night-blue .ace_markup.ace_heading,\
 .ace-tomorrow-night-blue .ace_string {\
 color: #D1F1A9\
 }\
@@ -130,7 +129,7 @@ color: #FF9DA4\
 color: #7285B7\
 }\
 .ace-tomorrow-night-blue .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYJDzqfwPAANXAeNsiA+ZAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYJDzqfwPAANXAeNsiA+ZAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

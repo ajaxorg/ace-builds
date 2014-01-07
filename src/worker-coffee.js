@@ -918,28 +918,17 @@ oop.inherits(Worker, Mirror);
 define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
-exports.inherits = (function() {
-    var createObject = Object.create || function(prototype, properties) {
-        var Type = function () {};
-        Type.prototype = prototype;
-        object = new Type();
-        object.__proto__ = prototype;
-        if (typeof properties !== 'undefined' && Object.defineProperties) {
-            Object.defineProperties(object, properties);
+exports.inherits = function(ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+            value: ctor,
+            enumerable: false,
+            writable: true,
+            configurable: true
         }
-    };
-    return function(ctor, superCtor) {
-        ctor.super_ = superCtor;
-        ctor.prototype = createObject(superCtor.prototype, {
-            constructor: {
-                value: ctor,
-                enumerable: false,
-                writable: true,
-                configurable: true
-            }
-        });
-    };
-}());
+    });
+};
 
 exports.mixin = function(obj, mixin) {
     for (var key in mixin) {
@@ -2254,30 +2243,25 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Lexer.prototype.stringToken = function() {
-      var match, octalEsc, string;
-      switch (this.chunk.charAt(0)) {
+      var octalEsc, quote, string, trimmed;
+      switch (quote = this.chunk.charAt(0)) {
         case "'":
-          if (!(match = SIMPLESTR.exec(this.chunk))) {
-            return 0;
-          }
-          string = match[0];
-          this.token('STRING', string.replace(MULTILINER, '\\\n'), 0, string.length);
+          string = SIMPLESTR.exec(this.chunk)[0];
           break;
         case '"':
-          if (!(string = this.balancedString(this.chunk, '"'))) {
-            return 0;
-          }
-          if (0 < string.indexOf('#{', 1)) {
-            this.interpolateString(string.slice(1, -1), {
-              strOffset: 1,
-              lexedLength: string.length
-            });
-          } else {
-            this.token('STRING', this.escapeLines(string, 0, string.length));
-          }
-          break;
-        default:
-          return 0;
+          string = this.balancedString(this.chunk, '"');
+      }
+      if (!string) {
+        return 0;
+      }
+      trimmed = this.removeNewlines(string.slice(1, -1));
+      if (quote === '"' && 0 < string.indexOf('#{', 1)) {
+        this.interpolateString(trimmed, {
+          strOffset: 1,
+          lexedLength: string.length
+        });
+      } else {
+        this.token('STRING', quote + this.escapeLines(trimmed) + quote, 0, string.length);
       }
       if (octalEsc = /^(?:\\.|[^\\])*\\(?:0[0-7]|[1-7])/.test(string)) {
         this.error("octal escape sequences " + string + " are not allowed");
@@ -2363,7 +2347,7 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
       var body, flags, flagsOffset, heregex, plusToken, prev, re, tag, token, tokens, value, _i, _len, _ref2, _ref3, _ref4;
       heregex = match[0], body = match[1], flags = match[2];
       if (0 > body.indexOf('#{')) {
-        re = body.replace(HEREGEX_OMIT, '').replace(/\//g, '\\/');
+        re = this.escapeLines(body.replace(HEREGEX_OMIT, '$1$2').replace(/\//g, '\\/'), true);
         if (re.match(/^\*/)) {
           this.error('regular expressions cannot begin with `*`');
         }
@@ -2382,7 +2366,7 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
         if (tag === 'TOKENS') {
           tokens.push.apply(tokens, value);
         } else if (tag === 'NEOSTRING') {
-          if (!(value = value.replace(HEREGEX_OMIT, ''))) {
+          if (!(value = value.replace(HEREGEX_OMIT, '$1$2'))) {
             continue;
           }
           value = value.replace(/\\/g, '\\\\');
@@ -2689,10 +2673,6 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
       offsetInChunk = offsetInChunk || 0;
       strOffset = strOffset || 0;
       lexedLength = lexedLength || str.length;
-      if (heredoc && str.length > 0 && str[0] === '\n') {
-        str = str.slice(1);
-        strOffset++;
-      }
       tokens = [];
       pi = 0;
       i = -1;
@@ -2850,16 +2830,31 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
       return LINE_CONTINUER.test(this.chunk) || ((_ref2 = this.tag()) === '\\' || _ref2 === '.' || _ref2 === '?.' || _ref2 === '?::' || _ref2 === 'UNARY' || _ref2 === 'MATH' || _ref2 === '+' || _ref2 === '-' || _ref2 === 'SHIFT' || _ref2 === 'RELATION' || _ref2 === 'COMPARE' || _ref2 === 'LOGIC' || _ref2 === 'THROW' || _ref2 === 'EXTENDS');
     };
 
+    Lexer.prototype.removeNewlines = function(str) {
+      return str.replace(/^\s*\n\s*/, '').replace(/([^\\]|\\\\)\s*\n\s*$/, '$1');
+    };
+
     Lexer.prototype.escapeLines = function(str, heredoc) {
-      return str.replace(MULTILINER, heredoc ? '\\n' : '');
+      str = str.replace(/\\[^\S\n]*(\n|\\)\s*/g, function(escaped, character) {
+        if (character === '\n') {
+          return '';
+        } else {
+          return escaped;
+        }
+      });
+      if (heredoc) {
+        return str.replace(MULTILINER, '\\n');
+      } else {
+        return str.replace(/\s*\n\s*/g, ' ');
+      }
     };
 
     Lexer.prototype.makeString = function(body, quote, heredoc) {
       if (!body) {
         return quote + quote;
       }
-      body = body.replace(/\\([\s\S])/g, function(match, contents) {
-        if (contents === '\n' || contents === quote) {
+      body = body.replace(RegExp("\\\\(" + quote + "|\\\\)", "g"), function(match, contents) {
+        if (contents === quote) {
           return contents;
         } else {
           return match;
@@ -2928,27 +2923,27 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
 
   NUMBER = /^0b[01]+|^0o[0-7]+|^0x[\da-f]+|^\d*\.?\d+(?:e[+-]?\d+)?/i;
 
-  HEREDOC = /^("""|''')([\s\S]*?)(?:\n[^\n\S]*)?\1/;
+  HEREDOC = /^("""|''')((?:\\[\s\S]|[^\\])*?)(?:\n[^\n\S]*)?\1/;
 
   OPERATOR = /^(?:[-=]>|[-+*\/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?(\.|::)|\.{2,3})/;
 
   WHITESPACE = /^[^\n\S]+/;
 
-  COMMENT = /^###([^#][\s\S]*?)(?:###[^\n\S]*|(?:###)$)|^(?:\s*#(?!##[^#]).*)+/;
+  COMMENT = /^###([^#][\s\S]*?)(?:###[^\n\S]*|###$)|^(?:\s*#(?!##[^#]).*)+/;
 
   CODE = /^[-=]>/;
 
   MULTI_DENT = /^(?:\n[^\n\S]*)+/;
 
-  SIMPLESTR = /^'[^\\']*(?:\\.[^\\']*)*'/;
+  SIMPLESTR = /^'[^\\']*(?:\\[\s\S][^\\']*)*'/;
 
   JSTOKEN = /^`[^\\`]*(?:\\.[^\\`]*)*`/;
 
   REGEX = /^(\/(?![\s=])[^[\/\n\\]*(?:(?:\\[\s\S]|\[[^\]\n\\]*(?:\\[\s\S][^\]\n\\]*)*])[^[\/\n\\]*)*\/)([imgy]{0,4})(?!\w)/;
 
-  HEREGEX = /^\/{3}([\s\S]+?)\/{3}([imgy]{0,4})(?!\w)/;
+  HEREGEX = /^\/{3}((?:\\?[\s\S])+?)\/{3}([imgy]{0,4})(?!\w)/;
 
-  HEREGEX_OMIT = /\s+(?:#.*)?/g;
+  HEREGEX_OMIT = /((?:\\\\)+)|\\(\s|\/)|\s+(?:#.*)?/g;
 
   MULTILINER = /\n/g;
 
@@ -2991,7 +2986,7 @@ define('ace/mode/coffee/lexer', ['require', 'exports', 'module' , 'ace/mode/coff
 
 define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-  var BALANCED_PAIRS, EXPRESSION_CLOSE, EXPRESSION_END, EXPRESSION_START, IMPLICIT_CALL, IMPLICIT_END, IMPLICIT_FUNC, IMPLICIT_UNSPACED_CALL, INVERSES, LINEBREAKS, SINGLE_CLOSERS, SINGLE_LINERS, generate, left, rite, _i, _len, _ref,
+  var BALANCED_PAIRS, CALL_CLOSERS, EXPRESSION_CLOSE, EXPRESSION_END, EXPRESSION_START, IMPLICIT_CALL, IMPLICIT_END, IMPLICIT_FUNC, IMPLICIT_UNSPACED_CALL, INVERSES, LINEBREAKS, SINGLE_CLOSERS, SINGLE_LINERS, generate, left, rite, _i, _len, _ref,
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
     __slice = [].slice;
 
@@ -3008,10 +3003,9 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
     Rewriter.prototype.rewrite = function(tokens) {
       this.tokens = tokens;
       this.removeLeadingNewlines();
-      this.removeMidExpressionNewlines();
       this.closeOpenCalls();
       this.closeOpenIndexes();
-      this.addImplicitIndentation();
+      this.normalizeLines();
       this.tagPostfixConditionals();
       this.addImplicitBracesAndParens();
       this.addLocationDataToGeneratedTokens();
@@ -3061,17 +3055,6 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
       if (i) {
         return this.tokens.splice(0, i);
       }
-    };
-
-    Rewriter.prototype.removeMidExpressionNewlines = function() {
-      return this.scanTokens(function(token, i, tokens) {
-        var _ref;
-        if (!(token[0] === 'TERMINATOR' && (_ref = this.tag(i + 1), __indexOf.call(EXPRESSION_CLOSE, _ref) >= 0))) {
-          return 1;
-        }
-        tokens.splice(i, 1);
-        return 0;
-      });
     };
 
     Rewriter.prototype.closeOpenCalls = function() {
@@ -3152,9 +3135,9 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
       var stack;
       stack = [];
       return this.scanTokens(function(token, i, tokens) {
-        var endImplicitCall, endImplicitObject, forward, inImplicit, inImplicitCall, inImplicitControl, inImplicitObject, nextTag, offset, prevTag, s, sameLine, stackIdx, stackTag, stackTop, startIdx, startImplicitCall, startImplicitObject, startsLine, tag, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
+        var endAllImplicitCalls, endImplicitCall, endImplicitObject, forward, inImplicit, inImplicitCall, inImplicitControl, inImplicitObject, nextTag, offset, prevTag, prevToken, s, sameLine, stackIdx, stackTag, stackTop, startIdx, startImplicitCall, startImplicitObject, startsLine, tag, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
         tag = token[0];
-        prevTag = (i > 0 ? tokens[i - 1] : [])[0];
+        prevTag = (prevToken = i > 0 ? tokens[i - 1] : [])[0];
         nextTag = (i < tokens.length - 1 ? tokens[i + 1] : [])[0];
         stackTop = function() {
           return stack[stack.length - 1];
@@ -3196,6 +3179,11 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
           stack.pop();
           tokens.splice(i, 0, generate('CALL_END', ')'));
           return i += 1;
+        };
+        endAllImplicitCalls = function() {
+          while (inImplicitCall()) {
+            endImplicitCall();
+          }
         };
         startImplicitObject = function(j, startsLine) {
           var idx;
@@ -3288,9 +3276,15 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
           startImplicitObject(s, !!startsLine);
           return forward(2);
         }
-        if (prevTag === 'OUTDENT' && inImplicitCall() && (tag === '.' || tag === '?.' || tag === '::' || tag === '?::')) {
-          endImplicitCall();
-          return forward(1);
+        if (inImplicitCall() && __indexOf.call(CALL_CLOSERS, tag) >= 0) {
+          if (prevTag === 'OUTDENT') {
+            endImplicitCall();
+            return forward(1);
+          }
+          if (prevToken.newLine) {
+            endAllImplicitCalls();
+            return forward(1);
+          }
         }
         if (inImplicitObject() && __indexOf.call(LINEBREAKS, tag) >= 0) {
           stackTop()[2].sameLine = false;
@@ -3345,30 +3339,32 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
       });
     };
 
-    Rewriter.prototype.addImplicitIndentation = function() {
+    Rewriter.prototype.normalizeLines = function() {
       var action, condition, indent, outdent, starter;
       starter = indent = outdent = null;
       condition = function(token, i) {
-        var _ref, _ref1;
-        return token[1] !== ';' && (_ref = token[0], __indexOf.call(SINGLE_CLOSERS, _ref) >= 0) && !(token[0] === 'ELSE' && starter !== 'THEN') && !(((_ref1 = token[0]) === 'CATCH' || _ref1 === 'FINALLY') && (starter === '->' || starter === '=>'));
+        var _ref, _ref1, _ref2, _ref3;
+        return token[1] !== ';' && (_ref = token[0], __indexOf.call(SINGLE_CLOSERS, _ref) >= 0) && !(token[0] === 'TERMINATOR' && (_ref1 = this.tag(i + 1), __indexOf.call(EXPRESSION_CLOSE, _ref1) >= 0)) && !(token[0] === 'ELSE' && starter !== 'THEN') && !(((_ref2 = token[0]) === 'CATCH' || _ref2 === 'FINALLY') && (starter === '->' || starter === '=>')) || (_ref3 = token[0], __indexOf.call(CALL_CLOSERS, _ref3) >= 0) && this.tokens[i - 1].newLine;
       };
       action = function(token, i) {
         return this.tokens.splice((this.tag(i - 1) === ',' ? i - 1 : i), 0, outdent);
       };
       return this.scanTokens(function(token, i, tokens) {
-        var j, tag, _i, _ref, _ref1;
+        var j, tag, _i, _ref, _ref1, _ref2;
         tag = token[0];
-        if (tag === 'TERMINATOR' && this.tag(i + 1) === 'THEN') {
-          tokens.splice(i, 1);
-          return 0;
-        }
-        if (tag === 'ELSE' && this.tag(i - 1) !== 'OUTDENT') {
-          tokens.splice.apply(tokens, [i, 0].concat(__slice.call(this.indentation())));
-          return 2;
+        if (tag === 'TERMINATOR') {
+          if (this.tag(i + 1) === 'ELSE' && this.tag(i - 1) !== 'OUTDENT') {
+            tokens.splice.apply(tokens, [i, 1].concat(__slice.call(this.indentation())));
+            return 1;
+          }
+          if (_ref = this.tag(i + 1), __indexOf.call(EXPRESSION_CLOSE, _ref) >= 0) {
+            tokens.splice(i, 1);
+            return 0;
+          }
         }
         if (tag === 'CATCH') {
           for (j = _i = 1; _i <= 2; j = ++_i) {
-            if (!((_ref = this.tag(i + j)) === 'OUTDENT' || _ref === 'TERMINATOR' || _ref === 'FINALLY')) {
+            if (!((_ref1 = this.tag(i + j)) === 'OUTDENT' || _ref1 === 'TERMINATOR' || _ref1 === 'FINALLY')) {
               continue;
             }
             tokens.splice.apply(tokens, [i + j, 0].concat(__slice.call(this.indentation())));
@@ -3377,7 +3373,7 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
         }
         if (__indexOf.call(SINGLE_LINERS, tag) >= 0 && this.tag(i + 1) !== 'INDENT' && !(tag === 'ELSE' && this.tag(i + 1) === 'IF')) {
           starter = tag;
-          _ref1 = this.indentation(true), indent = _ref1[0], outdent = _ref1[1];
+          _ref2 = this.indentation(true), indent = _ref2[0], outdent = _ref2[1];
           if (starter === 'THEN') {
             indent.fromThen = true;
           }
@@ -3457,7 +3453,7 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
     EXPRESSION_END.push(INVERSES[left] = rite);
   }
 
-  EXPRESSION_CLOSE = ['CATCH', 'WHEN', 'ELSE', 'FINALLY'].concat(EXPRESSION_END);
+  EXPRESSION_CLOSE = ['CATCH', 'THEN', 'ELSE', 'FINALLY'].concat(EXPRESSION_END);
 
   IMPLICIT_FUNC = ['IDENTIFIER', 'SUPER', ')', 'CALL_END', ']', 'INDEX_END', '@', 'THIS'];
 
@@ -3472,6 +3468,8 @@ define('ace/mode/coffee/rewriter', ['require', 'exports', 'module' ], function(r
   SINGLE_CLOSERS = ['TERMINATOR', 'CATCH', 'FINALLY', 'ELSE', 'OUTDENT', 'LEADING_WHEN'];
 
   LINEBREAKS = ['TERMINATOR', 'INDENT', 'OUTDENT'];
+
+  CALL_CLOSERS = ['.', '?.', '::', '?::'];
 
 
 });
@@ -3645,7 +3643,7 @@ define('ace/mode/coffee/helpers', ['require', 'exports', 'module' ], function(re
     pathSep = useWinPathSep ? /\\|\// : /\//;
     parts = file.split(pathSep);
     file = parts[parts.length - 1];
-    if (!stripExt) {
+    if (!(stripExt && file.indexOf('.') >= 0)) {
       return file;
     }
     parts = file.split('.');
@@ -4346,7 +4344,7 @@ module.exports = new Parser;
 
 define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coffee/scope', 'ace/mode/coffee/lexer', 'ace/mode/coffee/helpers'], function(require, exports, module) {
 
-  var Access, Arr, Assign, Base, Block, Call, Class, Closure, Code, CodeFragment, Comment, Existence, Extends, For, IDENTIFIER, IDENTIFIER_STR, IS_STRING, If, In, Index, LEVEL_ACCESS, LEVEL_COND, LEVEL_LIST, LEVEL_OP, LEVEL_PAREN, LEVEL_TOP, Literal, METHOD_DEF, NEGATE, NO, Obj, Op, Param, Parens, RESERVED, Range, Return, SIMPLENUM, STRICT_PROSCRIBED, Scope, Slice, Splat, Switch, TAB, THIS, Throw, Try, UTILITIES, Value, While, YES, addLocationDataFn, compact, del, ends, extend, flatten, fragmentsToText, last, locationDataToString, merge, multident, some, starts, throwSyntaxError, unfoldSoak, utility, _ref, _ref1, _ref2, _ref3,
+  var Access, Arr, Assign, Base, Block, Call, Class, Code, CodeFragment, Comment, Existence, Extends, For, HEXNUM, IDENTIFIER, IDENTIFIER_STR, IS_REGEX, IS_STRING, If, In, Index, LEVEL_ACCESS, LEVEL_COND, LEVEL_LIST, LEVEL_OP, LEVEL_PAREN, LEVEL_TOP, Literal, METHOD_DEF, NEGATE, NO, NUMBER, Obj, Op, Param, Parens, RESERVED, Range, Return, SIMPLENUM, STRICT_PROSCRIBED, Scope, Slice, Splat, Switch, TAB, THIS, Throw, Try, UTILITIES, Value, While, YES, addLocationDataFn, compact, del, ends, extend, flatten, fragmentsToText, isLiteralArguments, isLiteralThis, last, locationDataToString, merge, multident, parseNum, some, starts, throwSyntaxError, unfoldSoak, utility, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
     __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; },
@@ -4433,12 +4431,24 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Base.prototype.compileClosure = function(o) {
-      var jumpNode;
+      var args, argumentsNode, func, jumpNode, meth;
       if (jumpNode = this.jumps()) {
         jumpNode.error('cannot use a pure statement in an expression');
       }
       o.sharedScope = true;
-      return Closure.wrap(this).compileNode(o);
+      func = new Code([], Block.wrap([this]));
+      args = [];
+      if ((argumentsNode = this.contains(isLiteralArguments)) || this.contains(isLiteralThis)) {
+        args = [new Literal('this')];
+        if (argumentsNode) {
+          meth = 'apply';
+          args.push(new Literal('arguments'));
+        } else {
+          meth = 'call';
+        }
+        func = new Value(func, [new Access(new Literal(meth))]);
+      }
+      return (new Call(func, args)).compileNode(o);
     };
 
     Base.prototype.cache = function(o, level, reused) {
@@ -4661,12 +4671,12 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Block.prototype.jumps = function(o) {
-      var exp, _i, _len, _ref2;
+      var exp, jumpNode, _i, _len, _ref2;
       _ref2 = this.expressions;
       for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
         exp = _ref2[_i];
-        if (exp.jumps(o)) {
-          return exp;
+        if (jumpNode = exp.jumps(o)) {
+          return jumpNode;
         }
       }
     };
@@ -4901,8 +4911,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     __extends(Undefined, _super);
 
     function Undefined() {
-      _ref2 = Undefined.__super__.constructor.apply(this, arguments);
-      return _ref2;
+      return Undefined.__super__.constructor.apply(this, arguments);
     }
 
     Undefined.prototype.isAssignable = NO;
@@ -4921,8 +4930,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     __extends(Null, _super);
 
     function Null() {
-      _ref3 = Null.__super__.constructor.apply(this, arguments);
-      return _ref3;
+      return Null.__super__.constructor.apply(this, arguments);
     }
 
     Null.prototype.isAssignable = NO;
@@ -4974,8 +4982,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     Return.prototype.jumps = THIS;
 
     Return.prototype.compileToFragments = function(o, level) {
-      var expr, _ref4;
-      expr = (_ref4 = this.expression) != null ? _ref4.makeReturn() : void 0;
+      var expr, _ref2;
+      expr = (_ref2 = this.expression) != null ? _ref2.makeReturn() : void 0;
       if (expr && !(expr instanceof Return)) {
         return expr.compileToFragments(o, level);
       } else {
@@ -5024,8 +5032,16 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       return !!this.properties.length;
     };
 
+    Value.prototype.bareLiteral = function(type) {
+      return !this.properties.length && this.base instanceof type;
+    };
+
     Value.prototype.isArray = function() {
-      return !this.properties.length && this.base instanceof Arr;
+      return this.bareLiteral(Arr);
+    };
+
+    Value.prototype.isRange = function() {
+      return this.bareLiteral(Range);
     };
 
     Value.prototype.isComplex = function() {
@@ -5037,23 +5053,31 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Value.prototype.isSimpleNumber = function() {
-      return this.base instanceof Literal && SIMPLENUM.test(this.base.value);
+      return this.bareLiteral(Literal) && SIMPLENUM.test(this.base.value);
     };
 
     Value.prototype.isString = function() {
-      return this.base instanceof Literal && IS_STRING.test(this.base.value);
+      return this.bareLiteral(Literal) && IS_STRING.test(this.base.value);
+    };
+
+    Value.prototype.isRegex = function() {
+      return this.bareLiteral(Literal) && IS_REGEX.test(this.base.value);
     };
 
     Value.prototype.isAtomic = function() {
-      var node, _i, _len, _ref4;
-      _ref4 = this.properties.concat(this.base);
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        node = _ref4[_i];
+      var node, _i, _len, _ref2;
+      _ref2 = this.properties.concat(this.base);
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        node = _ref2[_i];
         if (node.soak || node instanceof Call) {
           return false;
         }
       }
       return true;
+    };
+
+    Value.prototype.isNotCallable = function() {
+      return this.isSimpleNumber() || this.isString() || this.isRegex() || this.isArray() || this.isRange() || this.isSplice() || this.isObject();
     };
 
     Value.prototype.isStatement = function(o) {
@@ -5077,6 +5101,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
 
     Value.prototype.isSplice = function() {
       return last(this.properties) instanceof Slice;
+    };
+
+    Value.prototype.looksStatic = function(className) {
+      var _ref2;
+      return this.base.value === className && this.properties.length && ((_ref2 = this.properties[0].name) != null ? _ref2.value : void 0) !== 'prototype';
     };
 
     Value.prototype.unwrap = function() {
@@ -5125,33 +5154,34 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Value.prototype.unfoldSoak = function(o) {
-      var _this = this;
-      return this.unfoldedSoak != null ? this.unfoldedSoak : this.unfoldedSoak = (function() {
-        var fst, i, ifn, prop, ref, snd, _i, _len, _ref4, _ref5;
-        if (ifn = _this.base.unfoldSoak(o)) {
-          (_ref4 = ifn.body.properties).push.apply(_ref4, _this.properties);
-          return ifn;
-        }
-        _ref5 = _this.properties;
-        for (i = _i = 0, _len = _ref5.length; _i < _len; i = ++_i) {
-          prop = _ref5[i];
-          if (!prop.soak) {
-            continue;
+      return this.unfoldedSoak != null ? this.unfoldedSoak : this.unfoldedSoak = (function(_this) {
+        return function() {
+          var fst, i, ifn, prop, ref, snd, _i, _len, _ref2, _ref3;
+          if (ifn = _this.base.unfoldSoak(o)) {
+            (_ref2 = ifn.body.properties).push.apply(_ref2, _this.properties);
+            return ifn;
           }
-          prop.soak = false;
-          fst = new Value(_this.base, _this.properties.slice(0, i));
-          snd = new Value(_this.base, _this.properties.slice(i));
-          if (fst.isComplex()) {
-            ref = new Literal(o.scope.freeVariable('ref'));
-            fst = new Parens(new Assign(ref, fst));
-            snd.base = ref;
+          _ref3 = _this.properties;
+          for (i = _i = 0, _len = _ref3.length; _i < _len; i = ++_i) {
+            prop = _ref3[i];
+            if (!prop.soak) {
+              continue;
+            }
+            prop.soak = false;
+            fst = new Value(_this.base, _this.properties.slice(0, i));
+            snd = new Value(_this.base, _this.properties.slice(i));
+            if (fst.isComplex()) {
+              ref = new Literal(o.scope.freeVariable('ref'));
+              fst = new Parens(new Assign(ref, fst));
+              snd.base = ref;
+            }
+            return new If(new Existence(fst), snd, {
+              soak: true
+            });
           }
-          return new If(new Existence(fst), snd, {
-            soak: true
-          });
-        }
-        return false;
-      })();
+          return false;
+        };
+      })(this)();
     };
 
     return Value;
@@ -5170,8 +5200,9 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     Comment.prototype.makeReturn = THIS;
 
     Comment.prototype.compileNode = function(o, level) {
-      var code;
-      code = "/*" + (multident(this.comment, this.tab)) + (__indexOf.call(this.comment, '\n') >= 0 ? "\n" + this.tab : '') + "*/";
+      var code, comment;
+      comment = this.comment.replace(/^(\s*)#/gm, "$1 *");
+      code = "/*" + (multident(comment, this.tab)) + (__indexOf.call(comment, '\n') >= 0 ? "\n" + this.tab : '') + " */";
       if ((level || o.level) === LEVEL_TOP) {
         code = o.indent + code;
       }
@@ -5191,13 +5222,16 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       this.isNew = false;
       this.isSuper = variable === 'super';
       this.variable = this.isSuper ? null : variable;
+      if (variable instanceof Value && variable.isNotCallable()) {
+        variable.error("literal is not a function");
+      }
     }
 
     Call.prototype.children = ['variable', 'args'];
 
     Call.prototype.newInstance = function() {
-      var base, _ref4;
-      base = ((_ref4 = this.variable) != null ? _ref4.base : void 0) || this.variable;
+      var base, _ref2;
+      base = ((_ref2 = this.variable) != null ? _ref2.base : void 0) || this.variable;
       if (base instanceof Call && !base.isNew) {
         base.newInstance();
       } else {
@@ -5230,13 +5264,13 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Call.prototype.unfoldSoak = function(o) {
-      var call, ifn, left, list, rite, _i, _len, _ref4, _ref5;
+      var call, ifn, left, list, rite, _i, _len, _ref2, _ref3;
       if (this.soak) {
         if (this.variable) {
           if (ifn = unfoldSoak(o, this, 'variable')) {
             return ifn;
           }
-          _ref4 = new Value(this.variable).cacheReference(o), left = _ref4[0], rite = _ref4[1];
+          _ref2 = new Value(this.variable).cacheReference(o), left = _ref2[0], rite = _ref2[1];
         } else {
           left = new Literal(this.superReference(o));
           rite = new Value(left);
@@ -5264,9 +5298,9 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
           break;
         }
       }
-      _ref5 = list.reverse();
-      for (_i = 0, _len = _ref5.length; _i < _len; _i++) {
-        call = _ref5[_i];
+      _ref3 = list.reverse();
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        call = _ref3[_i];
         if (ifn) {
           if (call.variable instanceof Call) {
             call.variable = ifn;
@@ -5280,18 +5314,18 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Call.prototype.compileNode = function(o) {
-      var arg, argIndex, compiledArgs, compiledArray, fragments, preface, _i, _len, _ref4, _ref5;
-      if ((_ref4 = this.variable) != null) {
-        _ref4.front = this.front;
+      var arg, argIndex, compiledArgs, compiledArray, fragments, preface, _i, _len, _ref2, _ref3;
+      if ((_ref2 = this.variable) != null) {
+        _ref2.front = this.front;
       }
       compiledArray = Splat.compileSplattedArray(o, this.args, true);
       if (compiledArray.length) {
         return this.compileSplat(o, compiledArray);
       }
       compiledArgs = [];
-      _ref5 = this.args;
-      for (argIndex = _i = 0, _len = _ref5.length; _i < _len; argIndex = ++_i) {
-        arg = _ref5[argIndex];
+      _ref3 = this.args;
+      for (argIndex = _i = 0, _len = _ref3.length; _i < _len; argIndex = ++_i) {
+        arg = _ref3[argIndex];
         if (argIndex) {
           compiledArgs.push(this.makeCode(", "));
         }
@@ -5431,23 +5465,23 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     }
 
     Range.prototype.compileVariables = function(o) {
-      var step, _ref4, _ref5, _ref6, _ref7;
+      var step, _ref2, _ref3, _ref4, _ref5;
       o = merge(o, {
         top: true
       });
-      _ref4 = this.cacheToCodeFragments(this.from.cache(o, LEVEL_LIST)), this.fromC = _ref4[0], this.fromVar = _ref4[1];
-      _ref5 = this.cacheToCodeFragments(this.to.cache(o, LEVEL_LIST)), this.toC = _ref5[0], this.toVar = _ref5[1];
+      _ref2 = this.cacheToCodeFragments(this.from.cache(o, LEVEL_LIST)), this.fromC = _ref2[0], this.fromVar = _ref2[1];
+      _ref3 = this.cacheToCodeFragments(this.to.cache(o, LEVEL_LIST)), this.toC = _ref3[0], this.toVar = _ref3[1];
       if (step = del(o, 'step')) {
-        _ref6 = this.cacheToCodeFragments(step.cache(o, LEVEL_LIST)), this.step = _ref6[0], this.stepVar = _ref6[1];
+        _ref4 = this.cacheToCodeFragments(step.cache(o, LEVEL_LIST)), this.step = _ref4[0], this.stepVar = _ref4[1];
       }
-      _ref7 = [this.fromVar.match(SIMPLENUM), this.toVar.match(SIMPLENUM)], this.fromNum = _ref7[0], this.toNum = _ref7[1];
+      _ref5 = [this.fromVar.match(NUMBER), this.toVar.match(NUMBER)], this.fromNum = _ref5[0], this.toNum = _ref5[1];
       if (this.stepVar) {
-        return this.stepNum = this.stepVar.match(SIMPLENUM);
+        return this.stepNum = this.stepVar.match(NUMBER);
       }
     };
 
     Range.prototype.compileNode = function(o) {
-      var cond, condPart, from, gt, idx, idxName, known, lt, namedIndex, stepPart, to, varPart, _ref4, _ref5;
+      var cond, condPart, from, gt, idx, idxName, known, lt, namedIndex, stepPart, to, varPart, _ref2, _ref3;
       if (!this.fromVar) {
         this.compileVariables(o);
       }
@@ -5465,8 +5499,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       if (this.step !== this.stepVar) {
         varPart += ", " + this.step;
       }
-      _ref4 = ["" + idx + " <" + this.equals, "" + idx + " >" + this.equals], lt = _ref4[0], gt = _ref4[1];
-      condPart = this.stepNum ? +this.stepNum > 0 ? "" + lt + " " + this.toVar : "" + gt + " " + this.toVar : known ? ((_ref5 = [+this.fromNum, +this.toNum], from = _ref5[0], to = _ref5[1], _ref5), from <= to ? "" + lt + " " + to : "" + gt + " " + to) : (cond = this.stepVar ? "" + this.stepVar + " > 0" : "" + this.fromVar + " <= " + this.toVar, "" + cond + " ? " + lt + " " + this.toVar + " : " + gt + " " + this.toVar);
+      _ref2 = ["" + idx + " <" + this.equals, "" + idx + " >" + this.equals], lt = _ref2[0], gt = _ref2[1];
+      condPart = this.stepNum ? parseNum(this.stepNum[0]) > 0 ? "" + lt + " " + this.toVar : "" + gt + " " + this.toVar : known ? ((_ref3 = [parseNum(this.fromNum[0]), parseNum(this.toNum[0])], from = _ref3[0], to = _ref3[1], _ref3), from <= to ? "" + lt + " " + to : "" + gt + " " + to) : (cond = this.stepVar ? "" + this.stepVar + " > 0" : "" + this.fromVar + " <= " + this.toVar, "" + cond + " ? " + lt + " " + this.toVar + " : " + gt + " " + this.toVar);
       stepPart = this.stepVar ? "" + idx + " += " + this.stepVar : known ? namedIndex ? from <= to ? "++" + idx : "--" + idx : from <= to ? "" + idx + "++" : "" + idx + "--" : namedIndex ? "" + cond + " ? ++" + idx + " : --" + idx : "" + cond + " ? " + idx + "++ : " + idx + "--";
       if (namedIndex) {
         varPart = "" + idxName + " = " + varPart;
@@ -5478,11 +5512,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Range.prototype.compileArray = function(o) {
-      var args, body, cond, hasArgs, i, idt, post, pre, range, result, vars, _i, _ref4, _ref5, _results;
+      var args, body, cond, hasArgs, i, idt, post, pre, range, result, vars, _i, _ref2, _ref3, _results;
       if (this.fromNum && this.toNum && Math.abs(this.fromNum - this.toNum) <= 20) {
         range = (function() {
           _results = [];
-          for (var _i = _ref4 = +this.fromNum, _ref5 = +this.toNum; _ref4 <= _ref5 ? _i <= _ref5 : _i >= _ref5; _ref4 <= _ref5 ? _i++ : _i--){ _results.push(_i); }
+          for (var _i = _ref2 = +this.fromNum, _ref3 = +this.toNum; _ref2 <= _ref3 ? _i <= _ref3 : _i >= _ref3; _ref2 <= _ref3 ? _i++ : _i--){ _results.push(_i); }
           return _results;
         }).apply(this);
         if (this.exclusive) {
@@ -5504,9 +5538,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       }
       post = "{ " + result + ".push(" + i + "); }\n" + idt + "return " + result + ";\n" + o.indent;
       hasArgs = function(node) {
-        return node != null ? node.contains(function(n) {
-          return n instanceof Literal && n.value === 'arguments' && !n.asKey;
-        }) : void 0;
+        return node != null ? node.contains(isLiteralArguments) : void 0;
       };
       if (hasArgs(this.from) || hasArgs(this.to)) {
         args = ', arguments';
@@ -5529,8 +5561,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     }
 
     Slice.prototype.compileNode = function(o) {
-      var compiled, compiledText, from, fromCompiled, to, toStr, _ref4;
-      _ref4 = this.range, to = _ref4.to, from = _ref4.from;
+      var compiled, compiledText, from, fromCompiled, to, toStr, _ref2;
+      _ref2 = this.range, to = _ref2.to, from = _ref2.from;
       fromCompiled = from && from.compileToFragments(o, LEVEL_PAREN) || [this.makeCode('0')];
       if (to) {
         compiled = to.compileToFragments(o, LEVEL_PAREN);
@@ -5607,10 +5639,10 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Obj.prototype.assigns = function(name) {
-      var prop, _i, _len, _ref4;
-      _ref4 = this.properties;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        prop = _ref4[_i];
+      var prop, _i, _len, _ref2;
+      _ref2 = this.properties;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        prop = _ref2[_i];
         if (prop.assigns(name)) {
           return true;
         }
@@ -5643,11 +5675,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       }
       answer = [];
       compiledObjs = (function() {
-        var _i, _len, _ref4, _results;
-        _ref4 = this.objects;
+        var _i, _len, _ref2, _results;
+        _ref2 = this.objects;
         _results = [];
-        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-          obj = _ref4[_i];
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          obj = _ref2[_i];
           _results.push(obj.compileToFragments(o, LEVEL_LIST));
         }
         return _results;
@@ -5670,10 +5702,10 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Arr.prototype.assigns = function(name) {
-      var obj, _i, _len, _ref4;
-      _ref4 = this.objects;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        obj = _ref4[_i];
+      var obj, _i, _len, _ref2;
+      _ref2 = this.objects;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        obj = _ref2[_i];
         if (obj.assigns(name)) {
           return true;
         }
@@ -5727,10 +5759,10 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Class.prototype.addBoundFunctions = function(o) {
-      var bvar, lhs, _i, _len, _ref4;
-      _ref4 = this.boundFuncs;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        bvar = _ref4[_i];
+      var bvar, lhs, _i, _len, _ref2;
+      _ref2 = this.boundFuncs;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        bvar = _ref2[_i];
         lhs = (new Value(new Literal("this"), [new Access(bvar)])).compile(o);
         this.ctor.body.unshift(new Literal("" + lhs + " = " + (utility('bind')) + "(" + lhs + ", this)"));
       }
@@ -5757,15 +5789,12 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
               if (func instanceof Code) {
                 assign = this.ctor = func;
               } else {
-                this.externalCtor = o.scope.freeVariable('class');
+                this.externalCtor = o.classScope.freeVariable('class');
                 assign = new Assign(new Literal(this.externalCtor), func);
               }
             } else {
               if (assign.variable["this"]) {
                 func["static"] = true;
-                if (func.bound) {
-                  func.context = name;
-                }
               } else {
                 assign.variable = new Value(new Literal(name), [new Access(new Literal('prototype')), new Access(base)]);
                 if (func instanceof Code && func.bound) {
@@ -5783,26 +5812,29 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Class.prototype.walkBody = function(name, o) {
-      var _this = this;
-      return this.traverseChildren(false, function(child) {
-        var cont, exps, i, node, _i, _len, _ref4;
-        cont = true;
-        if (child instanceof Class) {
-          return false;
-        }
-        if (child instanceof Block) {
-          _ref4 = exps = child.expressions;
-          for (i = _i = 0, _len = _ref4.length; _i < _len; i = ++_i) {
-            node = _ref4[i];
-            if (node instanceof Value && node.isObject(true)) {
-              cont = false;
-              exps[i] = _this.addProperties(node, name, o);
-            }
+      return this.traverseChildren(false, (function(_this) {
+        return function(child) {
+          var cont, exps, i, node, _i, _len, _ref2;
+          cont = true;
+          if (child instanceof Class) {
+            return false;
           }
-          child.expressions = exps = flatten(exps);
-        }
-        return cont && !(child instanceof Class);
-      });
+          if (child instanceof Block) {
+            _ref2 = exps = child.expressions;
+            for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
+              node = _ref2[i];
+              if (node instanceof Assign && node.variable.looksStatic(name)) {
+                node.value["static"] = true;
+              } else if (node instanceof Value && node.isObject(true)) {
+                cont = false;
+                exps[i] = _this.addProperties(node, name, o);
+              }
+            }
+            child.expressions = exps = flatten(exps);
+          }
+          return cont && !(child instanceof Class);
+        };
+      })(this));
     };
 
     Class.prototype.hoistDirectivePrologue = function() {
@@ -5815,62 +5847,53 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       return this.directives = expressions.splice(0, index);
     };
 
-    Class.prototype.ensureConstructor = function(name, o) {
-      var missing, ref, superCall;
-      missing = !this.ctor;
-      this.ctor || (this.ctor = new Code);
+    Class.prototype.ensureConstructor = function(name) {
+      if (!this.ctor) {
+        this.ctor = new Code;
+        if (this.externalCtor) {
+          this.ctor.body.push(new Literal("" + this.externalCtor + ".apply(this, arguments)"));
+        } else if (this.parent) {
+          this.ctor.body.push(new Literal("" + name + ".__super__.constructor.apply(this, arguments)"));
+        }
+        this.ctor.body.makeReturn();
+        this.body.expressions.unshift(this.ctor);
+      }
       this.ctor.ctor = this.ctor.name = name;
       this.ctor.klass = null;
-      this.ctor.noReturn = true;
-      if (missing) {
-        if (this.parent) {
-          superCall = new Literal("" + name + ".__super__.constructor.apply(this, arguments)");
-        }
-        if (this.externalCtor) {
-          superCall = new Literal("" + this.externalCtor + ".apply(this, arguments)");
-        }
-        if (superCall) {
-          ref = new Literal(o.scope.freeVariable('ref'));
-          this.ctor.body.unshift(new Assign(ref, superCall));
-        }
-        this.addBoundFunctions(o);
-        if (superCall) {
-          this.ctor.body.push(ref);
-          this.ctor.body.makeReturn();
-        }
-        return this.body.expressions.unshift(this.ctor);
-      } else {
-        return this.addBoundFunctions(o);
-      }
+      return this.ctor.noReturn = true;
     };
 
     Class.prototype.compileNode = function(o) {
-      var call, decl, klass, lname, name, params, _ref4;
-      decl = this.determineName();
-      name = decl || '_Class';
+      var args, argumentsNode, func, jumpNode, klass, lname, name, superClass, _ref2;
+      if (jumpNode = this.body.jumps()) {
+        jumpNode.error('Class bodies cannot contain pure statements');
+      }
+      if (argumentsNode = this.body.contains(isLiteralArguments)) {
+        argumentsNode.error("Class bodies shouldn't reference arguments");
+      }
+      name = this.determineName() || '_Class';
       if (name.reserved) {
         name = "_" + name;
       }
       lname = new Literal(name);
+      func = new Code([], Block.wrap([this.body]));
+      args = [];
+      o.classScope = func.makeScope(o.scope);
       this.hoistDirectivePrologue();
       this.setContext(name);
       this.walkBody(name, o);
-      this.ensureConstructor(name, o);
+      this.ensureConstructor(name);
+      this.addBoundFunctions(o);
       this.body.spaced = true;
-      if (!(this.ctor instanceof Code)) {
-        this.body.expressions.unshift(this.ctor);
-      }
       this.body.expressions.push(lname);
-      (_ref4 = this.body.expressions).unshift.apply(_ref4, this.directives);
-      call = Closure.wrap(this.body);
       if (this.parent) {
-        this.superClass = new Literal(o.scope.freeVariable('super', false));
-        this.body.expressions.unshift(new Extends(lname, this.superClass));
-        call.args.push(this.parent);
-        params = call.variable.params || call.variable.base.params;
-        params.push(new Param(this.superClass));
+        superClass = new Literal(o.classScope.freeVariable('super', false));
+        this.body.expressions.unshift(new Extends(lname, superClass));
+        func.params.push(new Param(superClass));
+        args.push(this.parent);
       }
-      klass = new Parens(call, true);
+      (_ref2 = this.body.expressions).unshift.apply(_ref2, this.directives);
+      klass = new Parens(new Call(func, args));
       if (this.variable) {
         klass = new Assign(this.variable, klass);
       }
@@ -5885,13 +5908,13 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     __extends(Assign, _super);
 
     function Assign(variable, value, context, options) {
-      var forbidden, name, _ref4;
+      var forbidden, name, _ref2;
       this.variable = variable;
       this.value = value;
       this.context = context;
       this.param = options && options.param;
       this.subpattern = options && options.subpattern;
-      forbidden = (_ref4 = (name = this.variable.unwrapAll().value), __indexOf.call(STRICT_PROSCRIBED, _ref4) >= 0);
+      forbidden = (_ref2 = (name = this.variable.unwrapAll().value), __indexOf.call(STRICT_PROSCRIBED, _ref2) >= 0);
       if (forbidden && this.context !== 'object') {
         this.variable.error("variable name may not be \"" + name + "\"");
       }
@@ -5912,7 +5935,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Assign.prototype.compileNode = function(o) {
-      var answer, compiledName, isValue, match, name, val, varBase, _ref4, _ref5, _ref6, _ref7;
+      var answer, compiledName, isValue, match, name, val, varBase, _ref2, _ref3, _ref4;
       if (isValue = this.variable instanceof Value) {
         if (this.variable.isArray() || this.variable.isObject()) {
           return this.compilePatternMatch(o);
@@ -5920,7 +5943,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         if (this.variable.isSplice()) {
           return this.compileSplice(o);
         }
-        if ((_ref4 = this.context) === '||=' || _ref4 === '&&=' || _ref4 === '?=') {
+        if ((_ref2 = this.context) === '||=' || _ref2 === '&&=' || _ref2 === '?=') {
           return this.compileConditional(o);
         }
       }
@@ -5940,10 +5963,10 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         }
       }
       if (this.value instanceof Code && (match = METHOD_DEF.exec(name))) {
-        if (match[1]) {
+        if (match[2]) {
           this.value.klass = match[1];
         }
-        this.value.name = (_ref5 = (_ref6 = (_ref7 = match[2]) != null ? _ref7 : match[3]) != null ? _ref6 : match[4]) != null ? _ref5 : match[5];
+        this.value.name = (_ref3 = (_ref4 = match[3]) != null ? _ref4 : match[4]) != null ? _ref3 : match[5];
       }
       val = this.value.compileToFragments(o, LEVEL_LIST);
       if (this.context === 'object') {
@@ -5958,7 +5981,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Assign.prototype.compilePatternMatch = function(o) {
-      var acc, assigns, code, fragments, i, idx, isObject, ivar, name, obj, objects, olen, ref, rest, splat, top, val, value, vvar, vvarText, _i, _len, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+      var acc, assigns, code, fragments, i, idx, isObject, ivar, name, obj, objects, olen, ref, rest, splat, top, val, value, vvar, vvarText, _i, _len, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
       top = o.level === LEVEL_TOP;
       value = this.value;
       objects = this.variable.base.objects;
@@ -5973,14 +5996,14 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       isObject = this.variable.isObject();
       if (top && olen === 1 && !((obj = objects[0]) instanceof Splat)) {
         if (obj instanceof Assign) {
-          _ref4 = obj, (_ref5 = _ref4.variable, idx = _ref5.base), obj = _ref4.value;
+          _ref2 = obj, (_ref3 = _ref2.variable, idx = _ref3.base), obj = _ref2.value;
         } else {
           idx = isObject ? obj["this"] ? obj.properties[0].name : obj : new Literal(0);
         }
         acc = IDENTIFIER.test(idx.unwrap().value || 0);
         value = new Value(value);
         value.properties.push(new (acc ? Access : Index)(idx));
-        if (_ref6 = obj.unwrap().value, __indexOf.call(RESERVED, _ref6) >= 0) {
+        if (_ref4 = obj.unwrap().value, __indexOf.call(RESERVED, _ref4) >= 0) {
           obj.error("assignment to a reserved word: " + (obj.compile(o)));
         }
         return new Assign(obj, value, null, {
@@ -6001,10 +6024,10 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         idx = i;
         if (isObject) {
           if (obj instanceof Assign) {
-            _ref7 = obj, (_ref8 = _ref7.variable, idx = _ref8.base), obj = _ref7.value;
+            _ref5 = obj, (_ref6 = _ref5.variable, idx = _ref6.base), obj = _ref5.value;
           } else {
             if (obj.base instanceof Parens) {
-              _ref9 = new Value(obj.unwrapAll()).cacheReference(o), obj = _ref9[0], idx = _ref9[1];
+              _ref7 = new Value(obj.unwrapAll()).cacheReference(o), obj = _ref7[0], idx = _ref7[1];
             } else {
               idx = obj["this"] ? obj.properties[0].name : obj;
             }
@@ -6055,29 +6078,38 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Assign.prototype.compileConditional = function(o) {
-      var left, right, _ref4;
-      _ref4 = this.variable.cacheReference(o), left = _ref4[0], right = _ref4[1];
+      var fragments, left, right, _ref2;
+      _ref2 = this.variable.cacheReference(o), left = _ref2[0], right = _ref2[1];
       if (!left.properties.length && left.base instanceof Literal && left.base.value !== "this" && !o.scope.check(left.base.value)) {
         this.variable.error("the variable \"" + left.base.value + "\" can't be assigned with " + this.context + " because it has not been declared before");
       }
       if (__indexOf.call(this.context, "?") >= 0) {
         o.isExistentialEquals = true;
+        return new If(new Existence(left), right, {
+          type: 'if'
+        }).addElse(new Assign(right, this.value, '=')).compileToFragments(o);
+      } else {
+        fragments = new Op(this.context.slice(0, -1), left, new Assign(right, this.value, '=')).compileToFragments(o);
+        if (o.level <= LEVEL_LIST) {
+          return fragments;
+        } else {
+          return this.wrapInBraces(fragments);
+        }
       }
-      return new Op(this.context.slice(0, -1), left, new Assign(right, this.value, '=')).compileToFragments(o);
     };
 
     Assign.prototype.compileSplice = function(o) {
-      var answer, exclusive, from, fromDecl, fromRef, name, to, valDef, valRef, _ref4, _ref5, _ref6;
-      _ref4 = this.variable.properties.pop().range, from = _ref4.from, to = _ref4.to, exclusive = _ref4.exclusive;
+      var answer, exclusive, from, fromDecl, fromRef, name, to, valDef, valRef, _ref2, _ref3, _ref4;
+      _ref2 = this.variable.properties.pop().range, from = _ref2.from, to = _ref2.to, exclusive = _ref2.exclusive;
       name = this.variable.compile(o);
       if (from) {
-        _ref5 = this.cacheToCodeFragments(from.cache(o, LEVEL_OP)), fromDecl = _ref5[0], fromRef = _ref5[1];
+        _ref3 = this.cacheToCodeFragments(from.cache(o, LEVEL_OP)), fromDecl = _ref3[0], fromRef = _ref3[1];
       } else {
         fromDecl = fromRef = '0';
       }
       if (to) {
-        if ((from != null ? from.isSimpleNumber() : void 0) && to.isSimpleNumber()) {
-          to = +to.compile(o) - +fromRef;
+        if (from instanceof Value && from.isSimpleNumber() && to instanceof Value && to.isSimpleNumber()) {
+          to = to.compile(o) - fromRef;
           if (!exclusive) {
             to += 1;
           }
@@ -6090,7 +6122,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       } else {
         to = "9e9";
       }
-      _ref6 = this.value.cache(o, LEVEL_LIST), valDef = _ref6[0], valRef = _ref6[1];
+      _ref4 = this.value.cache(o, LEVEL_LIST), valDef = _ref4[0], valRef = _ref4[1];
       answer = [].concat(this.makeCode("[].splice.apply(" + name + ", [" + fromDecl + ", " + to + "].concat("), valDef, this.makeCode(")), "), valRef);
       if (o.level > LEVEL_TOP) {
         return this.wrapInBraces(answer);
@@ -6110,9 +6142,6 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       this.params = params || [];
       this.body = body || new Block;
       this.bound = tag === 'boundfunc';
-      if (this.bound) {
-        this.context = '_this';
-      }
     }
 
     Code.prototype.children = ['params', 'body'];
@@ -6123,29 +6152,43 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
 
     Code.prototype.jumps = NO;
 
+    Code.prototype.makeScope = function(parentScope) {
+      return new Scope(parentScope, this.body, this);
+    };
+
     Code.prototype.compileNode = function(o) {
-      var answer, code, exprs, i, idt, lit, p, param, params, ref, splats, uniqs, val, wasEmpty, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _m, _ref4, _ref5, _ref6, _ref7, _ref8;
-      o.scope = new Scope(o.scope, this.body, this);
+      var answer, boundfunc, code, exprs, i, lit, p, param, params, ref, splats, uniqs, val, wasEmpty, wrapper, _i, _j, _k, _l, _len, _len1, _len2, _len3, _len4, _len5, _m, _n, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+      if (this.bound && ((_ref2 = o.scope.method) != null ? _ref2.bound : void 0)) {
+        this.context = o.scope.method.context;
+      }
+      if (this.bound && !this.context) {
+        this.context = '_this';
+        wrapper = new Code([new Param(new Literal(this.context))], new Block([this]));
+        boundfunc = new Call(wrapper, [new Literal('this')]);
+        boundfunc.updateLocationDataIfMissing(this.locationData);
+        return boundfunc.compileNode(o);
+      }
+      o.scope = del(o, 'classScope') || this.makeScope(o.scope);
       o.scope.shared = del(o, 'sharedScope');
       o.indent += TAB;
       delete o.bare;
       delete o.isExistentialEquals;
       params = [];
       exprs = [];
-      this.eachParamName(function(name) {
-        if (!o.scope.check(name)) {
-          return o.scope.parameter(name);
-        }
-      });
+      _ref3 = this.params;
+      for (_i = 0, _len = _ref3.length; _i < _len; _i++) {
+        param = _ref3[_i];
+        o.scope.parameter(param.asReference(o));
+      }
       _ref4 = this.params;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        param = _ref4[_i];
+      for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
+        param = _ref4[_j];
         if (!param.splat) {
           continue;
         }
         _ref5 = this.params;
-        for (_j = 0, _len1 = _ref5.length; _j < _len1; _j++) {
-          p = _ref5[_j].name;
+        for (_k = 0, _len2 = _ref5.length; _k < _len2; _k++) {
+          p = _ref5[_k].name;
           if (p["this"]) {
             p = p.properties[0].name;
           }
@@ -6154,11 +6197,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
           }
         }
         splats = new Assign(new Value(new Arr((function() {
-          var _k, _len2, _ref6, _results;
+          var _l, _len3, _ref6, _results;
           _ref6 = this.params;
           _results = [];
-          for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-            p = _ref6[_k];
+          for (_l = 0, _len3 = _ref6.length; _l < _len3; _l++) {
+            p = _ref6[_l];
             _results.push(p.asReference(o));
           }
           return _results;
@@ -6166,8 +6209,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         break;
       }
       _ref6 = this.params;
-      for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
-        param = _ref6[_k];
+      for (_l = 0, _len3 = _ref6.length; _l < _len3; _l++) {
+        param = _ref6[_l];
         if (param.isComplex()) {
           val = ref = param.asReference(o);
           if (param.value) {
@@ -6195,7 +6238,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       if (exprs.length) {
         (_ref7 = this.body.expressions).unshift.apply(_ref7, exprs);
       }
-      for (i = _l = 0, _len3 = params.length; _l < _len3; i = ++_l) {
+      for (i = _m = 0, _len4 = params.length; _m < _len4; i = ++_m) {
         p = params[i];
         params[i] = p.compileToFragments(o);
         o.scope.parameter(fragmentsToText(params[i]));
@@ -6210,21 +6253,13 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       if (!(wasEmpty || this.noReturn)) {
         this.body.makeReturn();
       }
-      if (this.bound) {
-        if ((_ref8 = o.scope.parent.method) != null ? _ref8.bound : void 0) {
-          this.bound = this.context = o.scope.parent.method.context;
-        } else if (!this["static"]) {
-          o.scope.parent.assign('_this', 'this');
-        }
-      }
-      idt = o.indent;
       code = 'function';
       if (this.ctor) {
         code += ' ' + this.name;
       }
       code += '(';
       answer = [this.makeCode(code)];
-      for (i = _m = 0, _len4 = params.length; _m < _len4; i = ++_m) {
+      for (i = _n = 0, _len5 = params.length; _n < _len5; i = ++_n) {
         p = params[i];
         if (i) {
           answer.push(this.makeCode(", "));
@@ -6247,11 +6282,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Code.prototype.eachParamName = function(iterator) {
-      var param, _i, _len, _ref4, _results;
-      _ref4 = this.params;
+      var param, _i, _len, _ref2, _results;
+      _ref2 = this.params;
       _results = [];
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        param = _ref4[_i];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        param = _ref2[_i];
         _results.push(param.eachName(iterator));
       }
       return _results;
@@ -6271,11 +6306,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     __extends(Param, _super);
 
     function Param(name, value, splat) {
-      var _ref4;
+      var _ref2;
       this.name = name;
       this.value = value;
       this.splat = splat;
-      if (_ref4 = (name = this.name.unwrapAll().value), __indexOf.call(STRICT_PROSCRIBED, _ref4) >= 0) {
+      if (_ref2 = (name = this.name.unwrapAll().value), __indexOf.call(STRICT_PROSCRIBED, _ref2) >= 0) {
         this.name.error("parameter name \"" + name + "\" is not allowed");
       }
     }
@@ -6304,6 +6339,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       if (this.splat) {
         node = new Splat(node);
       }
+      node.updateLocationDataIfMissing(this.locationData);
       return this.reference = node;
     };
 
@@ -6312,7 +6348,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Param.prototype.eachName = function(iterator, name) {
-      var atParam, node, obj, _i, _len, _ref4;
+      var atParam, node, obj, _i, _len, _ref2;
       if (name == null) {
         name = this.name;
       }
@@ -6329,9 +6365,9 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       if (name instanceof Value) {
         return atParam(name);
       }
-      _ref4 = name.objects;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        obj = _ref4[_i];
+      _ref2 = name.objects;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        obj = _ref2[_i];
         if (obj instanceof Assign) {
           this.eachName(iterator, obj.value.unwrap());
         } else if (obj instanceof Splat) {
@@ -6407,11 +6443,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         return args[0].concat(node.makeCode(".concat("), concatPart, node.makeCode(")"));
       }
       base = (function() {
-        var _j, _len1, _ref4, _results;
-        _ref4 = list.slice(0, index);
+        var _j, _len1, _ref2, _results;
+        _ref2 = list.slice(0, index);
         _results = [];
-        for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
-          node = _ref4[_j];
+        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+          node = _ref2[_j];
           _results.push(node.compileToFragments(o, LEVEL_LIST));
         }
         return _results;
@@ -6454,17 +6490,17 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     While.prototype.jumps = function() {
-      var expressions, node, _i, _len;
+      var expressions, jumpNode, node, _i, _len;
       expressions = this.body.expressions;
       if (!expressions.length) {
         return false;
       }
       for (_i = 0, _len = expressions.length; _i < _len; _i++) {
         node = expressions[_i];
-        if (node.jumps({
+        if (jumpNode = node.jumps({
           loop: true
         })) {
-          return node;
+          return jumpNode;
         }
       }
       return false;
@@ -6551,17 +6587,17 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Op.prototype.isComplex = function() {
-      var _ref4;
-      return !(this.isUnary() && ((_ref4 = this.operator) === '+' || _ref4 === '-')) || this.first.isComplex();
+      var _ref2;
+      return !(this.isUnary() && ((_ref2 = this.operator) === '+' || _ref2 === '-')) || this.first.isComplex();
     };
 
     Op.prototype.isChainable = function() {
-      var _ref4;
-      return (_ref4 = this.operator) === '<' || _ref4 === '>' || _ref4 === '>=' || _ref4 === '<=' || _ref4 === '===' || _ref4 === '!==';
+      var _ref2;
+      return (_ref2 = this.operator) === '<' || _ref2 === '>' || _ref2 === '>=' || _ref2 === '<=' || _ref2 === '===' || _ref2 === '!==';
     };
 
     Op.prototype.invert = function() {
-      var allInvertable, curr, fst, op, _ref4;
+      var allInvertable, curr, fst, op, _ref2;
       if (this.isChainable() && this.first.isChainable()) {
         allInvertable = true;
         curr = this;
@@ -6587,7 +6623,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         return this;
       } else if (this.second) {
         return new Parens(this).invert();
-      } else if (this.operator === '!' && (fst = this.first.unwrap()) instanceof Op && ((_ref4 = fst.operator) === '!' || _ref4 === 'in' || _ref4 === 'instanceof')) {
+      } else if (this.operator === '!' && (fst = this.first.unwrap()) instanceof Op && ((_ref2 = fst.operator) === '!' || _ref2 === 'in' || _ref2 === 'instanceof')) {
         return fst;
       } else {
         return new Op('!', this);
@@ -6595,17 +6631,17 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Op.prototype.unfoldSoak = function(o) {
-      var _ref4;
-      return ((_ref4 = this.operator) === '++' || _ref4 === '--' || _ref4 === 'delete') && unfoldSoak(o, this, 'first');
+      var _ref2;
+      return ((_ref2 = this.operator) === '++' || _ref2 === '--' || _ref2 === 'delete') && unfoldSoak(o, this, 'first');
     };
 
     Op.prototype.generateDo = function(exp) {
-      var call, func, param, passedParams, ref, _i, _len, _ref4;
+      var call, func, param, passedParams, ref, _i, _len, _ref2;
       passedParams = [];
       func = exp instanceof Assign && (ref = exp.value.unwrap()) instanceof Code ? ref : exp;
-      _ref4 = func.params || [];
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        param = _ref4[_i];
+      _ref2 = func.params || [];
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        param = _ref2[_i];
         if (param.value) {
           passedParams.push(param.value);
           delete param.value;
@@ -6619,7 +6655,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Op.prototype.compileNode = function(o) {
-      var answer, isChain, _ref4, _ref5;
+      var answer, isChain, _ref2, _ref3;
       isChain = this.isChainable() && this.first.isChainable();
       if (!isChain) {
         this.first.front = this.front;
@@ -6627,7 +6663,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       if (this.operator === 'delete' && o.scope.check(this.first.unwrapAll().value)) {
         this.error('delete operand may not be argument or var');
       }
-      if (((_ref4 = this.operator) === '--' || _ref4 === '++') && (_ref5 = this.first.unwrapAll().value, __indexOf.call(STRICT_PROSCRIBED, _ref5) >= 0)) {
+      if (((_ref2 = this.operator) === '--' || _ref2 === '++') && (_ref3 = this.first.unwrapAll().value, __indexOf.call(STRICT_PROSCRIBED, _ref3) >= 0)) {
         this.error("cannot increment/decrement \"" + (this.first.unwrapAll().value) + "\"");
       }
       if (this.isUnary()) {
@@ -6648,8 +6684,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     Op.prototype.compileChain = function(o) {
-      var fragments, fst, shared, _ref4;
-      _ref4 = this.first.second.cache(o), this.first.second = _ref4[0], shared = _ref4[1];
+      var fragments, fst, shared, _ref2;
+      _ref2 = this.first.second.cache(o), this.first.second = _ref2[0], shared = _ref2[1];
       fst = this.first.compileToFragments(o, LEVEL_OP);
       fragments = fst.concat(this.makeCode(" " + (this.invert ? '&&' : '||') + " "), shared.compileToFragments(o), this.makeCode(" " + this.operator + " "), this.second.compileToFragments(o, LEVEL_OP));
       return this.wrapInBraces(fragments);
@@ -6657,7 +6693,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
 
     Op.prototype.compileExistence = function(o) {
       var fst, ref;
-      if (!o.isExistentialEquals && this.first.isComplex()) {
+      if (this.first.isComplex()) {
         ref = new Literal(o.scope.freeVariable('ref'));
         fst = new Parens(new Assign(ref, this.first));
       } else {
@@ -6716,11 +6752,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     In.prototype.invert = NEGATE;
 
     In.prototype.compileNode = function(o) {
-      var hasSplat, obj, _i, _len, _ref4;
+      var hasSplat, obj, _i, _len, _ref2;
       if (this.array instanceof Value && this.array.isArray()) {
-        _ref4 = this.array.base.objects;
-        for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-          obj = _ref4[_i];
+        _ref2 = this.array.base.objects;
+        for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+          obj = _ref2[_i];
           if (!(obj instanceof Splat)) {
             continue;
           }
@@ -6735,16 +6771,16 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     In.prototype.compileOrTest = function(o) {
-      var cmp, cnj, i, item, ref, sub, tests, _i, _len, _ref4, _ref5, _ref6;
+      var cmp, cnj, i, item, ref, sub, tests, _i, _len, _ref2, _ref3, _ref4;
       if (this.array.base.objects.length === 0) {
         return [this.makeCode("" + (!!this.negated))];
       }
-      _ref4 = this.object.cache(o, LEVEL_OP), sub = _ref4[0], ref = _ref4[1];
-      _ref5 = this.negated ? [' !== ', ' && '] : [' === ', ' || '], cmp = _ref5[0], cnj = _ref5[1];
+      _ref2 = this.object.cache(o, LEVEL_OP), sub = _ref2[0], ref = _ref2[1];
+      _ref3 = this.negated ? [' !== ', ' && '] : [' === ', ' || '], cmp = _ref3[0], cnj = _ref3[1];
       tests = [];
-      _ref6 = this.array.base.objects;
-      for (i = _i = 0, _len = _ref6.length; _i < _len; i = ++_i) {
-        item = _ref6[i];
+      _ref4 = this.array.base.objects;
+      for (i = _i = 0, _len = _ref4.length; _i < _len; i = ++_i) {
+        item = _ref4[i];
         if (i) {
           tests.push(this.makeCode(cnj));
         }
@@ -6758,8 +6794,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     In.prototype.compileLoopTest = function(o) {
-      var fragments, ref, sub, _ref4;
-      _ref4 = this.object.cache(o, LEVEL_LIST), sub = _ref4[0], ref = _ref4[1];
+      var fragments, ref, sub, _ref2;
+      _ref2 = this.object.cache(o, LEVEL_LIST), sub = _ref2[0], ref = _ref2[1];
       fragments = [].concat(this.makeCode(utility('indexOf') + ".call("), this.array.compileToFragments(o, LEVEL_LIST), this.makeCode(", "), ref, this.makeCode(") " + (this.negated ? '< 0' : '>= 0')));
       if (fragmentsToText(sub) === fragmentsToText(ref)) {
         return fragments;
@@ -6795,8 +6831,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     Try.prototype.isStatement = YES;
 
     Try.prototype.jumps = function(o) {
-      var _ref4;
-      return this.attempt.jumps(o) || ((_ref4 = this.recovery) != null ? _ref4.jumps(o) : void 0);
+      var _ref2;
+      return this.attempt.jumps(o) || ((_ref2 = this.recovery) != null ? _ref2.jumps(o) : void 0);
     };
 
     Try.prototype.makeReturn = function(res) {
@@ -6857,11 +6893,11 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     Existence.prototype.invert = NEGATE;
 
     Existence.prototype.compileNode = function(o) {
-      var cmp, cnj, code, _ref4;
+      var cmp, cnj, code, _ref2;
       this.expression.front = this.front;
       code = this.expression.compile(o, LEVEL_OP);
       if (IDENTIFIER.test(code) && !o.scope.check(code)) {
-        _ref4 = this.negated ? ['===', '||'] : ['!==', '&&'], cmp = _ref4[0], cnj = _ref4[1];
+        _ref2 = this.negated ? ['===', '||'] : ['!==', '&&'], cmp = _ref2[0], cnj = _ref2[1];
         code = "typeof " + code + " " + cmp + " \"undefined\" " + cnj + " " + code + " " + cmp + " null";
       } else {
         code = "" + code + " " + (this.negated ? '==' : '!=') + " null";
@@ -6914,13 +6950,13 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     __extends(For, _super);
 
     function For(body, source) {
-      var _ref4;
+      var _ref2;
       this.source = source.source, this.guard = source.guard, this.step = source.step, this.name = source.name, this.index = source.index;
       this.body = Block.wrap([body]);
       this.own = !!source.own;
       this.object = !!source.object;
       if (this.object) {
-        _ref4 = [this.index, this.name], this.name = _ref4[0], this.index = _ref4[1];
+        _ref2 = [this.index, this.name], this.name = _ref2[0], this.index = _ref2[1];
       }
       if (this.index instanceof Value) {
         this.index.error('index cannot be a pattern matching expression');
@@ -6934,7 +6970,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
         this.name.error('cannot pattern match over range loops');
       }
       if (this.own && !this.object) {
-        this.index.error('cannot use own with for-in');
+        this.name.error('cannot use own with for-in');
       }
       this.returns = false;
     }
@@ -6942,9 +6978,9 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     For.prototype.children = ['body', 'source', 'guard', 'step'];
 
     For.prototype.compileNode = function(o) {
-      var body, bodyFragments, compare, compareDown, declare, declareDown, defPart, defPartFragments, down, forPartFragments, guardPart, idt1, increment, index, ivar, kvar, kvarAssign, lastJumps, lvar, name, namePart, ref, resultPart, returnResult, rvar, scope, source, step, stepNum, stepVar, svar, varPart, _ref4, _ref5;
+      var body, bodyFragments, compare, compareDown, declare, declareDown, defPart, defPartFragments, down, forPartFragments, guardPart, idt1, increment, index, ivar, kvar, kvarAssign, lastJumps, lvar, name, namePart, ref, resultPart, returnResult, rvar, scope, source, step, stepNum, stepVar, svar, varPart, _ref2, _ref3;
       body = Block.wrap([this.body]);
-      lastJumps = (_ref4 = last(body.expressions)) != null ? _ref4.jumps() : void 0;
+      lastJumps = (_ref2 = last(body.expressions)) != null ? _ref2.jumps() : void 0;
       if (lastJumps && lastJumps instanceof Return) {
         this.returns = false;
       }
@@ -6965,8 +7001,8 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
       kvar = (this.range && name) || index || ivar;
       kvarAssign = kvar !== ivar ? "" + kvar + " = " : "";
       if (this.step && !this.range) {
-        _ref5 = this.cacheToCodeFragments(this.step.cache(o, LEVEL_LIST)), step = _ref5[0], stepVar = _ref5[1];
-        stepNum = stepVar.match(SIMPLENUM);
+        _ref3 = this.cacheToCodeFragments(this.step.cache(o, LEVEL_LIST)), step = _ref3[0], stepVar = _ref3[1];
+        stepNum = stepVar.match(NUMBER);
       }
       if (this.pattern) {
         name = ivar;
@@ -6994,7 +7030,7 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
           if (step !== stepVar) {
             defPart += "" + this.tab + step + ";\n";
           }
-          if (!(this.step && stepNum && (down = +stepNum < 0))) {
+          if (!(this.step && stepNum && (down = parseNum(stepNum[0]) < 0))) {
             lvar = scope.freeVariable('len');
           }
           declare = "" + kvarAssign + ivar + " = 0, " + lvar + " = " + svar + ".length";
@@ -7055,24 +7091,24 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     For.prototype.pluckDirectCall = function(o, body) {
-      var base, defs, expr, fn, idx, ref, val, _i, _len, _ref4, _ref5, _ref6, _ref7, _ref8, _ref9;
+      var base, defs, expr, fn, idx, ref, val, _i, _len, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
       defs = [];
-      _ref4 = body.expressions;
-      for (idx = _i = 0, _len = _ref4.length; _i < _len; idx = ++_i) {
-        expr = _ref4[idx];
+      _ref2 = body.expressions;
+      for (idx = _i = 0, _len = _ref2.length; _i < _len; idx = ++_i) {
+        expr = _ref2[idx];
         expr = expr.unwrapAll();
         if (!(expr instanceof Call)) {
           continue;
         }
-        val = expr.variable.unwrapAll();
-        if (!((val instanceof Code) || (val instanceof Value && ((_ref5 = val.base) != null ? _ref5.unwrapAll() : void 0) instanceof Code && val.properties.length === 1 && ((_ref6 = (_ref7 = val.properties[0].name) != null ? _ref7.value : void 0) === 'call' || _ref6 === 'apply')))) {
+        val = (_ref3 = expr.variable) != null ? _ref3.unwrapAll() : void 0;
+        if (!((val instanceof Code) || (val instanceof Value && ((_ref4 = val.base) != null ? _ref4.unwrapAll() : void 0) instanceof Code && val.properties.length === 1 && ((_ref5 = (_ref6 = val.properties[0].name) != null ? _ref6.value : void 0) === 'call' || _ref5 === 'apply')))) {
           continue;
         }
-        fn = ((_ref8 = val.base) != null ? _ref8.unwrapAll() : void 0) || val;
+        fn = ((_ref7 = val.base) != null ? _ref7.unwrapAll() : void 0) || val;
         ref = new Literal(o.scope.freeVariable('fn'));
         base = new Value(ref);
         if (val.base) {
-          _ref9 = [base, val], val.base = _ref9[0], base = _ref9[1];
+          _ref8 = [base, val], val.base = _ref8[0], base = _ref8[1];
         }
         body.expressions[idx] = new Call(base, expr.args);
         defs = defs.concat(this.makeCode(this.tab), new Assign(ref, fn).compileToFragments(o, LEVEL_TOP), this.makeCode(';\n'));
@@ -7098,49 +7134,49 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     Switch.prototype.isStatement = YES;
 
     Switch.prototype.jumps = function(o) {
-      var block, conds, _i, _len, _ref4, _ref5, _ref6;
+      var block, conds, jumpNode, _i, _len, _ref2, _ref3, _ref4;
       if (o == null) {
         o = {
           block: true
         };
       }
-      _ref4 = this.cases;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        _ref5 = _ref4[_i], conds = _ref5[0], block = _ref5[1];
-        if (block.jumps(o)) {
-          return block;
+      _ref2 = this.cases;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        _ref3 = _ref2[_i], conds = _ref3[0], block = _ref3[1];
+        if (jumpNode = block.jumps(o)) {
+          return jumpNode;
         }
       }
-      return (_ref6 = this.otherwise) != null ? _ref6.jumps(o) : void 0;
+      return (_ref4 = this.otherwise) != null ? _ref4.jumps(o) : void 0;
     };
 
     Switch.prototype.makeReturn = function(res) {
-      var pair, _i, _len, _ref4, _ref5;
-      _ref4 = this.cases;
-      for (_i = 0, _len = _ref4.length; _i < _len; _i++) {
-        pair = _ref4[_i];
+      var pair, _i, _len, _ref2, _ref3;
+      _ref2 = this.cases;
+      for (_i = 0, _len = _ref2.length; _i < _len; _i++) {
+        pair = _ref2[_i];
         pair[1].makeReturn(res);
       }
       if (res) {
         this.otherwise || (this.otherwise = new Block([new Literal('void 0')]));
       }
-      if ((_ref5 = this.otherwise) != null) {
-        _ref5.makeReturn(res);
+      if ((_ref3 = this.otherwise) != null) {
+        _ref3.makeReturn(res);
       }
       return this;
     };
 
     Switch.prototype.compileNode = function(o) {
-      var block, body, cond, conditions, expr, fragments, i, idt1, idt2, _i, _j, _len, _len1, _ref4, _ref5, _ref6;
+      var block, body, cond, conditions, expr, fragments, i, idt1, idt2, _i, _j, _len, _len1, _ref2, _ref3, _ref4;
       idt1 = o.indent + TAB;
       idt2 = o.indent = idt1 + TAB;
       fragments = [].concat(this.makeCode(this.tab + "switch ("), (this.subject ? this.subject.compileToFragments(o, LEVEL_PAREN) : this.makeCode("false")), this.makeCode(") {\n"));
-      _ref4 = this.cases;
-      for (i = _i = 0, _len = _ref4.length; _i < _len; i = ++_i) {
-        _ref5 = _ref4[i], conditions = _ref5[0], block = _ref5[1];
-        _ref6 = flatten([conditions]);
-        for (_j = 0, _len1 = _ref6.length; _j < _len1; _j++) {
-          cond = _ref6[_j];
+      _ref2 = this.cases;
+      for (i = _i = 0, _len = _ref2.length; _i < _len; i = ++_i) {
+        _ref3 = _ref2[i], conditions = _ref3[0], block = _ref3[1];
+        _ref4 = flatten([conditions]);
+        for (_j = 0, _len1 = _ref4.length; _j < _len1; _j++) {
+          cond = _ref4[_j];
           if (!this.subject) {
             cond = cond.invert();
           }
@@ -7186,13 +7222,13 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     If.prototype.children = ['condition', 'body', 'elseBody'];
 
     If.prototype.bodyNode = function() {
-      var _ref4;
-      return (_ref4 = this.body) != null ? _ref4.unwrap() : void 0;
+      var _ref2;
+      return (_ref2 = this.body) != null ? _ref2.unwrap() : void 0;
     };
 
     If.prototype.elseBodyNode = function() {
-      var _ref4;
-      return (_ref4 = this.elseBody) != null ? _ref4.unwrap() : void 0;
+      var _ref2;
+      return (_ref2 = this.elseBody) != null ? _ref2.unwrap() : void 0;
     };
 
     If.prototype.addElse = function(elseBody) {
@@ -7207,13 +7243,13 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
     };
 
     If.prototype.isStatement = function(o) {
-      var _ref4;
-      return (o != null ? o.level : void 0) === LEVEL_TOP || this.bodyNode().isStatement(o) || ((_ref4 = this.elseBodyNode()) != null ? _ref4.isStatement(o) : void 0);
+      var _ref2;
+      return (o != null ? o.level : void 0) === LEVEL_TOP || this.bodyNode().isStatement(o) || ((_ref2 = this.elseBodyNode()) != null ? _ref2.isStatement(o) : void 0);
     };
 
     If.prototype.jumps = function(o) {
-      var _ref4;
-      return this.body.jumps(o) || ((_ref4 = this.elseBody) != null ? _ref4.jumps(o) : void 0);
+      var _ref2;
+      return this.body.jumps(o) || ((_ref2 = this.elseBody) != null ? _ref2.jumps(o) : void 0);
     };
 
     If.prototype.compileNode = function(o) {
@@ -7295,52 +7331,6 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
 
   })(Base);
 
-  Closure = {
-    wrap: function(expressions, statement, noReturn) {
-      var args, argumentsNode, call, func, meth;
-      if (expressions.jumps()) {
-        return expressions;
-      }
-      func = new Code([], Block.wrap([expressions]));
-      args = [];
-      argumentsNode = expressions.contains(this.isLiteralArguments);
-      if (argumentsNode && expressions.classBody) {
-        argumentsNode.error("Class bodies shouldn't reference arguments");
-      }
-      if (argumentsNode || expressions.contains(this.isLiteralThis)) {
-        meth = new Literal(argumentsNode ? 'apply' : 'call');
-        args = [new Literal('this')];
-        if (argumentsNode) {
-          args.push(new Literal('arguments'));
-        }
-        func = new Value(func, [new Access(meth)]);
-      }
-      func.noReturn = noReturn;
-      call = new Call(func, args);
-      if (statement) {
-        return Block.wrap([call]);
-      } else {
-        return call;
-      }
-    },
-    isLiteralArguments: function(node) {
-      return node instanceof Literal && node.value === 'arguments' && !node.asKey;
-    },
-    isLiteralThis: function(node) {
-      return (node instanceof Literal && node.value === 'this' && !node.asKey) || (node instanceof Code && node.bound) || (node instanceof Call && node.isSuper);
-    }
-  };
-
-  unfoldSoak = function(o, parent, name) {
-    var ifn;
-    if (!(ifn = parent[name].unfoldSoak(o))) {
-      return;
-    }
-    parent[name] = ifn.body;
-    ifn.body = new Value(parent);
-    return ifn;
-  };
-
   UTILITIES = {
     "extends": function() {
       return "function(child, parent) { for (var key in parent) { if (" + (utility('hasProp')) + ".call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; }";
@@ -7379,9 +7369,15 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
 
   SIMPLENUM = /^[+-]?\d+$/;
 
-  METHOD_DEF = RegExp("^(?:(" + IDENTIFIER_STR + ")\\.prototype(?:\\.(" + IDENTIFIER_STR + ")|\\[(\"(?:[^\\\\\"\\r\\n]|\\\\.)*\"|'(?:[^\\\\'\\r\\n]|\\\\.)*')\\]|\\[(0x[\\da-fA-F]+|\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)\\]))|(" + IDENTIFIER_STR + ")$");
+  HEXNUM = /^[+-]?0x[\da-f]+/i;
+
+  NUMBER = /^[+-]?(?:0x[\da-f]+|\d*\.?\d+(?:e[+-]?\d+)?)$/i;
+
+  METHOD_DEF = RegExp("^(" + IDENTIFIER_STR + ")(\\.prototype)?(?:\\.(" + IDENTIFIER_STR + ")|\\[(\"(?:[^\\\\\"\\r\\n]|\\\\.)*\"|'(?:[^\\\\'\\r\\n]|\\\\.)*')\\]|\\[(0x[\\da-fA-F]+|\\d*\\.?\\d+(?:[eE][+-]?\\d+)?)\\])$");
 
   IS_STRING = /^['"]/;
+
+  IS_REGEX = /^\//;
 
   utility = function(name) {
     var ref;
@@ -7393,6 +7389,34 @@ define('ace/mode/coffee/nodes', ['require', 'exports', 'module' , 'ace/mode/coff
   multident = function(code, tab) {
     code = code.replace(/\n/g, '$&' + tab);
     return code.replace(/\s+$/, '');
+  };
+
+  parseNum = function(x) {
+    if (x == null) {
+      return 0;
+    } else if (x.match(HEXNUM)) {
+      return parseInt(x, 16);
+    } else {
+      return parseFloat(x);
+    }
+  };
+
+  isLiteralArguments = function(node) {
+    return node instanceof Literal && node.value === 'arguments' && !node.asKey;
+  };
+
+  isLiteralThis = function(node) {
+    return (node instanceof Literal && node.value === 'this' && !node.asKey) || (node instanceof Code && node.bound) || (node instanceof Call && node.isSuper);
+  };
+
+  unfoldSoak = function(o, parent, name) {
+    var ifn;
+    if (!(ifn = parent[name].unfoldSoak(o))) {
+      return;
+    }
+    parent[name] = ifn.body;
+    ifn.body = new Value(parent);
+    return ifn;
   };
 
 

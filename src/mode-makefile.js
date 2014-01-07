@@ -53,6 +53,7 @@ oop.inherits(Mode, TextMode);
     this.lineCommentStart = "#";    
     this.$indentWithTabs = true;
     
+    this.$id = "ace/mode/makefile";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

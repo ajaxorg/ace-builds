@@ -51,6 +51,7 @@ oop.inherits(Mode, TextMode);
 (function() {
     this.lineCommentStart = "/\\*";
     this.blockComment = {start: "/*", end: "*/"};
+    this.$id = "ace/mode/autohotkey";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

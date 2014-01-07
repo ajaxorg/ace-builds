@@ -29,7 +29,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/multi_select', 'ace/ext/spellcheck', 'kitchen-sink/inline_editor', 'kitchen-sink/dev_util', 'kitchen-sink/file_drop', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/worker/worker_client', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/snippets', 'ace/ext/language_tools'], function(require, exports, module) {
+define('kitchen-sink/demo', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/multi_select', 'ace/ext/spellcheck', 'kitchen-sink/inline_editor', 'kitchen-sink/dev_util', 'kitchen-sink/file_drop', 'ace/config', 'ace/lib/dom', 'ace/lib/net', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event', 'ace/theme/textmate', 'ace/edit_session', 'ace/undomanager', 'ace/keyboard/hash_handler', 'ace/virtual_renderer', 'ace/editor', 'ace/ext/whitespace', 'kitchen-sink/doclist', 'ace/ext/modelist', 'ace/ext/themelist', 'kitchen-sink/layout', 'kitchen-sink/token_tooltip', 'kitchen-sink/util', 'ace/ext/elastic_tabstops_lite', 'ace/incremental_search', 'ace/worker/worker_client', 'ace/split', 'ace/keyboard/vim', 'ace/ext/statusbar', 'ace/ext/emmet', 'ace/snippets', 'ace/ext/language_tools'], function(require, exports, module) {
 
 
 require("ace/lib/fixoldbrowsers");
@@ -65,6 +65,7 @@ var whitespace = require("ace/ext/whitespace");
 
 var doclist = require("./doclist");
 var modelist = require("ace/ext/modelist");
+var themelist = require("ace/ext/themelist");
 var layout = require("./layout");
 var TokenTooltip = require("./token_tooltip").TokenTooltip;
 var util = require("./util");
@@ -355,6 +356,12 @@ function updateUIEditorOptions() {
     saveOption(behavioursEl, editor.getBehavioursEnabled());
 }
 
+themelist.themes.forEach(function(x){ x.value = x.theme });
+fillDropdown(themeEl, {
+    Bright: themelist.themes.filter(function(x){return !x.isDark}),
+    Dark: themelist.themes.filter(function(x){return x.isDark}),
+});
+
 event.addListener(themeEl, "mouseover", function(e){
     themeEl.desiredValue = e.target.value;
     if (!themeEl.$timer)
@@ -368,7 +375,7 @@ event.addListener(themeEl, "mouseout", function(e){
 });
 
 themeEl.updateTheme = function(){
-    env.split.setTheme(themeEl.desiredValue || themeEl.selectedValue);
+    env.split.setTheme((themeEl.desiredValue || themeEl.selectedValue));
     themeEl.$timer = null;
 };
 
@@ -570,7 +577,8 @@ env.editor.setOptions({
     enableSnippets: true
 });
 
-});define('ace/ext/spellcheck', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/editor', 'ace/config'], function(require, exports, module) {
+});
+define('ace/ext/spellcheck', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/editor', 'ace/config'], function(require, exports, module) {
 
 var event = require("../lib/event");
 
@@ -713,265 +721,6 @@ require("ace/commands/default_commands").commands.push({
 });
 });
 
-define('ace/line_widgets', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/range'], function(require, exports, module) {
-
-
-var oop = require("./lib/oop");
-var dom = require("./lib/dom");
-var Range = require("./range").Range;
-
-
-function LineWidgets(session) {
-    this.session = session;
-    this.session.widgetManager = this;
-    this.session.getRowLength = this.getRowLength;
-    this.session.$getWidgetScreenLength = this.$getWidgetScreenLength;
-    this.updateOnChange = this.updateOnChange.bind(this);
-    this.renderWidgets = this.renderWidgets.bind(this);
-    this.measureWidgets = this.measureWidgets.bind(this);
-    this.session._changedWidgets = [];
-    this.detach = this.detach.bind(this);
-    
-    this.session.on("change", this.updateOnChange);
-};
-
-(function() {
-    this.getRowLength = function(row) {
-        if (this.lineWidgets)
-            var h = this.lineWidgets[row] && this.lineWidgets[row].rowCount || 0;
-        else 
-            h = 0;
-        if (!this.$useWrapMode || !this.$wrapData[row]) {
-            return 1 + h;
-        } else {
-            return this.$wrapData[row].length + 1 + h;
-        }
-    };
-
-    this.$getWidgetScreenLength = function() {
-        var screenRows = 0;
-        this.lineWidgets.forEach(function(w){
-            if (w && w.rowCount)
-                screenRows +=w.rowCount;
-        });
-        return screenRows;
-    };    
-    
-    this.attach = function(editor) {
-        if (editor.widgetManager && editor.widgetManager != this)
-            editor.widgetManager.detach();
-
-        if (this.editor == editor)
-            return;
-
-        this.detach();
-        this.editor = editor;
-        
-        this.editor.on("changeSession", this.detach);
-        
-        editor.widgetManager = this;
-
-        editor.setOption("enableLineWidgets", true);
-        editor.renderer.on("beforeRender", this.measureWidgets);
-        editor.renderer.on("afterRender", this.renderWidgets);
-    };
-    this.detach = function(e) {
-        if (e && e.session == this.session)
-            return; // sometimes attach can be called before setSession
-        var editor = this.editor;
-        if (!editor)
-            return;
-
-        editor.off("changeSession", this.detach);
-        
-        this.editor = null;
-        editor.widgetManager = null;
-        
-        editor.renderer.off("beforeRender", this.measureWidgets);
-        editor.renderer.off("afterRender", this.renderWidgets);
-        this.session.lineWidgets.forEach(function(w) {
-            if (w && w.el && w.el.parentNode) {
-                w._inDocument = false;
-                w.el.parentNode.removeChild(w.el);
-            }
-        });
-    };
-
-    this.updateOnChange = function(e) {
-        var cells = this.session.lineWidgets;
-        if (!cells) return;
-            
-        var delta = e.data;
-        var range = delta.range;
-        var startRow = range.start.row;
-        var len = range.end.row - startRow;
-
-        if (len === 0) {
-        } else if (delta.action == "removeText" || delta.action == "removeLines") {
-            var removed = cells.splice(startRow + 1, len);
-            removed.forEach(function(w) {
-                w && this.removeLineWidget(w);
-            }, this);
-            this.$updateRows();
-        } else {
-            var args = Array(len);
-            args.unshift(startRow, 0);
-            cells.splice.apply(cells, args);
-            this.$updateRows();
-        }
-    };
-    
-    this.$updateRows = function() {
-        var lw = this.session.lineWidgets;
-        if (!lw) return;
-        var noWidgets = true;
-        lw.forEach(function(w, i) {
-            if (w) {
-                noWidgets = false;
-                w.row = i;
-            }
-        });
-        if (noWidgets)
-            this.session.lineWidgets = null;
-    }
-
-    this.addLineWidget = function(w) {
-        if (!this.session.lineWidgets)
-            this.session.lineWidgets = Array(this.session.getLength())
-        
-        this.session.lineWidgets[w.row] = w;
-        
-        var renderer = this.editor.renderer;
-        if (w.html && !w.el) {
-            w.el = dom.createElement("div");
-            w.el.innerHTML = w.html;
-        }
-        if (w.el) {
-            dom.addCssClass(w.el, "ace_lineWidgetContainer");
-            renderer.container.appendChild(w.el);
-            w._inDocument = true;
-        }
-        
-        if (!w.coverGutter) {
-            w.el.style.zIndex = 3;
-        }
-        if (!w.pixelHeight) {
-            w.pixelHeight = w.el.offsetHeight;
-        }
-        if (w.rowCount == null)
-            w.rowCount = w.pixelHeight / renderer.layerConfig.lineHeight;
-        
-        this.session._emit("changeFold", {data:{start:{row: w.row}}});
-        
-        this.$updateRows();
-        this.renderWidgets(null, renderer);
-        return w;
-    };
-    
-    this.removeLineWidget = function(w) {
-        w._inDocument = false;
-        if (w.el && w.el.parentNode)
-            w.el.parentNode.removeChild(w.el);
-        if (w.editor && w.editor.destroy) try {
-            w.editor.destroy();
-        } catch(e){}
-        this.session.lineWidgets[w.row] = undefined;
-        this.session._emit("changeFold", {data:{start:{row: w.row}}});
-        this.$updateRows();
-    };
-    
-    this.onWidgetChanged = function(w) {
-        this.session._changedWidgets.push(w);
-        this.editor && this.editor.renderer.updateFull();
-    };
-    
-    this.measureWidgets = function(e, renderer) {
-        var ws = this.session._changedWidgets;
-        var config = renderer.layerConfig;
-        
-        if (!ws || !ws.length) return;
-        var min = Infinity;
-        for (var i = 0; i < ws.length; i++) {
-            var w = ws[i].lineWidget;
-            if (!w._inDocument) {
-                w._inDocument = true;
-                renderer.container.appendChild(w.el);
-            }
-            
-            w.h = w.el.offsetHeight;
-            
-            if (!w.fixedWidth) {
-                w.w = w.el.offsetWidth;
-                w.screenWidth = Math.ceil(w.w / config.characterWidth);
-            }
-            
-            var rowCount = w.h / config.lineHeight;
-            if (w.coverLine) {
-                rowCount -= this.session.getRowLineCount(w.row);
-                if (rowCount < 0)
-                    rowCount = 0;
-            }
-            if (w.rowCount != rowCount) {
-                w.rowCount = rowCount;
-                if (w.row < min)
-                    min = w.row;
-            }
-        }
-        if (min != Infinity) {
-            this.session._emit("changeFold", {data:{start:{row: min}}});
-            this.session.lineWidgetWidth = null;
-        }
-        this.session._changedWidgets = [];
-    };
-    
-    this.renderWidgets = function(e, renderer) {
-        var config = renderer.layerConfig;
-        var ws = this.session.lineWidgets;
-        if (!ws)
-            return;
-        var first = Math.min(this.firstRow, config.firstRow);
-        var last = Math.max(this.lastRow, config.lastRow, ws.length);
-        
-        while (first > 0 && !ws[first])
-            first--;
-        
-        this.firstRow = config.firstRow;
-        this.lastRow = config.lastRow;
-
-        renderer.$cursorLayer.config = config;
-        for (var i = first; i <= last; i++) {
-            var w = ws[i];
-            if (!w || !w.el) continue;
-
-            if (!w._inDocument) {
-                w._inDocument = true;
-                renderer.container.appendChild(w.el);
-            }
-            var top = renderer.$cursorLayer.getPixelPosition({row: i, column:0}, true).top;
-            if (!w.coverLine)
-                top += config.lineHeight * this.session.getRowLineCount(w.row);
-            w.el.style.top = top - config.offset + "px";
-            
-            var left = w.coverGutter ? 0 : renderer.gutterWidth;
-            if (!w.fixedWidth)
-                left -= renderer.scrollLeft;
-            w.el.style.left = left + "px";
-
-            if (w.fixedWidth) {
-                w.el.style.right = renderer.scrollBar.getWidth() + "px";
-            } else {
-                w.el.style.right = "";
-            }
-        }
-    };
-    
-}).call(LineWidgets.prototype);
-
-
-exports.LineWidgets = LineWidgets;
-
-});
-
 define('kitchen-sink/dev_util', ['require', 'exports', 'module' ], function(require, exports, module) {
 function isStrict() {
     try { return !arguments.callee.caller.caller.caller}
@@ -983,14 +732,18 @@ function warn() {
     }
 }
 function def(o, key, get) {
-    Object.defineProperty(o, key, {
-        configurable: true, 
-        get: get,
-        set: function(val) {
-            delete o[key];
-            o[key] = val;
-        }
-    });
+    try {
+        Object.defineProperty(o, key, {
+            configurable: true, 
+            get: get,
+            set: function(val) {
+                delete o[key];
+                o[key] = val;
+            }
+        });
+    } catch(e) {
+        console.error(e);
+    }
 }
 def(window, "ace", function(){ warn(); return window.env.editor });
 def(window, "editor", function(){ warn(); return window.env.editor });
@@ -1080,6 +833,7 @@ var supportedModes = {
     ABAP:        ["abap"],
     ActionScript:["as"],
     ADA:         ["ada|adb"],
+    Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
     AsciiDoc:    ["asciidoc"],
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
@@ -1133,6 +887,7 @@ var supportedModes = {
     Makefile:    ["^Makefile|^GNUmakefile|^makefile|^OCamlMakefile|make"],
     MATLAB:      ["matlab"],
     Markdown:    ["md|markdown"],
+    MEL:         ["mel"],
     MySQL:       ["mysql"],
     MUSHCode:    ["mc|mush"],
     Nix:         ["nix"],
@@ -1192,7 +947,7 @@ var nameOverrides = {
 var modesByName = {};
 for (var name in supportedModes) {
     var data = supportedModes[name];
-    var displayName = nameOverrides[name] || name;
+    var displayName = (nameOverrides[name] || name).replace(/_/g, " ");
     var filename = name.toLowerCase();
     var mode = new Mode(filename, displayName, data[0]);
     modesByName[filename] = mode;
@@ -1563,6 +1318,7 @@ var docs = {
     "docs/textile.textile": {name: "Textile", wrapped: true},
 
     "docs/c9search.c9search_results": "C9 Search Results",
+    "docs/mel.mel": "MEL",
     "docs/Nix.nix": "Nix"
 };
 
@@ -1660,6 +1416,60 @@ module.exports.all = {
     "Huge documents": module.exports.hugeDocs,
     "own source": module.exports.ownSource
 };
+
+});
+
+define('ace/ext/themelist', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+var themeData = [
+    ["Chrome"         ],
+    ["Clouds"         ],
+    ["Crimson Editor" ],
+    ["Dawn"           ],
+    ["Dreamweaver"    ],
+    ["Eclipse"        ],
+    ["GitHub"         ],
+    ["Solarized Light"],
+    ["TextMate"       ],
+    ["Tomorrow"       ],
+    ["XCode"          ],
+    ["Kuroir"],
+    ["KatzenMilch"],
+    ["Ambiance"             ,"ambiance"                ,  "dark"],
+    ["Chaos"                ,"chaos"                   ,  "dark"],
+    ["Clouds Midnight"      ,"clouds_midnight"         ,  "dark"],
+    ["Cobalt"               ,"cobalt"                  ,  "dark"],
+    ["idle Fingers"         ,"idle_fingers"            ,  "dark"],
+    ["krTheme"              ,"kr_theme"                ,  "dark"],
+    ["Merbivore"            ,"merbivore"               ,  "dark"],
+    ["Merbivore Soft"       ,"merbivore_soft"          ,  "dark"],
+    ["Mono Industrial"      ,"mono_industrial"         ,  "dark"],
+    ["Monokai"              ,"monokai"                 ,  "dark"],
+    ["Pastel on dark"       ,"pastel_on_dark"          ,  "dark"],
+    ["Solarized Dark"       ,"solarized_dark"          ,  "dark"],
+    ["Terminal"             ,"terminal"                ,  "dark"],
+    ["Tomorrow Night"       ,"tomorrow_night"          ,  "dark"],
+    ["Tomorrow Night Blue"  ,"tomorrow_night_blue"     ,  "dark"],
+    ["Tomorrow Night Bright","tomorrow_night_bright"   ,  "dark"],
+    ["Tomorrow Night 80s"   ,"tomorrow_night_eighties" ,  "dark"],
+    ["Twilight"             ,"twilight"                ,  "dark"],
+    ["Vibrant Ink"          ,"vibrant_ink"             ,  "dark"]
+]
+
+
+exports.themesByName = {};
+exports.themes = themeData.map(function(data) {
+    var name = data[1] || data[0].replace(/ /g, "_").toLowerCase();
+    var theme = {
+         caption: data[0],
+         theme: "ace/theme/" + name,
+         isDark: data[2] == "dark",
+         name: name
+    };
+    exports.themesByName[name] = theme;
+    return theme;
+});
 
 });
 
@@ -2131,7 +1941,7 @@ function optgroup(values) {
     return values.map(function(item) {
         if (typeof item == "string")
             item = {name: item, caption: item};
-        return elt("option", {value: item.name}, item.caption || item.desc);
+        return elt("option", {value: item.value || item.name}, item.caption || item.desc);
     });
 }
 
@@ -5572,16 +5382,26 @@ var SnippetManager = function() {
         return scope;
     };
 
+    this.getActiveScopes = function(editor) {
+        var scope = this.$getScope(editor);
+        var scopes = [scope];
+        var snippetMap = this.snippetMap;
+        if (snippetMap[scope] && snippetMap[scope].includeScopes) {
+            scopes.push.apply(scopes, snippetMap[scope].includeScopes);
+        }
+        scopes.push("_");
+        return scopes;
+    };
+
     this.expandWithTab = function(editor) {
         var cursor = editor.getCursorPosition();
         var line = editor.session.getLine(cursor.row);
         var before = line.substring(0, cursor.column);
         var after = line.substr(cursor.column);
 
-        var scope = this.$getScope(editor);
         var snippetMap = this.snippetMap;
         var snippet;
-        [scope, "_"].some(function(scope) {
+        this.getActiveScopes(editor).some(function(scope) {
             var snippets = snippetMap[scope];
             if (snippets)
                 snippet = this.findMatchingSnippet(snippets, before, after);
@@ -5738,10 +5558,9 @@ var SnippetManager = function() {
         return list;
     };
     this.getSnippetByName = function(name, editor) {
-        var scope = editor && this.$getScope(editor);
         var snippetMap = this.snippetNameMap;
         var snippet;
-        [scope, "_"].some(function(scope) {
+        this.getActiveScopes(editor).some(function(scope) {
             var snippets = snippetMap[scope];
             if (snippets)
                 snippet = snippets[name];
@@ -5974,6 +5793,10 @@ var TabstopManager = function(editor) {
     this.keyboardHandler = new HashHandler();
     this.keyboardHandler.bindKeys({
         "Tab": function(ed) {
+            if (exports.snippetManager && exports.snippetManager.expandWithTab(ed)) {
+                return;
+            }
+
             ed.tabstopManager.tabNext(1);
         },
         "Shift-Tab": function(ed) {
@@ -6034,10 +5857,9 @@ var keyWordCompleter = {
 
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
-        var scope = snippetManager.$getScope(editor);
         var snippetMap = snippetManager.snippetMap;
         var completions = [];
-        [scope, "_"].forEach(function(scope) {
+        snippetManager.getActiveScopes(editor).forEach(function(scope) {
             var snippets = snippetMap[scope] || [];
             for (var i = snippets.length; i--;) {
                 var s = snippets[i];
@@ -6068,22 +5890,39 @@ var expandSnippet = {
             editor.execCommand("indent");
     },
     bindKey: "tab"
-}
+};
 
 var onChangeMode = function(e, editor) {
-    var mode = editor.session.$mode;
-    var id = mode.$id
-    if (!snippetManager.files) snippetManager.files = {};
-    if (id && !snippetManager.files[id]) {
-        var snippetFilePath = id.replace("mode", "snippets");
-        config.loadModule(snippetFilePath, function(m) {
-            if (m) {
-                snippetManager.files[id] = m;
-                m.snippets = snippetManager.parseSnippetFile(m.snippetText);
-                snippetManager.register(m.snippets, m.scope);
+    loadSnippetsForMode(editor.session.$mode);
+};
+
+var loadSnippetsForMode = function(mode) {
+    var id = mode.$id;
+    if (!snippetManager.files)
+        snippetManager.files = {};
+    loadSnippetFile(id);
+    if (mode.modes)
+        mode.modes.forEach(loadSnippetsForMode);
+};
+
+var loadSnippetFile = function(id) {
+    if (!id || snippetManager.files[id])
+        return;
+    var snippetFilePath = id.replace("mode", "snippets");
+    snippetManager.files[id] = {};
+    config.loadModule(snippetFilePath, function(m) {
+        if (m) {
+            snippetManager.files[id] = m;
+            m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+            snippetManager.register(m.snippets, m.scope);
+            if (m.includeScopes) {
+                snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
+                m.includeScopes.forEach(function(x) {
+                    loadSnippetFile("ace/mode/" + x);
+                });
             }
-        });
-    }
+        }
+    });
 };
 
 var Editor = require("../editor").Editor;
@@ -6091,7 +5930,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     enableBasicAutocompletion: {
         set: function(val) {
             if (val) {
-                this.completers = completers
+                this.completers = completers;
                 this.commands.addCommand(Autocomplete.startCommand);
             } else {
                 this.commands.removeCommand(Autocomplete.startCommand);
@@ -6104,7 +5943,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
             if (val) {
                 this.commands.addCommand(expandSnippet);
                 this.on("changeMode", onChangeMode);
-                onChangeMode(null, this)
+                onChangeMode(null, this);
             } else {
                 this.commands.removeCommand(expandSnippet);
                 this.off("changeMode", onChangeMode);
@@ -6127,6 +5966,7 @@ var lang = require("./lib/lang");
 var snippetManager = require("./snippets").snippetManager;
 
 var Autocomplete = function() {
+    this.autoInsert = true;
     this.keyboardHandler = new HashHandler();
     this.keyboardHandler.bindKeys(this.commands);
 
@@ -6157,6 +5997,7 @@ var Autocomplete = function() {
 
         var renderer = editor.renderer;
         if (!keepPopupPosition) {
+            this.popup.setRow(0);
             this.popup.setFontSize(editor.getFontSize());
 
             var lineHeight = renderer.layerConfig.lineHeight;
@@ -6166,7 +6007,7 @@ var Autocomplete = function() {
             
             var rect = editor.container.getBoundingClientRect();
             pos.top += rect.top - renderer.layerConfig.offset;
-            pos.left += rect.left;
+            pos.left += rect.left - editor.renderer.scrollLeft;
             pos.left += renderer.$gutterLayer.gutterWidth;
 
             this.popup.show(pos, lineHeight);
@@ -6332,8 +6173,11 @@ var Autocomplete = function() {
 
             this.completions = new FilteredList(matches);
             this.completions.setFilter(results.prefix);
-            if (!this.completions.filtered.length)
+            var filtered = this.completions.filtered;
+            if (!filtered.length)
                 return this.detach();
+            if (this.autoInsert && filtered.length == 1)
+                return this.insertMatch(filtered[0]);
             this.openPopup(this.editor, results.prefix, keepPopupPosition);
         }.bind(this));
     };
@@ -6647,6 +6491,7 @@ var AcePopup = function(parentNode) {
     popup.show = function(pos, lineHeight, topdownOnly) {
         var el = this.container;
         var screenHeight = window.innerHeight;
+        var screenWidth = window.innerWidth;
         var renderer = this.renderer;
         var maxH = renderer.$maxLines * lineHeight * 1.4;
         var top = pos.top + this.$borderSize;
@@ -6661,10 +6506,15 @@ var AcePopup = function(parentNode) {
             popup.isTopdown = true;
         }
 
-        el.style.left = pos.left + "px";
         el.style.display = "";
         this.renderer.$textLayer.checkForSizeChanges();
-
+        
+        var left = pos.left;
+        if (left + el.offsetWidth > screenWidth)
+            left = screenWidth - el.offsetWidth;
+            
+        el.style.left = left + "px";
+        
         this._signal("show");
         lastMouseEvent = null;
         popup.isOpen = true;

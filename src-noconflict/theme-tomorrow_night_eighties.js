@@ -44,9 +44,7 @@ background: #272727\
 background-color: #2D2D2D;\
 color: #CCCCCC\
 }\
-.ace-tomorrow-night-eighties .ace_constant.ace_other {\
-color: #CCCCCC\
-}\
+.ace-tomorrow-night-eighties .ace_constant.ace_other,\
 .ace-tomorrow-night-eighties .ace_cursor {\
 color: #CCCCCC\
 }\
@@ -119,6 +117,7 @@ color: #6699CC\
 color: #FFCC66\
 }\
 .ace-tomorrow-night-eighties .ace_heading,\
+.ace-tomorrow-night-eighties .ace_markup.ace_heading,\
 .ace-tomorrow-night-eighties .ace_string {\
 color: #99CC99\
 }\

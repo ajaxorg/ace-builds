@@ -885,10 +885,15 @@ var PhpWorker = exports.PhpWorker = function(sender) {
 oop.inherits(PhpWorker, Mirror);
 
 (function() {
-
+    this.setOptions = function(opts) {
+        this.inlinePhp = opts && opts.inline;
+    };
+    
     this.onUpdate = function() {
         var value = this.doc.getValue();
         var errors = [];
+        if (this.inlinePhp)
+            value = "<?" + value + "?>";
 
         var tokens = PHP.Lexer(value, {short_open_tag: 1});
         try {
@@ -916,28 +921,17 @@ oop.inherits(PhpWorker, Mirror);
 define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
-exports.inherits = (function() {
-    var createObject = Object.create || function(prototype, properties) {
-        var Type = function () {};
-        Type.prototype = prototype;
-        object = new Type();
-        object.__proto__ = prototype;
-        if (typeof properties !== 'undefined' && Object.defineProperties) {
-            Object.defineProperties(object, properties);
+exports.inherits = function(ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+            value: ctor,
+            enumerable: false,
+            writable: true,
+            configurable: true
         }
-    };
-    return function(ctor, superCtor) {
-        ctor.super_ = superCtor;
-        ctor.prototype = createObject(superCtor.prototype, {
-            constructor: {
-                value: ctor,
-                enumerable: false,
-                writable: true,
-                configurable: true
-            }
-        });
-    };
-}());
+    });
+};
 
 exports.mixin = function(obj, mixin) {
     for (var key in mixin) {

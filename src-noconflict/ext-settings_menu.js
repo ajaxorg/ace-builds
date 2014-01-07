@@ -252,7 +252,7 @@ module.exports.addEditorMenuOptions = function addEditorMenuOptions (editor) {
 
     editor.menuOptions.setTheme = themelist.themes.map(function(theme) {
         return {
-            'textContent' : theme.desc,
+            'textContent' : theme.caption,
             'value' : theme.theme
         };
     });
@@ -266,7 +266,8 @@ module.exports.addEditorMenuOptions = function addEditorMenuOptions (editor) {
 };
 
 
-});ace.define('ace/ext/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
+});
+ace.define('ace/ext/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
 var modes = [];
@@ -305,6 +306,7 @@ var supportedModes = {
     ABAP:        ["abap"],
     ActionScript:["as"],
     ADA:         ["ada|adb"],
+    Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
     AsciiDoc:    ["asciidoc"],
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
@@ -358,6 +360,7 @@ var supportedModes = {
     Makefile:    ["^Makefile|^GNUmakefile|^makefile|^OCamlMakefile|make"],
     MATLAB:      ["matlab"],
     Markdown:    ["md|markdown"],
+    MEL:         ["mel"],
     MySQL:       ["mysql"],
     MUSHCode:    ["mc|mush"],
     Nix:         ["nix"],
@@ -417,7 +420,7 @@ var nameOverrides = {
 var modesByName = {};
 for (var name in supportedModes) {
     var data = supportedModes[name];
-    var displayName = nameOverrides[name] || name;
+    var displayName = (nameOverrides[name] || name).replace(/_/g, " ");
     var filename = name.toLowerCase();
     var mode = new Mode(filename, displayName, data[0]);
     modesByName[filename] = mode;
@@ -432,62 +435,57 @@ module.exports = {
 
 });
 
-ace.define('ace/ext/themelist', ['require', 'exports', 'module' , 'ace/ext/themelist_utils/themes'], function(require, exports, module) {
-module.exports.themes = require('ace/ext/themelist_utils/themes').themes;
-module.exports.ThemeDescription = function(name) {
-    this.name = name;
-    this.desc = name.split('_'
-        ).map(
-            function(namePart) {
-                return namePart[0].toUpperCase() + namePart.slice(1);
-            }
-        ).join(' ');
-    this.theme = "ace/theme/" + name;
-};
+ace.define('ace/ext/themelist', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-module.exports.themesByName = {};
 
-module.exports.themes = module.exports.themes.map(function(name) {
-    module.exports.themesByName[name] = new module.exports.ThemeDescription(name);
-    return module.exports.themesByName[name];
+var themeData = [
+    ["Chrome"         ],
+    ["Clouds"         ],
+    ["Crimson Editor" ],
+    ["Dawn"           ],
+    ["Dreamweaver"    ],
+    ["Eclipse"        ],
+    ["GitHub"         ],
+    ["Solarized Light"],
+    ["TextMate"       ],
+    ["Tomorrow"       ],
+    ["XCode"          ],
+    ["Kuroir"],
+    ["KatzenMilch"],
+    ["Ambiance"             ,"ambiance"                ,  "dark"],
+    ["Chaos"                ,"chaos"                   ,  "dark"],
+    ["Clouds Midnight"      ,"clouds_midnight"         ,  "dark"],
+    ["Cobalt"               ,"cobalt"                  ,  "dark"],
+    ["idle Fingers"         ,"idle_fingers"            ,  "dark"],
+    ["krTheme"              ,"kr_theme"                ,  "dark"],
+    ["Merbivore"            ,"merbivore"               ,  "dark"],
+    ["Merbivore Soft"       ,"merbivore_soft"          ,  "dark"],
+    ["Mono Industrial"      ,"mono_industrial"         ,  "dark"],
+    ["Monokai"              ,"monokai"                 ,  "dark"],
+    ["Pastel on dark"       ,"pastel_on_dark"          ,  "dark"],
+    ["Solarized Dark"       ,"solarized_dark"          ,  "dark"],
+    ["Terminal"             ,"terminal"                ,  "dark"],
+    ["Tomorrow Night"       ,"tomorrow_night"          ,  "dark"],
+    ["Tomorrow Night Blue"  ,"tomorrow_night_blue"     ,  "dark"],
+    ["Tomorrow Night Bright","tomorrow_night_bright"   ,  "dark"],
+    ["Tomorrow Night 80s"   ,"tomorrow_night_eighties" ,  "dark"],
+    ["Twilight"             ,"twilight"                ,  "dark"],
+    ["Vibrant Ink"          ,"vibrant_ink"             ,  "dark"]
+]
+
+
+exports.themesByName = {};
+exports.themes = themeData.map(function(data) {
+    var name = data[1] || data[0].replace(/ /g, "_").toLowerCase();
+    var theme = {
+         caption: data[0],
+         theme: "ace/theme/" + name,
+         isDark: data[2] == "dark",
+         name: name
+    };
+    exports.themesByName[name] = theme;
+    return theme;
 });
-
-});
-
-ace.define('ace/ext/themelist_utils/themes', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-module.exports.themes = [
-    "ambiance",
-    "chaos",
-    "chrome",
-    "clouds",
-    "clouds_midnight",
-    "cobalt",
-    "crimson_editor",
-    "dawn",
-    "dreamweaver",
-    "eclipse",
-    "github",
-    "idle_fingers",
-    "kr_theme",
-    "merbivore",
-    "merbivore_soft",
-    "mono_industrial",
-    "monokai",
-    "pastel_on_dark",
-    "solarized_dark",
-    "solarized_light",
-    "terminal",
-    "textmate",
-    "tomorrow",
-    "tomorrow_night",
-    "tomorrow_night_blue",
-    "tomorrow_night_bright",
-    "tomorrow_night_eighties",
-    "twilight",
-    "vibrant_ink",
-    "xcode"
-];
 
 });
 

@@ -116,6 +116,15 @@ color: #80FFC2\
 font-style: italic;\
 color: #0088FF\
 }\
+.ace-cobalt .ace_heading,\
+.ace-cobalt .ace_markup.ace_heading {\
+color: #C8E4FD;\
+background-color: #001221\
+}\
+.ace-cobalt .ace_list,\
+.ace-cobalt .ace_markup.ace_list {\
+background-color: #130D26\
+}\
 .ace-cobalt .ace_variable {\
 color: #CCCCCC\
 }\
@@ -125,15 +134,8 @@ color: #FF80E1\
 .ace-cobalt .ace_meta.ace_tag {\
 color: #9EFFFF\
 }\
-.ace-cobalt .ace_heading {\
-color: #C8E4FD;\
-background-color: #001221\
-}\
-.ace-cobalt .ace_list {\
-background-color: #130D26\
-}\
 .ace-cobalt .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHCLSvkPAAP3AgSDTRd4AAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHCLSvkPAAP3AgSDTRd4AAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

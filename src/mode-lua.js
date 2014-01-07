@@ -154,6 +154,7 @@ oop.inherits(Mode, TextMode);
         return worker;
     };
 
+    this.$id = "ace/mode/lua";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

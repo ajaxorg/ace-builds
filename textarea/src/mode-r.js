@@ -57,6 +57,7 @@ __ace_shadowed__.define('ace/mode/r', ['require', 'exports', 'module' , 'ace/ran
    (function()
    {
       this.lineCommentStart = "#";
+       this.$id = "ace/mode/r";
    }).call(Mode.prototype);
    exports.Mode = Mode;
 });

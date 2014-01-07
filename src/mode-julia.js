@@ -51,6 +51,7 @@ oop.inherits(Mode, TextMode);
 (function() {
     this.lineCommentStart = "#";
     this.blockComment = "";
+    this.$id = "ace/mode/julia";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

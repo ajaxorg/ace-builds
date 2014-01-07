@@ -40,7 +40,7 @@ color: #929292\
 width: 1px;\
 background: #232323\
 }\
-.ace-clouds-midnight{\
+.ace-clouds-midnight {\
 background-color: #191919;\
 color: #929292\
 }\
@@ -119,7 +119,7 @@ color: #3C403B\
 color: #606060\
 }\
 .ace-clouds-midnight .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHB3d/8PAAOIAdULw8qMAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHB3d/8PAAOIAdULw8qMAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");

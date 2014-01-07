@@ -46,6 +46,7 @@ oop.inherits(Mode, TextMode);
 
 (function() {
     this.lineCommentStart = ";";
+    this.$id = "ace/mode/assembly_x86";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

@@ -51,6 +51,7 @@ padding-bottom: 0;\
 position: absolute;\
 top: 0px;\
 z-index: 99;\
+white-space: normal;\
 }\
 .ace_search.left {\
 border-left: 0 none;\

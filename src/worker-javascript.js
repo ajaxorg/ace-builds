@@ -1021,28 +1021,17 @@ oop.inherits(JavaScriptWorker, Mirror);
 define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
-exports.inherits = (function() {
-    var createObject = Object.create || function(prototype, properties) {
-        var Type = function () {};
-        Type.prototype = prototype;
-        object = new Type();
-        object.__proto__ = prototype;
-        if (typeof properties !== 'undefined' && Object.defineProperties) {
-            Object.defineProperties(object, properties);
+exports.inherits = function(ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+            value: ctor,
+            enumerable: false,
+            writable: true,
+            configurable: true
         }
-    };
-    return function(ctor, superCtor) {
-        ctor.super_ = superCtor;
-        ctor.prototype = createObject(superCtor.prototype, {
-            constructor: {
-                value: ctor,
-                enumerable: false,
-                writable: true,
-                configurable: true
-            }
-        });
-    };
-}());
+    });
+};
 
 exports.mixin = function(obj, mixin) {
     for (var key in mixin) {
@@ -4851,7 +4840,8 @@ var JSHINT = (function () {
 			if (this.id === "++" || this.id === "--") {
 				if (state.option.plusplus) {
 					warning("W016", this, this.id);
-				} else if ((!this.right.identifier || isReserved(this.right)) &&
+				} else if (this.right &&
+					(!this.right.identifier || isReserved(this.right)) &&
 						this.right.id !== "." && this.right.id !== "[") {
 					warning("W017", this);
 				}
@@ -9105,7 +9095,7 @@ Lexer.prototype = {
 
 		this.skip();
 
-		while (this.peek() !== quote) {
+		outer: while (this.peek() !== quote) {
 			while (this.peek() === "") { // End Of Line
 
 				if (!allowNewLine) {
@@ -9144,6 +9134,9 @@ Lexer.prototype = {
 						quote: quote
 					};
 				}
+				
+				if (this.peek() == quote)
+				  break outer;
 			}
 
 			allowNewLine = false;

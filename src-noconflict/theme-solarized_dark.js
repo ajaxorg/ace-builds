@@ -48,7 +48,8 @@ color: #93A1A1\
 .ace-solarized-dark .ace_storage {\
 color: #93A1A1\
 }\
-.ace-solarized-dark .ace_cursor {\
+.ace-solarized-dark .ace_cursor,\
+.ace-solarized-dark .ace_string.ace_regexp {\
 color: #D30102\
 }\
 .ace-solarized-dark .ace_marker-layer .ace_active-line,\
@@ -105,15 +106,12 @@ color: #268BD2\
 .ace-solarized-dark .ace_string {\
 color: #2AA198\
 }\
-.ace-solarized-dark .ace_string.ace_regexp {\
-color: #D30102\
-}\
 .ace-solarized-dark .ace_comment {\
 font-style: italic;\
 color: #657B83\
 }\
 .ace-solarized-dark .ace_indent-guide {\
-background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNg0Db1ZVCxc/sPAAd4AlUHlLenAAAAAElFTkSuQmCC) right repeat-y;\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNg0Db1ZVCxc/sPAAd4AlUHlLenAAAAAElFTkSuQmCC) right repeat-y\
 }";
 
 var dom = require("../lib/dom");
