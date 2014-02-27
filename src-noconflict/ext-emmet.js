@@ -83,8 +83,7 @@ AceEmmetEditor.prototype = {
     },
     setCaretPos: function(index){
         var pos = this.ace.indexToPosition(index);
-        this.ace.clearSelection();
-        this.ace.selection.moveCursorToPosition(pos);
+        this.ace.selection.moveToPosition(pos);
     },
     getCurrentLine: function() {
         var row = this.ace.getCursorPosition().row;
@@ -433,7 +432,7 @@ var SnippetManager = function() {
                 return s.getTabSize();
             case "FILENAME":
             case "FILEPATH":
-                return "ace.ajax.org";
+                return "";
             case "FULLNAME":
                 return "Ace";
         }
@@ -587,8 +586,9 @@ var SnippetManager = function() {
                 continue;
             var id = p.tabstopId;
             var i1 = tokens.indexOf(p, i + 1);
-            if (expanding[id] == p) { 
-                expanding[id] = null;
+            if (expanding[id]) {
+                if (expanding[id] === p)
+                    expanding[id] = null;
                 continue;
             }
             
@@ -1107,3 +1107,8 @@ exports.snippetManager = new SnippetManager();
 
 
 });
+;
+                (function() {
+                    ace.require(["ace/ext/emmet"], function() {});
+                })();
+            

@@ -12,6 +12,10 @@ var Mode = function() {
 
 oop.inherits(Mode, TextMode);
 
+(function() {
+    this.$id = "ace/mode/lucene";
+}).call(Mode.prototype);
+
 exports.Mode = Mode;
 });define('ace/mode/lucene_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 

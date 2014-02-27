@@ -56,9 +56,12 @@ exports.$detectIndentation = function(lines, fallback) {
             stats[spaces] = (stats[spaces] || 0) + 1;
         }
         prevSpaces = spaces;
-        while (line[line.length - 1] == "\\")
+        while (i < max && line[line.length - 1] == "\\")
             line = lines[i++];
     }
+    
+    if (!stats.length)
+        return;
 
     function getScore(indent) {
         var score = 0;
@@ -204,3 +207,8 @@ exports.commands = [{
 }];
 
 });
+;
+                (function() {
+                    ace.require(["ace/ext/whitespace"], function() {});
+                })();
+            

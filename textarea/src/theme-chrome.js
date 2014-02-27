@@ -43,6 +43,7 @@ background: #e8e8e8;\
 }\
 .ace-chrome {\
 background-color: #FFFFFF;\
+color: black;\
 }\
 .ace-chrome .ace_cursor {\
 color: black;\

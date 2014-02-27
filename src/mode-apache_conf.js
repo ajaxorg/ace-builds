@@ -50,6 +50,7 @@ oop.inherits(Mode, TextMode);
 
 (function() {
     this.lineCommentStart = "#";
+    this.$id = "ace/mode/apache_conf";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

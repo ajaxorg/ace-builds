@@ -102,7 +102,7 @@ var C9SearchHighlightRules = function() {
                     
                     var m;
                     var last = 0;
-                    if (regex) {
+                    if (regex && regex.exec) {
                         regex.lastIndex = 0;
                         while (m = regex.exec(str)) {
                             var skipped = str.substring(last, m.index);
@@ -128,40 +128,24 @@ var C9SearchHighlightRules = function() {
                 regex : "Searching for .*$",
                 onMatch: function(val, state, stack) {
                     var parts = val.split("\x01");
-                    var search = parts[1];
                     if (parts.length < 3)
                         return "text";
-                    var options = parts[2] == " in" ? parts[5] : parts[6];
 
-                    if (!/regex/.test(options))
-                        search = lang.escapeRegExp(search);
-                    if (/whole/.test(options))
-                        search = "\\b" + search + "\\b";
-                    var regex = search && safeCreateRegexp(
-                        "(" + search + ")",
-                        / sensitive/.test(options) ? "g" : "ig"
-                    );
-                    if (regex) {
-                        stack[0] = state;
-                        stack[1] = regex;
-                    }
+                    var options, search, replace;
                     
                     var i = 0;
-                    var tokens = [
-                        {
-                            value: parts[i++] + "'",
-                            type: "text"
-                        },
-                        {
-                            value: parts[i++],
-                            type: "text" // "c9searchresults.keyword"
-                        },
-                        {
-                            value: "'" + parts[i++],
-                            type: "text"
-                        }
-                    ];
+                    var tokens = [{
+                        value: parts[i++] + "'",
+                        type: "text"
+                    }, {
+                        value: search = parts[i++],
+                        type: "text" // "c9searchresults.keyword"
+                    }, {
+                        value: "'" + parts[i++],
+                        type: "text"
+                    }];
                     if (parts[2] !== " in") {
+                        replace = parts[i];
                         tokens.push({
                             value: "'" + parts[i++] + "'",
                             type: "text"
@@ -175,6 +159,7 @@ var C9SearchHighlightRules = function() {
                         type: "text"
                     });
                     if (parts[i+1]) {
+                        options = parts[i+1];
                         tokens.push({
                             value: "(" + parts[i+1] + ")",
                             type: "text"
@@ -183,11 +168,33 @@ var C9SearchHighlightRules = function() {
                     } else {
                         i -= 1;
                     }
-                    while (i++ < parts.length)
+                    while (i++ < parts.length) {
                         parts[i] && tokens.push({
                             value: parts[i],
                             type: "text"
                         });
+                    }
+                    
+                    if (replace) {
+                        search = replace;
+                        options = "";
+                    }
+                    
+                    if (search) {
+                        if (!/regex/.test(options))
+                            search = lang.escapeRegExp(search);
+                        if (/whole/.test(options))
+                            search = "\\b" + search + "\\b";
+                    }
+                    
+                    var regex = search && safeCreateRegexp(
+                        "(" + search + ")",
+                        / sensitive/.test(options) ? "g" : "ig"
+                    );
+                    if (regex) {
+                        stack[0] = state;
+                        stack[1] = regex;
+                    }
                     
                     return tokens;
                 }
@@ -268,24 +275,30 @@ oop.inherits(FoldMode, BaseFoldMode);
         var level1 = /^(Found.*|Searching for.*)$/;
         var level2 = /^(\S.*\:|\s*)$/;
         var re = level1.test(line) ? level1 : level2;
+        
+        var startRow = row;
+        var endRow = row;
 
         if (this.foldingStartMarker.test(line)) {            
             for (var i = row + 1, l = session.getLength(); i < l; i++) {
                 if (re.test(lines[i]))
                     break;
             }
-
-            return new Range(row, line.length, i, 0);
+            endRow = i;
         }
-
-        if (this.foldingStopMarker.test(line)) {
+        else if (this.foldingStopMarker.test(line)) {
             for (var i = row - 1; i >= 0; i--) {
                 line = lines[i];
                 if (re.test(line))
                     break;
             }
-
-            return new Range(i, line.length, row, 0);
+            startRow = i;
+        }
+        if (startRow != endRow) {
+            var col = line.length;
+            if (re === level1)
+                col = line.search(/\(Found[^)]+\)$|$/);
+            return new Range(startRow, col, endRow, 0);
         }
     };
     

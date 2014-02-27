@@ -134,9 +134,6 @@ var YamlHighlightRules = function() {
                 token : "constant.language.boolean",
                 regex : "(?:true|false|TRUE|FALSE|True|False|yes|no)\\b"
             }, {
-                token : "invalid.illegal", // comments are not allowed
-                regex : "\\/\\/.*$"
-            }, {
                 token : "paren.lparen",
                 regex : "[[({]"
             }, {

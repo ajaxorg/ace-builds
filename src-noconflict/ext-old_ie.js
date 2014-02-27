@@ -498,3 +498,8 @@ exports.Search = function(editor, isReplace) {
 };
 
 });
+;
+                (function() {
+                    ace.require(["ace/ext/old_ie"], function() {});
+                })();
+            

@@ -10,8 +10,8 @@ snippet from\n\
 # Module Docstring\n\
 snippet docs\n\
 	'''\n\
-	File: ${1:`Filename('$1.py', 'foo.py')`}\n\
-	Author: ${2:`g:snips_author`}\n\
+	File: ${1:FILENAME:file_name}\n\
+	Author: ${2:author}\n\
 	Description: ${3}\n\
 	'''\n\
 snippet wh\n\
@@ -132,7 +132,7 @@ snippet \"\n\
 	\"\"\"\n\
 # test function/method\n\
 snippet test\n\
-	def test_${1:description}(${2:`indent('.') ? 'self' : ''`}):\n\
+	def test_${1:description}(${2:self}):\n\
 		${3:# TODO: write code...}\n\
 # test case\n\
 snippet testcase\n\

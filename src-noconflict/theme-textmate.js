@@ -46,6 +46,7 @@ background-color: #6B72E6;\
 }\
 .ace-tm {\
 background-color: #FFFFFF;\
+color: black;\
 }\
 .ace-tm .ace_cursor {\
 color: black;\

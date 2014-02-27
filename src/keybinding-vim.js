@@ -90,7 +90,7 @@ exports.handler = {
             if (util.currentMode === "insert") {            
                 this.onCompositionStartOrig(text);
             }
-        }
+        };
         if (enable) {
             if (!editor.onCompositionUpdateOrig) {
                 editor.onCompositionUpdateOrig = editor.onCompositionUpdate;
@@ -109,7 +109,7 @@ exports.handler = {
     },
 
     handleKeyboard: function(data, hashId, key, keyCode, e) {
-        if (hashId != 0 && (key == "" || key == "\x00"))
+        if (hashId !== 0 && (!key || keyCode == -1))
             return null;
         
         var editor = data.editor;
@@ -127,7 +127,7 @@ exports.handler = {
                 return {command: "null", passEvent: true};
             }
             return {command: coreCommands.stop};            
-        } else if ((key == "esc" && hashId == 0) || key == "ctrl-[") {
+        } else if ((key == "esc" && hashId === 0) || key == "ctrl-[") {
             return {command: coreCommands.stop};
         } else if (data.state == "start") {
             if (useragent.isMac && this.handleMacRepeat(data, hashId, key)) {
@@ -135,15 +135,15 @@ exports.handler = {
                 key = data.inputChar;
             }
             
-            if (hashId == -1 || hashId == 1 || hashId == 0 && key.length > 1) {
+            if (hashId == -1 || hashId == 1 || hashId === 0 && key.length > 1) {
                 if (cmds.inputBuffer.idle && startCommands[key])
                     return startCommands[key];
-                cmds.inputBuffer.push(editor, key);
-                return {command: "null", passEvent: false}; 
+                var isHandled = cmds.inputBuffer.push(editor, key);
+                return {command: "null", passEvent: !isHandled}; 
             } // if no modifier || shift: wait for input.
-            else if (key.length == 1 && (hashId == 0 || hashId == 4)) {
+            else if (key.length == 1 && (hashId === 0 || hashId == 4)) {
                 return {command: "null", passEvent: true};
-            } else if (key == "esc" && hashId == 0) {
+            } else if (key == "esc" && hashId === 0) {
                 return {command: coreCommands.stop};
             }
         } else {
@@ -358,8 +358,7 @@ var actions = exports.actions = {
     "V": {
         fn: function(editor, range, count, param) {
             var row = editor.getCursorPosition().row;
-            editor.selection.clearSelection();
-            editor.selection.moveCursorTo(row, 0);
+            editor.selection.moveTo(row, 0);
             editor.selection.selectLineEnd();
             editor.selection.visualLineStart = row;
 
@@ -728,13 +727,11 @@ var handleCursorMove = exports.onCursorMove = function(editor, e) {
             var cursorRow = editor.getCursorPosition().row;
             if(originRow <= cursorRow) {
                 var endLine = editor.session.getLine(cursorRow);
-                editor.selection.clearSelection();
-                editor.selection.moveCursorTo(originRow, 0);
+                editor.selection.moveTo(originRow, 0);
                 editor.selection.selectTo(cursorRow, endLine.length);
             } else {
                 var endLine = editor.session.getLine(originRow);
-                editor.selection.clearSelection();
-                editor.selection.moveCursorTo(originRow, endLine.length);
+                editor.selection.moveTo(originRow, endLine.length);
                 editor.selection.selectTo(cursorRow, 0);
             }
         }
@@ -876,13 +873,11 @@ module.exports = {
     },
     copyLine: function(editor) {
         var pos = editor.getCursorPosition();
-        editor.selection.clearSelection();
-        editor.moveCursorTo(pos.row, pos.column);
+        editor.selection.moveTo(pos.row, pos.column);
         editor.selection.selectLine();
         registers._default.isLine = true;
         registers._default.text = editor.getCopyText().replace(/\n$/, "");
-        editor.selection.clearSelection();
-        editor.moveCursorTo(pos.row, pos.column);
+        editor.selection.moveTo(pos.row, pos.column);
     }
 };
 });
@@ -925,8 +920,7 @@ function Motion(m) {
         var a = getPos(editor, range, count, param, false);
         if (!a)
             return;
-        editor.clearSelection();
-        editor.moveCursorTo(a.row, a.column);
+        editor.selection.moveTo(a.row, a.column);
     };
     m.sel = function(editor, range, count, param) {
         var a = getPos(editor, range, count, param, true);
@@ -1348,10 +1342,17 @@ module.exports = {
         }
     },
     "$": {
-        nav: function(editor) {
+        handlesCount: true,
+        nav: function(editor, range, count, param) {
+            if (count > 1) {
+                editor.navigateDown(count-1);
+            }
             editor.navigateLineEnd();
         },
-        sel: function(editor) {
+        sel: function(editor, range, count, param) {
+            if (count > 1) {
+                editor.selection.moveCursorBy(count-1, 0);
+            }
             editor.selection.selectLineEnd();
         }
     },
@@ -1527,6 +1528,8 @@ module.exports.up = module.exports.k;
 module.exports.down = module.exports.j;
 module.exports.pagedown = module.exports["ctrl-d"];
 module.exports.pageup = module.exports["ctrl-u"];
+module.exports.home = module.exports["0"];
+module.exports.end = module.exports["$"];
 
 });
  

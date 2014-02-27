@@ -41,6 +41,10 @@ var Mode = function() {
 };
 oop.inherits(Mode, TextMode);
 
+(function() {
+    this.$id = "ace/mode/properties";
+}).call(Mode.prototype);
+
 exports.Mode = Mode;
 });
 

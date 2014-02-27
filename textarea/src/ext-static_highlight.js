@@ -176,3 +176,8 @@ highlight.renderSync = function(input, mode, theme, lineStart, disableGutter) {
 module.exports = highlight;
 module.exports.highlight =highlight;
 });
+;
+                (function() {
+                    __ace_shadowed__.require(["ace/ext/static_highlight"], function() {});
+                })();
+            

@@ -44,6 +44,7 @@ var supportedModes = {
     BatchFile:   ["bat|cmd"],
     C9Search:    ["c9search_results"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp"],
+    Cirru:       ["cirru|cr"],
     Clojure:     ["clj"],
     Cobol:       ["CBL|COB"],
     coffee:      ["coffee|cf|cson|^Cakefile"],
@@ -59,6 +60,7 @@ var supportedModes = {
     EJS:         ["ejs"],
     Forth:       ["frt|fs|ldr"],
     FTL:         ["ftl"],
+    Gherkin:     ["feature"],
     Glsl:        ["glsl|frag|vert"],
     golang:      ["go"],
     Groovy:      ["groovy"],
@@ -114,6 +116,7 @@ var supportedModes = {
     SASS:        ["sass"],
     SCAD:        ["scad"],
     Scala:       ["scala"],
+    Smarty:      ["smarty|tpl"],
     Scheme:      ["scm|rkt"],
     SCSS:        ["scss"],
     SH:          ["sh|bash|^.bashrc"],
@@ -166,3 +169,8 @@ module.exports = {
 
 });
 
+;
+                (function() {
+                    ace.require(["ace/ext/modelist"], function() {});
+                })();
+            

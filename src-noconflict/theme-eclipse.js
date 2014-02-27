@@ -43,6 +43,7 @@ background: #ebebeb;\
 }\
 .ace-eclipse {\
 background-color: #FFFFFF;\
+color: black;\
 }\
 .ace-eclipse .ace_fold {\
 background-color: rgb(60, 76, 114);\
