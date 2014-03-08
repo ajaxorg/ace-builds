@@ -2018,8 +2018,8 @@ var Anchor = exports.Anchor = function(doc, row, column) {
 }).call(Anchor.prototype);
 
 });
-define('ace/mode/html/saxparser', ['require', 'exports', 'module' , 'html5-entities', 'ace/mode/html/InputStream', 'ace/mode/html/EntityParser', 'assert', 'ace/mode/html/messages.json', 'ace/mode/html/constants', 'events', 'ace/mode/html/Tokenizer', 'ace/mode/html/ElementStack', 'ace/mode/html/StackItem', 'ace/mode/html/SAXTreeBuilder', 'ace/mode/Tokenizer', 'ace/mode/html/TreeParser', 'util', 'ace/mode/TreeBuilder', 'buffer', '__browserify_process', 'base64-js', 'ace/mode/html/buffer_ieee754', 'DaboPu', 'ace/mode/html/lib/sax/SAXParser.js'], function(require, exports, module) {
-require=(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(require,module,exports){
+define('ace/mode/html/saxparser', ['require', 'exports', 'module' ], function(require, exports, module) {
+var req = require=(function(e,t,n){function i(n,s){if(!t[n]){if(!e[n]){var o=typeof require=="function"&&require;if(!s&&o)return o(n,!0);if(r)return r(n,!0);throw new Error("Cannot find module '"+n+"'")}var u=t[n]={exports:{}};e[n][0].call(u.exports,function(t){var r=e[n][1][t];return i(r?r:t)},u,u.exports)}return t[n].exports}var r=typeof require=="function"&&require;for(var s=0;s<n.length;s++)i(n[s]);return i})({1:[function(req,module,exports){
 function isScopeMarker(node) {
 	if (node.namespaceURI === "http://www.w3.org/1999/xhtml") {
 		return node.localName === "applet"
@@ -2218,9 +2218,9 @@ Object.defineProperty(ElementStack.prototype, 'length', {
 
 exports.ElementStack = ElementStack;
 
-},{}],2:[function(require,module,exports){
-var entities  = require('html5-entities');
-var InputStream = require('./InputStream').InputStream;
+},{}],2:[function(req,module,exports){
+var entities  = req('html5-entities');
+var InputStream = req('./InputStream').InputStream;
 var LEAD_OFFSET = (0xD800 - (0x10000 >> 10));
 
 var namedEntityPrefixes = {};
@@ -2399,7 +2399,7 @@ EntityParser.replaceEntityNumbers = function(c) {
 
 exports.EntityParser = EntityParser;
 
-},{"./InputStream":3,"html5-entities":12}],3:[function(require,module,exports){
+},{"./InputStream":3,"html5-entities":12}],3:[function(req,module,exports){
 function InputStream() {
 	this.data = '';
 	this.start = 0;
@@ -2507,7 +2507,7 @@ InputStream.prototype = {
 
 exports.InputStream = InputStream;
 
-},{}],4:[function(require,module,exports){
+},{}],4:[function(req,module,exports){
 var SpecialElements = {
 	"http://www.w3.org/1999/xhtml": [
 		'address',
@@ -2686,9 +2686,9 @@ StackItem.prototype.isMathMLTextIntegrationPoint = function() {
 
 exports.StackItem = StackItem;
 
-},{}],5:[function(require,module,exports){
-var InputStream = require('./InputStream').InputStream;
-var EntityParser = require('./EntityParser').EntityParser;
+},{}],5:[function(req,module,exports){
+var InputStream = req('./InputStream').InputStream;
+var EntityParser = req('./EntityParser').EntityParser;
 
 function isWhitespace(c){
 	return c === " " || c === "\n" || c === "\t" || c === "\r" || c === "\f";
@@ -4200,17 +4200,17 @@ Tokenizer.prototype.tokenize = function(source) {
 
 exports.Tokenizer = Tokenizer;
 
-},{"./EntityParser":2,"./InputStream":3}],6:[function(require,module,exports){
-(function(){var assert = require('assert');
+},{"./EntityParser":2,"./InputStream":3}],6:[function(req,module,exports){
+(function(){var assert = req('assert');
 
-var messages = require('./messages.json');
-var constants = require('./constants');
+var messages = req('./messages.json');
+var constants = req('./constants');
 
-var EventEmitter = require('events').EventEmitter;
+var EventEmitter = req('events').EventEmitter;
 
-var Tokenizer = require('./Tokenizer').Tokenizer;
-var ElementStack = require('./ElementStack').ElementStack;
-var StackItem = require('./StackItem').StackItem;
+var Tokenizer = req('./Tokenizer').Tokenizer;
+var ElementStack = req('./ElementStack').ElementStack;
+var StackItem = req('./StackItem').StackItem;
 
 var Marker = {};
 
@@ -7118,7 +7118,7 @@ function formatMessage(format, args) {
 exports.TreeBuilder = TreeBuilder;
 
 })()
-},{"./ElementStack":1,"./StackItem":4,"./Tokenizer":5,"./constants":7,"./messages.json":8,"assert":13,"events":14}],7:[function(require,module,exports){
+},{"./ElementStack":1,"./StackItem":4,"./Tokenizer":5,"./constants":7,"./messages.json":8,"assert":13,"events":14}],7:[function(req,module,exports){
 exports.SVGTagMap = {
 	"altglyph": "altGlyph",
 	"altglyphdef": "altGlyphDef",
@@ -7241,7 +7241,7 @@ exports.ForeignAttributeMap = {
 	"xmlns": {prefix: null, localName: "xmlns", namespaceURI: "http://www.w3.org/2000/xmlns/"},
 	"xmlns:xlink": {prefix: "xmlns", localName: "xlink", namespaceURI: "http://www.w3.org/2000/xmlns/"},
 };
-},{}],8:[function(require,module,exports){
+},{}],8:[function(req,module,exports){
 module.exports={
 	"null-character":
 		"Null character in input stream, replaced with U+FFFD.",
@@ -7498,10 +7498,10 @@ module.exports={
 	"unexpected-start-tag-in-table":
 		"Unexpected {name}. Expected table content."
 }
-},{}],"DaboPu":[function(require,module,exports){
-var SAXTreeBuilder = require('./SAXTreeBuilder').SAXTreeBuilder;
-var Tokenizer = require('../Tokenizer').Tokenizer;
-var TreeParser = require('./TreeParser').TreeParser;
+},{}],"DaboPu":[function(req,module,exports){
+var SAXTreeBuilder = req('./SAXTreeBuilder').SAXTreeBuilder;
+var Tokenizer = req('../Tokenizer').Tokenizer;
+var TreeParser = req('./TreeParser').TreeParser;
 
 function SAXParser() {
 	this.contentHandler = null;
@@ -7550,9 +7550,9 @@ Object.defineProperty(SAXParser.prototype, 'errorHandler', {
 
 exports.SAXParser = SAXParser;
 
-},{"../Tokenizer":5,"./SAXTreeBuilder":10,"./TreeParser":11}],10:[function(require,module,exports){
-var util = require('util');
-var TreeBuilder = require('../TreeBuilder').TreeBuilder;
+},{"../Tokenizer":5,"./SAXTreeBuilder":10,"./TreeParser":11}],10:[function(req,module,exports){
+var util = req('util');
+var TreeBuilder = req('../TreeBuilder').TreeBuilder;
 
 function SAXTreeBuilder() {
 	TreeBuilder.call(this);
@@ -7935,7 +7935,7 @@ DTD.prototype.revisit = function(treeParser) {
 
 exports.SAXTreeBuilder = SAXTreeBuilder;
 
-},{"../TreeBuilder":6,"util":15}],11:[function(require,module,exports){
+},{"../TreeBuilder":6,"util":15}],11:[function(req,module,exports){
 function TreeParser(contentHandler, lexicalHandler){
     this.contentHandler;
     this.lexicalHandler;
@@ -8055,7 +8055,7 @@ NullLexicalHandler.prototype.startEntity = function() {};
 
 exports.TreeParser = TreeParser;
 
-},{}],12:[function(require,module,exports){
+},{}],12:[function(req,module,exports){
 module.exports = {
 	"AElig": "\u00C6",
 	"AElig;": "\u00C6",
@@ -10290,10 +10290,10 @@ module.exports = {
 	"zwnj;": "\u200C"
 };
 
-},{}],13:[function(require,module,exports){
+},{}],13:[function(req,module,exports){
 (function(){// UTILITY
-var util = require('util');
-var Buffer = require("buffer").Buffer;
+var util = req('util');
+var Buffer = req("buffer").Buffer;
 var pSlice = Array.prototype.slice;
 
 function objectKeys(object) {
@@ -10527,7 +10527,7 @@ assert.doesNotThrow = function(block, /*optional*/error, /*optional*/message) {
 assert.ifError = function(err) { if (err) {throw err;}};
 
 })()
-},{"buffer":17,"util":15}],14:[function(require,module,exports){
+},{"buffer":17,"util":15}],14:[function(req,module,exports){
 (function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
 
 var EventEmitter = exports.EventEmitter = process.EventEmitter;
@@ -10686,9 +10686,9 @@ EventEmitter.prototype.listeners = function(type) {
   return this._events[type];
 };
 
-})(require("__browserify_process"))
-},{"__browserify_process":20}],15:[function(require,module,exports){
-var events = require('events');
+})(req("__browserify_process"))
+},{"__browserify_process":20}],15:[function(req,module,exports){
+var events = req('events');
 
 exports.isArray = isArray;
 exports.isDate = function(obj){return Object.prototype.toString.call(obj) === '[object Date]'};
@@ -11011,7 +11011,7 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":14}],16:[function(require,module,exports){
+},{"events":14}],16:[function(req,module,exports){
 exports.readIEEE754 = function(buffer, offset, isBE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -11097,8 +11097,8 @@ exports.writeIEEE754 = function(buffer, value, offset, isBE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],17:[function(require,module,exports){
-(function(){var assert = require('assert');
+},{}],17:[function(req,module,exports){
+(function(){var assert = req('assert');
 exports.Buffer = Buffer;
 exports.SlowBuffer = Buffer;
 Buffer.poolSize = 8192;
@@ -11202,7 +11202,7 @@ Buffer.prototype.base64Write = function (string, offset, length) {
 
 Buffer.prototype.base64Slice = function (start, end) {
   var bytes = Array.prototype.slice.apply(this, arguments)
-  return require("base64-js").fromByteArray(bytes);
+  return req("base64-js").fromByteArray(bytes);
 };
 
 Buffer.prototype.utf8Slice = function () {
@@ -11536,7 +11536,7 @@ function asciiToBytes(str) {
 }
 
 function base64ToBytes(str) {
-  return require("base64-js").toByteArray(str);
+  return req("base64-js").toByteArray(str);
 }
 
 function blitBuffer(src, dst, offset, length) {
@@ -11752,7 +11752,7 @@ function readFloat(buffer, offset, isBigEndian, noAssert) {
         'Trying to read beyond buffer length');
   }
 
-  return require('./buffer_ieee754').readIEEE754(buffer, offset, isBigEndian,
+  return req('./buffer_ieee754').readIEEE754(buffer, offset, isBigEndian,
       23, 4);
 }
 
@@ -11773,7 +11773,7 @@ function readDouble(buffer, offset, isBigEndian, noAssert) {
         'Trying to read beyond buffer length');
   }
 
-  return require('./buffer_ieee754').readIEEE754(buffer, offset, isBigEndian,
+  return req('./buffer_ieee754').readIEEE754(buffer, offset, isBigEndian,
       52, 8);
 }
 
@@ -12004,7 +12004,7 @@ function writeFloat(buffer, value, offset, isBigEndian, noAssert) {
     verifIEEE754(value, 3.4028234663852886e+38, -3.4028234663852886e+38);
   }
 
-  require('./buffer_ieee754').writeIEEE754(buffer, value, offset, isBigEndian,
+  req('./buffer_ieee754').writeIEEE754(buffer, value, offset, isBigEndian,
       23, 4);
 }
 
@@ -12033,7 +12033,7 @@ function writeDouble(buffer, value, offset, isBigEndian, noAssert) {
     verifIEEE754(value, 1.7976931348623157E+308, -1.7976931348623157E+308);
   }
 
-  require('./buffer_ieee754').writeIEEE754(buffer, value, offset, isBigEndian,
+  req('./buffer_ieee754').writeIEEE754(buffer, value, offset, isBigEndian,
       52, 8);
 }
 
@@ -12046,7 +12046,7 @@ Buffer.prototype.writeDoubleBE = function(value, offset, noAssert) {
 };
 
 })()
-},{"./buffer_ieee754":16,"assert":13,"base64-js":18}],18:[function(require,module,exports){
+},{"./buffer_ieee754":16,"assert":13,"base64-js":18}],18:[function(req,module,exports){
 (function (exports) {
 	
 
@@ -12118,9 +12118,9 @@ Buffer.prototype.writeDoubleBE = function(value, offset, noAssert) {
 	module.exports.fromByteArray = uint8ToBase64;
 }());
 
-},{}],"./lib/sax/SAXParser.js":[function(require,module,exports){
-module.exports=require('DaboPu');
-},{}],20:[function(require,module,exports){
+},{}],"./lib/sax/SAXParser.js":[function(req,module,exports){
+module.exports=req('DaboPu');
+},{}],20:[function(req,module,exports){
 
 var process = module.exports = {};
 
@@ -12173,8 +12173,9 @@ process.chdir = function (dir) {
 
 },{}]},{},["DaboPu"])
 ;
-exports.SAXParser = require('./lib/sax/SAXParser.js').SAXParser;
-});define('ace/worker/mirror', ['require', 'exports', 'module' , 'ace/document', 'ace/lib/lang'], function(require, exports, module) {
+exports.SAXParser = req('./lib/sax/SAXParser.js').SAXParser;
+});
+define('ace/worker/mirror', ['require', 'exports', 'module' , 'ace/document', 'ace/lib/lang'], function(require, exports, module) {
 
 
 var Document = require("../document").Document;

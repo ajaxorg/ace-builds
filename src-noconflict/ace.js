@@ -13195,8 +13195,8 @@ var Editor = function(renderer, session) {
     this.resize = function(force) {
         this.renderer.onResize(force);
     };
-    this.setTheme = function(theme) {
-        this.renderer.setTheme(theme);
+    this.setTheme = function(theme, cb) {
+        this.renderer.setTheme(theme, cb);
     };
     this.getTheme = function() {
         return this.renderer.getTheme();
