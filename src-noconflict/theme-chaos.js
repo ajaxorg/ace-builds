@@ -149,13 +149,13 @@ border: none;\
 box-shadow: none;\
 }\
 .ace-chaos .ace_fold-widget.ace_start:after {\
-content: '\u25be'\
+content: '▾'\
 }\
 .ace-chaos .ace_fold-widget.ace_end:after {\
-content: '\u25b4'\
+content: '▴'\
 }\
 .ace-chaos .ace_fold-widget.ace_closed:after {\
-content: '\u2023'\
+content: '‣'\
 }\
 .ace-chaos .ace_indent-guide {\
 border-right:1px dotted #333;\

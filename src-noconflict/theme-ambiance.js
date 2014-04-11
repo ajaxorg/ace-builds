@@ -55,13 +55,13 @@ border: none;\
 box-shadow: none;\
 }\
 .ace-ambiance .ace_fold-widget.ace_start:after {\
-content: '\u25be'\
+content: '▾'\
 }\
 .ace-ambiance .ace_fold-widget.ace_end:after {\
-content: '\u25b4'\
+content: '▴'\
 }\
 .ace-ambiance .ace_fold-widget.ace_closed:after {\
-content: '\u2023'\
+content: '‣'\
 }\
 .ace-ambiance .ace_print-margin {\
 border-left: 1px dotted #2D2D2D;\

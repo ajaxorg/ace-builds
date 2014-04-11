@@ -33,12 +33,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/scheme', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/scheme_highlight_rules'], function(require, exports, module) {
+define('ace/mode/scheme', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/scheme_highlight_rules'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var SchemeHighlightRules = require("./scheme_highlight_rules").SchemeHighlightRules;
 
 var Mode = function() {

@@ -28,12 +28,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/mel', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/mel_highlight_rules', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+define('ace/mode/mel', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/mel_highlight_rules', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var MELHighlightRules = require("./mel_highlight_rules").MELHighlightRules;
 var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;

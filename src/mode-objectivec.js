@@ -33,12 +33,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/objectivec', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/objectivec_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+define('ace/mode/objectivec', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/objectivec_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var ObjectiveCHighlightRules = require("./objectivec_highlight_rules").ObjectiveCHighlightRules;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 

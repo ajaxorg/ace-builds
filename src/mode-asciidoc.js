@@ -28,12 +28,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/asciidoc', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/asciidoc_highlight_rules', 'ace/mode/folding/asciidoc'], function(require, exports, module) {
+define('ace/mode/asciidoc', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/asciidoc_highlight_rules', 'ace/mode/folding/asciidoc'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var AsciidocHighlightRules = require("./asciidoc_highlight_rules").AsciidocHighlightRules;
 var AsciidocFoldMode = require("./folding/asciidoc").FoldMode;
 

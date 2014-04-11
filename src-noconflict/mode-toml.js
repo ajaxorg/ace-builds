@@ -33,12 +33,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-ace.define('ace/mode/toml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/toml_highlight_rules', 'ace/mode/folding/ini'], function(require, exports, module) {
+ace.define('ace/mode/toml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/toml_highlight_rules', 'ace/mode/folding/ini'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var TomlHighlightRules = require("./toml_highlight_rules").TomlHighlightRules;
 var FoldMode = require("./folding/ini").FoldMode;
 

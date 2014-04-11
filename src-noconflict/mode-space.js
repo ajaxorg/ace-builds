@@ -1,13 +1,12 @@
-ace.define('ace/mode/space', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/folding/coffee', 'ace/mode/space_highlight_rules'], function(require, exports, module) {
+
+ace.define('ace/mode/space', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/folding/coffee', 'ace/mode/space_highlight_rules'], function(require, exports, module) {
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var FoldMode = require("./folding/coffee").FoldMode;
 var SpaceHighlightRules = require("./space_highlight_rules").SpaceHighlightRules;
 var Mode = function() {
-    var highlighter = new SpaceHighlightRules();
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
+    this.HighlightRules = SpaceHighlightRules;
     this.foldingRules = new FoldMode();
 };
 oop.inherits(Mode, TextMode);

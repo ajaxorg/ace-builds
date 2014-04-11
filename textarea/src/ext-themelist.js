@@ -30,8 +30,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/ext/themelist', ['require', 'exports', 'module' ], function(require, exports, module) {
+__ace_shadowed__.define('ace/ext/themelist', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers'], function(require, exports, module) {
 
+require("ace/lib/fixoldbrowsers");
 
 var themeData = [
     ["Chrome"         ],
@@ -84,8 +85,3 @@ exports.themes = themeData.map(function(data) {
 
 });
 
-;
-                (function() {
-                    __ace_shadowed__.require(["ace/ext/themelist"], function() {});
-                })();
-            

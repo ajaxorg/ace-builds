@@ -28,12 +28,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/verilog', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/verilog_highlight_rules', 'ace/range'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/verilog', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/verilog_highlight_rules', 'ace/range'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var VerilogHighlightRules = require("./verilog_highlight_rules").VerilogHighlightRules;
 var Range = require("../range").Range;
 

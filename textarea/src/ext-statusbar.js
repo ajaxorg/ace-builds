@@ -44,8 +44,4 @@ var StatusBar = function(editor, parentNode) {
 
 exports.StatusBar = StatusBar;
 
-});;
-                (function() {
-                    __ace_shadowed__.require(["ace/ext/statusbar"], function() {});
-                })();
-            
+});

@@ -33,12 +33,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/haskell', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/haskell_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/haskell', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/haskell_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var HaskellHighlightRules = require("./haskell_highlight_rules").HaskellHighlightRules;
 var FoldMode = require("./folding/cstyle").FoldMode;
 

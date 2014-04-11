@@ -169,8 +169,3 @@ module.exports = {
 
 });
 
-;
-                (function() {
-                    ace.require(["ace/ext/modelist"], function() {});
-                })();
-            

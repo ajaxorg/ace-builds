@@ -28,7 +28,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/ext/old_ie', ['require', 'exports', 'module' , 'ace/lib/useragent', 'ace/tokenizer', 'ace/ext/searchbox'], function(require, exports, module) {
+__ace_shadowed__.define('ace/ext/old_ie', ['require', 'exports', 'module' , 'ace/lib/useragent', 'ace/tokenizer', 'ace/ext/searchbox', 'ace/mode/text'], function(require, exports, module) {
 
 var MAX_TOKEN_COUNT = 1000;
 var useragent = require("../lib/useragent");
@@ -101,6 +101,12 @@ patch(
         if (!qre.exec(line) || qre.lastIndex != lastIndex)\n\
             continue;\n\
     }"
+);
+
+patch(
+    require("../mode/text").Mode.prototype, "getTokenizer",
+    /Tokenizer/,
+    "TokenizerModule.Tokenizer"
 );
 
 useragent.isOldIE = true;
@@ -498,8 +504,3 @@ exports.Search = function(editor, isReplace) {
 };
 
 });
-;
-                (function() {
-                    __ace_shadowed__.require(["ace/ext/old_ie"], function() {});
-                })();
-            

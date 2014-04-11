@@ -33,12 +33,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/pascal', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/pascal_highlight_rules', 'ace/mode/folding/coffee'], function(require, exports, module) {
+define('ace/mode/pascal', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/pascal_highlight_rules', 'ace/mode/folding/coffee'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var PascalHighlightRules = require("./pascal_highlight_rules").PascalHighlightRules;
 var FoldMode = require("./folding/coffee").FoldMode;
 

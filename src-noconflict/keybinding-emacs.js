@@ -210,6 +210,8 @@ exports.handler.bindKey = function(key, command) {
 };
 
 exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
+    if (keyCode === -1) return undefined;
+
     var editor = data.editor;
     if (hashId == -1) {
         editor.pushEmacsMark();
@@ -565,6 +567,7 @@ oop.inherits(IncrementalSearch, Search);
         this.$options.needle = '';
         this.$options.backwards = backwards;
         ed.keyBinding.addKeyboardHandler(this.$keyboardHandler);
+        this.$originalEditorOnPaste = ed.onPaste; ed.onPaste = this.onPaste.bind(this);
         this.$mousedownHandler = ed.addEventListener('mousedown', this.onMouseDown.bind(this));
         this.selectionFix(ed);
         this.statusMessage(true);
@@ -572,11 +575,13 @@ oop.inherits(IncrementalSearch, Search);
 
     this.deactivate = function(reset) {
         this.cancelSearch(reset);
-        this.$editor.keyBinding.removeKeyboardHandler(this.$keyboardHandler);
+        var ed = this.$editor;
+        ed.keyBinding.removeKeyboardHandler(this.$keyboardHandler);
         if (this.$mousedownHandler) {
-            this.$editor.removeEventListener('mousedown', this.$mousedownHandler);
+            ed.removeEventListener('mousedown', this.$mousedownHandler);
             delete this.$mousedownHandler;
         }
+        ed.onPaste = this.$originalEditorOnPaste;
         this.message('');
     }
 
@@ -633,9 +638,9 @@ oop.inherits(IncrementalSearch, Search);
         return found;
     }
 
-    this.addChar = function(c) {
+    this.addString = function(s) {
         return this.highlightAndFindWithNeedle(false, function(needle) {
-            return needle + c;
+            return needle + s;
         });
     }
 
@@ -658,6 +663,10 @@ oop.inherits(IncrementalSearch, Search);
     this.onMouseDown = function(evt) {
         this.deactivate();
         return true;
+    }
+
+    this.onPaste = function(text) {
+        this.addString(text);
     }
 
     this.statusMessage = function(found) {
@@ -788,14 +797,14 @@ exports.iSearchCommands = [{
 }, {
     name: "extendSearchTerm",
     exec: function(iSearch, string) {
-        iSearch.addChar(string);
+        iSearch.addString(string);
     },
     readOnly: true,
     isIncrementalSearchCommand: true
 }, {
     name: "extendSearchTermSpace",
     bindKey: "space",
-    exec: function(iSearch) { iSearch.addChar(' '); },
+    exec: function(iSearch) { iSearch.addString(' '); },
     readOnly: true,
     isIncrementalSearchCommand: true
 }, {
@@ -828,6 +837,34 @@ exports.iSearchCommands = [{
     },
     readOnly: true,
     isIncrementalSearchCommand: true
+}, {
+    name: "yankNextWord",
+    bindKey: "Ctrl-w",
+    exec: function(iSearch) {
+        var ed = iSearch.$editor,
+            range = ed.selection.getRangeOfMovements(function(sel) { sel.moveCursorWordRight(); }),
+            string = ed.session.getTextRange(range);
+        iSearch.addString(string);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: "yankNextChar",
+    bindKey: "Ctrl-Alt-y",
+    exec: function(iSearch) {
+        var ed = iSearch.$editor,
+            range = ed.selection.getRangeOfMovements(function(sel) { sel.moveCursorRight(); }),
+            string = ed.session.getTextRange(range);
+        iSearch.addString(string);
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: 'recenterTopBottom',
+    bindKey: 'Ctrl-l',
+    exec: function(iSearch) { iSearch.$editor.execCommand('recenterTopBottom'); },
+    readOnly: true,
+    isIncrementalSearchCommand: true
 }];
 
 function IncrementalSearchKeyboardHandler(iSearch) {
@@ -857,6 +894,8 @@ oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
 
     var handleKeyboard$super = this.handleKeyboard;
     this.handleKeyboard = function(data, hashId, key, keyCode) {
+        if (((hashId === 1/*ctrl*/ || hashId === 8/*command*/) && key === 'v')
+         || (hashId === 1/*ctrl*/ && key === 'y')) return null;
         var cmd = handleKeyboard$super.call(this, data, hashId, key, keyCode);
         if (cmd.command) { return cmd; }
         if (hashId == -1) {
@@ -997,12 +1036,15 @@ oop.inherits(Occur, Search);
         occurSession.$occur = this;
         occurSession.$occurMatchingLines = found;
         editor.setSession(occurSession);
+        this.$useEmacsStyleLineStart = this.$originalSession.$useEmacsStyleLineStart;
+        occurSession.$useEmacsStyleLineStart = this.$useEmacsStyleLineStart;
         this.highlight(occurSession, options.re);
         occurSession._emit('changeBackMarker');
     }
 
     this.displayOriginalContent = function(editor) {
         editor.setSession(this.$originalSession);
+        this.$originalSession.$useEmacsStyleLineStart = this.$useEmacsStyleLineStart;
     }
     this.originalToOccurPosition = function(session, pos) {
         var lines = session.$occurMatchingLines;

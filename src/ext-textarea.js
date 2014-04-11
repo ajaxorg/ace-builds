@@ -476,8 +476,3 @@ exports.options = {
 };
 
 });
-;
-                (function() {
-                    window.require(["ace/ext/textarea"], function() {});
-                })();
-            

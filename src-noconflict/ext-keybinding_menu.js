@@ -204,8 +204,4 @@ module.exports.getEditorKeybordShortcuts = function(editor) {
     return keybindings;
 };
 
-});;
-                (function() {
-                    ace.require(["ace/ext/keybinding_menu"], function() {});
-                })();
-            
+});

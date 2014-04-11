@@ -33,12 +33,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/stylus', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/stylus_highlight_rules', 'ace/mode/folding/coffee'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/stylus', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/stylus_highlight_rules', 'ace/mode/folding/coffee'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var StylusHighlightRules = require("./stylus_highlight_rules").StylusHighlightRules;
 var FoldMode = require("./folding/coffee").FoldMode;
 

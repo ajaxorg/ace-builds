@@ -207,8 +207,3 @@ exports.commands = [{
 }];
 
 });
-;
-                (function() {
-                    __ace_shadowed__.require(["ace/ext/whitespace"], function() {});
-                })();
-            

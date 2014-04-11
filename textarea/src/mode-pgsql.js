@@ -28,11 +28,10 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/pgsql', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/pgsql_highlight_rules', 'ace/range'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/pgsql', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/pgsql_highlight_rules', 'ace/range'], function(require, exports, module) {
 
 var oop = require("../lib/oop");
 var TextMode = require("../mode/text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var PgsqlHighlightRules = require("./pgsql_highlight_rules").PgsqlHighlightRules;
 var Range = require("../range").Range;
 

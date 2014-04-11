@@ -33,22 +33,18 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/protobuf', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/c_cpp', 'ace/tokenizer', 'ace/mode/protobuf_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/protobuf', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/c_cpp', 'ace/mode/protobuf_highlight_rules', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var CMode = require("./c_cpp").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var ProtobufHighlightRules = require("./protobuf_highlight_rules").ProtobufHighlightRules;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
 
 var Mode = function() {
     CMode.call(this);
-    var highlighter = new ProtobufHighlightRules();
     this.foldingRules = new CStyleFoldMode();
-
-    this.$tokenizer = new Tokenizer(highlighter.getRules());
-    this.$keywordList = highlighter.$keywordList;
+    this.HighlightRules = ProtobufHighlightRules;
 };
 oop.inherits(Mode, CMode);
 
@@ -61,12 +57,11 @@ oop.inherits(Mode, CMode);
 exports.Mode = Mode;
 });
 
-__ace_shadowed__.define('ace/mode/c_cpp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/c_cpp_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/c_cpp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/c_cpp_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
-var Tokenizer = require("../tokenizer").Tokenizer;
 var c_cppHighlightRules = require("./c_cpp_highlight_rules").c_cppHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var Range = require("../range").Range;

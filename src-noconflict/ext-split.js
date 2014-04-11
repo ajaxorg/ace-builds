@@ -269,8 +269,3 @@ function UndoManagerProxy(undoManager, session) {
 
 exports.Split = Split;
 });
-;
-                (function() {
-                    ace.require(["ace/ext/split"], function() {});
-                })();
-            
