@@ -11861,11 +11861,12 @@ function HashHandler(config, platform) {
 exports.HashHandler = HashHandler;
 });
 
-define('ace/commands/default_commands', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/config'], function(require, exports, module) {
+define('ace/commands/default_commands', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/config', 'ace/range'], function(require, exports, module) {
 
 
 var lang = require("../lib/lang");
 var config = require("../config");
+var Range = require("../range").Range;
 
 function bindKey(win, mac) {
     return {win: win, mac: mac};
@@ -12340,6 +12341,75 @@ exports.commands = [{
     },
     multiSelectAction: "forEach",
     scrollIntoView: "cursor"
+}, {
+    name: "expandtoline",
+    bindKey: bindKey("Ctrl-Shift-L", "Command-Shift-L"),
+    exec: function(editor) { 
+        var selectionStart = editor.selection.getSelectionLead();
+        var selectionEnd = editor.selection.getSelectionAnchor();
+        var isBackwards = editor.selection.isBackwards();
+        
+        editor.clearSelection();
+        
+        editor.selection.moveCursorTo((isBackwards ? selectionStart.row : selectionEnd.row), 0);
+        editor.selection.selectTo((isBackwards ? selectionEnd.row : selectionStart.row) + 1, 0);
+    },
+    multiSelectAction: "forEach",
+    scrollIntoView: "cursor"
+}, {
+    name: "clearallranges",
+    bindKey: bindKey(null, null),
+    exec: function(editor) { 
+        editor.clearSelection();
+    },
+    multiSelectAction: "forEach"
+}, {
+    name: "invertSelection",
+    bindKey: bindKey(null, null),
+    exec: function(editor) { 
+        var selectionStart = editor.selection.getSelectionLead();
+        var selectionEnd = editor.selection.getSelectionAnchor();
+        var isBackwards = editor.selection.isBackwards();
+        var endRow = editor.session.doc.getLength() - 1;
+        var endCol = editor.session.doc.getLine(endRow).length;
+        var initialScroll = editor.session.getScrollTop();
+        var ranges = editor.selection.rangeList.ranges;
+        var newRanges = [];
+        
+        if (ranges.length > 0) {
+            for (var i = 0; i < ranges.length; i++) {
+                // First range must be at the start of document
+                if (i == 0) {
+                    newRanges.push(new Range(0, 0, ranges[i].start.row, ranges[i].start.column));
+                } else {
+                    newRanges.push(new Range(ranges[i-1].end.row, ranges[i-1].end.column, ranges[i].start.row, ranges[i].start.column));
+                }
+
+                // The last range needs to connect to the end
+                if (i == (ranges.length - 1)) {
+                    newRanges.push(new Range(ranges[i].end.row, ranges[i].end.column, endRow, endCol));
+                }
+            }
+            
+            // The standard editor.clearSelection() didn't work right, so this was made using the "forEach" option:
+            editor.execCommand("clearallranges"); // Needs to be done after the new ranges have created. They get messed up otherwise.
+            
+            for(var i = 0; i < newRanges.length; i++) {
+                editor.selection.addRange(newRanges[i], true);
+            }
+        } else {
+            if (isBackwards) {
+                editor.selection.moveCursorTo(endRow, endCol);
+                editor.selection.addRange(new Range(0, 0, selectionStart.row, selectionStart.column), false);
+            }
+            else {
+                editor.selection.setSelectionRange(new Range(0, 0, selectionEnd.row, selectionEnd.column), false);
+                editor.selection.addRange(new Range(selectionStart.row, selectionStart.column, endRow, endCol), false);
+            }
+        }
+        
+        editor.session.setScrollTop(initialScroll);
+    }
 }, {
     name: "removetolinestart",
     bindKey: bindKey("Alt-Backspace", "Command-Backspace"),
