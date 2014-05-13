@@ -13771,7 +13771,7 @@ var VirtualRenderer = function(container, theme) {
             offset -= this.$size.scrollerHeight / 2;
 
         var initialScroll = this.scrollTop;
-        this.session.setScrollTop(offset);
+        this.session.setScrollTop(Math.abs(offset));
         if (animate !== false)
             this.animateScrolling(initialScroll, callback);
     };
