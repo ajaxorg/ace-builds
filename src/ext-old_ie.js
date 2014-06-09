@@ -504,3 +504,8 @@ exports.Search = function(editor, isReplace) {
 };
 
 });
+;
+                (function() {
+                    window.require(["ace/ext/old_ie"], function() {});
+                })();
+            

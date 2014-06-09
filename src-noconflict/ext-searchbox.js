@@ -419,3 +419,8 @@ exports.Search = function(editor, isReplace) {
 };
 
 });
+;
+                (function() {
+                    ace.require(["ace/ext/searchbox"], function() {});
+                })();
+            

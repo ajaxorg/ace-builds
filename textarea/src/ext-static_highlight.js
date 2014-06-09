@@ -107,7 +107,7 @@ var highlight = function(el, opts, callback) {
 };
 
 highlight.render = function(input, mode, theme, lineStart, disableGutter, callback) {
-    var waiting = 0;
+    var waiting = 1;
     var modeCache = EditSession.prototype.$modes;
     if (typeof theme == "string") {
         waiting++;
@@ -129,7 +129,7 @@ highlight.render = function(input, mode, theme, lineStart, disableGutter, callba
         var result = highlight.renderSync(input, mode, theme, lineStart, disableGutter);
         return callback ? callback(result) : result;
     }
-    return waiting || done();
+    return --waiting || done();
 };
 
 highlight.renderSync = function(input, mode, theme, lineStart, disableGutter) {
@@ -176,3 +176,8 @@ highlight.renderSync = function(input, mode, theme, lineStart, disableGutter) {
 module.exports = highlight;
 module.exports.highlight =highlight;
 });
+;
+                (function() {
+                    __ace_shadowed__.require(["ace/ext/static_highlight"], function() {});
+                })();
+            

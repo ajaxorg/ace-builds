@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of Ajax.org B.V. nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,14 +28,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-__ace_shadowed__.define('ace/mode/clojure', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/clojure_highlight_rules', 'ace/mode/matching_parens_outdent', 'ace/range'], function(require, exports, module) {
+__ace_shadowed__.define('ace/mode/clojure', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/clojure_highlight_rules', 'ace/mode/matching_parens_outdent'], function(require, exports, module) {
 
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var ClojureHighlightRules = require("./clojure_highlight_rules").ClojureHighlightRules;
 var MatchingParensOutdent = require("./matching_parens_outdent").MatchingParensOutdent;
-var Range = require("../range").Range;
 
 var Mode = function() {
     this.HighlightRules = ClojureHighlightRules;
@@ -46,29 +45,67 @@ oop.inherits(Mode, TextMode);
 (function() {
 
     this.lineCommentStart = ";";
+    this.minorIndentFunctions = ["defn", "defn-", "defmacro", "def", "deftest", "testing"];
+
+    this.$toIndent = function(str) {
+        return str.split('').map(function(ch) {
+            if (/\s/.exec(ch)) {
+                return ch;
+            } else {
+                return ' ';
+            }
+        }).join('');
+    };
+
+    this.$calculateIndent = function(line, tab) {
+        var baseIndent = this.$getIndent(line);
+        var delta = 0;
+        var isParen, ch;
+        for (var i = line.length - 1; i >= 0; i--) {
+            ch = line[i];
+            if (ch === '(') {
+                delta--;
+                isParen = true;
+            } else if (ch === '(' || ch === '[' || ch === '{') {
+                delta--;
+                isParen = false;
+            } else if (ch === ')' || ch === ']' || ch === '}') {
+                delta++;
+            }
+            if (delta < 0) {
+                break;
+            }
+        }
+        if (delta < 0 && isParen) {
+            i += 1;
+            var iBefore = i;
+            var fn = '';
+            while (true) {
+                ch = line[i];
+                if (ch === ' ' || ch === '\t') {
+                    if(this.minorIndentFunctions.indexOf(fn) !== -1) {
+                        return this.$toIndent(line.substring(0, iBefore - 1) + tab);
+                    } else {
+                        return this.$toIndent(line.substring(0, i + 1));
+                    }
+                } else if (ch === undefined) {
+                    return this.$toIndent(line.substring(0, iBefore - 1) + tab);
+                }
+                fn += line[i];
+                i++;
+            }
+        } else if(delta < 0 && !isParen) {
+            return this.$toIndent(line.substring(0, i+1));
+        } else if(delta > 0) {
+            baseIndent = baseIndent.substring(0, baseIndent.length - tab.length);
+            return baseIndent;
+        } else {
+            return baseIndent;
+        }
+    };
 
     this.getNextLineIndent = function(state, line, tab) {
-        var indent = this.$getIndent(line);
-
-        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
-        var tokens = tokenizedLine.tokens;
-
-        if (tokens.length && tokens[tokens.length-1].type == "comment") {
-            return indent;
-        }
-        
-        if (state == "start") {
-            var match = line.match(/[\(\[]/);
-            if (match) {
-                indent += "  ";
-            }
-            match = line.match(/[\)]/);
-            if (match) {
-              indent = "";
-            }
-        }
-
-        return indent;
+        return this.$calculateIndent(line, tab);
     };
 
     this.checkOutdent = function(state, line, input) {

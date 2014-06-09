@@ -357,4 +357,8 @@ exports.transform = function(iterator, maxPos, context) {
 
 
 
-});
+});;
+                (function() {
+                    __ace_shadowed__.require(["ace/ext/beautify"], function() {});
+                })();
+            

@@ -81,9 +81,8 @@ exports.$detectIndentation = function(lines, fallback) {
         } else
             var score = getScore(i) / spaceIndents;
 
-        if (changes[i]) {
+        if (changes[i])
             score += changes[i] / changesTotal;
-        }
 
         if (score > first.score)
             first = {score: score, length: i};
@@ -207,3 +206,8 @@ exports.commands = [{
 }];
 
 });
+;
+                (function() {
+                    window.require(["ace/ext/whitespace"], function() {});
+                })();
+            

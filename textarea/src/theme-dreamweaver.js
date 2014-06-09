@@ -131,6 +131,9 @@ border: 1px solid rgb(192, 192, 192);\
 .ace-dreamweaver .ace_marker-layer .ace_active-line {\
 background: rgba(0, 0, 0, 0.07);\
 }\
+.ace-dreamweaver .ace_gutter-active-line {\
+background-color : #DCDCDC;\
+}\
 .ace-dreamweaver .ace_marker-layer .ace_selected-word {\
 background: rgb(250, 250, 255);\
 border: 1px solid rgb(200, 200, 250);\

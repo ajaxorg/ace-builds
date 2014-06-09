@@ -52,17 +52,17 @@ snippet ap\n\
 snippet do\n\
 	do\n\
 		\n\
-snippet λ\n\
+snippet \u03bb\n\
 	\\${1:x} -> ${2}\n\
 snippet \\\n\
 	\\${1:x} -> ${2}\n\
 snippet <-\n\
 	${1:a} <- ${2:m a}\n\
-snippet ←\n\
+snippet \u2190\n\
 	${1:a} <- ${2:m a}\n\
 snippet ->\n\
 	${1:m a} -> ${2:a}\n\
-snippet →\n\
+snippet \u2192\n\
 	${1:m a} -> ${2:a}\n\
 snippet tup\n\
 	(${1:a}, ${2:b})\n\

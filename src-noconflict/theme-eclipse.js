@@ -108,8 +108,11 @@ color:rgb(127, 0, 127);\
 .ace-eclipse .ace_marker-layer .ace_step {\
 background: rgb(255, 255, 0);\
 }\
-.ace-eclipse .ace_marker-layer .ace_active-line {\
+.ace-eclipse .ace_active-line {\
 background: rgb(232, 242, 254);\
+}\
+.ace-eclipse .ace_gutter-active-line {\
+background-color : #DADADA;\
 }\
 .ace-eclipse .ace_marker-layer .ace_selected-word {\
 border: 1px solid rgb(181, 213, 255);\

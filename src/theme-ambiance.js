@@ -41,6 +41,9 @@ color: #222;\
 .ace-ambiance .ace_gutter-layer {\
 background: repeat left top;\
 }\
+.ace-ambiance .ace_gutter-active-line {\
+background-color: #3F3F3F;\
+}\
 .ace-ambiance .ace_fold-widget {\
 text-align: center;\
 }\
@@ -55,13 +58,13 @@ border: none;\
 box-shadow: none;\
 }\
 .ace-ambiance .ace_fold-widget.ace_start:after {\
-content: '▾'\
+content: '\u25be'\
 }\
 .ace-ambiance .ace_fold-widget.ace_end:after {\
-content: '▴'\
+content: '\u25b4'\
 }\
 .ace-ambiance .ace_fold-widget.ace_closed:after {\
-content: '‣'\
+content: '\u2023'\
 }\
 .ace-ambiance .ace_print-margin {\
 border-left: 1px dotted #2D2D2D;\

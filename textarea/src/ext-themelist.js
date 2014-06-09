@@ -85,3 +85,8 @@ exports.themes = themeData.map(function(data) {
 
 });
 
+;
+                (function() {
+                    __ace_shadowed__.require(["ace/ext/themelist"], function() {});
+                })();
+            

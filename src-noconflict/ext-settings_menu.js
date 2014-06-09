@@ -324,6 +324,7 @@ var supportedModes = {
     D:           ["d|di"],
     Dart:        ["dart"],
     Diff:        ["diff|patch"],
+    Dockerfile:  ["^Dockerfile"],
     Dot:         ["dot"],
     Erlang:      ["erl|hrl"],
     EJS:         ["ejs"],
@@ -403,6 +404,7 @@ var supportedModes = {
     Toml:        ["toml"],
     Twig:        ["twig"],
     Typescript:  ["ts|typescript|str"],
+    Vala:        ["vala"],
     VBScript:    ["vbs"],
     Velocity:    ["vm"],
     Verilog:     ["v|vh|sv|svh"],
@@ -633,4 +635,8 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, top, r
     editor.blur();
 };
 
-});
+});;
+                (function() {
+                    ace.require(["ace/ext/settings_menu"], function() {});
+                })();
+            

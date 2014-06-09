@@ -113,23 +113,24 @@ exports.handler = {
             return null;
         
         var editor = data.editor;
+        var vimState = data.vimState || "start";
         
         if (hashId == 1)
             key = "ctrl-" + key;
         if (key == "ctrl-c") {
             if (!useragent.isMac && editor.getCopyText()) {
                 editor.once("copy", function() {
-                    if (data.state == "start")
+                    if (vimState == "start")
                         coreCommands.stop.exec(editor);
                     else
                         editor.selection.clearSelection();
                 });
                 return {command: "null", passEvent: true};
             }
-            return {command: coreCommands.stop};            
+            return {command: coreCommands.stop};
         } else if ((key == "esc" && hashId === 0) || key == "ctrl-[") {
             return {command: coreCommands.stop};
-        } else if (data.state == "start") {
+        } else if (vimState == "start") {
             if (useragent.isMac && this.handleMacRepeat(data, hashId, key)) {
                 hashId = -1;
                 key = data.inputChar;
@@ -142,12 +143,12 @@ exports.handler = {
                 if (!isHandled && hashId !== -1)
                     return;
                 return {command: "null", passEvent: !isHandled}; 
-            } // if no modifier || shift: wait for input.
-            else if (key.length == 1 && (hashId === 0 || hashId == 4)) {
-                return {command: "null", passEvent: true};
             } else if (key == "esc" && hashId === 0) {
                 return {command: coreCommands.stop};
             }
+            else if (hashId === 0 || hashId == 4) {
+                return {command: "null", passEvent: true};
+            } 
         } else {
             if (key == "ctrl-w") {
                 return {command: "removewordleft"};
@@ -284,10 +285,12 @@ var actions = exports.actions = {
                     range.end.column++;
                 var text = editor.session.getTextRange(range);
                 var toggled = text.toUpperCase();
-                if (toggled == text)
-                    editor.navigateRight();
-                else
+                if (toggled != text)
                     editor.session.replace(range, toggled);
+                else if (text.toLowerCase() != text)
+                    editor.session.replace(range, text.toLowerCase())
+                else
+                    editor.navigateRight();
             }, count || 1);
         }
     },
@@ -325,6 +328,7 @@ var actions = exports.actions = {
         fn: function(editor, range, count, param) {
             var options = editor.getLastSearchOptions();
             options.backwards = false;
+            options.start = null;
 
             editor.selection.moveCursorRight();
             editor.selection.clearSelection();
@@ -341,6 +345,7 @@ var actions = exports.actions = {
         fn: function(editor, range, count, param) {
             var options = editor.getLastSearchOptions();
             options.backwards = true;
+            options.start = null;
 
             editor.findPrevious(options);
             ensureScrollMargin(editor);
@@ -498,6 +503,7 @@ var inputBuffer = exports.inputBuffer = {
     accepting: [NUMBER, OPERATOR, MOTION, ACTION],
     currentCmd: null,
     currentCount: "",
+    pendingCount: "",
     status: "",
     operator: null,
     motion: null,
@@ -594,8 +600,9 @@ var inputBuffer = exports.inputBuffer = {
     },
 
     getCount: function() {
-        var count = this.currentCount;
+        var count = this.currentCount || this.pendingCount;
         this.currentCount = "";
+        this.pendingCount = count;
         return count && parseInt(count, 10);
     },
 
@@ -647,7 +654,8 @@ var inputBuffer = exports.inputBuffer = {
             else if (selectable) {
                 repeat(function() {
                     run(motionObj.sel);
-                    operators[o.ch].fn(editor, editor.getSelectionRange(), o.count, param);
+                    operators[o.ch].fn(editor, editor.getSelectionRange(), 
+                        o.count, motionObj.param ? motionObj : param);
                 }, o.count || 1);
             }
             this.reset();
@@ -667,6 +675,7 @@ var inputBuffer = exports.inputBuffer = {
         this.operator = null;
         this.motion = null;
         this.currentCount = "";
+        this.pendingCount = "";
         this.status = "";
         this.accepting = [NUMBER, OPERATOR, MOTION, ACTION];
         this.idle = true;
@@ -790,7 +799,7 @@ module.exports = {
 
         editor.setOverwrite(false);
         editor.keyBinding.$data.buffer = "";
-        editor.keyBinding.$data.state = "insertMode";
+        editor.keyBinding.$data.vimState = "insertMode";
         this.onVisualMode = false;
         this.onVisualLineMode = false;
         if(this.onInsertReplaySequence) {
@@ -820,7 +829,7 @@ module.exports = {
 
         editor.setOverwrite(true);
         editor.keyBinding.$data.buffer = "";
-        editor.keyBinding.$data.state = "start";
+        editor.keyBinding.$data.vimState = "start";
         this.onVisualMode = false;
         this.onVisualLineMode = false;
         editor._emit("changeStatus");
@@ -1214,6 +1223,10 @@ module.exports = {
                 case "W":
                     editor.selection.selectAWord();
                     break;
+                case ")":
+                case "}":
+                case "]":
+                    param = editor.session.$brackets[param];
                 case "(":
                 case "{":
                 case "[":
@@ -1247,6 +1260,7 @@ module.exports = {
         param: true,
         handlesCount: true,
         getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (param == "space") param = " ";
             if (!isRepeat)
                 LAST_SEARCH_MOTION = {ch: "f", param: param};
             var cursor = editor.getCursorPosition();
@@ -1262,6 +1276,7 @@ module.exports = {
         param: true,
         handlesCount: true,
         getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (param == "space") param = " ";
             if (!isRepeat)
                 LAST_SEARCH_MOTION = {ch: "F", param: param};
             var cursor = editor.getCursorPosition();
@@ -1277,6 +1292,7 @@ module.exports = {
         param: true,
         handlesCount: true,
         getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (param == "space") param = " ";
             if (!isRepeat)
                 LAST_SEARCH_MOTION = {ch: "t", param: param};
             var cursor = editor.getCursorPosition();
@@ -1295,6 +1311,7 @@ module.exports = {
         param: true,
         handlesCount: true,
         getPos: function(editor, range, count, param, isSel, isRepeat) {
+            if (param == "space") param = " ";
             if (!isRepeat)
                 LAST_SEARCH_MOTION = {ch: "T", param: param};
             var cursor = editor.getCursorPosition();
@@ -1520,7 +1537,8 @@ module.exports = {
                     pos.column = line.length;
                 return pos;
             }
-        }
+        },
+        isLine: true
     })
 };
 
@@ -1619,6 +1637,8 @@ module.exports = {
         },
         fn: function(editor, range, count, param) {
             count = count || 1;
+            if (param && param.isLine) 
+                param = "y";
             switch (param) {
                 case "y":
                     var pos = editor.getCursorPosition();
