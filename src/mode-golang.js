@@ -1,59 +1,48 @@
-define('ace/mode/golang', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/golang_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
-var TextMode = require("./text").Mode;
-var GolangHighlightRules = require("./golang_highlight_rules").GolangHighlightRules;
-var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
-var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
-var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
-var Mode = function() {
-    this.HighlightRules = GolangHighlightRules;
-    this.$outdent = new MatchingBraceOutdent();
-    this.foldingRules = new CStyleFoldMode();
+var DocCommentHighlightRules = function() {
+
+    this.$rules = {
+        "start" : [ {
+            token : "comment.doc.tag",
+            regex : "@[\\w\\d_]+" // TODO: fix email addresses
+        }, {
+            token : "comment.doc.tag",
+            regex : "\\bTODO\\b"
+        }, {
+            defaultToken : "comment.doc"
+        }]
+    };
 };
-oop.inherits(Mode, TextMode);
 
-(function() {
-    
-    this.lineCommentStart = "//";
-    this.blockComment = {start: "/*", end: "*/"};
+oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 
-    this.getNextLineIndent = function(state, line, tab) {
-        var indent = this.$getIndent(line);
-
-        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
-        var tokens = tokenizedLine.tokens;
-        var endState = tokenizedLine.state;
-
-        if (tokens.length && tokens[tokens.length-1].type == "comment") {
-            return indent;
-        }
-        
-        if (state == "start") {
-            var match = line.match(/^.*[\{\(\[]\s*$/);
-            if (match) {
-                indent += tab;
-            }
-        }
-
-        return indent;
-    };//end getNextLineIndent
-
-    this.checkOutdent = function(state, line, input) {
-        return this.$outdent.checkOutdent(line, input);
+DocCommentHighlightRules.getStartRule = function(start) {
+    return {
+        token : "comment.doc", // doc comment
+        regex : "\\/\\*(?=\\*)",
+        next  : start
     };
+};
 
-    this.autoOutdent = function(state, doc, row) {
-        this.$outdent.autoOutdent(doc, row);
+DocCommentHighlightRules.getEndRule = function (start) {
+    return {
+        token : "comment.doc", // closing comment
+        regex : "\\*\\/",
+        next  : start
     };
+};
 
-    this.$id = "ace/mode/golang";
-}).call(Mode.prototype);
 
-exports.Mode = Mode;
+exports.DocCommentHighlightRules = DocCommentHighlightRules;
+
 });
-define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+
+define("ace/mode/golang_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module) {
     var oop = require("../lib/oop");
     var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
     var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -165,52 +154,8 @@ define('ace/mode/golang_highlight_rules', ['require', 'exports', 'module' , 'ace
     exports.GolangHighlightRules = GolangHighlightRules;
 });
 
-define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
-
-
-var oop = require("../lib/oop");
-var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-
-var DocCommentHighlightRules = function() {
-
-    this.$rules = {
-        "start" : [ {
-            token : "comment.doc.tag",
-            regex : "@[\\w\\d_]+" // TODO: fix email addresses
-        }, {
-            token : "comment.doc.tag",
-            regex : "\\bTODO\\b"
-        }, {
-            defaultToken : "comment.doc"
-        }]
-    };
-};
-
-oop.inherits(DocCommentHighlightRules, TextHighlightRules);
-
-DocCommentHighlightRules.getStartRule = function(start) {
-    return {
-        token : "comment.doc", // doc comment
-        regex : "\\/\\*(?=\\*)",
-        next  : start
-    };
-};
-
-DocCommentHighlightRules.getEndRule = function (start) {
-    return {
-        token : "comment.doc", // closing comment
-        regex : "\\*\\/",
-        next  : start
-    };
-};
-
-
-exports.DocCommentHighlightRules = DocCommentHighlightRules;
-
-});
-
-define('ace/mode/matching_brace_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
-
+define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 
@@ -249,8 +194,8 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator', 'ace/lib/lang'], function(require, exports, module) {
-
+define("ace/mode/behaviour/cstyle",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/token_iterator","ace/lib/lang"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Behaviour = require("../behaviour").Behaviour;
@@ -607,8 +552,8 @@ oop.inherits(CstyleBehaviour, Behaviour);
 exports.CstyleBehaviour = CstyleBehaviour;
 });
 
-define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
-
+define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
@@ -700,4 +645,60 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 }).call(FoldMode.prototype);
 
+});
+
+define("ace/mode/golang",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/golang_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/behaviour/cstyle","ace/mode/folding/cstyle"], function(require, exports, module) {
+
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var GolangHighlightRules = require("./golang_highlight_rules").GolangHighlightRules;
+var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
+var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
+var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+
+var Mode = function() {
+    this.HighlightRules = GolangHighlightRules;
+    this.$outdent = new MatchingBraceOutdent();
+    this.foldingRules = new CStyleFoldMode();
+};
+oop.inherits(Mode, TextMode);
+
+(function() {
+    
+    this.lineCommentStart = "//";
+    this.blockComment = {start: "/*", end: "*/"};
+
+    this.getNextLineIndent = function(state, line, tab) {
+        var indent = this.$getIndent(line);
+
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
+        var tokens = tokenizedLine.tokens;
+        var endState = tokenizedLine.state;
+
+        if (tokens.length && tokens[tokens.length-1].type == "comment") {
+            return indent;
+        }
+        
+        if (state == "start") {
+            var match = line.match(/^.*[\{\(\[]\s*$/);
+            if (match) {
+                indent += tab;
+            }
+        }
+
+        return indent;
+    };//end getNextLineIndent
+
+    this.checkOutdent = function(state, line, input) {
+        return this.$outdent.checkOutdent(line, input);
+    };
+
+    this.autoOutdent = function(state, doc, row) {
+        this.$outdent.autoOutdent(doc, row);
+    };
+
+    this.$id = "ace/mode/golang";
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
 });

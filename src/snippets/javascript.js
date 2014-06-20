@@ -1,5 +1,5 @@
-define('ace/snippets/javascript', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+define("ace/snippets/javascript",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 exports.snippetText = "# Prototype\n\
 snippet proto\n\
@@ -103,10 +103,6 @@ snippet has\n\
 	hasOwnProperty(${1})\n\
 # docstring\n\
 snippet /**\n\
-	/**\n\
-	 * ${1:description}\n\
-	 *\n\
-	 */\n\
 snippet @par\n\
 regex /^\\s*\\*\\s*/@(para?m?)?/\n\
 	@param {${1:type}} ${2:name} ${3:description}\n\
@@ -130,21 +126,12 @@ snippet sdf\n\
 # singleton\n\
 snippet sing\n\
 	function ${1:Singleton} (${2:argument}) {\n\
-		// the cached instance\n\
 		var instance;\n\
-\n\
-		// rewrite the constructor\n\
 		$1 = function $1($2) {\n\
 			return instance;\n\
 		};\n\
-		\n\
-		// carry over the prototype properties\n\
 		$1.prototype = this;\n\
-\n\
-		// the instance\n\
 		instance = new $1();\n\
-\n\
-		// reset the constructor pointer\n\
 		instance.constructor = $1;\n\
 \n\
 		${3:// code ...}\n\

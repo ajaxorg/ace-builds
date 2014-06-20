@@ -1,855 +1,4 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Distributed under the BSD license:
- *
- * Copyright (c) 2010, Ajax.org B.V.
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of Ajax.org B.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * ***** END LICENSE BLOCK ***** */
-define('ace/mode/xquery', ['require', 'exports', 'module' , 'ace/worker/worker_client', 'ace/lib/oop', 'ace/mode/text', 'ace/mode/text_highlight_rules', 'ace/mode/xquery/xquery_lexer', 'ace/range', 'ace/mode/behaviour/xquery', 'ace/mode/folding/cstyle', 'ace/anchor', 'ace/ext/language_tools'], function(require, exports, module) {
-
-
-var WorkerClient = require("../worker/worker_client").WorkerClient;
-var oop = require("../lib/oop");
-var TextMode = require("./text").Mode;
-var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-var XQueryLexer = require("./xquery/xquery_lexer").XQueryLexer;
-var Range = require("../range").Range;
-var XQueryBehaviour = require("./behaviour/xquery").XQueryBehaviour;
-var CStyleFoldMode = require("./folding/cstyle").FoldMode;
-var Anchor = require("../anchor").Anchor;
-var LanguageTools = require("../ext/language_tools");
-
-var Mode = function() {
-    this.$tokenizer   = new XQueryLexer();
-    this.$behaviour   = new XQueryBehaviour();
-    this.foldingRules = new CStyleFoldMode();
-    this.$highlightRules = new TextHighlightRules();
-};
-oop.inherits(Mode, TextMode);
-
-(function() {
-    
-    LanguageTools.addCompleter({
-        getCompletions: function(editor, session, pos, prefix, callback) {
-            session.$worker.emit("complete", { data: { pos: pos, prefix: prefix } });
-            session.$worker.on("complete", function(e){
-                callback(null, e.data);
-            });
-        }
-    });
-
-    this.getNextLineIndent = function(state, line, tab) {
-        var indent = this.$getIndent(line);
-        var match = line.match(/\s*(?:then|else|return|[{\(]|<\w+>)\s*$/);
-        if (match)
-            indent += tab;
-        return indent;
-    };
-    
-    this.checkOutdent = function(state, line, input) {
-        if (! /^\s+$/.test(line))
-            return false;
-
-        return (/^\s*[\}\)]/).test(input);
-    };
-    
-    this.autoOutdent = function(state, doc, row) {
-        var line = doc.getLine(row);
-        var match = line.match(/^(\s*[\}\)])/);
-
-        if (!match) return 0;
-
-        var column = match[1].length;
-        var openBracePos = doc.findMatchingBracket({row: row, column: column});
-
-        if (!openBracePos || openBracePos.row == row) return 0;
-
-        var indent = this.$getIndent(doc.getLine(openBracePos.row));
-        doc.replace(new Range(row, 0, row, column-1), indent);
-    };
-
-    this.toggleCommentLines = function(state, doc, startRow, endRow) {
-        var i, line;
-        var outdent = true;
-        var re = /^\s*\(:(.*):\)/;
-
-        for (i=startRow; i<= endRow; i++) {
-            if (!re.test(doc.getLine(i))) {
-                outdent = false;
-                break;
-            }
-        }
-
-        var range = new Range(0, 0, 0, 0);
-        for (i=startRow; i<= endRow; i++) {
-            line = doc.getLine(i);
-            range.start.row  = i;
-            range.end.row    = i;
-            range.end.column = line.length;
-
-            doc.replace(range, outdent ? line.match(re)[1] : "(:" + line + ":)");
-        }
-    };
-    
-    this.createWorker = function(session) {
-        
-      var worker = new WorkerClient(["ace"], "ace/mode/xquery_worker", "XQueryWorker");
-        var that = this;
-
-        worker.attachToDocument(session.getDocument());
-        
-        worker.on("ok", function(e) {
-          session.clearAnnotations();
-        });
-        
-        worker.on("markers", function(e) {
-          session.clearAnnotations();
-          that.addMarkers(e.data, session);
-        });
- 
-        worker.on("highlight", function(tokens) {
-          that.$tokenizer.tokens = tokens.data.tokens;
-          that.$tokenizer.lines  = session.getDocument().getAllLines();
-          
-          var rows = Object.keys(that.$tokenizer.tokens);
-          for(var i=0; i < rows.length; i++) {
-            var row = parseInt(rows[i]);
-            delete session.bgTokenizer.lines[row];
-            delete session.bgTokenizer.states[row];
-            session.bgTokenizer.fireUpdateEvent(row, row);
-          }
-        });
-        
-        return worker;
-    };
-
-    this.removeMarkers = function(session) {
-        var markers = session.getMarkers(false);
-        for (var id in markers) {
-            if (markers[id].clazz.indexOf('language_highlight_') === 0) {
-                session.removeMarker(id);
-            }
-        }
-        for (var i = 0; i < session.markerAnchors.length; i++) {
-            session.markerAnchors[i].detach();
-        }
-        session.markerAnchors = [];
-    };
-
-    this.addMarkers = function(annos, mySession) {
-        var _self = this;
-        
-        if (!mySession.markerAnchors) mySession.markerAnchors = [];
-        this.removeMarkers(mySession);
-        mySession.languageAnnos = [];
-        annos.forEach(function(anno) {
-            var anchor = new Anchor(mySession.getDocument(), anno.pos.sl, anno.pos.sc || 0);
-            mySession.markerAnchors.push(anchor);
-            var markerId;
-            var colDiff = anno.pos.ec - anno.pos.sc;
-            var rowDiff = anno.pos.el - anno.pos.sl;
-            var gutterAnno = {
-                guttertext: anno.message,
-                type: anno.level || "warning",
-                text: anno.message
-            };
-
-            function updateFloat(single) {
-                if (markerId)
-                    mySession.removeMarker(markerId);
-                gutterAnno.row = anchor.row;
-                if (anno.pos.sc !== undefined && anno.pos.ec !== undefined) {
-                    var range = new Range(anno.pos.sl, anno.pos.sc, anno.pos.el, anno.pos.ec);
-                    markerId = mySession.addMarker(range, "language_highlight_" + (anno.type ? anno.type : "default"));
-                }
-                if (single) mySession.setAnnotations(mySession.languageAnnos);
-            }
-            updateFloat();
-            anchor.on("change", function() {
-                updateFloat(true);
-            });
-            if (anno.message) mySession.languageAnnos.push(gutterAnno);
-        });
-        mySession.setAnnotations(mySession.languageAnnos);
-    };    
-        
-    this.$id = "ace/mode/xquery";
-}).call(Mode.prototype);
-
-exports.Mode = Mode;
-});
-define('ace/mode/behaviour/xquery', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/mode/behaviour/cstyle', 'ace/mode/behaviour/xml', 'ace/token_iterator'], function(require, exports, module) {
-
-
-  var oop = require("../../lib/oop");
-  var Behaviour = require('../behaviour').Behaviour;
-  var CstyleBehaviour = require('./cstyle').CstyleBehaviour;
-  var XmlBehaviour = require("../behaviour/xml").XmlBehaviour;
-  var TokenIterator = require("../../token_iterator").TokenIterator;
-
-function hasType(token, type) {
-    var hasType = true;
-    var typeList = token.type.split('.');
-    var needleList = type.split('.');
-    needleList.forEach(function(needle){
-        if (typeList.indexOf(needle) == -1) {
-            hasType = false;
-            return false;
-        }
-    });
-    return hasType;
-}
- 
-  var XQueryBehaviour = function () {
-      
-      this.inherit(CstyleBehaviour, ["braces", "parens", "string_dquotes"]); // Get string behaviour
-      this.inherit(XmlBehaviour); // Get xml behaviour
-      
-      this.add("autoclosing", "insertion", function (state, action, editor, session, text) {
-        if (text == '>') {
-            var position = editor.getCursorPosition();
-            var iterator = new TokenIterator(session, position.row, position.column);
-            var token = iterator.getCurrentToken();
-            var atCursor = false;
-            var state = JSON.parse(state).pop();
-            if ((token && token.value === '>') || state !== "StartTag") return;
-            if (!token || !hasType(token, 'meta.tag') && !(hasType(token, 'text') && token.value.match('/'))){
-                do {
-                    token = iterator.stepBackward();
-                } while (token && (hasType(token, 'string') || hasType(token, 'keyword.operator') || hasType(token, 'entity.attribute-name') || hasType(token, 'text')));
-            } else {
-                atCursor = true;
-            }
-            var previous = iterator.stepBackward();
-            if (!token || !hasType(token, 'meta.tag') || (previous !== null && previous.value.match('/'))) {
-                return
-            }
-            var tag = token.value.substring(1);
-            if (atCursor){
-                var tag = tag.substring(0, position.column - token.start);
-            }
-
-            return {
-               text: '>' + '</' + tag + '>',
-               selection: [1, 1]
-            }
-        }
-    });
-
-  }
-  oop.inherits(XQueryBehaviour, Behaviour);
-
-  exports.XQueryBehaviour = XQueryBehaviour;
-});
-
-define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator', 'ace/lib/lang'], function(require, exports, module) {
-
-
-var oop = require("../../lib/oop");
-var Behaviour = require("../behaviour").Behaviour;
-var TokenIterator = require("../../token_iterator").TokenIterator;
-var lang = require("../../lib/lang");
-
-var SAFE_INSERT_IN_TOKENS =
-    ["text", "paren.rparen", "punctuation.operator"];
-var SAFE_INSERT_BEFORE_TOKENS =
-    ["text", "paren.rparen", "punctuation.operator", "comment"];
-
-var context;
-var contextCache = {}
-var initContext = function(editor) {
-    var id = -1;
-    if (editor.multiSelect) {
-        id = editor.selection.id;
-        if (contextCache.rangeCount != editor.multiSelect.rangeCount)
-            contextCache = {rangeCount: editor.multiSelect.rangeCount};
-    }
-    if (contextCache[id])
-        return context = contextCache[id];
-    context = contextCache[id] = {
-        autoInsertedBrackets: 0,
-        autoInsertedRow: -1,
-        autoInsertedLineEnd: "",
-        maybeInsertedBrackets: 0,
-        maybeInsertedRow: -1,
-        maybeInsertedLineStart: "",
-        maybeInsertedLineEnd: ""
-    };
-};
-
-var CstyleBehaviour = function() {
-    this.add("braces", "insertion", function(state, action, editor, session, text) {
-        var cursor = editor.getCursorPosition();
-        var line = session.doc.getLine(cursor.row);
-        if (text == '{') {
-            initContext(editor);
-            var selection = editor.getSelectionRange();
-            var selected = session.doc.getTextRange(selection);
-            if (selected !== "" && selected !== "{" && editor.getWrapBehavioursEnabled()) {
-                return {
-                    text: '{' + selected + '}',
-                    selection: false
-                };
-            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode) {
-                    CstyleBehaviour.recordAutoInsert(editor, session, "}");
-                    return {
-                        text: '{}',
-                        selection: [1, 1]
-                    };
-                } else {
-                    CstyleBehaviour.recordMaybeInsert(editor, session, "{");
-                    return {
-                        text: '{',
-                        selection: [1, 1]
-                    };
-                }
-            }
-        } else if (text == '}') {
-            initContext(editor);
-            var rightChar = line.substring(cursor.column, cursor.column + 1);
-            if (rightChar == '}') {
-                var matching = session.$findOpeningBracket('}', {column: cursor.column + 1, row: cursor.row});
-                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
-                    CstyleBehaviour.popAutoInsertedClosing();
-                    return {
-                        text: '',
-                        selection: [1, 1]
-                    };
-                }
-            }
-        } else if (text == "\n" || text == "\r\n") {
-            initContext(editor);
-            var closing = "";
-            if (CstyleBehaviour.isMaybeInsertedClosing(cursor, line)) {
-                closing = lang.stringRepeat("}", context.maybeInsertedBrackets);
-                CstyleBehaviour.clearMaybeInsertedClosing();
-            }
-            var rightChar = line.substring(cursor.column, cursor.column + 1);
-            if (rightChar === '}') {
-                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column+1}, '}');
-                if (!openBracePos)
-                     return null;
-                var next_indent = this.$getIndent(session.getLine(openBracePos.row));
-            } else if (closing) {
-                var next_indent = this.$getIndent(line);
-            } else {
-                CstyleBehaviour.clearMaybeInsertedClosing();
-                return;
-            }
-            var indent = next_indent + session.getTabString();
-
-            return {
-                text: '\n' + indent + '\n' + next_indent + closing,
-                selection: [1, indent.length, 1, indent.length]
-            };
-        } else {
-            CstyleBehaviour.clearMaybeInsertedClosing();
-        }
-    });
-
-    this.add("braces", "deletion", function(state, action, editor, session, range) {
-        var selected = session.doc.getTextRange(range);
-        if (!range.isMultiLine() && selected == '{') {
-            initContext(editor);
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.end.column, range.end.column + 1);
-            if (rightChar == '}') {
-                range.end.column++;
-                return range;
-            } else {
-                context.maybeInsertedBrackets--;
-            }
-        }
-    });
-
-    this.add("parens", "insertion", function(state, action, editor, session, text) {
-        if (text == '(') {
-            initContext(editor);
-            var selection = editor.getSelectionRange();
-            var selected = session.doc.getTextRange(selection);
-            if (selected !== "" && editor.getWrapBehavioursEnabled()) {
-                return {
-                    text: '(' + selected + ')',
-                    selection: false
-                };
-            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                CstyleBehaviour.recordAutoInsert(editor, session, ")");
-                return {
-                    text: '()',
-                    selection: [1, 1]
-                };
-            }
-        } else if (text == ')') {
-            initContext(editor);
-            var cursor = editor.getCursorPosition();
-            var line = session.doc.getLine(cursor.row);
-            var rightChar = line.substring(cursor.column, cursor.column + 1);
-            if (rightChar == ')') {
-                var matching = session.$findOpeningBracket(')', {column: cursor.column + 1, row: cursor.row});
-                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
-                    CstyleBehaviour.popAutoInsertedClosing();
-                    return {
-                        text: '',
-                        selection: [1, 1]
-                    };
-                }
-            }
-        }
-    });
-
-    this.add("parens", "deletion", function(state, action, editor, session, range) {
-        var selected = session.doc.getTextRange(range);
-        if (!range.isMultiLine() && selected == '(') {
-            initContext(editor);
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == ')') {
-                range.end.column++;
-                return range;
-            }
-        }
-    });
-
-    this.add("brackets", "insertion", function(state, action, editor, session, text) {
-        if (text == '[') {
-            initContext(editor);
-            var selection = editor.getSelectionRange();
-            var selected = session.doc.getTextRange(selection);
-            if (selected !== "" && editor.getWrapBehavioursEnabled()) {
-                return {
-                    text: '[' + selected + ']',
-                    selection: false
-                };
-            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                CstyleBehaviour.recordAutoInsert(editor, session, "]");
-                return {
-                    text: '[]',
-                    selection: [1, 1]
-                };
-            }
-        } else if (text == ']') {
-            initContext(editor);
-            var cursor = editor.getCursorPosition();
-            var line = session.doc.getLine(cursor.row);
-            var rightChar = line.substring(cursor.column, cursor.column + 1);
-            if (rightChar == ']') {
-                var matching = session.$findOpeningBracket(']', {column: cursor.column + 1, row: cursor.row});
-                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
-                    CstyleBehaviour.popAutoInsertedClosing();
-                    return {
-                        text: '',
-                        selection: [1, 1]
-                    };
-                }
-            }
-        }
-    });
-
-    this.add("brackets", "deletion", function(state, action, editor, session, range) {
-        var selected = session.doc.getTextRange(range);
-        if (!range.isMultiLine() && selected == '[') {
-            initContext(editor);
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == ']') {
-                range.end.column++;
-                return range;
-            }
-        }
-    });
-
-    this.add("string_dquotes", "insertion", function(state, action, editor, session, text) {
-        if (text == '"' || text == "'") {
-            initContext(editor);
-            var quote = text;
-            var selection = editor.getSelectionRange();
-            var selected = session.doc.getTextRange(selection);
-            if (selected !== "" && selected !== "'" && selected != '"' && editor.getWrapBehavioursEnabled()) {
-                return {
-                    text: quote + selected + quote,
-                    selection: false
-                };
-            } else {
-                var cursor = editor.getCursorPosition();
-                var line = session.doc.getLine(cursor.row);
-                var leftChar = line.substring(cursor.column-1, cursor.column);
-                if (leftChar == '\\') {
-                    return null;
-                }
-                var tokens = session.getTokens(selection.start.row);
-                var col = 0, token;
-                var quotepos = -1; // Track whether we're inside an open quote.
-
-                for (var x = 0; x < tokens.length; x++) {
-                    token = tokens[x];
-                    if (token.type == "string") {
-                      quotepos = -1;
-                    } else if (quotepos < 0) {
-                      quotepos = token.value.indexOf(quote);
-                    }
-                    if ((token.value.length + col) > selection.start.column) {
-                        break;
-                    }
-                    col += tokens[x].value.length;
-                }
-                if (!token || (quotepos < 0 && token.type !== "comment" && (token.type !== "string" || ((selection.start.column !== token.value.length+col-1) && token.value.lastIndexOf(quote) === token.value.length-1)))) {
-                    if (!CstyleBehaviour.isSaneInsertion(editor, session))
-                        return;
-                    return {
-                        text: quote + quote,
-                        selection: [1,1]
-                    };
-                } else if (token && token.type === "string") {
-                    var rightChar = line.substring(cursor.column, cursor.column + 1);
-                    if (rightChar == quote) {
-                        return {
-                            text: '',
-                            selection: [1, 1]
-                        };
-                    }
-                }
-            }
-        }
-    });
-
-    this.add("string_dquotes", "deletion", function(state, action, editor, session, range) {
-        var selected = session.doc.getTextRange(range);
-        if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
-            initContext(editor);
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == selected) {
-                range.end.column++;
-                return range;
-            }
-        }
-    });
-
-};
-
-    
-CstyleBehaviour.isSaneInsertion = function(editor, session) {
-    var cursor = editor.getCursorPosition();
-    var iterator = new TokenIterator(session, cursor.row, cursor.column);
-    if (!this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS)) {
-        var iterator2 = new TokenIterator(session, cursor.row, cursor.column + 1);
-        if (!this.$matchTokenType(iterator2.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS))
-            return false;
-    }
-    iterator.stepForward();
-    return iterator.getCurrentTokenRow() !== cursor.row ||
-        this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_BEFORE_TOKENS);
-};
-
-CstyleBehaviour.$matchTokenType = function(token, types) {
-    return types.indexOf(token.type || token) > -1;
-};
-
-CstyleBehaviour.recordAutoInsert = function(editor, session, bracket) {
-    var cursor = editor.getCursorPosition();
-    var line = session.doc.getLine(cursor.row);
-    if (!this.isAutoInsertedClosing(cursor, line, context.autoInsertedLineEnd[0]))
-        context.autoInsertedBrackets = 0;
-    context.autoInsertedRow = cursor.row;
-    context.autoInsertedLineEnd = bracket + line.substr(cursor.column);
-    context.autoInsertedBrackets++;
-};
-
-CstyleBehaviour.recordMaybeInsert = function(editor, session, bracket) {
-    var cursor = editor.getCursorPosition();
-    var line = session.doc.getLine(cursor.row);
-    if (!this.isMaybeInsertedClosing(cursor, line))
-        context.maybeInsertedBrackets = 0;
-    context.maybeInsertedRow = cursor.row;
-    context.maybeInsertedLineStart = line.substr(0, cursor.column) + bracket;
-    context.maybeInsertedLineEnd = line.substr(cursor.column);
-    context.maybeInsertedBrackets++;
-};
-
-CstyleBehaviour.isAutoInsertedClosing = function(cursor, line, bracket) {
-    return context.autoInsertedBrackets > 0 &&
-        cursor.row === context.autoInsertedRow &&
-        bracket === context.autoInsertedLineEnd[0] &&
-        line.substr(cursor.column) === context.autoInsertedLineEnd;
-};
-
-CstyleBehaviour.isMaybeInsertedClosing = function(cursor, line) {
-    return context.maybeInsertedBrackets > 0 &&
-        cursor.row === context.maybeInsertedRow &&
-        line.substr(cursor.column) === context.maybeInsertedLineEnd &&
-        line.substr(0, cursor.column) == context.maybeInsertedLineStart;
-};
-
-CstyleBehaviour.popAutoInsertedClosing = function() {
-    context.autoInsertedLineEnd = context.autoInsertedLineEnd.substr(1);
-    context.autoInsertedBrackets--;
-};
-
-CstyleBehaviour.clearMaybeInsertedClosing = function() {
-    if (context) {
-        context.maybeInsertedBrackets = 0;
-        context.maybeInsertedRow = -1;
-    }
-};
-
-
-
-oop.inherits(CstyleBehaviour, Behaviour);
-
-exports.CstyleBehaviour = CstyleBehaviour;
-});
-
-define('ace/mode/behaviour/xml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator'], function(require, exports, module) {
-
-
-var oop = require("../../lib/oop");
-var Behaviour = require("../behaviour").Behaviour;
-var TokenIterator = require("../../token_iterator").TokenIterator;
-
-function is(token, type) {
-    return token.type.lastIndexOf(type + ".xml") > -1;
-}
-
-var XmlBehaviour = function () {
-
-    this.add("string_dquotes", "insertion", function (state, action, editor, session, text) {
-        if (text == '"' || text == "'") {
-            var quote = text;
-            var selected = session.doc.getTextRange(editor.getSelectionRange());
-            if (selected !== "" && selected !== "'" && selected != '"' && editor.getWrapBehavioursEnabled()) {
-                return {
-                    text: quote + selected + quote,
-                    selection: false
-                };
-            }
-
-            var cursor = editor.getCursorPosition();
-            var line = session.doc.getLine(cursor.row);
-            var rightChar = line.substring(cursor.column, cursor.column + 1);
-            var iterator = new TokenIterator(session, cursor.row, cursor.column);
-            var token = iterator.getCurrentToken();
-
-            if (rightChar == quote && (is(token, "attribute-value") || is(token, "string"))) {
-                return {
-                    text: "",
-                    selection: [1, 1]
-                };
-            }
-
-            if (!token)
-                token = iterator.stepBackward();
-
-            if (!token)
-                return;
-
-            while (is(token, "tag-whitespace") || is(token, "whitespace")) {
-                token = iterator.stepBackward();
-            }
-            var rightSpace = !rightChar || rightChar.match(/\s/);
-            if (is(token, "attribute-equals") && (rightSpace || rightChar == '>') || (is(token, "decl-attribute-equals") && (rightSpace || rightChar == '?'))) {
-                return {
-                    text: quote + quote,
-                    selection: [1, 1]
-                };
-            }
-        }
-    });
-
-    this.add("string_dquotes", "deletion", function(state, action, editor, session, range) {
-        var selected = session.doc.getTextRange(range);
-        if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
-            var line = session.doc.getLine(range.start.row);
-            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
-            if (rightChar == selected) {
-                range.end.column++;
-                return range;
-            }
-        }
-    });
-
-    this.add("autoclosing", "insertion", function (state, action, editor, session, text) {
-        if (text == '>') {
-            var position = editor.getCursorPosition();
-            var iterator = new TokenIterator(session, position.row, position.column);
-            var token = iterator.getCurrentToken() || iterator.stepBackward();
-            if (!token || !(is(token, "tag-name") || is(token, "tag-whitespace") || is(token, "attribute-name") || is(token, "attribute-equals") || is(token, "attribute-value")))
-                return;
-            if (is(token, "reference.attribute-value"))
-                return;
-            if (is(token, "attribute-value")) {
-                var firstChar = token.value.charAt(0);
-                if (firstChar == '"' || firstChar == "'") {
-                    var lastChar = token.value.charAt(token.value.length - 1);
-                    var tokenEnd = iterator.getCurrentTokenColumn() + token.value.length;
-                    if (tokenEnd > position.column || tokenEnd == position.column && firstChar != lastChar)
-                        return;
-                }
-            }
-            while (!is(token, "tag-name")) {
-                token = iterator.stepBackward();
-            }
-
-            var tokenRow = iterator.getCurrentTokenRow();
-            var tokenColumn = iterator.getCurrentTokenColumn();
-            if (is(iterator.stepBackward(), "end-tag-open"))
-                return;
-
-            var element = token.value;
-            if (tokenRow == position.row)
-                element = element.substring(0, position.column - tokenColumn);
-
-            if (this.voidElements.hasOwnProperty(element.toLowerCase()))
-                 return;
-
-            return {
-               text: '>' + '</' + element + '>',
-               selection: [1, 1]
-            };
-        }
-    });
-
-    this.add('autoindent', 'insertion', function (state, action, editor, session, text) {
-        if (text == "\n") {
-            var cursor = editor.getCursorPosition();
-            var line = session.getLine(cursor.row);
-            var rightChars = line.substring(cursor.column, cursor.column + 2);
-            if (rightChars == '</') {
-                var next_indent = this.$getIndent(line);
-                var indent = next_indent + session.getTabString();
-
-                return {
-                    text: '\n' + indent + '\n' + next_indent,
-                    selection: [1, indent.length, 1, indent.length]
-                };
-            }
-        }
-    });
-    
-};
-
-oop.inherits(XmlBehaviour, Behaviour);
-
-exports.XmlBehaviour = XmlBehaviour;
-});
-
-define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
-
-
-var oop = require("../../lib/oop");
-var Range = require("../../range").Range;
-var BaseFoldMode = require("./fold_mode").FoldMode;
-
-var FoldMode = exports.FoldMode = function(commentRegex) {
-    if (commentRegex) {
-        this.foldingStartMarker = new RegExp(
-            this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start)
-        );
-        this.foldingStopMarker = new RegExp(
-            this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end)
-        );
-    }
-};
-oop.inherits(FoldMode, BaseFoldMode);
-
-(function() {
-
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
-
-    this.getFoldWidgetRange = function(session, foldStyle, row, forceMultiline) {
-        var line = session.getLine(row);
-        var match = line.match(this.foldingStartMarker);
-        if (match) {
-            var i = match.index;
-
-            if (match[1])
-                return this.openingBracketBlock(session, match[1], row, i);
-                
-            var range = session.getCommentFoldRange(row, i + match[0].length, 1);
-            
-            if (range && !range.isMultiLine()) {
-                if (forceMultiline) {
-                    range = this.getSectionRange(session, row);
-                } else if (foldStyle != "all")
-                    range = null;
-            }
-            
-            return range;
-        }
-
-        if (foldStyle === "markbegin")
-            return;
-
-        var match = line.match(this.foldingStopMarker);
-        if (match) {
-            var i = match.index + match[0].length;
-
-            if (match[1])
-                return this.closingBracketBlock(session, match[1], row, i);
-
-            return session.getCommentFoldRange(row, i, -1);
-        }
-    };
-    
-    this.getSectionRange = function(session, row) {
-        var line = session.getLine(row);
-        var startIndent = line.search(/\S/);
-        var startRow = row;
-        var startColumn = line.length;
-        row = row + 1;
-        var endRow = row;
-        var maxRow = session.getLength();
-        while (++row < maxRow) {
-            line = session.getLine(row);
-            var indent = line.search(/\S/);
-            if (indent === -1)
-                continue;
-            if  (startIndent > indent)
-                break;
-            var subRange = this.getFoldWidgetRange(session, "all", row);
-            
-            if (subRange) {
-                if (subRange.start.row <= startRow) {
-                    break;
-                } else if (subRange.isMultiLine()) {
-                    row = subRange.end.row;
-                } else if (startIndent == indent) {
-                    break;
-                }
-            }
-            endRow = row;
-        }
-        
-        return new Range(startRow, startColumn, endRow, session.getLine(endRow).length);
-    };
-
-}).call(FoldMode.prototype);
-
-});
-define('ace/mode/xquery/xquery_lexer', ['require', 'exports', 'module' ], function(require, exports, module) {
+define("ace/mode/xquery/xquery_lexer",["require","exports","module"], function(require, exports, module) {
 module.exports = (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({
 1:[function(_dereq_,module,exports){
                                                             var XQueryTokenizer = exports.XQueryTokenizer = function XQueryTokenizer(string, parsingEventHandler)
@@ -2674,7 +1823,7 @@ XQueryTokenizer.TOKEN =
 },
 {}],
 2:[function(_dereq_,module,exports){
-
+'use strict';
 
 var XQueryTokenizer = _dereq_('./XQueryTokenizer').XQueryTokenizer;
 
@@ -2947,8 +2096,658 @@ exports.XQueryLexer = function() {
 
 });
 
-define('ace/snippets', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter', 'ace/lib/lang', 'ace/range', 'ace/anchor', 'ace/keyboard/hash_handler', 'ace/tokenizer', 'ace/lib/dom', 'ace/editor'], function(require, exports, module) {
+define("ace/mode/behaviour/cstyle",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/token_iterator","ace/lib/lang"], function(require, exports, module) {
+"use strict";
 
+var oop = require("../../lib/oop");
+var Behaviour = require("../behaviour").Behaviour;
+var TokenIterator = require("../../token_iterator").TokenIterator;
+var lang = require("../../lib/lang");
+
+var SAFE_INSERT_IN_TOKENS =
+    ["text", "paren.rparen", "punctuation.operator"];
+var SAFE_INSERT_BEFORE_TOKENS =
+    ["text", "paren.rparen", "punctuation.operator", "comment"];
+
+var context;
+var contextCache = {}
+var initContext = function(editor) {
+    var id = -1;
+    if (editor.multiSelect) {
+        id = editor.selection.id;
+        if (contextCache.rangeCount != editor.multiSelect.rangeCount)
+            contextCache = {rangeCount: editor.multiSelect.rangeCount};
+    }
+    if (contextCache[id])
+        return context = contextCache[id];
+    context = contextCache[id] = {
+        autoInsertedBrackets: 0,
+        autoInsertedRow: -1,
+        autoInsertedLineEnd: "",
+        maybeInsertedBrackets: 0,
+        maybeInsertedRow: -1,
+        maybeInsertedLineStart: "",
+        maybeInsertedLineEnd: ""
+    };
+};
+
+var CstyleBehaviour = function() {
+    this.add("braces", "insertion", function(state, action, editor, session, text) {
+        var cursor = editor.getCursorPosition();
+        var line = session.doc.getLine(cursor.row);
+        if (text == '{') {
+            initContext(editor);
+            var selection = editor.getSelectionRange();
+            var selected = session.doc.getTextRange(selection);
+            if (selected !== "" && selected !== "{" && editor.getWrapBehavioursEnabled()) {
+                return {
+                    text: '{' + selected + '}',
+                    selection: false
+                };
+            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
+                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode) {
+                    CstyleBehaviour.recordAutoInsert(editor, session, "}");
+                    return {
+                        text: '{}',
+                        selection: [1, 1]
+                    };
+                } else {
+                    CstyleBehaviour.recordMaybeInsert(editor, session, "{");
+                    return {
+                        text: '{',
+                        selection: [1, 1]
+                    };
+                }
+            }
+        } else if (text == '}') {
+            initContext(editor);
+            var rightChar = line.substring(cursor.column, cursor.column + 1);
+            if (rightChar == '}') {
+                var matching = session.$findOpeningBracket('}', {column: cursor.column + 1, row: cursor.row});
+                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
+                    CstyleBehaviour.popAutoInsertedClosing();
+                    return {
+                        text: '',
+                        selection: [1, 1]
+                    };
+                }
+            }
+        } else if (text == "\n" || text == "\r\n") {
+            initContext(editor);
+            var closing = "";
+            if (CstyleBehaviour.isMaybeInsertedClosing(cursor, line)) {
+                closing = lang.stringRepeat("}", context.maybeInsertedBrackets);
+                CstyleBehaviour.clearMaybeInsertedClosing();
+            }
+            var rightChar = line.substring(cursor.column, cursor.column + 1);
+            if (rightChar === '}') {
+                var openBracePos = session.findMatchingBracket({row: cursor.row, column: cursor.column+1}, '}');
+                if (!openBracePos)
+                     return null;
+                var next_indent = this.$getIndent(session.getLine(openBracePos.row));
+            } else if (closing) {
+                var next_indent = this.$getIndent(line);
+            } else {
+                CstyleBehaviour.clearMaybeInsertedClosing();
+                return;
+            }
+            var indent = next_indent + session.getTabString();
+
+            return {
+                text: '\n' + indent + '\n' + next_indent + closing,
+                selection: [1, indent.length, 1, indent.length]
+            };
+        } else {
+            CstyleBehaviour.clearMaybeInsertedClosing();
+        }
+    });
+
+    this.add("braces", "deletion", function(state, action, editor, session, range) {
+        var selected = session.doc.getTextRange(range);
+        if (!range.isMultiLine() && selected == '{') {
+            initContext(editor);
+            var line = session.doc.getLine(range.start.row);
+            var rightChar = line.substring(range.end.column, range.end.column + 1);
+            if (rightChar == '}') {
+                range.end.column++;
+                return range;
+            } else {
+                context.maybeInsertedBrackets--;
+            }
+        }
+    });
+
+    this.add("parens", "insertion", function(state, action, editor, session, text) {
+        if (text == '(') {
+            initContext(editor);
+            var selection = editor.getSelectionRange();
+            var selected = session.doc.getTextRange(selection);
+            if (selected !== "" && editor.getWrapBehavioursEnabled()) {
+                return {
+                    text: '(' + selected + ')',
+                    selection: false
+                };
+            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
+                CstyleBehaviour.recordAutoInsert(editor, session, ")");
+                return {
+                    text: '()',
+                    selection: [1, 1]
+                };
+            }
+        } else if (text == ')') {
+            initContext(editor);
+            var cursor = editor.getCursorPosition();
+            var line = session.doc.getLine(cursor.row);
+            var rightChar = line.substring(cursor.column, cursor.column + 1);
+            if (rightChar == ')') {
+                var matching = session.$findOpeningBracket(')', {column: cursor.column + 1, row: cursor.row});
+                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
+                    CstyleBehaviour.popAutoInsertedClosing();
+                    return {
+                        text: '',
+                        selection: [1, 1]
+                    };
+                }
+            }
+        }
+    });
+
+    this.add("parens", "deletion", function(state, action, editor, session, range) {
+        var selected = session.doc.getTextRange(range);
+        if (!range.isMultiLine() && selected == '(') {
+            initContext(editor);
+            var line = session.doc.getLine(range.start.row);
+            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+            if (rightChar == ')') {
+                range.end.column++;
+                return range;
+            }
+        }
+    });
+
+    this.add("brackets", "insertion", function(state, action, editor, session, text) {
+        if (text == '[') {
+            initContext(editor);
+            var selection = editor.getSelectionRange();
+            var selected = session.doc.getTextRange(selection);
+            if (selected !== "" && editor.getWrapBehavioursEnabled()) {
+                return {
+                    text: '[' + selected + ']',
+                    selection: false
+                };
+            } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
+                CstyleBehaviour.recordAutoInsert(editor, session, "]");
+                return {
+                    text: '[]',
+                    selection: [1, 1]
+                };
+            }
+        } else if (text == ']') {
+            initContext(editor);
+            var cursor = editor.getCursorPosition();
+            var line = session.doc.getLine(cursor.row);
+            var rightChar = line.substring(cursor.column, cursor.column + 1);
+            if (rightChar == ']') {
+                var matching = session.$findOpeningBracket(']', {column: cursor.column + 1, row: cursor.row});
+                if (matching !== null && CstyleBehaviour.isAutoInsertedClosing(cursor, line, text)) {
+                    CstyleBehaviour.popAutoInsertedClosing();
+                    return {
+                        text: '',
+                        selection: [1, 1]
+                    };
+                }
+            }
+        }
+    });
+
+    this.add("brackets", "deletion", function(state, action, editor, session, range) {
+        var selected = session.doc.getTextRange(range);
+        if (!range.isMultiLine() && selected == '[') {
+            initContext(editor);
+            var line = session.doc.getLine(range.start.row);
+            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+            if (rightChar == ']') {
+                range.end.column++;
+                return range;
+            }
+        }
+    });
+
+    this.add("string_dquotes", "insertion", function(state, action, editor, session, text) {
+        if (text == '"' || text == "'") {
+            initContext(editor);
+            var quote = text;
+            var selection = editor.getSelectionRange();
+            var selected = session.doc.getTextRange(selection);
+            if (selected !== "" && selected !== "'" && selected != '"' && editor.getWrapBehavioursEnabled()) {
+                return {
+                    text: quote + selected + quote,
+                    selection: false
+                };
+            } else {
+                var cursor = editor.getCursorPosition();
+                var line = session.doc.getLine(cursor.row);
+                var leftChar = line.substring(cursor.column-1, cursor.column);
+                if (leftChar == '\\') {
+                    return null;
+                }
+                var tokens = session.getTokens(selection.start.row);
+                var col = 0, token;
+                var quotepos = -1; // Track whether we're inside an open quote.
+
+                for (var x = 0; x < tokens.length; x++) {
+                    token = tokens[x];
+                    if (token.type == "string") {
+                      quotepos = -1;
+                    } else if (quotepos < 0) {
+                      quotepos = token.value.indexOf(quote);
+                    }
+                    if ((token.value.length + col) > selection.start.column) {
+                        break;
+                    }
+                    col += tokens[x].value.length;
+                }
+                if (!token || (quotepos < 0 && token.type !== "comment" && (token.type !== "string" || ((selection.start.column !== token.value.length+col-1) && token.value.lastIndexOf(quote) === token.value.length-1)))) {
+                    if (!CstyleBehaviour.isSaneInsertion(editor, session))
+                        return;
+                    return {
+                        text: quote + quote,
+                        selection: [1,1]
+                    };
+                } else if (token && token.type === "string") {
+                    var rightChar = line.substring(cursor.column, cursor.column + 1);
+                    if (rightChar == quote) {
+                        return {
+                            text: '',
+                            selection: [1, 1]
+                        };
+                    }
+                }
+            }
+        }
+    });
+
+    this.add("string_dquotes", "deletion", function(state, action, editor, session, range) {
+        var selected = session.doc.getTextRange(range);
+        if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
+            initContext(editor);
+            var line = session.doc.getLine(range.start.row);
+            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+            if (rightChar == selected) {
+                range.end.column++;
+                return range;
+            }
+        }
+    });
+
+};
+
+    
+CstyleBehaviour.isSaneInsertion = function(editor, session) {
+    var cursor = editor.getCursorPosition();
+    var iterator = new TokenIterator(session, cursor.row, cursor.column);
+    if (!this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS)) {
+        var iterator2 = new TokenIterator(session, cursor.row, cursor.column + 1);
+        if (!this.$matchTokenType(iterator2.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS))
+            return false;
+    }
+    iterator.stepForward();
+    return iterator.getCurrentTokenRow() !== cursor.row ||
+        this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_BEFORE_TOKENS);
+};
+
+CstyleBehaviour.$matchTokenType = function(token, types) {
+    return types.indexOf(token.type || token) > -1;
+};
+
+CstyleBehaviour.recordAutoInsert = function(editor, session, bracket) {
+    var cursor = editor.getCursorPosition();
+    var line = session.doc.getLine(cursor.row);
+    if (!this.isAutoInsertedClosing(cursor, line, context.autoInsertedLineEnd[0]))
+        context.autoInsertedBrackets = 0;
+    context.autoInsertedRow = cursor.row;
+    context.autoInsertedLineEnd = bracket + line.substr(cursor.column);
+    context.autoInsertedBrackets++;
+};
+
+CstyleBehaviour.recordMaybeInsert = function(editor, session, bracket) {
+    var cursor = editor.getCursorPosition();
+    var line = session.doc.getLine(cursor.row);
+    if (!this.isMaybeInsertedClosing(cursor, line))
+        context.maybeInsertedBrackets = 0;
+    context.maybeInsertedRow = cursor.row;
+    context.maybeInsertedLineStart = line.substr(0, cursor.column) + bracket;
+    context.maybeInsertedLineEnd = line.substr(cursor.column);
+    context.maybeInsertedBrackets++;
+};
+
+CstyleBehaviour.isAutoInsertedClosing = function(cursor, line, bracket) {
+    return context.autoInsertedBrackets > 0 &&
+        cursor.row === context.autoInsertedRow &&
+        bracket === context.autoInsertedLineEnd[0] &&
+        line.substr(cursor.column) === context.autoInsertedLineEnd;
+};
+
+CstyleBehaviour.isMaybeInsertedClosing = function(cursor, line) {
+    return context.maybeInsertedBrackets > 0 &&
+        cursor.row === context.maybeInsertedRow &&
+        line.substr(cursor.column) === context.maybeInsertedLineEnd &&
+        line.substr(0, cursor.column) == context.maybeInsertedLineStart;
+};
+
+CstyleBehaviour.popAutoInsertedClosing = function() {
+    context.autoInsertedLineEnd = context.autoInsertedLineEnd.substr(1);
+    context.autoInsertedBrackets--;
+};
+
+CstyleBehaviour.clearMaybeInsertedClosing = function() {
+    if (context) {
+        context.maybeInsertedBrackets = 0;
+        context.maybeInsertedRow = -1;
+    }
+};
+
+
+
+oop.inherits(CstyleBehaviour, Behaviour);
+
+exports.CstyleBehaviour = CstyleBehaviour;
+});
+
+define("ace/mode/behaviour/xml",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/token_iterator"], function(require, exports, module) {
+"use strict";
+
+var oop = require("../../lib/oop");
+var Behaviour = require("../behaviour").Behaviour;
+var TokenIterator = require("../../token_iterator").TokenIterator;
+
+function is(token, type) {
+    return token.type.lastIndexOf(type + ".xml") > -1;
+}
+
+var XmlBehaviour = function () {
+
+    this.add("string_dquotes", "insertion", function (state, action, editor, session, text) {
+        if (text == '"' || text == "'") {
+            var quote = text;
+            var selected = session.doc.getTextRange(editor.getSelectionRange());
+            if (selected !== "" && selected !== "'" && selected != '"' && editor.getWrapBehavioursEnabled()) {
+                return {
+                    text: quote + selected + quote,
+                    selection: false
+                };
+            }
+
+            var cursor = editor.getCursorPosition();
+            var line = session.doc.getLine(cursor.row);
+            var rightChar = line.substring(cursor.column, cursor.column + 1);
+            var iterator = new TokenIterator(session, cursor.row, cursor.column);
+            var token = iterator.getCurrentToken();
+
+            if (rightChar == quote && (is(token, "attribute-value") || is(token, "string"))) {
+                return {
+                    text: "",
+                    selection: [1, 1]
+                };
+            }
+
+            if (!token)
+                token = iterator.stepBackward();
+
+            if (!token)
+                return;
+
+            while (is(token, "tag-whitespace") || is(token, "whitespace")) {
+                token = iterator.stepBackward();
+            }
+            var rightSpace = !rightChar || rightChar.match(/\s/);
+            if (is(token, "attribute-equals") && (rightSpace || rightChar == '>') || (is(token, "decl-attribute-equals") && (rightSpace || rightChar == '?'))) {
+                return {
+                    text: quote + quote,
+                    selection: [1, 1]
+                };
+            }
+        }
+    });
+
+    this.add("string_dquotes", "deletion", function(state, action, editor, session, range) {
+        var selected = session.doc.getTextRange(range);
+        if (!range.isMultiLine() && (selected == '"' || selected == "'")) {
+            var line = session.doc.getLine(range.start.row);
+            var rightChar = line.substring(range.start.column + 1, range.start.column + 2);
+            if (rightChar == selected) {
+                range.end.column++;
+                return range;
+            }
+        }
+    });
+
+    this.add("autoclosing", "insertion", function (state, action, editor, session, text) {
+        if (text == '>') {
+            var position = editor.getCursorPosition();
+            var iterator = new TokenIterator(session, position.row, position.column);
+            var token = iterator.getCurrentToken() || iterator.stepBackward();
+            if (!token || !(is(token, "tag-name") || is(token, "tag-whitespace") || is(token, "attribute-name") || is(token, "attribute-equals") || is(token, "attribute-value")))
+                return;
+            if (is(token, "reference.attribute-value"))
+                return;
+            if (is(token, "attribute-value")) {
+                var firstChar = token.value.charAt(0);
+                if (firstChar == '"' || firstChar == "'") {
+                    var lastChar = token.value.charAt(token.value.length - 1);
+                    var tokenEnd = iterator.getCurrentTokenColumn() + token.value.length;
+                    if (tokenEnd > position.column || tokenEnd == position.column && firstChar != lastChar)
+                        return;
+                }
+            }
+            while (!is(token, "tag-name")) {
+                token = iterator.stepBackward();
+            }
+
+            var tokenRow = iterator.getCurrentTokenRow();
+            var tokenColumn = iterator.getCurrentTokenColumn();
+            if (is(iterator.stepBackward(), "end-tag-open"))
+                return;
+
+            var element = token.value;
+            if (tokenRow == position.row)
+                element = element.substring(0, position.column - tokenColumn);
+
+            if (this.voidElements.hasOwnProperty(element.toLowerCase()))
+                 return;
+
+            return {
+               text: '>' + '</' + element + '>',
+               selection: [1, 1]
+            };
+        }
+    });
+
+    this.add('autoindent', 'insertion', function (state, action, editor, session, text) {
+        if (text == "\n") {
+            var cursor = editor.getCursorPosition();
+            var line = session.getLine(cursor.row);
+            var rightChars = line.substring(cursor.column, cursor.column + 2);
+            if (rightChars == '</') {
+                var next_indent = this.$getIndent(line);
+                var indent = next_indent + session.getTabString();
+
+                return {
+                    text: '\n' + indent + '\n' + next_indent,
+                    selection: [1, indent.length, 1, indent.length]
+                };
+            }
+        }
+    });
+    
+};
+
+oop.inherits(XmlBehaviour, Behaviour);
+
+exports.XmlBehaviour = XmlBehaviour;
+});
+
+define("ace/mode/behaviour/xquery",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/mode/behaviour/cstyle","ace/mode/behaviour/xml","ace/token_iterator"], function(require, exports, module) {
+"use strict";
+
+  var oop = require("../../lib/oop");
+  var Behaviour = require('../behaviour').Behaviour;
+  var CstyleBehaviour = require('./cstyle').CstyleBehaviour;
+  var XmlBehaviour = require("../behaviour/xml").XmlBehaviour;
+  var TokenIterator = require("../../token_iterator").TokenIterator;
+
+function hasType(token, type) {
+    var hasType = true;
+    var typeList = token.type.split('.');
+    var needleList = type.split('.');
+    needleList.forEach(function(needle){
+        if (typeList.indexOf(needle) == -1) {
+            hasType = false;
+            return false;
+        }
+    });
+    return hasType;
+}
+ 
+  var XQueryBehaviour = function () {
+      
+      this.inherit(CstyleBehaviour, ["braces", "parens", "string_dquotes"]); // Get string behaviour
+      this.inherit(XmlBehaviour); // Get xml behaviour
+      
+      this.add("autoclosing", "insertion", function (state, action, editor, session, text) {
+        if (text == '>') {
+            var position = editor.getCursorPosition();
+            var iterator = new TokenIterator(session, position.row, position.column);
+            var token = iterator.getCurrentToken();
+            var atCursor = false;
+            var state = JSON.parse(state).pop();
+            if ((token && token.value === '>') || state !== "StartTag") return;
+            if (!token || !hasType(token, 'meta.tag') && !(hasType(token, 'text') && token.value.match('/'))){
+                do {
+                    token = iterator.stepBackward();
+                } while (token && (hasType(token, 'string') || hasType(token, 'keyword.operator') || hasType(token, 'entity.attribute-name') || hasType(token, 'text')));
+            } else {
+                atCursor = true;
+            }
+            var previous = iterator.stepBackward();
+            if (!token || !hasType(token, 'meta.tag') || (previous !== null && previous.value.match('/'))) {
+                return
+            }
+            var tag = token.value.substring(1);
+            if (atCursor){
+                var tag = tag.substring(0, position.column - token.start);
+            }
+
+            return {
+               text: '>' + '</' + tag + '>',
+               selection: [1, 1]
+            }
+        }
+    });
+
+  }
+  oop.inherits(XQueryBehaviour, Behaviour);
+
+  exports.XQueryBehaviour = XQueryBehaviour;
+});
+
+define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
+"use strict";
+
+var oop = require("../../lib/oop");
+var Range = require("../../range").Range;
+var BaseFoldMode = require("./fold_mode").FoldMode;
+
+var FoldMode = exports.FoldMode = function(commentRegex) {
+    if (commentRegex) {
+        this.foldingStartMarker = new RegExp(
+            this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start)
+        );
+        this.foldingStopMarker = new RegExp(
+            this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end)
+        );
+    }
+};
+oop.inherits(FoldMode, BaseFoldMode);
+
+(function() {
+
+    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+
+    this.getFoldWidgetRange = function(session, foldStyle, row, forceMultiline) {
+        var line = session.getLine(row);
+        var match = line.match(this.foldingStartMarker);
+        if (match) {
+            var i = match.index;
+
+            if (match[1])
+                return this.openingBracketBlock(session, match[1], row, i);
+                
+            var range = session.getCommentFoldRange(row, i + match[0].length, 1);
+            
+            if (range && !range.isMultiLine()) {
+                if (forceMultiline) {
+                    range = this.getSectionRange(session, row);
+                } else if (foldStyle != "all")
+                    range = null;
+            }
+            
+            return range;
+        }
+
+        if (foldStyle === "markbegin")
+            return;
+
+        var match = line.match(this.foldingStopMarker);
+        if (match) {
+            var i = match.index + match[0].length;
+
+            if (match[1])
+                return this.closingBracketBlock(session, match[1], row, i);
+
+            return session.getCommentFoldRange(row, i, -1);
+        }
+    };
+    
+    this.getSectionRange = function(session, row) {
+        var line = session.getLine(row);
+        var startIndent = line.search(/\S/);
+        var startRow = row;
+        var startColumn = line.length;
+        row = row + 1;
+        var endRow = row;
+        var maxRow = session.getLength();
+        while (++row < maxRow) {
+            line = session.getLine(row);
+            var indent = line.search(/\S/);
+            if (indent === -1)
+                continue;
+            if  (startIndent > indent)
+                break;
+            var subRange = this.getFoldWidgetRange(session, "all", row);
+            
+            if (subRange) {
+                if (subRange.start.row <= startRow) {
+                    break;
+                } else if (subRange.isMultiLine()) {
+                    row = subRange.end.row;
+                } else if (startIndent == indent) {
+                    break;
+                }
+            }
+            endRow = row;
+        }
+        
+        return new Range(startRow, startColumn, endRow, session.getLine(endRow).length);
+    };
+
+}).call(FoldMode.prototype);
+
+});
+
+define("ace/snippets",["require","exports","module","ace/lib/oop","ace/lib/event_emitter","ace/lib/lang","ace/range","ace/anchor","ace/keyboard/hash_handler","ace/tokenizer","ace/lib/dom","ace/editor"], function(require, exports, module) {
+"use strict";
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
 var lang = require("./lib/lang");
@@ -3846,363 +3645,8 @@ var Editor = require("./editor").Editor;
 
 });
 
-define('ace/autocomplete', ['require', 'exports', 'module' , 'ace/keyboard/hash_handler', 'ace/autocomplete/popup', 'ace/autocomplete/util', 'ace/lib/event', 'ace/lib/lang', 'ace/snippets'], function(require, exports, module) {
-
-
-var HashHandler = require("./keyboard/hash_handler").HashHandler;
-var AcePopup = require("./autocomplete/popup").AcePopup;
-var util = require("./autocomplete/util");
-var event = require("./lib/event");
-var lang = require("./lib/lang");
-var snippetManager = require("./snippets").snippetManager;
-
-var Autocomplete = function() {
-    this.autoInsert = true;
-    this.autoSelect = true;
-    this.keyboardHandler = new HashHandler();
-    this.keyboardHandler.bindKeys(this.commands);
-
-    this.blurListener = this.blurListener.bind(this);
-    this.changeListener = this.changeListener.bind(this);
-    this.mousedownListener = this.mousedownListener.bind(this);
-    this.mousewheelListener = this.mousewheelListener.bind(this);
-
-    this.changeTimer = lang.delayedCall(function() {
-        this.updateCompletions(true);
-    }.bind(this));
-};
-
-(function() {
-    this.gatherCompletionsId = 0;
-
-    this.$init = function() {
-        this.popup = new AcePopup(document.body || document.documentElement);
-        this.popup.on("click", function(e) {
-            this.insertMatch();
-            e.stop();
-        }.bind(this));
-        this.popup.focus = this.editor.focus.bind(this.editor);
-    };
-
-    this.openPopup = function(editor, prefix, keepPopupPosition) {
-        if (!this.popup)
-            this.$init();
-
-        this.popup.setData(this.completions.filtered);
-
-        var renderer = editor.renderer;
-        this.popup.setRow(this.autoSelect ? 0 : -1);
-        if (!keepPopupPosition) {
-            this.popup.setTheme(editor.getTheme());
-            this.popup.setFontSize(editor.getFontSize());
-
-            var lineHeight = renderer.layerConfig.lineHeight;
-
-            var pos = renderer.$cursorLayer.getPixelPosition(this.base, true);
-            pos.left -= this.popup.getTextLeftOffset();
-
-            var rect = editor.container.getBoundingClientRect();
-            pos.top += rect.top - renderer.layerConfig.offset;
-            pos.left += rect.left - editor.renderer.scrollLeft;
-            pos.left += renderer.$gutterLayer.gutterWidth;
-
-            this.popup.show(pos, lineHeight);
-        }
-    };
-
-    this.detach = function() {
-        this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
-        this.editor.off("changeSelection", this.changeListener);
-        this.editor.off("blur", this.blurListener);
-        this.editor.off("mousedown", this.mousedownListener);
-        this.editor.off("mousewheel", this.mousewheelListener);
-        this.changeTimer.cancel();
-
-        if (this.popup && this.popup.isOpen) {
-            this.gatherCompletionsId = this.gatherCompletionsId + 1;
-        }
-
-        if (this.popup)
-            this.popup.hide();
-
-        this.activated = false;
-        this.completions = this.base = null;
-    };
-
-    this.changeListener = function(e) {
-        var cursor = this.editor.selection.lead;
-        if (cursor.row != this.base.row || cursor.column < this.base.column) {
-            this.detach();
-        }
-        if (this.activated)
-            this.changeTimer.schedule();
-        else
-            this.detach();
-    };
-
-    this.blurListener = function() {
-        var el = document.activeElement;
-        if (el != this.editor.textInput.getElement() && el.parentNode != this.popup.container)
-            this.detach();
-    };
-
-    this.mousedownListener = function(e) {
-        this.detach();
-    };
-
-    this.mousewheelListener = function(e) {
-        this.detach();
-    };
-
-    this.goTo = function(where) {
-        var row = this.popup.getRow();
-        var max = this.popup.session.getLength() - 1;
-
-        switch(where) {
-            case "up": row = row <= 0 ? max : row - 1; break;
-            case "down": row = row >= max ? -1 : row + 1; break;
-            case "start": row = 0; break;
-            case "end": row = max; break;
-        }
-
-        this.popup.setRow(row);
-    };
-
-    this.insertMatch = function(data) {
-        if (!data)
-            data = this.popup.getData(this.popup.getRow());
-        if (!data)
-            return false;
-
-        if (data.completer && data.completer.insertMatch) {
-            data.completer.insertMatch(this.editor);
-        } else {
-            if (this.completions.filterText) {
-                var ranges = this.editor.selection.getAllRanges();
-                for (var i = 0, range; range = ranges[i]; i++) {
-                    range.start.column -= this.completions.filterText.length;
-                    this.editor.session.remove(range);
-                }
-            }
-            if (data.snippet)
-                snippetManager.insertSnippet(this.editor, data.snippet);
-            else
-                this.editor.execCommand("insertstring", data.value || data);
-        }
-        this.detach();
-    };
-
-    this.commands = {
-        "Up": function(editor) { editor.completer.goTo("up"); },
-        "Down": function(editor) { editor.completer.goTo("down"); },
-        "Ctrl-Up|Ctrl-Home": function(editor) { editor.completer.goTo("start"); },
-        "Ctrl-Down|Ctrl-End": function(editor) { editor.completer.goTo("end"); },
-
-        "Esc": function(editor) { editor.completer.detach(); },
-        "Space": function(editor) { editor.completer.detach(); editor.insert(" ");},
-        "Return": function(editor) { return editor.completer.insertMatch(); },
-        "Shift-Return": function(editor) { editor.completer.insertMatch(true); },
-        "Tab": function(editor) {
-            var result = editor.completer.insertMatch();
-            if (!result && !editor.tabstopManager)
-                editor.completer.goTo("down");
-            else
-                return result;
-        },
-
-        "PageUp": function(editor) { editor.completer.popup.gotoPageUp(); },
-        "PageDown": function(editor) { editor.completer.popup.gotoPageDown(); }
-    };
-
-    this.gatherCompletions = function(editor, callback) {
-        var session = editor.getSession();
-        var pos = editor.getCursorPosition();
-
-        var line = session.getLine(pos.row);
-        var prefix = util.retrievePrecedingIdentifier(line, pos.column);
-
-        this.base = editor.getCursorPosition();
-        this.base.column -= prefix.length;
-
-        var matches = [];
-        var total = editor.completers.length;
-        editor.completers.forEach(function(completer, i) {
-            completer.getCompletions(editor, session, pos, prefix, function(err, results) {
-                if (!err)
-                    matches = matches.concat(results);
-                var pos = editor.getCursorPosition();
-                var line = session.getLine(pos.row);
-                callback(null, {
-                    prefix: util.retrievePrecedingIdentifier(line, pos.column, results[0] && results[0].identifierRegex),
-                    matches: matches,
-                    finished: (--total === 0)
-                });
-            });
-        });
-        return true;
-    };
-
-    this.showPopup = function(editor) {
-        if (this.editor)
-            this.detach();
-
-        this.activated = true;
-
-        this.editor = editor;
-        if (editor.completer != this) {
-            if (editor.completer)
-                editor.completer.detach();
-            editor.completer = this;
-        }
-
-        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
-        editor.on("changeSelection", this.changeListener);
-        editor.on("blur", this.blurListener);
-        editor.on("mousedown", this.mousedownListener);
-        editor.on("mousewheel", this.mousewheelListener);
-
-        this.updateCompletions();
-    };
-
-    this.updateCompletions = function(keepPopupPosition) {
-        if (keepPopupPosition && this.base && this.completions) {
-            var pos = this.editor.getCursorPosition();
-            var prefix = this.editor.session.getTextRange({start: this.base, end: pos});
-            if (prefix == this.completions.filterText)
-                return;
-            this.completions.setFilter(prefix);
-            if (!this.completions.filtered.length)
-                return this.detach();
-            if (this.completions.filtered.length == 1
-            && this.completions.filtered[0].value == prefix
-            && !this.completions.filtered[0].snippet)
-                return this.detach();
-            this.openPopup(this.editor, prefix, keepPopupPosition);
-            return;
-        }
-        var _id = this.gatherCompletionsId;
-        this.gatherCompletions(this.editor, function(err, results) {
-            var detachIfFinished = function() {
-                if (!results.finished) return;
-                return this.detach();
-            }.bind(this);
-
-            var prefix = results.prefix;
-            var matches = results && results.matches;
-            
-            if (!matches || !matches.length)
-                return detachIfFinished();
-            if (prefix.indexOf(results.prefix) !== 0 || _id != this.gatherCompletionsId)
-                return;
-
-            this.completions = new FilteredList(matches);
-            this.completions.setFilter(prefix);
-            var filtered = this.completions.filtered;
-            if (!filtered.length)
-                return detachIfFinished();
-            if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
-                return detachIfFinished();
-            if (this.autoInsert && filtered.length == 1)
-                return this.insertMatch(filtered[0]);
-
-            this.openPopup(this.editor, prefix, keepPopupPosition);
-        }.bind(this));
-    };
-
-    this.cancelContextMenu = function() {
-        var stop = function(e) {
-            this.editor.off("nativecontextmenu", stop);
-            if (e && e.domEvent)
-                event.stopEvent(e.domEvent);
-        }.bind(this);
-        setTimeout(stop, 10);
-        this.editor.on("nativecontextmenu", stop);
-    };
-
-}).call(Autocomplete.prototype);
-
-Autocomplete.startCommand = {
-    name: "startAutocomplete",
-    exec: function(editor) {
-        if (!editor.completer)
-            editor.completer = new Autocomplete();
-        editor.completer.autoInsert = 
-        editor.completer.autoSelect = true;
-        editor.completer.showPopup(editor);
-        editor.completer.cancelContextMenu();
-    },
-    bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
-};
-
-var FilteredList = function(array, filterText, mutateData) {
-    this.all = array;
-    this.filtered = array;
-    this.filterText = filterText || "";
-};
-(function(){
-    this.setFilter = function(str) {
-        if (str.length > this.filterText && str.lastIndexOf(this.filterText, 0) === 0)
-            var matches = this.filtered;
-        else
-            var matches = this.all;
-
-        this.filterText = str;
-        matches = this.filterCompletions(matches, this.filterText);
-        matches = matches.sort(function(a, b) {
-            return b.exactMatch - a.exactMatch || b.score - a.score;
-        });
-        var prev = null;
-        matches = matches.filter(function(item){
-            var caption = item.value || item.caption || item.snippet;
-            if (caption === prev) return false;
-            prev = caption;
-            return true;
-        });
-
-        this.filtered = matches;
-    };
-    this.filterCompletions = function(items, needle) {
-        var results = [];
-        var upper = needle.toUpperCase();
-        var lower = needle.toLowerCase();
-        loop: for (var i = 0, item; item = items[i]; i++) {
-            var caption = item.value || item.caption || item.snippet;
-            if (!caption) continue;
-            var lastIndex = -1;
-            var matchMask = 0;
-            var penalty = 0;
-            var index, distance;
-            for (var j = 0; j < needle.length; j++) {
-                var i1 = caption.indexOf(lower[j], lastIndex + 1);
-                var i2 = caption.indexOf(upper[j], lastIndex + 1);
-                index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;
-                if (index < 0)
-                    continue loop;
-                distance = index - lastIndex - 1;
-                if (distance > 0) {
-                    if (lastIndex === -1)
-                        penalty += 10;
-                    penalty += distance;
-                }
-                matchMask = matchMask | (1 << index);
-                lastIndex = index;
-            }
-            item.matchMask = matchMask;
-            item.exactMatch = penalty ? 0 : 1;
-            item.score = (item.score || 0) - penalty;
-            results.push(item);
-        }
-        return results;
-    };
-}).call(FilteredList.prototype);
-
-exports.Autocomplete = Autocomplete;
-exports.FilteredList = FilteredList;
-
-});
-
-define('ace/autocomplete/popup', ['require', 'exports', 'module' , 'ace/edit_session', 'ace/virtual_renderer', 'ace/editor', 'ace/range', 'ace/lib/event', 'ace/lib/lang', 'ace/lib/dom'], function(require, exports, module) {
-
+define("ace/autocomplete/popup",["require","exports","module","ace/edit_session","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
+"use strict";
 
 var EditSession = require("../edit_session").EditSession;
 var Renderer = require("../virtual_renderer").VirtualRenderer;
@@ -4504,8 +3948,8 @@ exports.AcePopup = AcePopup;
 
 });
 
-define('ace/autocomplete/util', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+define("ace/autocomplete/util",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 exports.parForEach = function(array, fn, callback) {
     var completed = 0;
@@ -4549,7 +3993,356 @@ exports.retrieveFollowingIdentifier = function(text, pos, regex) {
 
 });
 
-define('ace/autocomplete/text_completer', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/event","ace/lib/lang","ace/snippets"], function(require, exports, module) {
+"use strict";
+
+var HashHandler = require("./keyboard/hash_handler").HashHandler;
+var AcePopup = require("./autocomplete/popup").AcePopup;
+var util = require("./autocomplete/util");
+var event = require("./lib/event");
+var lang = require("./lib/lang");
+var snippetManager = require("./snippets").snippetManager;
+
+var Autocomplete = function() {
+    this.autoInsert = true;
+    this.autoSelect = true;
+    this.keyboardHandler = new HashHandler();
+    this.keyboardHandler.bindKeys(this.commands);
+
+    this.blurListener = this.blurListener.bind(this);
+    this.changeListener = this.changeListener.bind(this);
+    this.mousedownListener = this.mousedownListener.bind(this);
+    this.mousewheelListener = this.mousewheelListener.bind(this);
+
+    this.changeTimer = lang.delayedCall(function() {
+        this.updateCompletions(true);
+    }.bind(this));
+};
+
+(function() {
+    this.gatherCompletionsId = 0;
+
+    this.$init = function() {
+        this.popup = new AcePopup(document.body || document.documentElement);
+        this.popup.on("click", function(e) {
+            this.insertMatch();
+            e.stop();
+        }.bind(this));
+        this.popup.focus = this.editor.focus.bind(this.editor);
+    };
+
+    this.openPopup = function(editor, prefix, keepPopupPosition) {
+        if (!this.popup)
+            this.$init();
+
+        this.popup.setData(this.completions.filtered);
+
+        var renderer = editor.renderer;
+        this.popup.setRow(this.autoSelect ? 0 : -1);
+        if (!keepPopupPosition) {
+            this.popup.setTheme(editor.getTheme());
+            this.popup.setFontSize(editor.getFontSize());
+
+            var lineHeight = renderer.layerConfig.lineHeight;
+
+            var pos = renderer.$cursorLayer.getPixelPosition(this.base, true);
+            pos.left -= this.popup.getTextLeftOffset();
+
+            var rect = editor.container.getBoundingClientRect();
+            pos.top += rect.top - renderer.layerConfig.offset;
+            pos.left += rect.left - editor.renderer.scrollLeft;
+            pos.left += renderer.$gutterLayer.gutterWidth;
+
+            this.popup.show(pos, lineHeight);
+        }
+    };
+
+    this.detach = function() {
+        this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
+        this.editor.off("changeSelection", this.changeListener);
+        this.editor.off("blur", this.blurListener);
+        this.editor.off("mousedown", this.mousedownListener);
+        this.editor.off("mousewheel", this.mousewheelListener);
+        this.changeTimer.cancel();
+
+        if (this.popup && this.popup.isOpen) {
+            this.gatherCompletionsId = this.gatherCompletionsId + 1;
+        }
+
+        if (this.popup)
+            this.popup.hide();
+
+        this.activated = false;
+        this.completions = this.base = null;
+    };
+
+    this.changeListener = function(e) {
+        var cursor = this.editor.selection.lead;
+        if (cursor.row != this.base.row || cursor.column < this.base.column) {
+            this.detach();
+        }
+        if (this.activated)
+            this.changeTimer.schedule();
+        else
+            this.detach();
+    };
+
+    this.blurListener = function() {
+        var el = document.activeElement;
+        if (el != this.editor.textInput.getElement() && el.parentNode != this.popup.container)
+            this.detach();
+    };
+
+    this.mousedownListener = function(e) {
+        this.detach();
+    };
+
+    this.mousewheelListener = function(e) {
+        this.detach();
+    };
+
+    this.goTo = function(where) {
+        var row = this.popup.getRow();
+        var max = this.popup.session.getLength() - 1;
+
+        switch(where) {
+            case "up": row = row <= 0 ? max : row - 1; break;
+            case "down": row = row >= max ? -1 : row + 1; break;
+            case "start": row = 0; break;
+            case "end": row = max; break;
+        }
+
+        this.popup.setRow(row);
+    };
+
+    this.insertMatch = function(data) {
+        if (!data)
+            data = this.popup.getData(this.popup.getRow());
+        if (!data)
+            return false;
+
+        if (data.completer && data.completer.insertMatch) {
+            data.completer.insertMatch(this.editor);
+        } else {
+            if (this.completions.filterText) {
+                var ranges = this.editor.selection.getAllRanges();
+                for (var i = 0, range; range = ranges[i]; i++) {
+                    range.start.column -= this.completions.filterText.length;
+                    this.editor.session.remove(range);
+                }
+            }
+            if (data.snippet)
+                snippetManager.insertSnippet(this.editor, data.snippet);
+            else
+                this.editor.execCommand("insertstring", data.value || data);
+        }
+        this.detach();
+    };
+
+    this.commands = {
+        "Up": function(editor) { editor.completer.goTo("up"); },
+        "Down": function(editor) { editor.completer.goTo("down"); },
+        "Ctrl-Up|Ctrl-Home": function(editor) { editor.completer.goTo("start"); },
+        "Ctrl-Down|Ctrl-End": function(editor) { editor.completer.goTo("end"); },
+
+        "Esc": function(editor) { editor.completer.detach(); },
+        "Space": function(editor) { editor.completer.detach(); editor.insert(" ");},
+        "Return": function(editor) { return editor.completer.insertMatch(); },
+        "Shift-Return": function(editor) { editor.completer.insertMatch(true); },
+        "Tab": function(editor) {
+            var result = editor.completer.insertMatch();
+            if (!result && !editor.tabstopManager)
+                editor.completer.goTo("down");
+            else
+                return result;
+        },
+
+        "PageUp": function(editor) { editor.completer.popup.gotoPageUp(); },
+        "PageDown": function(editor) { editor.completer.popup.gotoPageDown(); }
+    };
+
+    this.gatherCompletions = function(editor, callback) {
+        var session = editor.getSession();
+        var pos = editor.getCursorPosition();
+
+        var line = session.getLine(pos.row);
+        var prefix = util.retrievePrecedingIdentifier(line, pos.column);
+
+        this.base = editor.getCursorPosition();
+        this.base.column -= prefix.length;
+
+        var matches = [];
+        var total = editor.completers.length;
+        editor.completers.forEach(function(completer, i) {
+            completer.getCompletions(editor, session, pos, prefix, function(err, results) {
+                if (!err)
+                    matches = matches.concat(results);
+                var pos = editor.getCursorPosition();
+                var line = session.getLine(pos.row);
+                callback(null, {
+                    prefix: util.retrievePrecedingIdentifier(line, pos.column, results[0] && results[0].identifierRegex),
+                    matches: matches,
+                    finished: (--total === 0)
+                });
+            });
+        });
+        return true;
+    };
+
+    this.showPopup = function(editor) {
+        if (this.editor)
+            this.detach();
+
+        this.activated = true;
+
+        this.editor = editor;
+        if (editor.completer != this) {
+            if (editor.completer)
+                editor.completer.detach();
+            editor.completer = this;
+        }
+
+        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+        editor.on("changeSelection", this.changeListener);
+        editor.on("blur", this.blurListener);
+        editor.on("mousedown", this.mousedownListener);
+        editor.on("mousewheel", this.mousewheelListener);
+
+        this.updateCompletions();
+    };
+
+    this.updateCompletions = function(keepPopupPosition) {
+        if (keepPopupPosition && this.base && this.completions) {
+            var pos = this.editor.getCursorPosition();
+            var prefix = this.editor.session.getTextRange({start: this.base, end: pos});
+            if (prefix == this.completions.filterText)
+                return;
+            this.completions.setFilter(prefix);
+            if (!this.completions.filtered.length)
+                return this.detach();
+            if (this.completions.filtered.length == 1
+            && this.completions.filtered[0].value == prefix
+            && !this.completions.filtered[0].snippet)
+                return this.detach();
+            this.openPopup(this.editor, prefix, keepPopupPosition);
+            return;
+        }
+        var _id = this.gatherCompletionsId;
+        this.gatherCompletions(this.editor, function(err, results) {
+            var detachIfFinished = function() {
+                if (!results.finished) return;
+                return this.detach();
+            }.bind(this);
+
+            var prefix = results.prefix;
+            var matches = results && results.matches;
+            
+            if (!matches || !matches.length)
+                return detachIfFinished();
+            if (prefix.indexOf(results.prefix) !== 0 || _id != this.gatherCompletionsId)
+                return;
+
+            this.completions = new FilteredList(matches);
+            this.completions.setFilter(prefix);
+            var filtered = this.completions.filtered;
+            if (!filtered.length)
+                return detachIfFinished();
+            if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
+                return detachIfFinished();
+            if (this.autoInsert && filtered.length == 1)
+                return this.insertMatch(filtered[0]);
+
+            this.openPopup(this.editor, prefix, keepPopupPosition);
+        }.bind(this));
+    };
+
+    this.cancelContextMenu = function() {
+        this.editor.$mouseHandler.cancelContextMenu();
+    };
+
+}).call(Autocomplete.prototype);
+
+Autocomplete.startCommand = {
+    name: "startAutocomplete",
+    exec: function(editor) {
+        if (!editor.completer)
+            editor.completer = new Autocomplete();
+        editor.completer.autoInsert = 
+        editor.completer.autoSelect = true;
+        editor.completer.showPopup(editor);
+        editor.completer.cancelContextMenu();
+    },
+    bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
+};
+
+var FilteredList = function(array, filterText, mutateData) {
+    this.all = array;
+    this.filtered = array;
+    this.filterText = filterText || "";
+};
+(function(){
+    this.setFilter = function(str) {
+        if (str.length > this.filterText && str.lastIndexOf(this.filterText, 0) === 0)
+            var matches = this.filtered;
+        else
+            var matches = this.all;
+
+        this.filterText = str;
+        matches = this.filterCompletions(matches, this.filterText);
+        matches = matches.sort(function(a, b) {
+            return b.exactMatch - a.exactMatch || b.score - a.score;
+        });
+        var prev = null;
+        matches = matches.filter(function(item){
+            var caption = item.value || item.caption || item.snippet;
+            if (caption === prev) return false;
+            prev = caption;
+            return true;
+        });
+
+        this.filtered = matches;
+    };
+    this.filterCompletions = function(items, needle) {
+        var results = [];
+        var upper = needle.toUpperCase();
+        var lower = needle.toLowerCase();
+        loop: for (var i = 0, item; item = items[i]; i++) {
+            var caption = item.value || item.caption || item.snippet;
+            if (!caption) continue;
+            var lastIndex = -1;
+            var matchMask = 0;
+            var penalty = 0;
+            var index, distance;
+            for (var j = 0; j < needle.length; j++) {
+                var i1 = caption.indexOf(lower[j], lastIndex + 1);
+                var i2 = caption.indexOf(upper[j], lastIndex + 1);
+                index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;
+                if (index < 0)
+                    continue loop;
+                distance = index - lastIndex - 1;
+                if (distance > 0) {
+                    if (lastIndex === -1)
+                        penalty += 10;
+                    penalty += distance;
+                }
+                matchMask = matchMask | (1 << index);
+                lastIndex = index;
+            }
+            item.matchMask = matchMask;
+            item.exactMatch = penalty ? 0 : 1;
+            item.score = (item.score || 0) - penalty;
+            results.push(item);
+        }
+        return results;
+    };
+}).call(FilteredList.prototype);
+
+exports.Autocomplete = Autocomplete;
+exports.FilteredList = FilteredList;
+
+});
+
+define("ace/autocomplete/text_completer",["require","exports","module","ace/range"], function(require, exports, module) {
     var Range = require("../range").Range;
     
     var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
@@ -4593,8 +4386,8 @@ define('ace/autocomplete/text_completer', ['require', 'exports', 'module' , 'ace
     };
 });
 
-define('ace/ext/language_tools', ['require', 'exports', 'module' , 'ace/snippets', 'ace/autocomplete', 'ace/config', 'ace/autocomplete/util', 'ace/autocomplete/text_completer', 'ace/editor'], function(require, exports, module) {
-
+define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module) {
+"use strict";
 
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
@@ -4684,33 +4477,37 @@ var loadSnippetFile = function(id) {
     });
 };
 
-var doLiveAutocomplete = function(e) {
-    var editor = e.editor;
-    var text = e.args || "";
+function getCompletionPrefix(editor) {
     var pos = editor.getCursorPosition();
     var line = editor.session.getLine(pos.row);
-    var hasCompleter = editor.completer && editor.completer.activated;
     var prefix = util.retrievePrecedingIdentifier(line, pos.column);
-    completers.forEach(function(completer) {
+    editor.completers.forEach(function(completer) {
         if (completer.identifierRegexps) {
             completer.identifierRegexps.forEach(function(identifierRegex) {
-                if (!prefix) {
+                if (!prefix && identifierRegex)
                     prefix = util.retrievePrecedingIdentifier(line, pos.column, identifierRegex);
-                }
             });
         }
     });
-    if (e.command.name === "backspace" && !prefix) {
-        if (hasCompleter)
+    return prefix;
+}
+
+var doLiveAutocomplete = function(e) {
+    var editor = e.editor;
+    var text = e.args || "";
+    var hasCompleter = editor.completer && editor.completer.activated;
+    if (e.command.name === "backspace") {
+        if (hasCompleter && !getCompletionPrefix(editor))
             editor.completer.detach();
     }
     else if (e.command.name === "insertstring") {
+        var prefix = getCompletionPrefix(editor);
         if (prefix && !hasCompleter) {
             if (!editor.completer) {
                 editor.completer = new Autocomplete();
-                editor.completer.autoSelect = false;
-                editor.completer.autoInsert = false;
             }
+            editor.completer.autoSelect = false;
+            editor.completer.autoInsert = false;
             editor.completer.showPopup(editor);
         } else if (!prefix && hasCompleter) {
             editor.completer.detach();
@@ -4723,7 +4520,8 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     enableBasicAutocompletion: {
         set: function(val) {
             if (val) {
-                this.completers = Array.isArray(val)? val: completers;
+                if (!this.completers)
+                    this.completers = Array.isArray(val)? val: completers;
                 this.commands.addCommand(Autocomplete.startCommand);
             } else {
                 this.commands.removeCommand(Autocomplete.startCommand);
@@ -4734,7 +4532,8 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     enableLiveAutocompletion: {
         set: function(val) {
             if (val) {
-                this.completers = Array.isArray(val)? val: completers;
+                if (!this.completers)
+                    this.completers = Array.isArray(val)? val: completers;
                 this.commands.on('afterExec', doLiveAutocomplete);
             } else {
                 this.commands.removeListener('afterExec', doLiveAutocomplete);
@@ -4756,4 +4555,178 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
+});
+
+define("ace/mode/xquery",["require","exports","module","ace/worker/worker_client","ace/lib/oop","ace/mode/text","ace/mode/text_highlight_rules","ace/mode/xquery/xquery_lexer","ace/range","ace/mode/behaviour/xquery","ace/mode/folding/cstyle","ace/anchor","ace/ext/language_tools"], function(require, exports, module) {
+"use strict";
+
+var WorkerClient = require("../worker/worker_client").WorkerClient;
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
+var XQueryLexer = require("./xquery/xquery_lexer").XQueryLexer;
+var Range = require("../range").Range;
+var XQueryBehaviour = require("./behaviour/xquery").XQueryBehaviour;
+var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+var Anchor = require("../anchor").Anchor;
+var LanguageTools = require("../ext/language_tools");
+
+var Mode = function() {
+    this.$tokenizer   = new XQueryLexer();
+    this.$behaviour   = new XQueryBehaviour();
+    this.foldingRules = new CStyleFoldMode();
+    this.$highlightRules = new TextHighlightRules();
+};
+oop.inherits(Mode, TextMode);
+
+(function() {
+    
+    LanguageTools.addCompleter({
+        getCompletions: function(editor, session, pos, prefix, callback) {
+            session.$worker.emit("complete", { data: { pos: pos, prefix: prefix } });
+            session.$worker.on("complete", function(e){
+                callback(null, e.data);
+            });
+        }
+    });
+
+    this.getNextLineIndent = function(state, line, tab) {
+        var indent = this.$getIndent(line);
+        var match = line.match(/\s*(?:then|else|return|[{\(]|<\w+>)\s*$/);
+        if (match)
+            indent += tab;
+        return indent;
+    };
+    
+    this.checkOutdent = function(state, line, input) {
+        if (! /^\s+$/.test(line))
+            return false;
+
+        return (/^\s*[\}\)]/).test(input);
+    };
+    
+    this.autoOutdent = function(state, doc, row) {
+        var line = doc.getLine(row);
+        var match = line.match(/^(\s*[\}\)])/);
+
+        if (!match) return 0;
+
+        var column = match[1].length;
+        var openBracePos = doc.findMatchingBracket({row: row, column: column});
+
+        if (!openBracePos || openBracePos.row == row) return 0;
+
+        var indent = this.$getIndent(doc.getLine(openBracePos.row));
+        doc.replace(new Range(row, 0, row, column-1), indent);
+    };
+
+    this.toggleCommentLines = function(state, doc, startRow, endRow) {
+        var i, line;
+        var outdent = true;
+        var re = /^\s*\(:(.*):\)/;
+
+        for (i=startRow; i<= endRow; i++) {
+            if (!re.test(doc.getLine(i))) {
+                outdent = false;
+                break;
+            }
+        }
+
+        var range = new Range(0, 0, 0, 0);
+        for (i=startRow; i<= endRow; i++) {
+            line = doc.getLine(i);
+            range.start.row  = i;
+            range.end.row    = i;
+            range.end.column = line.length;
+
+            doc.replace(range, outdent ? line.match(re)[1] : "(:" + line + ":)");
+        }
+    };
+    
+    this.createWorker = function(session) {
+        
+      var worker = new WorkerClient(["ace"], "ace/mode/xquery_worker", "XQueryWorker");
+        var that = this;
+
+        worker.attachToDocument(session.getDocument());
+        
+        worker.on("ok", function(e) {
+          session.clearAnnotations();
+        });
+        
+        worker.on("markers", function(e) {
+          session.clearAnnotations();
+          that.addMarkers(e.data, session);
+        });
+ 
+        worker.on("highlight", function(tokens) {
+          that.$tokenizer.tokens = tokens.data.tokens;
+          that.$tokenizer.lines  = session.getDocument().getAllLines();
+          
+          var rows = Object.keys(that.$tokenizer.tokens);
+          for(var i=0; i < rows.length; i++) {
+            var row = parseInt(rows[i]);
+            delete session.bgTokenizer.lines[row];
+            delete session.bgTokenizer.states[row];
+            session.bgTokenizer.fireUpdateEvent(row, row);
+          }
+        });
+        
+        return worker;
+    };
+
+    this.removeMarkers = function(session) {
+        var markers = session.getMarkers(false);
+        for (var id in markers) {
+            if (markers[id].clazz.indexOf('language_highlight_') === 0) {
+                session.removeMarker(id);
+            }
+        }
+        for (var i = 0; i < session.markerAnchors.length; i++) {
+            session.markerAnchors[i].detach();
+        }
+        session.markerAnchors = [];
+    };
+
+    this.addMarkers = function(annos, mySession) {
+        var _self = this;
+        
+        if (!mySession.markerAnchors) mySession.markerAnchors = [];
+        this.removeMarkers(mySession);
+        mySession.languageAnnos = [];
+        annos.forEach(function(anno) {
+            var anchor = new Anchor(mySession.getDocument(), anno.pos.sl, anno.pos.sc || 0);
+            mySession.markerAnchors.push(anchor);
+            var markerId;
+            var colDiff = anno.pos.ec - anno.pos.sc;
+            var rowDiff = anno.pos.el - anno.pos.sl;
+            var gutterAnno = {
+                guttertext: anno.message,
+                type: anno.level || "warning",
+                text: anno.message
+            };
+
+            function updateFloat(single) {
+                if (markerId)
+                    mySession.removeMarker(markerId);
+                gutterAnno.row = anchor.row;
+                if (anno.pos.sc !== undefined && anno.pos.ec !== undefined) {
+                    var range = new Range(anno.pos.sl, anno.pos.sc, anno.pos.el, anno.pos.ec);
+                    markerId = mySession.addMarker(range, "language_highlight_" + (anno.type ? anno.type : "default"));
+                }
+                if (single) mySession.setAnnotations(mySession.languageAnnos);
+            }
+            updateFloat();
+            anchor.on("change", function() {
+                updateFloat(true);
+            });
+            if (anno.message) mySession.languageAnnos.push(gutterAnno);
+        });
+        mySession.setAnnotations(mySession.languageAnnos);
+    };    
+        
+    this.$id = "ace/mode/xquery";
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
 });

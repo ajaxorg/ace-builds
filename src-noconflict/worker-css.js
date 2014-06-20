@@ -21,10 +21,12 @@ window.onerror = function(message, file, line, col, err) {
 };
 
 window.normalizeModule = function(parentId, moduleName) {
+    // normalize plugin requires
     if (moduleName.indexOf("!") !== -1) {
         var chunks = moduleName.split("!");
         return window.normalizeModule(parentId, chunks[0]) + "!" + window.normalizeModule(parentId, chunks[1]);
     }
+    // normalize relative requires
     if (moduleName.charAt(0) == ".") {
         var base = parentId.split("/").slice(0, -1).join("/");
         moduleName = (base ? base + "/" : "") + moduleName;
@@ -84,6 +86,8 @@ window.define = function(id, deps, factory) {
     }
 
     if (!deps.length)
+        // If there is no dependencies, we inject 'require', 'exports' and
+        // 'module' as dependencies, to provide CommonJS compatibility.
         deps = ['require', 'exports', 'module'];
 
     if (id.indexOf("text!") === 0) 
@@ -99,9 +103,13 @@ window.define = function(id, deps, factory) {
             var module = this;
             var returnExports = factory.apply(this, deps.map(function(dep) {
               switch(dep) {
+                  // Because 'require', 'exports' and 'module' aren't actual
+                  // dependencies, we must handle them seperately.
                   case 'require': return req;
                   case 'exports': return module.exports;
                   case 'module':  return module;
+                  // But for all other dependencies, we can just go ahead and
+                  // require them.
                   default:        return req(dep);
               }
             }));
@@ -173,76 +181,8 @@ window.onmessage = function(e) {
 };
 })(this);
 
-ace.define('ace/mode/css_worker', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/worker/mirror', 'ace/mode/css/csslint'], function(require, exports, module) {
-
-
-var oop = require("../lib/oop");
-var lang = require("../lib/lang");
-var Mirror = require("../worker/mirror").Mirror;
-var CSSLint = require("./css/csslint").CSSLint;
-
-var Worker = exports.Worker = function(sender) {
-    Mirror.call(this, sender);
-    this.setTimeout(400);
-    this.ruleset = null;
-    this.setDisabledRules("ids");
-    this.setInfoRules("adjoining-classes|qualified-headings|zero-units|gradients|import|outline-none");
-};
-
-oop.inherits(Worker, Mirror);
-
-(function() {
-    this.setInfoRules = function(ruleNames) {
-        if (typeof ruleNames == "string")
-            ruleNames = ruleNames.split("|");
-        this.infoRules = lang.arrayToMap(ruleNames);
-        this.doc.getValue() && this.deferredUpdate.schedule(100);
-    };
-
-    this.setDisabledRules = function(ruleNames) {
-        if (!ruleNames) {
-            this.ruleset = null;
-        } else {
-            if (typeof ruleNames == "string")
-                ruleNames = ruleNames.split("|");
-            var all = {};
-
-            CSSLint.getRules().forEach(function(x){
-                all[x.id] = true;
-            });
-            ruleNames.forEach(function(x) {
-                delete all[x];
-            });
-            
-            this.ruleset = all;
-        }
-        this.doc.getValue() && this.deferredUpdate.schedule(100);
-    };
-
-    this.onUpdate = function() {
-        var value = this.doc.getValue();
-        if (!value)
-            return this.sender.emit("csslint", []);
-        var infoRules = this.infoRules;
-
-        var result = CSSLint.verify(value, this.ruleset);
-        this.sender.emit("csslint", result.messages.map(function(msg) {
-            return {
-                row: msg.line - 1,
-                column: msg.col - 1,
-                text: msg.message,
-                type: infoRules[msg.rule.id] ? "info" : msg.type,
-                rule: msg.rule.name
-            }
-        }));
-    };
-
-}).call(Worker.prototype);
-
-});
-
-ace.define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+ace.define("ace/lib/oop",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 exports.inherits = function(ctor, superCtor) {
     ctor.super_ = superCtor;
@@ -269,8 +209,8 @@ exports.implement = function(proto, mixin) {
 
 });
 
-ace.define('ace/lib/lang', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+ace.define("ace/lib/lang",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 exports.last = function(a) {
     return a[a.length - 1];
@@ -456,705 +396,522 @@ exports.delayedCall = function(fcn, defaultTimeout) {
 };
 });
 
-ace.define('ace/lib/es5-shim', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define("ace/lib/event_emitter",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
-function Empty() {}
+var EventEmitter = {};
+var stopPropagation = function() { this.propagationStopped = true; };
+var preventDefault = function() { this.defaultPrevented = true; };
 
-if (!Function.prototype.bind) {
-    Function.prototype.bind = function bind(that) { // .length is 1
-        var target = this;
-        if (typeof target != "function") {
-            throw new TypeError("Function.prototype.bind called on incompatible " + target);
-        }
-        var args = slice.call(arguments, 1); // for normal call
-        var bound = function () {
+EventEmitter._emit =
+EventEmitter._dispatchEvent = function(eventName, e) {
+    this._eventRegistry || (this._eventRegistry = {});
+    this._defaultHandlers || (this._defaultHandlers = {});
 
-            if (this instanceof bound) {
+    var listeners = this._eventRegistry[eventName] || [];
+    var defaultHandler = this._defaultHandlers[eventName];
+    if (!listeners.length && !defaultHandler)
+        return;
 
-                var result = target.apply(
-                    this,
-                    args.concat(slice.call(arguments))
-                );
-                if (Object(result) === result) {
-                    return result;
-                }
-                return this;
+    if (typeof e != "object" || !e)
+        e = {};
 
-            } else {
-                return target.apply(
-                    that,
-                    args.concat(slice.call(arguments))
-                );
+    if (!e.type)
+        e.type = eventName;
+    if (!e.stopPropagation)
+        e.stopPropagation = stopPropagation;
+    if (!e.preventDefault)
+        e.preventDefault = preventDefault;
 
-            }
-
-        };
-        if(target.prototype) {
-            Empty.prototype = target.prototype;
-            bound.prototype = new Empty();
-            Empty.prototype = null;
-        }
-        return bound;
-    };
-}
-var call = Function.prototype.call;
-var prototypeOfArray = Array.prototype;
-var prototypeOfObject = Object.prototype;
-var slice = prototypeOfArray.slice;
-var _toString = call.bind(prototypeOfObject.toString);
-var owns = call.bind(prototypeOfObject.hasOwnProperty);
-var defineGetter;
-var defineSetter;
-var lookupGetter;
-var lookupSetter;
-var supportsAccessors;
-if ((supportsAccessors = owns(prototypeOfObject, "__defineGetter__"))) {
-    defineGetter = call.bind(prototypeOfObject.__defineGetter__);
-    defineSetter = call.bind(prototypeOfObject.__defineSetter__);
-    lookupGetter = call.bind(prototypeOfObject.__lookupGetter__);
-    lookupSetter = call.bind(prototypeOfObject.__lookupSetter__);
-}
-if ([1,2].splice(0).length != 2) {
-    if(function() { // test IE < 9 to splice bug - see issue #138
-        function makeArray(l) {
-            var a = new Array(l+2);
-            a[0] = a[1] = 0;
-            return a;
-        }
-        var array = [], lengthBefore;
-        
-        array.splice.apply(array, makeArray(20));
-        array.splice.apply(array, makeArray(26));
-
-        lengthBefore = array.length; //46
-        array.splice(5, 0, "XXX"); // add one element
-
-        lengthBefore + 1 == array.length
-
-        if (lengthBefore + 1 == array.length) {
-            return true;// has right splice implementation without bugs
-        }
-    }()) {//IE 6/7
-        var array_splice = Array.prototype.splice;
-        Array.prototype.splice = function(start, deleteCount) {
-            if (!arguments.length) {
-                return [];
-            } else {
-                return array_splice.apply(this, [
-                    start === void 0 ? 0 : start,
-                    deleteCount === void 0 ? (this.length - start) : deleteCount
-                ].concat(slice.call(arguments, 2)))
-            }
-        };
-    } else {//IE8
-        Array.prototype.splice = function(pos, removeCount){
-            var length = this.length;
-            if (pos > 0) {
-                if (pos > length)
-                    pos = length;
-            } else if (pos == void 0) {
-                pos = 0;
-            } else if (pos < 0) {
-                pos = Math.max(length + pos, 0);
-            }
-
-            if (!(pos+removeCount < length))
-                removeCount = length - pos;
-
-            var removed = this.slice(pos, pos+removeCount);
-            var insert = slice.call(arguments, 2);
-            var add = insert.length;            
-            if (pos === length) {
-                if (add) {
-                    this.push.apply(this, insert);
-                }
-            } else {
-                var remove = Math.min(removeCount, length - pos);
-                var tailOldPos = pos + remove;
-                var tailNewPos = tailOldPos + add - remove;
-                var tailCount = length - tailOldPos;
-                var lengthAfterRemove = length - remove;
-
-                if (tailNewPos < tailOldPos) { // case A
-                    for (var i = 0; i < tailCount; ++i) {
-                        this[tailNewPos+i] = this[tailOldPos+i];
-                    }
-                } else if (tailNewPos > tailOldPos) { // case B
-                    for (i = tailCount; i--; ) {
-                        this[tailNewPos+i] = this[tailOldPos+i];
-                    }
-                } // else, add == remove (nothing to do)
-
-                if (add && pos === lengthAfterRemove) {
-                    this.length = lengthAfterRemove; // truncate array
-                    this.push.apply(this, insert);
-                } else {
-                    this.length = lengthAfterRemove + add; // reserves space
-                    for (i = 0; i < add; ++i) {
-                        this[pos+i] = insert[i];
-                    }
-                }
-            }
-            return removed;
-        };
+    listeners = listeners.slice();
+    for (var i=0; i<listeners.length; i++) {
+        listeners[i](e, this);
+        if (e.propagationStopped)
+            break;
     }
-}
-if (!Array.isArray) {
-    Array.isArray = function isArray(obj) {
-        return _toString(obj) == "[object Array]";
+    
+    if (defaultHandler && !e.defaultPrevented)
+        return defaultHandler(e, this);
+};
+
+
+EventEmitter._signal = function(eventName, e) {
+    var listeners = (this._eventRegistry || {})[eventName];
+    if (!listeners)
+        return;
+    listeners = listeners.slice();
+    for (var i=0; i<listeners.length; i++)
+        listeners[i](e, this);
+};
+
+EventEmitter.once = function(eventName, callback) {
+    var _self = this;
+    callback && this.addEventListener(eventName, function newCallback() {
+        _self.removeEventListener(eventName, newCallback);
+        callback.apply(null, arguments);
+    });
+};
+
+
+EventEmitter.setDefaultHandler = function(eventName, callback) {
+    var handlers = this._defaultHandlers
+    if (!handlers)
+        handlers = this._defaultHandlers = {_disabled_: {}};
+    
+    if (handlers[eventName]) {
+        var old = handlers[eventName];
+        var disabled = handlers._disabled_[eventName];
+        if (!disabled)
+            handlers._disabled_[eventName] = disabled = [];
+        disabled.push(old);
+        var i = disabled.indexOf(callback);
+        if (i != -1) 
+            disabled.splice(i, 1);
+    }
+    handlers[eventName] = callback;
+};
+EventEmitter.removeDefaultHandler = function(eventName, callback) {
+    var handlers = this._defaultHandlers
+    if (!handlers)
+        return;
+    var disabled = handlers._disabled_[eventName];
+    
+    if (handlers[eventName] == callback) {
+        var old = handlers[eventName];
+        if (disabled)
+            this.setDefaultHandler(eventName, disabled.pop());
+    } else if (disabled) {
+        var i = disabled.indexOf(callback);
+        if (i != -1)
+            disabled.splice(i, 1);
+    }
+};
+
+EventEmitter.on =
+EventEmitter.addEventListener = function(eventName, callback, capturing) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners)
+        listeners = this._eventRegistry[eventName] = [];
+
+    if (listeners.indexOf(callback) == -1)
+        listeners[capturing ? "unshift" : "push"](callback);
+    return callback;
+};
+
+EventEmitter.off =
+EventEmitter.removeListener =
+EventEmitter.removeEventListener = function(eventName, callback) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners)
+        return;
+
+    var index = listeners.indexOf(callback);
+    if (index !== -1)
+        listeners.splice(index, 1);
+};
+
+EventEmitter.removeAllListeners = function(eventName) {
+    if (this._eventRegistry) this._eventRegistry[eventName] = [];
+};
+
+exports.EventEmitter = EventEmitter;
+
+});
+
+ace.define("ace/range",["require","exports","module"], function(require, exports, module) {
+"use strict";
+var comparePoints = function(p1, p2) {
+    return p1.row - p2.row || p1.column - p2.column;
+};
+var Range = function(startRow, startColumn, endRow, endColumn) {
+    this.start = {
+        row: startRow,
+        column: startColumn
     };
-}
-var boxedString = Object("a"),
-    splitString = boxedString[0] != "a" || !(0 in boxedString);
 
-if (!Array.prototype.forEach) {
-    Array.prototype.forEach = function forEach(fun /*, thisp*/) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                object,
-            thisp = arguments[1],
-            i = -1,
-            length = self.length >>> 0;
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(); // TODO message
-        }
+    this.end = {
+        row: endRow,
+        column: endColumn
+    };
+};
 
-        while (++i < length) {
-            if (i in self) {
-                fun.call(thisp, self[i], i, object);
+(function() {
+    this.isEqual = function(range) {
+        return this.start.row === range.start.row &&
+            this.end.row === range.end.row &&
+            this.start.column === range.start.column &&
+            this.end.column === range.end.column;
+    };
+    this.toString = function() {
+        return ("Range: [" + this.start.row + "/" + this.start.column +
+            "] -> [" + this.end.row + "/" + this.end.column + "]");
+    };
+
+    this.contains = function(row, column) {
+        return this.compare(row, column) == 0;
+    };
+    this.compareRange = function(range) {
+        var cmp,
+            end = range.end,
+            start = range.start;
+
+        cmp = this.compare(end.row, end.column);
+        if (cmp == 1) {
+            cmp = this.compare(start.row, start.column);
+            if (cmp == 1) {
+                return 2;
+            } else if (cmp == 0) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } else if (cmp == -1) {
+            return -2;
+        } else {
+            cmp = this.compare(start.row, start.column);
+            if (cmp == -1) {
+                return -1;
+            } else if (cmp == 1) {
+                return 42;
+            } else {
+                return 0;
             }
         }
     };
-}
-if (!Array.prototype.map) {
-    Array.prototype.map = function map(fun /*, thisp*/) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                object,
-            length = self.length >>> 0,
-            result = Array(length),
-            thisp = arguments[1];
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(fun + " is not a function");
-        }
-
-        for (var i = 0; i < length; i++) {
-            if (i in self)
-                result[i] = fun.call(thisp, self[i], i, object);
-        }
-        return result;
+    this.comparePoint = function(p) {
+        return this.compare(p.row, p.column);
     };
-}
-if (!Array.prototype.filter) {
-    Array.prototype.filter = function filter(fun /*, thisp */) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                    object,
-            length = self.length >>> 0,
-            result = [],
-            value,
-            thisp = arguments[1];
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(fun + " is not a function");
-        }
-
-        for (var i = 0; i < length; i++) {
-            if (i in self) {
-                value = self[i];
-                if (fun.call(thisp, value, i, object)) {
-                    result.push(value);
-                }
-            }
-        }
-        return result;
+    this.containsRange = function(range) {
+        return this.comparePoint(range.start) == 0 && this.comparePoint(range.end) == 0;
     };
-}
-if (!Array.prototype.every) {
-    Array.prototype.every = function every(fun /*, thisp */) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                object,
-            length = self.length >>> 0,
-            thisp = arguments[1];
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(fun + " is not a function");
+    this.intersects = function(range) {
+        var cmp = this.compareRange(range);
+        return (cmp == -1 || cmp == 0 || cmp == 1);
+    };
+    this.isEnd = function(row, column) {
+        return this.end.row == row && this.end.column == column;
+    };
+    this.isStart = function(row, column) {
+        return this.start.row == row && this.start.column == column;
+    };
+    this.setStart = function(row, column) {
+        if (typeof row == "object") {
+            this.start.column = row.column;
+            this.start.row = row.row;
+        } else {
+            this.start.row = row;
+            this.start.column = column;
         }
-
-        for (var i = 0; i < length; i++) {
-            if (i in self && !fun.call(thisp, self[i], i, object)) {
+    };
+    this.setEnd = function(row, column) {
+        if (typeof row == "object") {
+            this.end.column = row.column;
+            this.end.row = row.row;
+        } else {
+            this.end.row = row;
+            this.end.column = column;
+        }
+    };
+    this.inside = function(row, column) {
+        if (this.compare(row, column) == 0) {
+            if (this.isEnd(row, column) || this.isStart(row, column)) {
                 return false;
-            }
-        }
-        return true;
-    };
-}
-if (!Array.prototype.some) {
-    Array.prototype.some = function some(fun /*, thisp */) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                object,
-            length = self.length >>> 0,
-            thisp = arguments[1];
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(fun + " is not a function");
-        }
-
-        for (var i = 0; i < length; i++) {
-            if (i in self && fun.call(thisp, self[i], i, object)) {
+            } else {
                 return true;
             }
         }
         return false;
     };
-}
-if (!Array.prototype.reduce) {
-    Array.prototype.reduce = function reduce(fun /*, initial*/) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                object,
-            length = self.length >>> 0;
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(fun + " is not a function");
-        }
-        if (!length && arguments.length == 1) {
-            throw new TypeError("reduce of empty array with no initial value");
-        }
-
-        var i = 0;
-        var result;
-        if (arguments.length >= 2) {
-            result = arguments[1];
-        } else {
-            do {
-                if (i in self) {
-                    result = self[i++];
-                    break;
-                }
-                if (++i >= length) {
-                    throw new TypeError("reduce of empty array with no initial value");
-                }
-            } while (true);
-        }
-
-        for (; i < length; i++) {
-            if (i in self) {
-                result = fun.call(void 0, result, self[i], i, object);
+    this.insideStart = function(row, column) {
+        if (this.compare(row, column) == 0) {
+            if (this.isEnd(row, column)) {
+                return false;
+            } else {
+                return true;
             }
         }
-
-        return result;
+        return false;
     };
-}
-if (!Array.prototype.reduceRight) {
-    Array.prototype.reduceRight = function reduceRight(fun /*, initial*/) {
-        var object = toObject(this),
-            self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                object,
-            length = self.length >>> 0;
-        if (_toString(fun) != "[object Function]") {
-            throw new TypeError(fun + " is not a function");
-        }
-        if (!length && arguments.length == 1) {
-            throw new TypeError("reduceRight of empty array with no initial value");
-        }
-
-        var result, i = length - 1;
-        if (arguments.length >= 2) {
-            result = arguments[1];
-        } else {
-            do {
-                if (i in self) {
-                    result = self[i--];
-                    break;
-                }
-                if (--i < 0) {
-                    throw new TypeError("reduceRight of empty array with no initial value");
-                }
-            } while (true);
-        }
-
-        do {
-            if (i in this) {
-                result = fun.call(void 0, result, self[i], i, object);
+    this.insideEnd = function(row, column) {
+        if (this.compare(row, column) == 0) {
+            if (this.isStart(row, column)) {
+                return false;
+            } else {
+                return true;
             }
-        } while (i--);
-
-        return result;
+        }
+        return false;
     };
-}
-if (!Array.prototype.indexOf || ([0, 1].indexOf(1, 2) != -1)) {
-    Array.prototype.indexOf = function indexOf(sought /*, fromIndex */ ) {
-        var self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                toObject(this),
-            length = self.length >>> 0;
+    this.compare = function(row, column) {
+        if (!this.isMultiLine()) {
+            if (row === this.start.row) {
+                return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
+            };
+        }
 
-        if (!length) {
+        if (row < this.start.row)
             return -1;
-        }
 
-        var i = 0;
-        if (arguments.length > 1) {
-            i = toInteger(arguments[1]);
-        }
-        i = i >= 0 ? i : Math.max(0, length + i);
-        for (; i < length; i++) {
-            if (i in self && self[i] === sought) {
-                return i;
-            }
-        }
-        return -1;
+        if (row > this.end.row)
+            return 1;
+
+        if (this.start.row === row)
+            return column >= this.start.column ? 0 : -1;
+
+        if (this.end.row === row)
+            return column <= this.end.column ? 0 : 1;
+
+        return 0;
     };
-}
-if (!Array.prototype.lastIndexOf || ([0, 1].lastIndexOf(0, -3) != -1)) {
-    Array.prototype.lastIndexOf = function lastIndexOf(sought /*, fromIndex */) {
-        var self = splitString && _toString(this) == "[object String]" ?
-                this.split("") :
-                toObject(this),
-            length = self.length >>> 0;
-
-        if (!length) {
+    this.compareStart = function(row, column) {
+        if (this.start.row == row && this.start.column == column) {
             return -1;
+        } else {
+            return this.compare(row, column);
         }
-        var i = length - 1;
-        if (arguments.length > 1) {
-            i = Math.min(i, toInteger(arguments[1]));
-        }
-        i = i >= 0 ? i : length - Math.abs(i);
-        for (; i >= 0; i--) {
-            if (i in self && sought === self[i]) {
-                return i;
-            }
-        }
-        return -1;
     };
-}
-if (!Object.getPrototypeOf) {
-    Object.getPrototypeOf = function getPrototypeOf(object) {
-        return object.__proto__ || (
-            object.constructor ?
-            object.constructor.prototype :
-            prototypeOfObject
+    this.compareEnd = function(row, column) {
+        if (this.end.row == row && this.end.column == column) {
+            return 1;
+        } else {
+            return this.compare(row, column);
+        }
+    };
+    this.compareInside = function(row, column) {
+        if (this.end.row == row && this.end.column == column) {
+            return 1;
+        } else if (this.start.row == row && this.start.column == column) {
+            return -1;
+        } else {
+            return this.compare(row, column);
+        }
+    };
+    this.clipRows = function(firstRow, lastRow) {
+        if (this.end.row > lastRow)
+            var end = {row: lastRow + 1, column: 0};
+        else if (this.end.row < firstRow)
+            var end = {row: firstRow, column: 0};
+
+        if (this.start.row > lastRow)
+            var start = {row: lastRow + 1, column: 0};
+        else if (this.start.row < firstRow)
+            var start = {row: firstRow, column: 0};
+
+        return Range.fromPoints(start || this.start, end || this.end);
+    };
+    this.extend = function(row, column) {
+        var cmp = this.compare(row, column);
+
+        if (cmp == 0)
+            return this;
+        else if (cmp == -1)
+            var start = {row: row, column: column};
+        else
+            var end = {row: row, column: column};
+
+        return Range.fromPoints(start || this.start, end || this.end);
+    };
+
+    this.isEmpty = function() {
+        return (this.start.row === this.end.row && this.start.column === this.end.column);
+    };
+    this.isMultiLine = function() {
+        return (this.start.row !== this.end.row);
+    };
+    this.clone = function() {
+        return Range.fromPoints(this.start, this.end);
+    };
+    this.collapseRows = function() {
+        if (this.end.column == 0)
+            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0)
+        else
+            return new Range(this.start.row, 0, this.end.row, 0)
+    };
+    this.toScreenRange = function(session) {
+        var screenPosStart = session.documentToScreenPosition(this.start);
+        var screenPosEnd = session.documentToScreenPosition(this.end);
+
+        return new Range(
+            screenPosStart.row, screenPosStart.column,
+            screenPosEnd.row, screenPosEnd.column
         );
     };
-}
-if (!Object.getOwnPropertyDescriptor) {
-    var ERR_NON_OBJECT = "Object.getOwnPropertyDescriptor called on a " +
-                         "non-object: ";
-    Object.getOwnPropertyDescriptor = function getOwnPropertyDescriptor(object, property) {
-        if ((typeof object != "object" && typeof object != "function") || object === null)
-            throw new TypeError(ERR_NON_OBJECT + object);
-        if (!owns(object, property))
+    this.moveBy = function(row, column) {
+        this.start.row += row;
+        this.start.column += column;
+        this.end.row += row;
+        this.end.column += column;
+    };
+
+}).call(Range.prototype);
+Range.fromPoints = function(start, end) {
+    return new Range(start.row, start.column, end.row, end.column);
+};
+Range.comparePoints = comparePoints;
+
+Range.comparePoints = function(p1, p2) {
+    return p1.row - p2.row || p1.column - p2.column;
+};
+
+
+exports.Range = Range;
+});
+
+ace.define("ace/anchor",["require","exports","module","ace/lib/oop","ace/lib/event_emitter"], function(require, exports, module) {
+"use strict";
+
+var oop = require("./lib/oop");
+var EventEmitter = require("./lib/event_emitter").EventEmitter;
+
+var Anchor = exports.Anchor = function(doc, row, column) {
+    this.$onChange = this.onChange.bind(this);
+    this.attach(doc);
+    
+    if (typeof column == "undefined")
+        this.setPosition(row.row, row.column);
+    else
+        this.setPosition(row, column);
+};
+
+(function() {
+
+    oop.implement(this, EventEmitter);
+    this.getPosition = function() {
+        return this.$clipPositionToDocument(this.row, this.column);
+    };
+    this.getDocument = function() {
+        return this.document;
+    };
+    this.$insertRight = false;
+    this.onChange = function(e) {
+        var delta = e.data;
+        var range = delta.range;
+
+        if (range.start.row == range.end.row && range.start.row != this.row)
             return;
 
-        var descriptor, getter, setter;
-        descriptor =  { enumerable: true, configurable: true };
-        if (supportsAccessors) {
-            var prototype = object.__proto__;
-            object.__proto__ = prototypeOfObject;
+        if (range.start.row > this.row)
+            return;
 
-            var getter = lookupGetter(object, property);
-            var setter = lookupSetter(object, property);
-            object.__proto__ = prototype;
+        if (range.start.row == this.row && range.start.column > this.column)
+            return;
 
-            if (getter || setter) {
-                if (getter) descriptor.get = getter;
-                if (setter) descriptor.set = setter;
-                return descriptor;
+        var row = this.row;
+        var column = this.column;
+        var start = range.start;
+        var end = range.end;
+
+        if (delta.action === "insertText") {
+            if (start.row === row && start.column <= column) {
+                if (start.column === column && this.$insertRight) {
+                } else if (start.row === end.row) {
+                    column += end.column - start.column;
+                } else {
+                    column -= start.column;
+                    row += end.row - start.row;
+                }
+            } else if (start.row !== end.row && start.row < row) {
+                row += end.row - start.row;
             }
-        }
-        descriptor.value = object[property];
-        return descriptor;
-    };
-}
-if (!Object.getOwnPropertyNames) {
-    Object.getOwnPropertyNames = function getOwnPropertyNames(object) {
-        return Object.keys(object);
-    };
-}
-if (!Object.create) {
-    var createEmpty;
-    if (Object.prototype.__proto__ === null) {
-        createEmpty = function () {
-            return { "__proto__": null };
-        };
-    } else {
-        createEmpty = function () {
-            var empty = {};
-            for (var i in empty)
-                empty[i] = null;
-            empty.constructor =
-            empty.hasOwnProperty =
-            empty.propertyIsEnumerable =
-            empty.isPrototypeOf =
-            empty.toLocaleString =
-            empty.toString =
-            empty.valueOf =
-            empty.__proto__ = null;
-            return empty;
-        }
-    }
-
-    Object.create = function create(prototype, properties) {
-        var object;
-        if (prototype === null) {
-            object = createEmpty();
-        } else {
-            if (typeof prototype != "object")
-                throw new TypeError("typeof prototype["+(typeof prototype)+"] != 'object'");
-            var Type = function () {};
-            Type.prototype = prototype;
-            object = new Type();
-            object.__proto__ = prototype;
-        }
-        if (properties !== void 0)
-            Object.defineProperties(object, properties);
-        return object;
-    };
-}
-
-function doesDefinePropertyWork(object) {
-    try {
-        Object.defineProperty(object, "sentinel", {});
-        return "sentinel" in object;
-    } catch (exception) {
-    }
-}
-if (Object.defineProperty) {
-    var definePropertyWorksOnObject = doesDefinePropertyWork({});
-    var definePropertyWorksOnDom = typeof document == "undefined" ||
-        doesDefinePropertyWork(document.createElement("div"));
-    if (!definePropertyWorksOnObject || !definePropertyWorksOnDom) {
-        var definePropertyFallback = Object.defineProperty;
-    }
-}
-
-if (!Object.defineProperty || definePropertyFallback) {
-    var ERR_NON_OBJECT_DESCRIPTOR = "Property description must be an object: ";
-    var ERR_NON_OBJECT_TARGET = "Object.defineProperty called on non-object: "
-    var ERR_ACCESSORS_NOT_SUPPORTED = "getters & setters can not be defined " +
-                                      "on this javascript engine";
-
-    Object.defineProperty = function defineProperty(object, property, descriptor) {
-        if ((typeof object != "object" && typeof object != "function") || object === null)
-            throw new TypeError(ERR_NON_OBJECT_TARGET + object);
-        if ((typeof descriptor != "object" && typeof descriptor != "function") || descriptor === null)
-            throw new TypeError(ERR_NON_OBJECT_DESCRIPTOR + descriptor);
-        if (definePropertyFallback) {
-            try {
-                return definePropertyFallback.call(Object, object, property, descriptor);
-            } catch (exception) {
+        } else if (delta.action === "insertLines") {
+            if (start.row === row && column === 0 && this.$insertRight) {
             }
-        }
-        if (owns(descriptor, "value")) {
-
-            if (supportsAccessors && (lookupGetter(object, property) ||
-                                      lookupSetter(object, property)))
-            {
-                var prototype = object.__proto__;
-                object.__proto__ = prototypeOfObject;
-                delete object[property];
-                object[property] = descriptor.value;
-                object.__proto__ = prototype;
-            } else {
-                object[property] = descriptor.value;
+            else if (start.row <= row) {
+                row += end.row - start.row;
             }
-        } else {
-            if (!supportsAccessors)
-                throw new TypeError(ERR_ACCESSORS_NOT_SUPPORTED);
-            if (owns(descriptor, "get"))
-                defineGetter(object, property, descriptor.get);
-            if (owns(descriptor, "set"))
-                defineSetter(object, property, descriptor.set);
-        }
+        } else if (delta.action === "removeText") {
+            if (start.row === row && start.column < column) {
+                if (end.column >= column)
+                    column = start.column;
+                else
+                    column = Math.max(0, column - (end.column - start.column));
 
-        return object;
-    };
-}
-if (!Object.defineProperties) {
-    Object.defineProperties = function defineProperties(object, properties) {
-        for (var property in properties) {
-            if (owns(properties, property))
-                Object.defineProperty(object, property, properties[property]);
-        }
-        return object;
-    };
-}
-if (!Object.seal) {
-    Object.seal = function seal(object) {
-        return object;
-    };
-}
-if (!Object.freeze) {
-    Object.freeze = function freeze(object) {
-        return object;
-    };
-}
-try {
-    Object.freeze(function () {});
-} catch (exception) {
-    Object.freeze = (function freeze(freezeObject) {
-        return function freeze(object) {
-            if (typeof object == "function") {
-                return object;
-            } else {
-                return freezeObject(object);
+            } else if (start.row !== end.row && start.row < row) {
+                if (end.row === row)
+                    column = Math.max(0, column - end.column) + start.column;
+                row -= (end.row - start.row);
+            } else if (end.row === row) {
+                row -= end.row - start.row;
+                column = Math.max(0, column - end.column) + start.column;
             }
-        };
-    })(Object.freeze);
-}
-if (!Object.preventExtensions) {
-    Object.preventExtensions = function preventExtensions(object) {
-        return object;
-    };
-}
-if (!Object.isSealed) {
-    Object.isSealed = function isSealed(object) {
-        return false;
-    };
-}
-if (!Object.isFrozen) {
-    Object.isFrozen = function isFrozen(object) {
-        return false;
-    };
-}
-if (!Object.isExtensible) {
-    Object.isExtensible = function isExtensible(object) {
-        if (Object(object) === object) {
-            throw new TypeError(); // TODO message
-        }
-        var name = '';
-        while (owns(object, name)) {
-            name += '?';
-        }
-        object[name] = true;
-        var returnValue = owns(object, name);
-        delete object[name];
-        return returnValue;
-    };
-}
-if (!Object.keys) {
-    var hasDontEnumBug = true,
-        dontEnums = [
-            "toString",
-            "toLocaleString",
-            "valueOf",
-            "hasOwnProperty",
-            "isPrototypeOf",
-            "propertyIsEnumerable",
-            "constructor"
-        ],
-        dontEnumsLength = dontEnums.length;
-
-    for (var key in {"toString": null}) {
-        hasDontEnumBug = false;
-    }
-
-    Object.keys = function keys(object) {
-
-        if (
-            (typeof object != "object" && typeof object != "function") ||
-            object === null
-        ) {
-            throw new TypeError("Object.keys called on a non-object");
-        }
-
-        var keys = [];
-        for (var name in object) {
-            if (owns(object, name)) {
-                keys.push(name);
-            }
-        }
-
-        if (hasDontEnumBug) {
-            for (var i = 0, ii = dontEnumsLength; i < ii; i++) {
-                var dontEnum = dontEnums[i];
-                if (owns(object, dontEnum)) {
-                    keys.push(dontEnum);
+        } else if (delta.action == "removeLines") {
+            if (start.row <= row) {
+                if (end.row <= row)
+                    row -= end.row - start.row;
+                else {
+                    row = start.row;
+                    column = 0;
                 }
             }
         }
-        return keys;
+
+        this.setPosition(row, column, true);
     };
-
-}
-if (!Date.now) {
-    Date.now = function now() {
-        return new Date().getTime();
-    };
-}
-var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u180E\u2000\u2001\u2002\u2003" +
-    "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028" +
-    "\u2029\uFEFF";
-if (!String.prototype.trim || ws.trim()) {
-    ws = "[" + ws + "]";
-    var trimBeginRegexp = new RegExp("^" + ws + ws + "*"),
-        trimEndRegexp = new RegExp(ws + ws + "*$");
-    String.prototype.trim = function trim() {
-        return String(this).replace(trimBeginRegexp, "").replace(trimEndRegexp, "");
-    };
-}
-
-function toInteger(n) {
-    n = +n;
-    if (n !== n) { // isNaN
-        n = 0;
-    } else if (n !== 0 && n !== (1/0) && n !== -(1/0)) {
-        n = (n > 0 || -1) * Math.floor(Math.abs(n));
-    }
-    return n;
-}
-
-function isPrimitive(input) {
-    var type = typeof input;
-    return (
-        input === null ||
-        type === "undefined" ||
-        type === "boolean" ||
-        type === "number" ||
-        type === "string"
-    );
-}
-
-function toPrimitive(input) {
-    var val, valueOf, toString;
-    if (isPrimitive(input)) {
-        return input;
-    }
-    valueOf = input.valueOf;
-    if (typeof valueOf === "function") {
-        val = valueOf.call(input);
-        if (isPrimitive(val)) {
-            return val;
+    this.setPosition = function(row, column, noClip) {
+        var pos;
+        if (noClip) {
+            pos = {
+                row: row,
+                column: column
+            };
+        } else {
+            pos = this.$clipPositionToDocument(row, column);
         }
-    }
-    toString = input.toString;
-    if (typeof toString === "function") {
-        val = toString.call(input);
-        if (isPrimitive(val)) {
-            return val;
+
+        if (this.row == pos.row && this.column == pos.column)
+            return;
+
+        var old = {
+            row: this.row,
+            column: this.column
+        };
+
+        this.row = pos.row;
+        this.column = pos.column;
+        this._signal("change", {
+            old: old,
+            value: pos
+        });
+    };
+    this.detach = function() {
+        this.document.removeEventListener("change", this.$onChange);
+    };
+    this.attach = function(doc) {
+        this.document = doc || this.document;
+        this.document.on("change", this.$onChange);
+    };
+    this.$clipPositionToDocument = function(row, column) {
+        var pos = {};
+
+        if (row >= this.document.getLength()) {
+            pos.row = Math.max(0, this.document.getLength() - 1);
+            pos.column = this.document.getLine(pos.row).length;
         }
-    }
-    throw new TypeError();
-}
-var toObject = function (o) {
-    if (o == null) { // this matches both null and undefined
-        throw new TypeError("can't convert "+o+" to object");
-    }
-    return Object(o);
-};
+        else if (row < 0) {
+            pos.row = 0;
+            pos.column = 0;
+        }
+        else {
+            pos.row = row;
+            pos.column = Math.min(this.document.getLine(pos.row).length, Math.max(0, column));
+        }
+
+        if (column < 0)
+            pos.column = 0;
+
+        return pos;
+    };
+
+}).call(Anchor.prototype);
 
 });
 
-ace.define('ace/document', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter', 'ace/range', 'ace/anchor'], function(require, exports, module) {
-
+ace.define("ace/document",["require","exports","module","ace/lib/oop","ace/lib/event_emitter","ace/range","ace/anchor"], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
@@ -1512,520 +1269,56 @@ var Document = function(text) {
 exports.Document = Document;
 });
 
-ace.define('ace/lib/event_emitter', ['require', 'exports', 'module' ], function(require, exports, module) {
+ace.define("ace/worker/mirror",["require","exports","module","ace/document","ace/lib/lang"], function(require, exports, module) {
+"use strict";
 
-
-var EventEmitter = {};
-var stopPropagation = function() { this.propagationStopped = true; };
-var preventDefault = function() { this.defaultPrevented = true; };
-
-EventEmitter._emit =
-EventEmitter._dispatchEvent = function(eventName, e) {
-    this._eventRegistry || (this._eventRegistry = {});
-    this._defaultHandlers || (this._defaultHandlers = {});
-
-    var listeners = this._eventRegistry[eventName] || [];
-    var defaultHandler = this._defaultHandlers[eventName];
-    if (!listeners.length && !defaultHandler)
-        return;
-
-    if (typeof e != "object" || !e)
-        e = {};
-
-    if (!e.type)
-        e.type = eventName;
-    if (!e.stopPropagation)
-        e.stopPropagation = stopPropagation;
-    if (!e.preventDefault)
-        e.preventDefault = preventDefault;
-
-    listeners = listeners.slice();
-    for (var i=0; i<listeners.length; i++) {
-        listeners[i](e, this);
-        if (e.propagationStopped)
-            break;
-    }
+var Document = require("../document").Document;
+var lang = require("../lib/lang");
     
-    if (defaultHandler && !e.defaultPrevented)
-        return defaultHandler(e, this);
-};
-
-
-EventEmitter._signal = function(eventName, e) {
-    var listeners = (this._eventRegistry || {})[eventName];
-    if (!listeners)
-        return;
-    listeners = listeners.slice();
-    for (var i=0; i<listeners.length; i++)
-        listeners[i](e, this);
-};
-
-EventEmitter.once = function(eventName, callback) {
+var Mirror = exports.Mirror = function(sender) {
+    this.sender = sender;
+    var doc = this.doc = new Document("");
+    
+    var deferredUpdate = this.deferredUpdate = lang.delayedCall(this.onUpdate.bind(this));
+    
     var _self = this;
-    callback && this.addEventListener(eventName, function newCallback() {
-        _self.removeEventListener(eventName, newCallback);
-        callback.apply(null, arguments);
+    sender.on("change", function(e) {
+        doc.applyDeltas(e.data);
+        if (_self.$timeout)
+            return deferredUpdate.schedule(_self.$timeout);
+        _self.onUpdate();
     });
 };
 
-
-EventEmitter.setDefaultHandler = function(eventName, callback) {
-    var handlers = this._defaultHandlers
-    if (!handlers)
-        handlers = this._defaultHandlers = {_disabled_: {}};
-    
-    if (handlers[eventName]) {
-        var old = handlers[eventName];
-        var disabled = handlers._disabled_[eventName];
-        if (!disabled)
-            handlers._disabled_[eventName] = disabled = [];
-        disabled.push(old);
-        var i = disabled.indexOf(callback);
-        if (i != -1) 
-            disabled.splice(i, 1);
-    }
-    handlers[eventName] = callback;
-};
-EventEmitter.removeDefaultHandler = function(eventName, callback) {
-    var handlers = this._defaultHandlers
-    if (!handlers)
-        return;
-    var disabled = handlers._disabled_[eventName];
-    
-    if (handlers[eventName] == callback) {
-        var old = handlers[eventName];
-        if (disabled)
-            this.setDefaultHandler(eventName, disabled.pop());
-    } else if (disabled) {
-        var i = disabled.indexOf(callback);
-        if (i != -1)
-            disabled.splice(i, 1);
-    }
-};
-
-EventEmitter.on =
-EventEmitter.addEventListener = function(eventName, callback, capturing) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners)
-        listeners = this._eventRegistry[eventName] = [];
-
-    if (listeners.indexOf(callback) == -1)
-        listeners[capturing ? "unshift" : "push"](callback);
-    return callback;
-};
-
-EventEmitter.off =
-EventEmitter.removeListener =
-EventEmitter.removeEventListener = function(eventName, callback) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners)
-        return;
-
-    var index = listeners.indexOf(callback);
-    if (index !== -1)
-        listeners.splice(index, 1);
-};
-
-EventEmitter.removeAllListeners = function(eventName) {
-    if (this._eventRegistry) this._eventRegistry[eventName] = [];
-};
-
-exports.EventEmitter = EventEmitter;
-
-});
-
-ace.define('ace/range', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-var comparePoints = function(p1, p2) {
-    return p1.row - p2.row || p1.column - p2.column;
-};
-var Range = function(startRow, startColumn, endRow, endColumn) {
-    this.start = {
-        row: startRow,
-        column: startColumn
-    };
-
-    this.end = {
-        row: endRow,
-        column: endColumn
-    };
-};
-
 (function() {
-    this.isEqual = function(range) {
-        return this.start.row === range.start.row &&
-            this.end.row === range.end.row &&
-            this.start.column === range.start.column &&
-            this.end.column === range.end.column;
-    };
-    this.toString = function() {
-        return ("Range: [" + this.start.row + "/" + this.start.column +
-            "] -> [" + this.end.row + "/" + this.end.column + "]");
-    };
-
-    this.contains = function(row, column) {
-        return this.compare(row, column) == 0;
-    };
-    this.compareRange = function(range) {
-        var cmp,
-            end = range.end,
-            start = range.start;
-
-        cmp = this.compare(end.row, end.column);
-        if (cmp == 1) {
-            cmp = this.compare(start.row, start.column);
-            if (cmp == 1) {
-                return 2;
-            } else if (cmp == 0) {
-                return 1;
-            } else {
-                return 0;
-            }
-        } else if (cmp == -1) {
-            return -2;
-        } else {
-            cmp = this.compare(start.row, start.column);
-            if (cmp == -1) {
-                return -1;
-            } else if (cmp == 1) {
-                return 42;
-            } else {
-                return 0;
-            }
-        }
-    };
-    this.comparePoint = function(p) {
-        return this.compare(p.row, p.column);
-    };
-    this.containsRange = function(range) {
-        return this.comparePoint(range.start) == 0 && this.comparePoint(range.end) == 0;
-    };
-    this.intersects = function(range) {
-        var cmp = this.compareRange(range);
-        return (cmp == -1 || cmp == 0 || cmp == 1);
-    };
-    this.isEnd = function(row, column) {
-        return this.end.row == row && this.end.column == column;
-    };
-    this.isStart = function(row, column) {
-        return this.start.row == row && this.start.column == column;
-    };
-    this.setStart = function(row, column) {
-        if (typeof row == "object") {
-            this.start.column = row.column;
-            this.start.row = row.row;
-        } else {
-            this.start.row = row;
-            this.start.column = column;
-        }
-    };
-    this.setEnd = function(row, column) {
-        if (typeof row == "object") {
-            this.end.column = row.column;
-            this.end.row = row.row;
-        } else {
-            this.end.row = row;
-            this.end.column = column;
-        }
-    };
-    this.inside = function(row, column) {
-        if (this.compare(row, column) == 0) {
-            if (this.isEnd(row, column) || this.isStart(row, column)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.insideStart = function(row, column) {
-        if (this.compare(row, column) == 0) {
-            if (this.isEnd(row, column)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.insideEnd = function(row, column) {
-        if (this.compare(row, column) == 0) {
-            if (this.isStart(row, column)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.compare = function(row, column) {
-        if (!this.isMultiLine()) {
-            if (row === this.start.row) {
-                return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
-            };
-        }
-
-        if (row < this.start.row)
-            return -1;
-
-        if (row > this.end.row)
-            return 1;
-
-        if (this.start.row === row)
-            return column >= this.start.column ? 0 : -1;
-
-        if (this.end.row === row)
-            return column <= this.end.column ? 0 : 1;
-
-        return 0;
-    };
-    this.compareStart = function(row, column) {
-        if (this.start.row == row && this.start.column == column) {
-            return -1;
-        } else {
-            return this.compare(row, column);
-        }
-    };
-    this.compareEnd = function(row, column) {
-        if (this.end.row == row && this.end.column == column) {
-            return 1;
-        } else {
-            return this.compare(row, column);
-        }
-    };
-    this.compareInside = function(row, column) {
-        if (this.end.row == row && this.end.column == column) {
-            return 1;
-        } else if (this.start.row == row && this.start.column == column) {
-            return -1;
-        } else {
-            return this.compare(row, column);
-        }
-    };
-    this.clipRows = function(firstRow, lastRow) {
-        if (this.end.row > lastRow)
-            var end = {row: lastRow + 1, column: 0};
-        else if (this.end.row < firstRow)
-            var end = {row: firstRow, column: 0};
-
-        if (this.start.row > lastRow)
-            var start = {row: lastRow + 1, column: 0};
-        else if (this.start.row < firstRow)
-            var start = {row: firstRow, column: 0};
-
-        return Range.fromPoints(start || this.start, end || this.end);
-    };
-    this.extend = function(row, column) {
-        var cmp = this.compare(row, column);
-
-        if (cmp == 0)
-            return this;
-        else if (cmp == -1)
-            var start = {row: row, column: column};
-        else
-            var end = {row: row, column: column};
-
-        return Range.fromPoints(start || this.start, end || this.end);
-    };
-
-    this.isEmpty = function() {
-        return (this.start.row === this.end.row && this.start.column === this.end.column);
-    };
-    this.isMultiLine = function() {
-        return (this.start.row !== this.end.row);
-    };
-    this.clone = function() {
-        return Range.fromPoints(this.start, this.end);
-    };
-    this.collapseRows = function() {
-        if (this.end.column == 0)
-            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0)
-        else
-            return new Range(this.start.row, 0, this.end.row, 0)
-    };
-    this.toScreenRange = function(session) {
-        var screenPosStart = session.documentToScreenPosition(this.start);
-        var screenPosEnd = session.documentToScreenPosition(this.end);
-
-        return new Range(
-            screenPosStart.row, screenPosStart.column,
-            screenPosEnd.row, screenPosEnd.column
-        );
-    };
-    this.moveBy = function(row, column) {
-        this.start.row += row;
-        this.start.column += column;
-        this.end.row += row;
-        this.end.column += column;
-    };
-
-}).call(Range.prototype);
-Range.fromPoints = function(start, end) {
-    return new Range(start.row, start.column, end.row, end.column);
-};
-Range.comparePoints = comparePoints;
-
-Range.comparePoints = function(p1, p2) {
-    return p1.row - p2.row || p1.column - p2.column;
-};
-
-
-exports.Range = Range;
-});
-
-ace.define('ace/anchor', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
-
-
-var oop = require("./lib/oop");
-var EventEmitter = require("./lib/event_emitter").EventEmitter;
-
-var Anchor = exports.Anchor = function(doc, row, column) {
-    this.$onChange = this.onChange.bind(this);
-    this.attach(doc);
     
-    if (typeof column == "undefined")
-        this.setPosition(row.row, row.column);
-    else
-        this.setPosition(row, column);
-};
-
-(function() {
-
-    oop.implement(this, EventEmitter);
-    this.getPosition = function() {
-        return this.$clipPositionToDocument(this.row, this.column);
+    this.$timeout = 500;
+    
+    this.setTimeout = function(timeout) {
+        this.$timeout = timeout;
     };
-    this.getDocument = function() {
-        return this.document;
+    
+    this.setValue = function(value) {
+        this.doc.setValue(value);
+        this.deferredUpdate.schedule(this.$timeout);
     };
-    this.$insertRight = false;
-    this.onChange = function(e) {
-        var delta = e.data;
-        var range = delta.range;
-
-        if (range.start.row == range.end.row && range.start.row != this.row)
-            return;
-
-        if (range.start.row > this.row)
-            return;
-
-        if (range.start.row == this.row && range.start.column > this.column)
-            return;
-
-        var row = this.row;
-        var column = this.column;
-        var start = range.start;
-        var end = range.end;
-
-        if (delta.action === "insertText") {
-            if (start.row === row && start.column <= column) {
-                if (start.column === column && this.$insertRight) {
-                } else if (start.row === end.row) {
-                    column += end.column - start.column;
-                } else {
-                    column -= start.column;
-                    row += end.row - start.row;
-                }
-            } else if (start.row !== end.row && start.row < row) {
-                row += end.row - start.row;
-            }
-        } else if (delta.action === "insertLines") {
-            if (start.row === row && column === 0 && this.$insertRight) {
-            }
-            else if (start.row <= row) {
-                row += end.row - start.row;
-            }
-        } else if (delta.action === "removeText") {
-            if (start.row === row && start.column < column) {
-                if (end.column >= column)
-                    column = start.column;
-                else
-                    column = Math.max(0, column - (end.column - start.column));
-
-            } else if (start.row !== end.row && start.row < row) {
-                if (end.row === row)
-                    column = Math.max(0, column - end.column) + start.column;
-                row -= (end.row - start.row);
-            } else if (end.row === row) {
-                row -= end.row - start.row;
-                column = Math.max(0, column - end.column) + start.column;
-            }
-        } else if (delta.action == "removeLines") {
-            if (start.row <= row) {
-                if (end.row <= row)
-                    row -= end.row - start.row;
-                else {
-                    row = start.row;
-                    column = 0;
-                }
-            }
-        }
-
-        this.setPosition(row, column, true);
+    
+    this.getValue = function(callbackId) {
+        this.sender.callback(this.doc.getValue(), callbackId);
     };
-    this.setPosition = function(row, column, noClip) {
-        var pos;
-        if (noClip) {
-            pos = {
-                row: row,
-                column: column
-            };
-        } else {
-            pos = this.$clipPositionToDocument(row, column);
-        }
-
-        if (this.row == pos.row && this.column == pos.column)
-            return;
-
-        var old = {
-            row: this.row,
-            column: this.column
-        };
-
-        this.row = pos.row;
-        this.column = pos.column;
-        this._signal("change", {
-            old: old,
-            value: pos
-        });
+    
+    this.onUpdate = function() {
     };
-    this.detach = function() {
-        this.document.removeEventListener("change", this.$onChange);
+    
+    this.isPending = function() {
+        return this.deferredUpdate.isPending();
     };
-    this.attach = function(doc) {
-        this.document = doc || this.document;
-        this.document.on("change", this.$onChange);
-    };
-    this.$clipPositionToDocument = function(row, column) {
-        var pos = {};
-
-        if (row >= this.document.getLength()) {
-            pos.row = Math.max(0, this.document.getLength() - 1);
-            pos.column = this.document.getLine(pos.row).length;
-        }
-        else if (row < 0) {
-            pos.row = 0;
-            pos.column = 0;
-        }
-        else {
-            pos.row = row;
-            pos.column = Math.min(this.document.getLine(pos.row).length, Math.max(0, column));
-        }
-
-        if (column < 0)
-            pos.column = 0;
-
-        return pos;
-    };
-
-}).call(Anchor.prototype);
+    
+}).call(Mirror.prototype);
 
 });
-ace.define('ace/mode/css/csslint', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+ace.define("ace/mode/css/csslint",["require","exports","module"], function(require, exports, module) {
 var parserlib = {};
 (function(){
 function EventTarget(){
@@ -8326,51 +7619,769 @@ CSSLint.addFormatter({
 
 exports.CSSLint = CSSLint;
 
-});ace.define('ace/worker/mirror', ['require', 'exports', 'module' , 'ace/document', 'ace/lib/lang'], function(require, exports, module) {
+});
 
+ace.define("ace/mode/css_worker",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/worker/mirror","ace/mode/css/csslint"], function(require, exports, module) {
+"use strict";
 
-var Document = require("../document").Document;
+var oop = require("../lib/oop");
 var lang = require("../lib/lang");
-    
-var Mirror = exports.Mirror = function(sender) {
-    this.sender = sender;
-    var doc = this.doc = new Document("");
-    
-    var deferredUpdate = this.deferredUpdate = lang.delayedCall(this.onUpdate.bind(this));
-    
-    var _self = this;
-    sender.on("change", function(e) {
-        doc.applyDeltas(e.data);
-        if (_self.$timeout)
-            return deferredUpdate.schedule(_self.$timeout);
-        _self.onUpdate();
-    });
+var Mirror = require("../worker/mirror").Mirror;
+var CSSLint = require("./css/csslint").CSSLint;
+
+var Worker = exports.Worker = function(sender) {
+    Mirror.call(this, sender);
+    this.setTimeout(400);
+    this.ruleset = null;
+    this.setDisabledRules("ids");
+    this.setInfoRules("adjoining-classes|qualified-headings|zero-units|gradients|import|outline-none");
 };
 
+oop.inherits(Worker, Mirror);
+
 (function() {
-    
-    this.$timeout = 500;
-    
-    this.setTimeout = function(timeout) {
-        this.$timeout = timeout;
+    this.setInfoRules = function(ruleNames) {
+        if (typeof ruleNames == "string")
+            ruleNames = ruleNames.split("|");
+        this.infoRules = lang.arrayToMap(ruleNames);
+        this.doc.getValue() && this.deferredUpdate.schedule(100);
     };
-    
-    this.setValue = function(value) {
-        this.doc.setValue(value);
-        this.deferredUpdate.schedule(this.$timeout);
+
+    this.setDisabledRules = function(ruleNames) {
+        if (!ruleNames) {
+            this.ruleset = null;
+        } else {
+            if (typeof ruleNames == "string")
+                ruleNames = ruleNames.split("|");
+            var all = {};
+
+            CSSLint.getRules().forEach(function(x){
+                all[x.id] = true;
+            });
+            ruleNames.forEach(function(x) {
+                delete all[x];
+            });
+            
+            this.ruleset = all;
+        }
+        this.doc.getValue() && this.deferredUpdate.schedule(100);
     };
-    
-    this.getValue = function(callbackId) {
-        this.sender.callback(this.doc.getValue(), callbackId);
-    };
-    
+
     this.onUpdate = function() {
+        var value = this.doc.getValue();
+        if (!value)
+            return this.sender.emit("csslint", []);
+        var infoRules = this.infoRules;
+
+        var result = CSSLint.verify(value, this.ruleset);
+        this.sender.emit("csslint", result.messages.map(function(msg) {
+            return {
+                row: msg.line - 1,
+                column: msg.col - 1,
+                text: msg.message,
+                type: infoRules[msg.rule.id] ? "info" : msg.type,
+                rule: msg.rule.name
+            }
+        }));
     };
-    
-    this.isPending = function() {
-        return this.deferredUpdate.isPending();
+
+}).call(Worker.prototype);
+
+});
+
+ace.define("ace/lib/es5-shim",["require","exports","module"], function(require, exports, module) {
+
+function Empty() {}
+
+if (!Function.prototype.bind) {
+    Function.prototype.bind = function bind(that) { // .length is 1
+        var target = this;
+        if (typeof target != "function") {
+            throw new TypeError("Function.prototype.bind called on incompatible " + target);
+        }
+        var args = slice.call(arguments, 1); // for normal call
+        var bound = function () {
+
+            if (this instanceof bound) {
+
+                var result = target.apply(
+                    this,
+                    args.concat(slice.call(arguments))
+                );
+                if (Object(result) === result) {
+                    return result;
+                }
+                return this;
+
+            } else {
+                return target.apply(
+                    that,
+                    args.concat(slice.call(arguments))
+                );
+
+            }
+
+        };
+        if(target.prototype) {
+            Empty.prototype = target.prototype;
+            bound.prototype = new Empty();
+            Empty.prototype = null;
+        }
+        return bound;
     };
-    
-}).call(Mirror.prototype);
+}
+var call = Function.prototype.call;
+var prototypeOfArray = Array.prototype;
+var prototypeOfObject = Object.prototype;
+var slice = prototypeOfArray.slice;
+var _toString = call.bind(prototypeOfObject.toString);
+var owns = call.bind(prototypeOfObject.hasOwnProperty);
+var defineGetter;
+var defineSetter;
+var lookupGetter;
+var lookupSetter;
+var supportsAccessors;
+if ((supportsAccessors = owns(prototypeOfObject, "__defineGetter__"))) {
+    defineGetter = call.bind(prototypeOfObject.__defineGetter__);
+    defineSetter = call.bind(prototypeOfObject.__defineSetter__);
+    lookupGetter = call.bind(prototypeOfObject.__lookupGetter__);
+    lookupSetter = call.bind(prototypeOfObject.__lookupSetter__);
+}
+if ([1,2].splice(0).length != 2) {
+    if(function() { // test IE < 9 to splice bug - see issue #138
+        function makeArray(l) {
+            var a = new Array(l+2);
+            a[0] = a[1] = 0;
+            return a;
+        }
+        var array = [], lengthBefore;
+        
+        array.splice.apply(array, makeArray(20));
+        array.splice.apply(array, makeArray(26));
+
+        lengthBefore = array.length; //46
+        array.splice(5, 0, "XXX"); // add one element
+
+        lengthBefore + 1 == array.length
+
+        if (lengthBefore + 1 == array.length) {
+            return true;// has right splice implementation without bugs
+        }
+    }()) {//IE 6/7
+        var array_splice = Array.prototype.splice;
+        Array.prototype.splice = function(start, deleteCount) {
+            if (!arguments.length) {
+                return [];
+            } else {
+                return array_splice.apply(this, [
+                    start === void 0 ? 0 : start,
+                    deleteCount === void 0 ? (this.length - start) : deleteCount
+                ].concat(slice.call(arguments, 2)))
+            }
+        };
+    } else {//IE8
+        Array.prototype.splice = function(pos, removeCount){
+            var length = this.length;
+            if (pos > 0) {
+                if (pos > length)
+                    pos = length;
+            } else if (pos == void 0) {
+                pos = 0;
+            } else if (pos < 0) {
+                pos = Math.max(length + pos, 0);
+            }
+
+            if (!(pos+removeCount < length))
+                removeCount = length - pos;
+
+            var removed = this.slice(pos, pos+removeCount);
+            var insert = slice.call(arguments, 2);
+            var add = insert.length;            
+            if (pos === length) {
+                if (add) {
+                    this.push.apply(this, insert);
+                }
+            } else {
+                var remove = Math.min(removeCount, length - pos);
+                var tailOldPos = pos + remove;
+                var tailNewPos = tailOldPos + add - remove;
+                var tailCount = length - tailOldPos;
+                var lengthAfterRemove = length - remove;
+
+                if (tailNewPos < tailOldPos) { // case A
+                    for (var i = 0; i < tailCount; ++i) {
+                        this[tailNewPos+i] = this[tailOldPos+i];
+                    }
+                } else if (tailNewPos > tailOldPos) { // case B
+                    for (i = tailCount; i--; ) {
+                        this[tailNewPos+i] = this[tailOldPos+i];
+                    }
+                } // else, add == remove (nothing to do)
+
+                if (add && pos === lengthAfterRemove) {
+                    this.length = lengthAfterRemove; // truncate array
+                    this.push.apply(this, insert);
+                } else {
+                    this.length = lengthAfterRemove + add; // reserves space
+                    for (i = 0; i < add; ++i) {
+                        this[pos+i] = insert[i];
+                    }
+                }
+            }
+            return removed;
+        };
+    }
+}
+if (!Array.isArray) {
+    Array.isArray = function isArray(obj) {
+        return _toString(obj) == "[object Array]";
+    };
+}
+var boxedString = Object("a"),
+    splitString = boxedString[0] != "a" || !(0 in boxedString);
+
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function forEach(fun /*, thisp*/) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                object,
+            thisp = arguments[1],
+            i = -1,
+            length = self.length >>> 0;
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(); // TODO message
+        }
+
+        while (++i < length) {
+            if (i in self) {
+                fun.call(thisp, self[i], i, object);
+            }
+        }
+    };
+}
+if (!Array.prototype.map) {
+    Array.prototype.map = function map(fun /*, thisp*/) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                object,
+            length = self.length >>> 0,
+            result = Array(length),
+            thisp = arguments[1];
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(fun + " is not a function");
+        }
+
+        for (var i = 0; i < length; i++) {
+            if (i in self)
+                result[i] = fun.call(thisp, self[i], i, object);
+        }
+        return result;
+    };
+}
+if (!Array.prototype.filter) {
+    Array.prototype.filter = function filter(fun /*, thisp */) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                    object,
+            length = self.length >>> 0,
+            result = [],
+            value,
+            thisp = arguments[1];
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(fun + " is not a function");
+        }
+
+        for (var i = 0; i < length; i++) {
+            if (i in self) {
+                value = self[i];
+                if (fun.call(thisp, value, i, object)) {
+                    result.push(value);
+                }
+            }
+        }
+        return result;
+    };
+}
+if (!Array.prototype.every) {
+    Array.prototype.every = function every(fun /*, thisp */) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                object,
+            length = self.length >>> 0,
+            thisp = arguments[1];
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(fun + " is not a function");
+        }
+
+        for (var i = 0; i < length; i++) {
+            if (i in self && !fun.call(thisp, self[i], i, object)) {
+                return false;
+            }
+        }
+        return true;
+    };
+}
+if (!Array.prototype.some) {
+    Array.prototype.some = function some(fun /*, thisp */) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                object,
+            length = self.length >>> 0,
+            thisp = arguments[1];
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(fun + " is not a function");
+        }
+
+        for (var i = 0; i < length; i++) {
+            if (i in self && fun.call(thisp, self[i], i, object)) {
+                return true;
+            }
+        }
+        return false;
+    };
+}
+if (!Array.prototype.reduce) {
+    Array.prototype.reduce = function reduce(fun /*, initial*/) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                object,
+            length = self.length >>> 0;
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(fun + " is not a function");
+        }
+        if (!length && arguments.length == 1) {
+            throw new TypeError("reduce of empty array with no initial value");
+        }
+
+        var i = 0;
+        var result;
+        if (arguments.length >= 2) {
+            result = arguments[1];
+        } else {
+            do {
+                if (i in self) {
+                    result = self[i++];
+                    break;
+                }
+                if (++i >= length) {
+                    throw new TypeError("reduce of empty array with no initial value");
+                }
+            } while (true);
+        }
+
+        for (; i < length; i++) {
+            if (i in self) {
+                result = fun.call(void 0, result, self[i], i, object);
+            }
+        }
+
+        return result;
+    };
+}
+if (!Array.prototype.reduceRight) {
+    Array.prototype.reduceRight = function reduceRight(fun /*, initial*/) {
+        var object = toObject(this),
+            self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                object,
+            length = self.length >>> 0;
+        if (_toString(fun) != "[object Function]") {
+            throw new TypeError(fun + " is not a function");
+        }
+        if (!length && arguments.length == 1) {
+            throw new TypeError("reduceRight of empty array with no initial value");
+        }
+
+        var result, i = length - 1;
+        if (arguments.length >= 2) {
+            result = arguments[1];
+        } else {
+            do {
+                if (i in self) {
+                    result = self[i--];
+                    break;
+                }
+                if (--i < 0) {
+                    throw new TypeError("reduceRight of empty array with no initial value");
+                }
+            } while (true);
+        }
+
+        do {
+            if (i in this) {
+                result = fun.call(void 0, result, self[i], i, object);
+            }
+        } while (i--);
+
+        return result;
+    };
+}
+if (!Array.prototype.indexOf || ([0, 1].indexOf(1, 2) != -1)) {
+    Array.prototype.indexOf = function indexOf(sought /*, fromIndex */ ) {
+        var self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                toObject(this),
+            length = self.length >>> 0;
+
+        if (!length) {
+            return -1;
+        }
+
+        var i = 0;
+        if (arguments.length > 1) {
+            i = toInteger(arguments[1]);
+        }
+        i = i >= 0 ? i : Math.max(0, length + i);
+        for (; i < length; i++) {
+            if (i in self && self[i] === sought) {
+                return i;
+            }
+        }
+        return -1;
+    };
+}
+if (!Array.prototype.lastIndexOf || ([0, 1].lastIndexOf(0, -3) != -1)) {
+    Array.prototype.lastIndexOf = function lastIndexOf(sought /*, fromIndex */) {
+        var self = splitString && _toString(this) == "[object String]" ?
+                this.split("") :
+                toObject(this),
+            length = self.length >>> 0;
+
+        if (!length) {
+            return -1;
+        }
+        var i = length - 1;
+        if (arguments.length > 1) {
+            i = Math.min(i, toInteger(arguments[1]));
+        }
+        i = i >= 0 ? i : length - Math.abs(i);
+        for (; i >= 0; i--) {
+            if (i in self && sought === self[i]) {
+                return i;
+            }
+        }
+        return -1;
+    };
+}
+if (!Object.getPrototypeOf) {
+    Object.getPrototypeOf = function getPrototypeOf(object) {
+        return object.__proto__ || (
+            object.constructor ?
+            object.constructor.prototype :
+            prototypeOfObject
+        );
+    };
+}
+if (!Object.getOwnPropertyDescriptor) {
+    var ERR_NON_OBJECT = "Object.getOwnPropertyDescriptor called on a " +
+                         "non-object: ";
+    Object.getOwnPropertyDescriptor = function getOwnPropertyDescriptor(object, property) {
+        if ((typeof object != "object" && typeof object != "function") || object === null)
+            throw new TypeError(ERR_NON_OBJECT + object);
+        if (!owns(object, property))
+            return;
+
+        var descriptor, getter, setter;
+        descriptor =  { enumerable: true, configurable: true };
+        if (supportsAccessors) {
+            var prototype = object.__proto__;
+            object.__proto__ = prototypeOfObject;
+
+            var getter = lookupGetter(object, property);
+            var setter = lookupSetter(object, property);
+            object.__proto__ = prototype;
+
+            if (getter || setter) {
+                if (getter) descriptor.get = getter;
+                if (setter) descriptor.set = setter;
+                return descriptor;
+            }
+        }
+        descriptor.value = object[property];
+        return descriptor;
+    };
+}
+if (!Object.getOwnPropertyNames) {
+    Object.getOwnPropertyNames = function getOwnPropertyNames(object) {
+        return Object.keys(object);
+    };
+}
+if (!Object.create) {
+    var createEmpty;
+    if (Object.prototype.__proto__ === null) {
+        createEmpty = function () {
+            return { "__proto__": null };
+        };
+    } else {
+        createEmpty = function () {
+            var empty = {};
+            for (var i in empty)
+                empty[i] = null;
+            empty.constructor =
+            empty.hasOwnProperty =
+            empty.propertyIsEnumerable =
+            empty.isPrototypeOf =
+            empty.toLocaleString =
+            empty.toString =
+            empty.valueOf =
+            empty.__proto__ = null;
+            return empty;
+        }
+    }
+
+    Object.create = function create(prototype, properties) {
+        var object;
+        if (prototype === null) {
+            object = createEmpty();
+        } else {
+            if (typeof prototype != "object")
+                throw new TypeError("typeof prototype["+(typeof prototype)+"] != 'object'");
+            var Type = function () {};
+            Type.prototype = prototype;
+            object = new Type();
+            object.__proto__ = prototype;
+        }
+        if (properties !== void 0)
+            Object.defineProperties(object, properties);
+        return object;
+    };
+}
+
+function doesDefinePropertyWork(object) {
+    try {
+        Object.defineProperty(object, "sentinel", {});
+        return "sentinel" in object;
+    } catch (exception) {
+    }
+}
+if (Object.defineProperty) {
+    var definePropertyWorksOnObject = doesDefinePropertyWork({});
+    var definePropertyWorksOnDom = typeof document == "undefined" ||
+        doesDefinePropertyWork(document.createElement("div"));
+    if (!definePropertyWorksOnObject || !definePropertyWorksOnDom) {
+        var definePropertyFallback = Object.defineProperty;
+    }
+}
+
+if (!Object.defineProperty || definePropertyFallback) {
+    var ERR_NON_OBJECT_DESCRIPTOR = "Property description must be an object: ";
+    var ERR_NON_OBJECT_TARGET = "Object.defineProperty called on non-object: "
+    var ERR_ACCESSORS_NOT_SUPPORTED = "getters & setters can not be defined " +
+                                      "on this javascript engine";
+
+    Object.defineProperty = function defineProperty(object, property, descriptor) {
+        if ((typeof object != "object" && typeof object != "function") || object === null)
+            throw new TypeError(ERR_NON_OBJECT_TARGET + object);
+        if ((typeof descriptor != "object" && typeof descriptor != "function") || descriptor === null)
+            throw new TypeError(ERR_NON_OBJECT_DESCRIPTOR + descriptor);
+        if (definePropertyFallback) {
+            try {
+                return definePropertyFallback.call(Object, object, property, descriptor);
+            } catch (exception) {
+            }
+        }
+        if (owns(descriptor, "value")) {
+
+            if (supportsAccessors && (lookupGetter(object, property) ||
+                                      lookupSetter(object, property)))
+            {
+                var prototype = object.__proto__;
+                object.__proto__ = prototypeOfObject;
+                delete object[property];
+                object[property] = descriptor.value;
+                object.__proto__ = prototype;
+            } else {
+                object[property] = descriptor.value;
+            }
+        } else {
+            if (!supportsAccessors)
+                throw new TypeError(ERR_ACCESSORS_NOT_SUPPORTED);
+            if (owns(descriptor, "get"))
+                defineGetter(object, property, descriptor.get);
+            if (owns(descriptor, "set"))
+                defineSetter(object, property, descriptor.set);
+        }
+
+        return object;
+    };
+}
+if (!Object.defineProperties) {
+    Object.defineProperties = function defineProperties(object, properties) {
+        for (var property in properties) {
+            if (owns(properties, property))
+                Object.defineProperty(object, property, properties[property]);
+        }
+        return object;
+    };
+}
+if (!Object.seal) {
+    Object.seal = function seal(object) {
+        return object;
+    };
+}
+if (!Object.freeze) {
+    Object.freeze = function freeze(object) {
+        return object;
+    };
+}
+try {
+    Object.freeze(function () {});
+} catch (exception) {
+    Object.freeze = (function freeze(freezeObject) {
+        return function freeze(object) {
+            if (typeof object == "function") {
+                return object;
+            } else {
+                return freezeObject(object);
+            }
+        };
+    })(Object.freeze);
+}
+if (!Object.preventExtensions) {
+    Object.preventExtensions = function preventExtensions(object) {
+        return object;
+    };
+}
+if (!Object.isSealed) {
+    Object.isSealed = function isSealed(object) {
+        return false;
+    };
+}
+if (!Object.isFrozen) {
+    Object.isFrozen = function isFrozen(object) {
+        return false;
+    };
+}
+if (!Object.isExtensible) {
+    Object.isExtensible = function isExtensible(object) {
+        if (Object(object) === object) {
+            throw new TypeError(); // TODO message
+        }
+        var name = '';
+        while (owns(object, name)) {
+            name += '?';
+        }
+        object[name] = true;
+        var returnValue = owns(object, name);
+        delete object[name];
+        return returnValue;
+    };
+}
+if (!Object.keys) {
+    var hasDontEnumBug = true,
+        dontEnums = [
+            "toString",
+            "toLocaleString",
+            "valueOf",
+            "hasOwnProperty",
+            "isPrototypeOf",
+            "propertyIsEnumerable",
+            "constructor"
+        ],
+        dontEnumsLength = dontEnums.length;
+
+    for (var key in {"toString": null}) {
+        hasDontEnumBug = false;
+    }
+
+    Object.keys = function keys(object) {
+
+        if (
+            (typeof object != "object" && typeof object != "function") ||
+            object === null
+        ) {
+            throw new TypeError("Object.keys called on a non-object");
+        }
+
+        var keys = [];
+        for (var name in object) {
+            if (owns(object, name)) {
+                keys.push(name);
+            }
+        }
+
+        if (hasDontEnumBug) {
+            for (var i = 0, ii = dontEnumsLength; i < ii; i++) {
+                var dontEnum = dontEnums[i];
+                if (owns(object, dontEnum)) {
+                    keys.push(dontEnum);
+                }
+            }
+        }
+        return keys;
+    };
+
+}
+if (!Date.now) {
+    Date.now = function now() {
+        return new Date().getTime();
+    };
+}
+var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u180E\u2000\u2001\u2002\u2003" +
+    "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028" +
+    "\u2029\uFEFF";
+if (!String.prototype.trim || ws.trim()) {
+    ws = "[" + ws + "]";
+    var trimBeginRegexp = new RegExp("^" + ws + ws + "*"),
+        trimEndRegexp = new RegExp(ws + ws + "*$");
+    String.prototype.trim = function trim() {
+        return String(this).replace(trimBeginRegexp, "").replace(trimEndRegexp, "");
+    };
+}
+
+function toInteger(n) {
+    n = +n;
+    if (n !== n) { // isNaN
+        n = 0;
+    } else if (n !== 0 && n !== (1/0) && n !== -(1/0)) {
+        n = (n > 0 || -1) * Math.floor(Math.abs(n));
+    }
+    return n;
+}
+
+function isPrimitive(input) {
+    var type = typeof input;
+    return (
+        input === null ||
+        type === "undefined" ||
+        type === "boolean" ||
+        type === "number" ||
+        type === "string"
+    );
+}
+
+function toPrimitive(input) {
+    var val, valueOf, toString;
+    if (isPrimitive(input)) {
+        return input;
+    }
+    valueOf = input.valueOf;
+    if (typeof valueOf === "function") {
+        val = valueOf.call(input);
+        if (isPrimitive(val)) {
+            return val;
+        }
+    }
+    toString = input.toString;
+    if (typeof toString === "function") {
+        val = toString.call(input);
+        if (isPrimitive(val)) {
+            return val;
+        }
+    }
+    throw new TypeError();
+}
+var toObject = function (o) {
+    if (o == null) { // this matches both null and undefined
+        throw new TypeError("can't convert "+o+" to object");
+    }
+    return Object(o);
+};
 
 });

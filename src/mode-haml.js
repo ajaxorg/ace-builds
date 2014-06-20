@@ -1,191 +1,5 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Distributed under the BSD license:
- *
- * Copyright (c) 2012, Ajax.org B.V.
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of Ajax.org B.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *
- * Contributor(s):
- * 
- * Garen J. Torikian < gjtorikian AT gmail DOT com >
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/mode/haml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/haml_highlight_rules', 'ace/mode/folding/coffee'], function(require, exports, module) {
-
-
-var oop = require("../lib/oop");
-var TextMode = require("./text").Mode;
-var HamlHighlightRules = require("./haml_highlight_rules").HamlHighlightRules;
-var FoldMode = require("./folding/coffee").FoldMode;
-
-var Mode = function() {
-    this.HighlightRules = HamlHighlightRules;
-    this.foldingRules = new FoldMode();
-};
-oop.inherits(Mode, TextMode);
-
-(function() {
-    this.lineCommentStart = ["//", "#"];
-    
-    this.$id = "ace/mode/haml";
-}).call(Mode.prototype);
-
-exports.Mode = Mode;
-});define('ace/mode/haml_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules', 'ace/mode/ruby_highlight_rules'], function(require, exports, module) {
-
-
-var oop = require("../lib/oop");
-var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-var RubyExports = require("./ruby_highlight_rules");
-var RubyHighlightRules = RubyExports.RubyHighlightRules;
-
-var HamlHighlightRules = function() {
-
-    this.$rules = 
-        {
-    "start": [
-        {
-            token : "punctuation.section.comment",
-            regex : /^\s*\/.*/
-        },
-        {
-            token : "punctuation.section.comment",
-            regex : /^\s*#.*/
-        },
-        {
-            token: "string.quoted.double",
-            regex: "==.+?=="
-        },
-        {
-            token: "keyword.other.doctype",
-            regex: "^!!!\\s*(?:[a-zA-Z0-9-_]+)?"
-        },
-        RubyExports.qString,
-        RubyExports.qqString,
-        RubyExports.tString,
-        {
-            token: ["entity.name.tag.haml"],
-            regex: /^\s*%[\w:]+/,
-            next: "tag_single"
-        },
-        {
-            token: [ "meta.escape.haml" ],
-            regex: "^\\s*\\\\."
-        },
-        RubyExports.constantNumericHex,
-        RubyExports.constantNumericFloat,
-        
-        RubyExports.constantOtherSymbol,
-        {
-            token: "text",
-            regex: "=|-|~",
-            next: "embedded_ruby"
-        }
-    ],
-    "tag_single": [
-        {
-            token: "entity.other.attribute-name.class.haml",
-            regex: "\\.[\\w-]+"
-        },
-        {
-            token: "entity.other.attribute-name.id.haml",
-            regex: "#[\\w-]+"
-        },
-        {
-            token: "punctuation.section",
-            regex: "\\{",
-            next: "section"
-        },
-        
-        RubyExports.constantOtherSymbol,
-        
-        {
-            token: "text",
-            regex: /\s/,
-            next: "start"
-        },
-        {
-            token: "empty",
-            regex: "$|(?!\\.|#|\\{|\\[|=|-|~|\\/)",
-            next: "start"
-        }
-    ],
-    "section": [
-        RubyExports.constantOtherSymbol,
-        
-        RubyExports.qString,
-        RubyExports.qqString,
-        RubyExports.tString,
-        
-        RubyExports.constantNumericHex,
-        RubyExports.constantNumericFloat,
-        {
-            token: "punctuation.section",
-            regex: "\\}",
-            next: "start"
-        } 
-    ],
-    "embedded_ruby": [ 
-        RubyExports.constantNumericHex,
-        RubyExports.constantNumericFloat,
-        {
-                token : "support.class", // class name
-                regex : "[A-Z][a-zA-Z_\\d]+"
-        },    
-        {
-            token : new RubyHighlightRules().getKeywords(),
-            regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
-        },
-        {
-            token : ["keyword", "text", "text"],
-            regex : "(?:do|\\{)(?: \\|[^|]+\\|)?$",
-            next  : "start"
-        }, 
-        {
-            token : ["text"],
-            regex : "^$",
-            next  : "start"
-        }, 
-        {
-            token : ["text"],
-            regex : "^(?!.*\\|\\s*$)",
-            next  : "start"
-        }
-    ]
-}
-
-};
-
-oop.inherits(HamlHighlightRules, TextHighlightRules);
-
-exports.HamlHighlightRules = HamlHighlightRules;
-});
-
-define('ace/mode/ruby_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
-
+define("ace/mode/ruby_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -409,8 +223,138 @@ oop.inherits(RubyHighlightRules, TextHighlightRules);
 exports.RubyHighlightRules = RubyHighlightRules;
 });
 
-define('ace/mode/folding/coffee', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode', 'ace/range'], function(require, exports, module) {
+define("ace/mode/haml_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules","ace/mode/ruby_highlight_rules"], function(require, exports, module) {
+"use strict";
 
+var oop = require("../lib/oop");
+var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
+var RubyExports = require("./ruby_highlight_rules");
+var RubyHighlightRules = RubyExports.RubyHighlightRules;
+
+var HamlHighlightRules = function() {
+
+    this.$rules = 
+        {
+    "start": [
+        {
+            token : "punctuation.section.comment",
+            regex : /^\s*\/.*/
+        },
+        {
+            token : "punctuation.section.comment",
+            regex : /^\s*#.*/
+        },
+        {
+            token: "string.quoted.double",
+            regex: "==.+?=="
+        },
+        {
+            token: "keyword.other.doctype",
+            regex: "^!!!\\s*(?:[a-zA-Z0-9-_]+)?"
+        },
+        RubyExports.qString,
+        RubyExports.qqString,
+        RubyExports.tString,
+        {
+            token: ["entity.name.tag.haml"],
+            regex: /^\s*%[\w:]+/,
+            next: "tag_single"
+        },
+        {
+            token: [ "meta.escape.haml" ],
+            regex: "^\\s*\\\\."
+        },
+        RubyExports.constantNumericHex,
+        RubyExports.constantNumericFloat,
+        
+        RubyExports.constantOtherSymbol,
+        {
+            token: "text",
+            regex: "=|-|~",
+            next: "embedded_ruby"
+        }
+    ],
+    "tag_single": [
+        {
+            token: "entity.other.attribute-name.class.haml",
+            regex: "\\.[\\w-]+"
+        },
+        {
+            token: "entity.other.attribute-name.id.haml",
+            regex: "#[\\w-]+"
+        },
+        {
+            token: "punctuation.section",
+            regex: "\\{",
+            next: "section"
+        },
+        
+        RubyExports.constantOtherSymbol,
+        
+        {
+            token: "text",
+            regex: /\s/,
+            next: "start"
+        },
+        {
+            token: "empty",
+            regex: "$|(?!\\.|#|\\{|\\[|=|-|~|\\/)",
+            next: "start"
+        }
+    ],
+    "section": [
+        RubyExports.constantOtherSymbol,
+        
+        RubyExports.qString,
+        RubyExports.qqString,
+        RubyExports.tString,
+        
+        RubyExports.constantNumericHex,
+        RubyExports.constantNumericFloat,
+        {
+            token: "punctuation.section",
+            regex: "\\}",
+            next: "start"
+        } 
+    ],
+    "embedded_ruby": [ 
+        RubyExports.constantNumericHex,
+        RubyExports.constantNumericFloat,
+        {
+                token : "support.class", // class name
+                regex : "[A-Z][a-zA-Z_\\d]+"
+        },    
+        {
+            token : new RubyHighlightRules().getKeywords(),
+            regex : "[a-zA-Z_$][a-zA-Z0-9_$]*\\b"
+        },
+        {
+            token : ["keyword", "text", "text"],
+            regex : "(?:do|\\{)(?: \\|[^|]+\\|)?$",
+            next  : "start"
+        }, 
+        {
+            token : ["text"],
+            regex : "^$",
+            next  : "start"
+        }, 
+        {
+            token : ["text"],
+            regex : "^(?!.*\\|\\s*$)",
+            next  : "start"
+        }
+    ]
+}
+
+};
+
+oop.inherits(HamlHighlightRules, TextHighlightRules);
+
+exports.HamlHighlightRules = HamlHighlightRules;
+});
+
+define("ace/mode/folding/coffee",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode","ace/range"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
@@ -494,4 +438,27 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 }).call(FoldMode.prototype);
 
+});
+
+define("ace/mode/haml",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/haml_highlight_rules","ace/mode/folding/coffee"], function(require, exports, module) {
+"use strict";
+
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var HamlHighlightRules = require("./haml_highlight_rules").HamlHighlightRules;
+var FoldMode = require("./folding/coffee").FoldMode;
+
+var Mode = function() {
+    this.HighlightRules = HamlHighlightRules;
+    this.foldingRules = new FoldMode();
+};
+oop.inherits(Mode, TextMode);
+
+(function() {
+    this.lineCommentStart = ["//", "#"];
+    
+    this.$id = "ace/mode/haml";
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
 });

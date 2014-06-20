@@ -1,118 +1,49 @@
-ace.define('ace/mode/scala', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript', 'ace/mode/scala_highlight_rules'], function(require, exports, module) {
-
-
-var oop = require("../lib/oop");
-var JavaScriptMode = require("./javascript").Mode;
-var ScalaHighlightRules = require("./scala_highlight_rules").ScalaHighlightRules;
-
-var Mode = function() {
-    JavaScriptMode.call(this);
-    
-    this.HighlightRules = ScalaHighlightRules;
-};
-oop.inherits(Mode, JavaScriptMode);
-
-(function() {
-
-    this.createWorker = function(session) {
-        return null;
-    };
-
-    this.$id = "ace/mode/scala";
-}).call(Mode.prototype);
-
-exports.Mode = Mode;
-});
-
-ace.define('ace/mode/javascript', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/worker/worker_client', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
-
+ace.define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
-var TextMode = require("./text").Mode;
-var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
-var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
-var Range = require("../range").Range;
-var WorkerClient = require("../worker/worker_client").WorkerClient;
-var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
-var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
-var Mode = function() {
-    this.HighlightRules = JavaScriptHighlightRules;
-    
-    this.$outdent = new MatchingBraceOutdent();
-    this.$behaviour = new CstyleBehaviour();
-    this.foldingRules = new CStyleFoldMode();
+var DocCommentHighlightRules = function() {
+
+    this.$rules = {
+        "start" : [ {
+            token : "comment.doc.tag",
+            regex : "@[\\w\\d_]+" // TODO: fix email addresses
+        }, {
+            token : "comment.doc.tag",
+            regex : "\\bTODO\\b"
+        }, {
+            defaultToken : "comment.doc"
+        }]
+    };
 };
-oop.inherits(Mode, TextMode);
 
-(function() {
+oop.inherits(DocCommentHighlightRules, TextHighlightRules);
 
-    this.lineCommentStart = "//";
-    this.blockComment = {start: "/*", end: "*/"};
-
-    this.getNextLineIndent = function(state, line, tab) {
-        var indent = this.$getIndent(line);
-
-        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
-        var tokens = tokenizedLine.tokens;
-        var endState = tokenizedLine.state;
-
-        if (tokens.length && tokens[tokens.length-1].type == "comment") {
-            return indent;
-        }
-
-        if (state == "start" || state == "no_regex") {
-            var match = line.match(/^.*(?:\bcase\b.*\:|[\{\(\[])\s*$/);
-            if (match) {
-                indent += tab;
-            }
-        } else if (state == "doc-start") {
-            if (endState == "start" || endState == "no_regex") {
-                return "";
-            }
-            var match = line.match(/^\s*(\/?)\*/);
-            if (match) {
-                if (match[1]) {
-                    indent += " ";
-                }
-                indent += "* ";
-            }
-        }
-
-        return indent;
+DocCommentHighlightRules.getStartRule = function(start) {
+    return {
+        token : "comment.doc", // doc comment
+        regex : "\\/\\*(?=\\*)",
+        next  : start
     };
+};
 
-    this.checkOutdent = function(state, line, input) {
-        return this.$outdent.checkOutdent(line, input);
+DocCommentHighlightRules.getEndRule = function (start) {
+    return {
+        token : "comment.doc", // closing comment
+        regex : "\\*\\/",
+        next  : start
     };
+};
 
-    this.autoOutdent = function(state, doc, row) {
-        this.$outdent.autoOutdent(doc, row);
-    };
 
-    this.createWorker = function(session) {
-        var worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker");
-        worker.attachToDocument(session.getDocument());
+exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
-        worker.on("jslint", function(results) {
-            session.setAnnotations(results.data);
-        });
-
-        worker.on("terminate", function() {
-            session.clearAnnotations();
-        });
-
-        return worker;
-    };
-
-    this.$id = "ace/mode/javascript";
-}).call(Mode.prototype);
-
-exports.Mode = Mode;
 });
 
-ace.define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
-
+ace.define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
@@ -423,52 +354,8 @@ oop.inherits(JavaScriptHighlightRules, TextHighlightRules);
 exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
 });
 
-ace.define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
-
-
-var oop = require("../lib/oop");
-var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-
-var DocCommentHighlightRules = function() {
-
-    this.$rules = {
-        "start" : [ {
-            token : "comment.doc.tag",
-            regex : "@[\\w\\d_]+" // TODO: fix email addresses
-        }, {
-            token : "comment.doc.tag",
-            regex : "\\bTODO\\b"
-        }, {
-            defaultToken : "comment.doc"
-        }]
-    };
-};
-
-oop.inherits(DocCommentHighlightRules, TextHighlightRules);
-
-DocCommentHighlightRules.getStartRule = function(start) {
-    return {
-        token : "comment.doc", // doc comment
-        regex : "\\/\\*(?=\\*)",
-        next  : start
-    };
-};
-
-DocCommentHighlightRules.getEndRule = function (start) {
-    return {
-        token : "comment.doc", // closing comment
-        regex : "\\*\\/",
-        next  : start
-    };
-};
-
-
-exports.DocCommentHighlightRules = DocCommentHighlightRules;
-
-});
-
-ace.define('ace/mode/matching_brace_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
-
+ace.define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 
@@ -507,8 +394,8 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-ace.define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/token_iterator', 'ace/lib/lang'], function(require, exports, module) {
-
+ace.define("ace/mode/behaviour/cstyle",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/token_iterator","ace/lib/lang"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Behaviour = require("../behaviour").Behaviour;
@@ -865,8 +752,8 @@ oop.inherits(CstyleBehaviour, Behaviour);
 exports.CstyleBehaviour = CstyleBehaviour;
 });
 
-ace.define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
-
+ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
@@ -959,8 +846,96 @@ oop.inherits(FoldMode, BaseFoldMode);
 }).call(FoldMode.prototype);
 
 });
-ace.define('ace/mode/scala_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
 
+ace.define("ace/mode/javascript",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/javascript_highlight_rules","ace/mode/matching_brace_outdent","ace/range","ace/worker/worker_client","ace/mode/behaviour/cstyle","ace/mode/folding/cstyle"], function(require, exports, module) {
+"use strict";
+
+var oop = require("../lib/oop");
+var TextMode = require("./text").Mode;
+var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
+var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
+var Range = require("../range").Range;
+var WorkerClient = require("../worker/worker_client").WorkerClient;
+var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
+var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+
+var Mode = function() {
+    this.HighlightRules = JavaScriptHighlightRules;
+    
+    this.$outdent = new MatchingBraceOutdent();
+    this.$behaviour = new CstyleBehaviour();
+    this.foldingRules = new CStyleFoldMode();
+};
+oop.inherits(Mode, TextMode);
+
+(function() {
+
+    this.lineCommentStart = "//";
+    this.blockComment = {start: "/*", end: "*/"};
+
+    this.getNextLineIndent = function(state, line, tab) {
+        var indent = this.$getIndent(line);
+
+        var tokenizedLine = this.getTokenizer().getLineTokens(line, state);
+        var tokens = tokenizedLine.tokens;
+        var endState = tokenizedLine.state;
+
+        if (tokens.length && tokens[tokens.length-1].type == "comment") {
+            return indent;
+        }
+
+        if (state == "start" || state == "no_regex") {
+            var match = line.match(/^.*(?:\bcase\b.*\:|[\{\(\[])\s*$/);
+            if (match) {
+                indent += tab;
+            }
+        } else if (state == "doc-start") {
+            if (endState == "start" || endState == "no_regex") {
+                return "";
+            }
+            var match = line.match(/^\s*(\/?)\*/);
+            if (match) {
+                if (match[1]) {
+                    indent += " ";
+                }
+                indent += "* ";
+            }
+        }
+
+        return indent;
+    };
+
+    this.checkOutdent = function(state, line, input) {
+        return this.$outdent.checkOutdent(line, input);
+    };
+
+    this.autoOutdent = function(state, doc, row) {
+        this.$outdent.autoOutdent(doc, row);
+    };
+
+    this.createWorker = function(session) {
+        var worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker");
+        worker.attachToDocument(session.getDocument());
+
+        worker.on("jslint", function(results) {
+            session.setAnnotations(results.data);
+        });
+
+        worker.on("terminate", function() {
+            session.clearAnnotations();
+        });
+
+        return worker;
+    };
+
+    this.$id = "ace/mode/javascript";
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
+});
+
+ace.define("ace/mode/scala_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
@@ -1111,4 +1086,30 @@ var ScalaHighlightRules = function() {
 oop.inherits(ScalaHighlightRules, TextHighlightRules);
 
 exports.ScalaHighlightRules = ScalaHighlightRules;
+});
+
+ace.define("ace/mode/scala",["require","exports","module","ace/lib/oop","ace/mode/javascript","ace/mode/scala_highlight_rules"], function(require, exports, module) {
+"use strict";
+
+var oop = require("../lib/oop");
+var JavaScriptMode = require("./javascript").Mode;
+var ScalaHighlightRules = require("./scala_highlight_rules").ScalaHighlightRules;
+
+var Mode = function() {
+    JavaScriptMode.call(this);
+    
+    this.HighlightRules = ScalaHighlightRules;
+};
+oop.inherits(Mode, JavaScriptMode);
+
+(function() {
+
+    this.createWorker = function(session) {
+        return null;
+    };
+
+    this.$id = "ace/mode/scala";
+}).call(Mode.prototype);
+
+exports.Mode = Mode;
 });

@@ -1,172 +1,5 @@
-/* ***** BEGIN LICENSE BLOCK *****
- * Distributed under the BSD license:
- *
- * Copyright (c) 2013 Matthew Christopher Kastor-Inare III, Atropa Inc. Intl
- * All rights reserved.
- *
- * Contributed to Ajax.org under the BSD license.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of Ajax.org B.V. nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL AJAX.ORG B.V. BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/ext/settings_menu', ['require', 'exports', 'module' , 'ace/ext/menu_tools/generate_settings_menu', 'ace/ext/menu_tools/overlay_page', 'ace/editor'], function(require, exports, module) {
-
-var generateSettingsMenu = require('./menu_tools/generate_settings_menu').generateSettingsMenu;
-var overlayPage = require('./menu_tools/overlay_page').overlayPage;
-function showSettingsMenu(editor) {
-    var sm = document.getElementById('ace_settingsmenu');
-    if (!sm)    
-        overlayPage(editor, generateSettingsMenu(editor), '0', '0', '0');
-}
-module.exports.init = function(editor) {
-    var Editor = require("ace/editor").Editor;
-    Editor.prototype.showSettingsMenu = function() {
-        showSettingsMenu(this);
-    };
-};
-});
-
-define('ace/ext/menu_tools/generate_settings_menu', ['require', 'exports', 'module' , 'ace/ext/menu_tools/element_generator', 'ace/ext/menu_tools/add_editor_menu_options', 'ace/ext/menu_tools/get_set_functions'], function(require, exports, module) {
-
-var egen = require('./element_generator');
-var addEditorMenuOptions = require('./add_editor_menu_options').addEditorMenuOptions;
-var getSetFunctions = require('./get_set_functions').getSetFunctions;
-module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
-    var elements = [];
-    function cleanupElementsList() {
-        elements.sort(function(a, b) {
-            var x = a.getAttribute('contains');
-            var y = b.getAttribute('contains');
-            return x.localeCompare(y);
-        });
-    }
-    function wrapElements() {
-        var topmenu = document.createElement('div');
-        topmenu.setAttribute('id', 'ace_settingsmenu');
-        elements.forEach(function(element) {
-            topmenu.appendChild(element);
-        });
-        return topmenu;
-    }
-    function createNewEntry(obj, clss, item, val) {
-        var el;
-        var div = document.createElement('div');
-        div.setAttribute('contains', item);
-        div.setAttribute('class', 'ace_optionsMenuEntry');
-        div.setAttribute('style', 'clear: both;');
-
-        div.appendChild(egen.createLabel(
-            item.replace(/^set/, '').replace(/([A-Z])/g, ' $1').trim(),
-            item
-        ));
-
-        if (Array.isArray(val)) {
-            el = egen.createSelection(item, val, clss);
-            el.addEventListener('change', function(e) {
-                try{
-                    editor.menuOptions[e.target.id].forEach(function(x) {
-                        if(x.textContent !== e.target.textContent) {
-                            delete x.selected;
-                        }
-                    });
-                    obj[e.target.id](e.target.value);
-                } catch (err) {
-                    throw new Error(err);
-                }
-            });
-        } else if(typeof val === 'boolean') {
-            el = egen.createCheckbox(item, val, clss);
-            el.addEventListener('change', function(e) {
-                try{
-                    obj[e.target.id](!!e.target.checked);
-                } catch (err) {
-                    throw new Error(err);
-                }
-            });
-        } else {
-            el = egen.createInput(item, val, clss);
-            el.addEventListener('change', function(e) {
-                try{
-                    if(e.target.value === 'true') {
-                        obj[e.target.id](true);
-                    } else if(e.target.value === 'false') {
-                        obj[e.target.id](false);
-                    } else {
-                        obj[e.target.id](e.target.value);
-                    }
-                } catch (err) {
-                    throw new Error(err);
-                }
-            });
-        }
-        el.style.cssText = 'float:right;';
-        div.appendChild(el);
-        return div;
-    }
-    function makeDropdown(item, esr, clss, fn) {
-        var val = editor.menuOptions[item];
-        var currentVal = esr[fn]();
-        if (typeof currentVal == 'object')
-            currentVal = currentVal.$id;
-        val.forEach(function(valuex) {
-            if (valuex.value === currentVal)
-                valuex.selected = 'selected';
-        });
-        return createNewEntry(esr, clss, item, val);
-    }
-    function handleSet(setObj) {
-        var item = setObj.functionName;
-        var esr = setObj.parentObj;
-        var clss = setObj.parentName;
-        var val;
-        var fn = item.replace(/^set/, 'get');
-        if(editor.menuOptions[item] !== undefined) {
-            elements.push(makeDropdown(item, esr, clss, fn));
-        } else if(typeof esr[fn] === 'function') {
-            try {
-                val = esr[fn]();
-                if(typeof val === 'object') {
-                    val = val.$id;
-                }
-                elements.push(
-                    createNewEntry(esr, clss, item, val)
-                );
-            } catch (e) {
-            }
-        }
-    }
-    addEditorMenuOptions(editor);
-    getSetFunctions(editor).forEach(function(setObj) {
-        handleSet(setObj);
-    });
-    cleanupElementsList();
-    return wrapElements();
-};
-
-});
-
-define('ace/ext/menu_tools/element_generator', ['require', 'exports', 'module' ], function(require, exports, module) {
+define("ace/ext/menu_tools/element_generator",["require","exports","module"], function(require, exports, module) {
+'use strict';
 module.exports.createOption = function createOption (obj) {
     var attribute;
     var el = document.createElement('option');
@@ -221,54 +54,8 @@ module.exports.createSelection = function createSelection (id, values, clss) {
 
 });
 
-define('ace/ext/menu_tools/add_editor_menu_options', ['require', 'exports', 'module' , 'ace/ext/modelist', 'ace/ext/themelist'], function(require, exports, module) {
-module.exports.addEditorMenuOptions = function addEditorMenuOptions (editor) {
-    var modelist = require('../modelist');
-    var themelist = require('../themelist');
-    editor.menuOptions = {
-        "setNewLineMode" : [{
-            "textContent" : "unix",
-            "value" : "unix"
-        }, {
-            "textContent" : "windows",
-            "value" : "windows"
-        }, {
-            "textContent" : "auto",
-            "value" : "auto"
-        }],
-        "setTheme" : [],
-        "setMode" : [],
-        "setKeyboardHandler": [{
-            "textContent" : "ace",
-            "value" : ""
-        }, {
-            "textContent" : "vim",
-            "value" : "ace/keyboard/vim"
-        }, {
-            "textContent" : "emacs",
-            "value" : "ace/keyboard/emacs"
-        }]
-    };
-
-    editor.menuOptions.setTheme = themelist.themes.map(function(theme) {
-        return {
-            'textContent' : theme.caption,
-            'value' : theme.theme
-        };
-    });
-
-    editor.menuOptions.setMode = modelist.modes.map(function(mode) {
-        return {
-            'textContent' : mode.name,
-            'value' : mode.mode
-        };
-    });
-};
-
-
-});
-define('ace/ext/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+define("ace/ext/modelist",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 var modes = [];
 function getModeForPath(path) {
@@ -314,7 +101,7 @@ var supportedModes = {
     C9Search:    ["c9search_results"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp"],
     Cirru:       ["cirru|cr"],
-    Clojure:     ["clj"],
+    Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
     coffee:      ["coffee|cf|cson|^Cakefile"],
     ColdFusion:  ["cfm"],
@@ -440,8 +227,8 @@ module.exports = {
 
 });
 
-define('ace/ext/themelist', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers'], function(require, exports, module) {
-
+define("ace/ext/themelist",["require","exports","module","ace/lib/fixoldbrowsers"], function(require, exports, module) {
+"use strict";
 require("ace/lib/fixoldbrowsers");
 
 var themeData = [
@@ -495,7 +282,56 @@ exports.themes = themeData.map(function(data) {
 
 });
 
-define('ace/ext/menu_tools/get_set_functions', ['require', 'exports', 'module' ], function(require, exports, module) {
+define("ace/ext/menu_tools/add_editor_menu_options",["require","exports","module","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module) {
+'use strict';
+module.exports.addEditorMenuOptions = function addEditorMenuOptions (editor) {
+    var modelist = require('../modelist');
+    var themelist = require('../themelist');
+    editor.menuOptions = {
+        "setNewLineMode" : [{
+            "textContent" : "unix",
+            "value" : "unix"
+        }, {
+            "textContent" : "windows",
+            "value" : "windows"
+        }, {
+            "textContent" : "auto",
+            "value" : "auto"
+        }],
+        "setTheme" : [],
+        "setMode" : [],
+        "setKeyboardHandler": [{
+            "textContent" : "ace",
+            "value" : ""
+        }, {
+            "textContent" : "vim",
+            "value" : "ace/keyboard/vim"
+        }, {
+            "textContent" : "emacs",
+            "value" : "ace/keyboard/emacs"
+        }]
+    };
+
+    editor.menuOptions.setTheme = themelist.themes.map(function(theme) {
+        return {
+            'textContent' : theme.caption,
+            'value' : theme.theme
+        };
+    });
+
+    editor.menuOptions.setMode = modelist.modes.map(function(mode) {
+        return {
+            'textContent' : mode.name,
+            'value' : mode.mode
+        };
+    });
+};
+
+
+});
+
+define("ace/ext/menu_tools/get_set_functions",["require","exports","module"], function(require, exports, module) {
+'use strict';
 module.exports.getSetFunctions = function getSetFunctions (editor) {
     var out = [];
     var my = {
@@ -536,8 +372,127 @@ module.exports.getSetFunctions = function getSetFunctions (editor) {
 
 });
 
-define('ace/ext/menu_tools/overlay_page', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+define("ace/ext/menu_tools/generate_settings_menu",["require","exports","module","ace/ext/menu_tools/element_generator","ace/ext/menu_tools/add_editor_menu_options","ace/ext/menu_tools/get_set_functions"], function(require, exports, module) {
+'use strict';
+var egen = require('./element_generator');
+var addEditorMenuOptions = require('./add_editor_menu_options').addEditorMenuOptions;
+var getSetFunctions = require('./get_set_functions').getSetFunctions;
+module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
+    var elements = [];
+    function cleanupElementsList() {
+        elements.sort(function(a, b) {
+            var x = a.getAttribute('contains');
+            var y = b.getAttribute('contains');
+            return x.localeCompare(y);
+        });
+    }
+    function wrapElements() {
+        var topmenu = document.createElement('div');
+        topmenu.setAttribute('id', 'ace_settingsmenu');
+        elements.forEach(function(element) {
+            topmenu.appendChild(element);
+        });
+        return topmenu;
+    }
+    function createNewEntry(obj, clss, item, val) {
+        var el;
+        var div = document.createElement('div');
+        div.setAttribute('contains', item);
+        div.setAttribute('class', 'ace_optionsMenuEntry');
+        div.setAttribute('style', 'clear: both;');
 
+        div.appendChild(egen.createLabel(
+            item.replace(/^set/, '').replace(/([A-Z])/g, ' $1').trim(),
+            item
+        ));
+
+        if (Array.isArray(val)) {
+            el = egen.createSelection(item, val, clss);
+            el.addEventListener('change', function(e) {
+                try{
+                    editor.menuOptions[e.target.id].forEach(function(x) {
+                        if(x.textContent !== e.target.textContent) {
+                            delete x.selected;
+                        }
+                    });
+                    obj[e.target.id](e.target.value);
+                } catch (err) {
+                    throw new Error(err);
+                }
+            });
+        } else if(typeof val === 'boolean') {
+            el = egen.createCheckbox(item, val, clss);
+            el.addEventListener('change', function(e) {
+                try{
+                    obj[e.target.id](!!e.target.checked);
+                } catch (err) {
+                    throw new Error(err);
+                }
+            });
+        } else {
+            el = egen.createInput(item, val, clss);
+            el.addEventListener('change', function(e) {
+                try{
+                    if(e.target.value === 'true') {
+                        obj[e.target.id](true);
+                    } else if(e.target.value === 'false') {
+                        obj[e.target.id](false);
+                    } else {
+                        obj[e.target.id](e.target.value);
+                    }
+                } catch (err) {
+                    throw new Error(err);
+                }
+            });
+        }
+        el.style.cssText = 'float:right;';
+        div.appendChild(el);
+        return div;
+    }
+    function makeDropdown(item, esr, clss, fn) {
+        var val = editor.menuOptions[item];
+        var currentVal = esr[fn]();
+        if (typeof currentVal == 'object')
+            currentVal = currentVal.$id;
+        val.forEach(function(valuex) {
+            if (valuex.value === currentVal)
+                valuex.selected = 'selected';
+        });
+        return createNewEntry(esr, clss, item, val);
+    }
+    function handleSet(setObj) {
+        var item = setObj.functionName;
+        var esr = setObj.parentObj;
+        var clss = setObj.parentName;
+        var val;
+        var fn = item.replace(/^set/, 'get');
+        if(editor.menuOptions[item] !== undefined) {
+            elements.push(makeDropdown(item, esr, clss, fn));
+        } else if(typeof esr[fn] === 'function') {
+            try {
+                val = esr[fn]();
+                if(typeof val === 'object') {
+                    val = val.$id;
+                }
+                elements.push(
+                    createNewEntry(esr, clss, item, val)
+                );
+            } catch (e) {
+            }
+        }
+    }
+    addEditorMenuOptions(editor);
+    getSetFunctions(editor).forEach(function(setObj) {
+        handleSet(setObj);
+    });
+    cleanupElementsList();
+    return wrapElements();
+};
+
+});
+
+define("ace/ext/menu_tools/overlay_page",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
+'use strict';
 var dom = require("../../lib/dom");
 var cssText = "#ace_settingsmenu, #kbshortcutmenu {\
 background-color: #F7F7F7;\
@@ -635,7 +590,25 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, top, r
     editor.blur();
 };
 
-});;
+});
+
+define("ace/ext/settings_menu",["require","exports","module","ace/ext/menu_tools/generate_settings_menu","ace/ext/menu_tools/overlay_page","ace/editor"], function(require, exports, module) {
+"use strict";
+var generateSettingsMenu = require('./menu_tools/generate_settings_menu').generateSettingsMenu;
+var overlayPage = require('./menu_tools/overlay_page').overlayPage;
+function showSettingsMenu(editor) {
+    var sm = document.getElementById('ace_settingsmenu');
+    if (!sm)    
+        overlayPage(editor, generateSettingsMenu(editor), '0', '0', '0');
+}
+module.exports.init = function(editor) {
+    var Editor = require("ace/editor").Editor;
+    Editor.prototype.showSettingsMenu = function() {
+        showSettingsMenu(this);
+    };
+};
+});
+;
                 (function() {
                     window.require(["ace/ext/settings_menu"], function() {});
                 })();

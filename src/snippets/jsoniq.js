@@ -1,5 +1,5 @@
-define('ace/snippets/jsoniq', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+define("ace/snippets/jsoniq",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 exports.snippetText = "snippet for\n\
 	for $${1:item} in ${2:expr}\n\

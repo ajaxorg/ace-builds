@@ -1,5 +1,5 @@
-ace.define('ace/ext/modelist', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+ace.define("ace/ext/modelist",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 var modes = [];
 function getModeForPath(path) {
@@ -45,7 +45,7 @@ var supportedModes = {
     C9Search:    ["c9search_results"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp"],
     Cirru:       ["cirru|cr"],
-    Clojure:     ["clj"],
+    Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
     coffee:      ["coffee|cf|cson|^Cakefile"],
     ColdFusion:  ["cfm"],
@@ -170,7 +170,6 @@ module.exports = {
 };
 
 });
-
 ;
                 (function() {
                     ace.require(["ace/ext/modelist"], function() {});

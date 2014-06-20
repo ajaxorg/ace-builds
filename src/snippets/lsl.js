@@ -1,5 +1,5 @@
-define('ace/snippets/lsl', ['require', 'exports', 'module' ], function(require, exports, module) {
-
+define("ace/snippets/lsl",["require","exports","module"], function(require, exports, module) {
+"use strict";
 
 exports.snippetText = "snippet @\n\
 	@${1:label};\n\
