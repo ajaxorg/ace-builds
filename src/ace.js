@@ -3814,7 +3814,7 @@ var MouseHandler = function(editor) {
 
 config.defineOptions(MouseHandler.prototype, "mouseHandler", {
     scrollSpeed: {initialValue: 2},
-    dragDelay: {initialValue: 150},
+    dragDelay: {initialValue: (useragent.isMac ? 150 : 0)},
     dragEnabled: {initialValue: true},
     focusTimout: {initialValue: 0},
     tooltipFollowsMouse: {initialValue: true}
@@ -10615,17 +10615,23 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "jumptomatching",
-    bindKey: bindKey("Ctrl-P", "Ctrl-Shift-P"),
+    bindKey: bindKey("Ctrl-P", "Ctrl-P"),
     exec: function(editor) { editor.jumpToMatching(); },
     multiSelectAction: "forEach",
     readOnly: true
 }, {
     name: "selecttomatching",
-    bindKey: bindKey("Ctrl-Shift-P", null),
+    bindKey: bindKey("Ctrl-Shift-P", "Ctrl-Shift-P"),
     exec: function(editor) { editor.jumpToMatching(true); },
     multiSelectAction: "forEach",
     readOnly: true
-}, 
+}, {
+    name: "passKeysToBrowser",
+    bindKey: bindKey("null", "null"),
+    exec: function() {},
+    passEvent: true,
+    readOnly: true
+},
 {
     name: "cut",
     exec: function(editor) {
@@ -11076,14 +11082,13 @@ var Editor = function(renderer, session) {
             this.curOp = null;
         }
     };
-
+    this.$mergeableCommands = ["backspace", "del", "insertstring"];
     this.$historyTracker = function(e) {
         if (!this.$mergeUndoDeltas)
             return;
 
-
         var prev = this.prevOp;
-        var mergeableCommands = ["backspace", "del", "insertstring"];
+        var mergeableCommands = this.$mergeableCommands;
         var shouldMerge = prev.command && (e.command.name == prev.command.name);
         if (e.command.name == "insertstring") {
             var text = e.args;
@@ -17627,7 +17632,6 @@ function LineWidgets(session) {
         
         editor.widgetManager = this;
 
-        editor.setOption("enableLineWidgets", true);
         editor.renderer.on("beforeRender", this.measureWidgets);
         editor.renderer.on("afterRender", this.renderWidgets);
     };

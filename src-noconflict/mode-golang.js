@@ -117,9 +117,6 @@ ace.define("ace/mode/golang_highlight_rules",["require","exports","module","ace/
                     token : "paren.rparen",
                     regex : "[\\])}]"
                 }, {
-                    token: "invalid",
-                    regex: "\\s+$"
-                }, {
                     token : "text",
                     regex : "\\s+"
                 }

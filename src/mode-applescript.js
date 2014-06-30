@@ -219,6 +219,7 @@ oop.inherits(Mode, TextMode);
 (function() {
     this.lineCommentStart = "--";
     this.blockComment = {start: "(*", end: "*)"};
+    this.$id = "ace/mode/applescript";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
