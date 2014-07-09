@@ -2269,13 +2269,17 @@ var TextInput = function(parentNode, host) {
 
     this.onContextMenu = function(e) {
         afterContextMenu = true;
-        if (!tempStyle)
-            tempStyle = text.style.cssText;
-
-        text.style.cssText = "z-index:100000;" + (useragent.isIE ? "opacity:0.1;" : "");
-
         resetSelection(host.selection.isEmpty());
         host._emit("nativecontextmenu", {target: host, domEvent: e});
+        this.moveToMouse(e, true);
+    };
+    
+    this.moveToMouse = function(e, bringToFront) {
+        if (!tempStyle)
+            tempStyle = text.style.cssText;
+        text.style.cssText = (bringToFront ? "z-index:100000;" : "")
+            + (useragent.isIE ? "opacity:0.1;" : "");
+
         var rect = host.container.getBoundingClientRect();
         var style = dom.computedStyle(host.container);
         var top = rect.top + (parseInt(style.borderTopWidth) || 0);
@@ -3676,7 +3680,7 @@ var MouseHandler = function(editor) {
     
     var focusEditor = function(e) { 
         if (!editor.isFocused() && editor.textInput)
-            editor.textInput.onContextMenu(e);
+            editor.textInput.moveToMouse(e);
         editor.focus() 
     };
     
@@ -13132,7 +13136,7 @@ var Marker = function(parentEl) {
                 this.drawSingleLineMarker(html, range, marker.clazz + " ace_start", config);
             }
         }
-        this.element = dom.setInnerHtml(this.element, html.join(""));
+        this.element.innerHTML = html.join("");
     };
 
     this.$getTop = function(row, layerConfig) {
@@ -13415,7 +13419,7 @@ var Text = function(parentEl) {
                     html, row, !this.$useLineGroups(), row == foldStart ? foldLine : false
                 );
                 lineElement.style.height = config.lineHeight * this.session.getRowLength(row) + "px";
-                dom.setInnerHtml(lineElement, html.join(""));
+                lineElement.innerHTML = html.join("");
             }
             row++;
         }
@@ -13518,7 +13522,7 @@ var Text = function(parentEl) {
 
             row++;
         }
-        this.element = dom.setInnerHtml(this.element, html.join(""));
+        this.element.innerHTML = html.join("");
     };
 
     this.$textToken = {

@@ -3650,6 +3650,7 @@ var AcePopup = function(parentNode) {
     popup.renderer.setStyle("ace_autocomplete");
 
     popup.setOption("displayIndentGuides", false);
+    popup.setOption("dragDelay", 150);
 
     var noop = function(){};
 
@@ -3760,7 +3761,7 @@ var AcePopup = function(parentNode) {
         if (typeof data == "string")
             data = {value: data};
         if (!data.caption)
-            data.caption = data.value;
+            data.caption = data.value || data.name;
 
         var last = -1;
         var flag, c;
@@ -4032,12 +4033,12 @@ var Autocomplete = function() {
         this.changeTimer.cancel();
 
         if (this.popup && this.popup.isOpen) {
-            this.gatherCompletionsId = this.gatherCompletionsId + 1;
-        }
-
-        if (this.popup)
+            this.gatherCompletionsId += 1;
             this.popup.hide();
-
+        }
+        
+        if (this.base)
+            this.base.detach();
         this.activated = false;
         this.completions = this.base = null;
     };
@@ -4134,8 +4135,7 @@ var Autocomplete = function() {
         var line = session.getLine(pos.row);
         var prefix = util.retrievePrecedingIdentifier(line, pos.column);
 
-        this.base = editor.getCursorPosition();
-        this.base.column -= prefix.length;
+        this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
 
         var matches = [];
         var total = editor.completers.length;
@@ -4343,7 +4343,7 @@ ace.define("ace/autocomplete/text_completer",["require","exports","module","ace/
         var wordList = Object.keys(wordScore);
         callback(null, wordList.map(function(word) {
             return {
-                name: word,
+                caption: word,
                 value: word,
                 score: wordScore[word],
                 meta: "local"
@@ -4475,8 +4475,6 @@ var doLiveAutocomplete = function(e) {
             editor.completer.autoSelect = false;
             editor.completer.autoInsert = false;
             editor.completer.showPopup(editor);
-        } else if (!prefix && hasCompleter) {
-            editor.completer.detach();
         }
     }
 };

@@ -834,7 +834,7 @@ var DartHighlightRules = function() {
         },
         {
             token: "keyword.other.import.dart",
-            regex: "(?:\\b)(?:library|import|part|of)(?:\\b)"
+            regex: "(?:\\b)(?:library|import|export|part|of)(?:\\b)"
         },
         {
             token : ["keyword.other.import.dart", "text"],
