@@ -406,7 +406,7 @@ var JavaScriptHighlightRules = function() {
         ],
         "regex_character_class": [
             {
-                token: "regexp.keyword.operator",
+                token: "regexp.charclass.keyword.operator",
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
                 token: "constant.language.escape",
@@ -1996,7 +1996,11 @@ var TokenIterator = require("../../token_iterator").TokenIterator;
 
 var FoldMode = exports.FoldMode = function(voidElements, optionalEndTags) {
     BaseFoldMode.call(this);
-    this.voidElements = oop.mixin(voidElements || {}, optionalEndTags || {});
+    this.voidElements = voidElements || {};
+    this.optionalEndTags = oop.mixin({}, this.voidElements);
+    if (optionalEndTags)
+        oop.mixin(this.optionalEndTags, optionalEndTags);
+    
 };
 oop.inherits(FoldMode, BaseFoldMode);
 
@@ -2137,10 +2141,10 @@ function is(token, type) {
             if (!tag || top.tagName == tag.tagName) {
                 return stack.pop();
             }
-            else if (this.voidElements.hasOwnProperty(tag.tagName)) {
+            else if (this.optionalEndTags.hasOwnProperty(tag.tagName)) {
                 return;
             }
-            else if (this.voidElements.hasOwnProperty(top.tagName)) {
+            else if (this.optionalEndTags.hasOwnProperty(top.tagName)) {
                 stack.pop();
                 continue;
             } else {
@@ -2674,7 +2678,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-define("ace/mode/ruby",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/ruby_highlight_rules","ace/mode/matching_brace_outdent","ace/range","ace/mode/folding/coffee"], function(require, exports, module) {
+define("ace/mode/ruby",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/ruby_highlight_rules","ace/mode/matching_brace_outdent","ace/range","ace/mode/behaviour/cstyle","ace/mode/folding/coffee"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -2682,11 +2686,13 @@ var TextMode = require("./text").Mode;
 var RubyHighlightRules = require("./ruby_highlight_rules").RubyHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var Range = require("../range").Range;
+var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var FoldMode = require("./folding/coffee").FoldMode;
 
 var Mode = function() {
     this.HighlightRules = RubyHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
+    this.$behaviour = new CstyleBehaviour();
     this.foldingRules = new FoldMode();
 };
 oop.inherits(Mode, TextMode);

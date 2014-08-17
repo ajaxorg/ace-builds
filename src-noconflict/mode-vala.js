@@ -98,7 +98,7 @@ var ValaHighlightRules = function() {
        [ { token: 'meta.class.vala',
            regex: '(?=\\w?[\\w\\s]*(?:class|(?:@)?interface|enum|struct|namespace)\\s+\\w+)',
            push: 
-            [ { token: 'punctuation.section.class.end.vala',
+            [ { token: 'paren.vala',
                 regex: '}',
                 next: 'pop' },
               { include: '#storage-modifiers' },
@@ -128,10 +128,10 @@ var ValaHighlightRules = function() {
                    { include: '#object-types-inherited' },
                    { include: '#comments' },
                    { defaultToken: 'meta.definition.class.implemented.interfaces.vala' } ] },
-              { token: 'meta.class.body.vala',
+              { token: 'paren.vala',
                 regex: '{',
                 push: 
-                 [ { token: 'meta.class.body.vala', regex: '(?=})', next: 'pop' },
+                 [ { token: 'paren.vala', regex: '(?=})', next: 'pop' },
                    { include: '#class-body' },
                    { defaultToken: 'meta.class.body.vala' } ] },
               { defaultToken: 'meta.class.vala' } ],
@@ -228,7 +228,7 @@ var ValaHighlightRules = function() {
        [ { token: 'meta.method.vala',
            regex: '(?!new)(?=\\w.*\\s+)(?=[^=]+\\()',
            push: 
-            [ { token: 'meta.method.vala', regex: '}|(?=;)', next: 'pop' },
+            [ { token: 'paren.vala', regex: '}|(?=;)', next: 'pop' },
               { include: '#storage-modifiers' },
               { token: [ 'entity.name.function.vala', 'meta.method.identifier.vala' ],
                 regex: '([\\~\\w\\.]+)(\\s*\\()',
@@ -247,10 +247,10 @@ var ValaHighlightRules = function() {
                    { include: '#all-types' },
                    { defaultToken: 'meta.method.return-type.vala' } ] },
               { include: '#throws' },
-              { token: 'meta.method.body.vala',
+              { token: 'paren.vala',
                 regex: '{',
                 push: 
-                 [ { token: 'meta.method.body.vala', regex: '(?=})', next: 'pop' },
+                 [ { token: 'paren.vala', regex: '(?=})', next: 'pop' },
                    { include: '#code' },
                    { defaultToken: 'meta.method.body.vala' } ] },
               { defaultToken: 'meta.method.vala' } ] } ],

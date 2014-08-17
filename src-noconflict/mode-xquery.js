@@ -3202,6 +3202,10 @@ var SnippetManager = function() {
         var snippetMap = this.snippetMap;
         var snippetNameMap = this.snippetNameMap;
         var self = this;
+        
+        if (!snippets) 
+            snippets = [];
+        
         function wrapRegexp(src) {
             if (src && !/^\^?\(.*\)\$?$|^\\b$/.test(src))
                 src = "(?:" + src + ")";
@@ -3254,7 +3258,7 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger, "", true);
         }
 
-        if (snippets.content)
+        if (snippets && snippets.content)
             addSnippet(snippets);
         else if (Array.isArray(snippets))
             snippets.forEach(addSnippet);
@@ -3669,6 +3673,7 @@ var $singleLineEditor = function(el) {
     editor.renderer.setHighlightGutterLine(false);
 
     editor.$mouseHandler.$focusWaitTimout = 0;
+    editor.$highlightTagPending = true;
 
     return editor;
 };
@@ -3719,7 +3724,7 @@ var AcePopup = function(parentNode) {
             popup.session.removeMarker(hoverMarker.id);
             hoverMarker.id = null;
         }
-    }
+    };
     popup.setSelectOnHover(false);
     popup.on("mousemove", function(e) {
         if (!lastMouseEvent) {
@@ -3787,8 +3792,8 @@ var AcePopup = function(parentNode) {
     };
 
     var bgTokenizer = popup.session.bgTokenizer;
-    bgTokenizer.$tokenizeRow = function(i) {
-        var data = popup.data[i];
+    bgTokenizer.$tokenizeRow = function(row) {
+        var data = popup.data[row];
         var tokens = [];
         if (!data)
             return tokens;
@@ -3822,7 +3827,7 @@ var AcePopup = function(parentNode) {
 
     popup.session.$computeWidth = function() {
         return this.screenWidth = 0;
-    }
+    };
     popup.isOpen = false;
     popup.isTopdown = false;
 

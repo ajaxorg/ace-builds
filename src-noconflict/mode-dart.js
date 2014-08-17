@@ -64,8 +64,9 @@ var c_cppHighlightRules = function() {
     );
 
     var storageModifiers = (
-        "const|extern|register|restrict|static|volatile|inline|private:|" +
-        "protected:|public:|friend|explicit|virtual|export|mutable|typename"
+        "const|extern|register|restrict|static|volatile|inline|private|" +
+        "protected|public|friend|explicit|virtual|export|mutable|typename|" +
+        "constexpr|new|delete"
     );
 
     var keywordOperators = (
@@ -834,7 +835,7 @@ var DartHighlightRules = function() {
         },
         {
             token: "keyword.other.import.dart",
-            regex: "(?:\\b)(?:library|import|export|part|of)(?:\\b)"
+            regex: "(?:\\b)(?:library|import|export|part|of|show|hide)(?:\\b)"
         },
         {
             token : ["keyword.other.import.dart", "text"],

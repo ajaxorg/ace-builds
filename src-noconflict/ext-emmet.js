@@ -454,6 +454,10 @@ var SnippetManager = function() {
         var snippetMap = this.snippetMap;
         var snippetNameMap = this.snippetNameMap;
         var self = this;
+        
+        if (!snippets) 
+            snippets = [];
+        
         function wrapRegexp(src) {
             if (src && !/^\^?\(.*\)\$?$|^\\b$/.test(src))
                 src = "(?:" + src + ")";
@@ -506,7 +510,7 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger, "", true);
         }
 
-        if (snippets.content)
+        if (snippets && snippets.content)
             addSnippet(snippets);
         else if (Array.isArray(snippets))
             snippets.forEach(addSnippet);

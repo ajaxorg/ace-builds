@@ -406,7 +406,7 @@ var JavaScriptHighlightRules = function() {
         ],
         "regex_character_class": [
             {
-                token: "regexp.keyword.operator",
+                token: "regexp.charclass.keyword.operator",
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
                 token: "constant.language.escape",
@@ -1756,7 +1756,7 @@ var PhpLangHighlightRules = function() {
                         return "string";
                     stack.shift();
                     stack.shift();
-                    return "markup.list"
+                    return "markup.list";
                 },
                 regex : "^\\w+(?=;?$)",
                 next: "start"
@@ -1767,12 +1767,11 @@ var PhpLangHighlightRules = function() {
         ],
         "comment" : [
             {
-                token : "comment", // closing comment
-                regex : ".*?\\*\\/",
+                token : "comment",
+                regex : "\\*\\/",
                 next : "start"
             }, {
-                token : "comment", // comment spanning whole line
-                regex : ".+"
+                defaultToken : "comment"
             }
         ],
         "qqstring" : [
@@ -1780,10 +1779,10 @@ var PhpLangHighlightRules = function() {
                 token : "constant.language.escape",
                 regex : '\\\\(?:[nrtvef\\\\"$]|[0-7]{1,3}|x[0-9A-Fa-f]{1,2})'
             }, {
-                token : "constant.language.escape",
-                regex : /\$[\w]+(?:\[[\w\]+]|=>\w+)?/
+                token : "variable",
+                regex : /\$[\w]+(?:\[[\w\]+]|[=\-]>\w+)?/
             }, {
-                token : "constant.language.escape",
+                token : "variable",
                 regex : /\$\{[^"\}]+\}?/           // this is wrong but ok for now
             },
             {token : "string", regex : '"', next : "start"},

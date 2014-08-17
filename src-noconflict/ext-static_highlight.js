@@ -75,7 +75,6 @@ var highlight = function(el, opts, callback) {
         callback && callback();
     });
 };
-
 highlight.render = function(input, mode, theme, lineStart, disableGutter, callback) {
     var waiting = 1;
     var modeCache = EditSession.prototype.$modes;
@@ -86,11 +85,16 @@ highlight.render = function(input, mode, theme, lineStart, disableGutter, callba
             --waiting || done();
         });
     }
-
+    var modeOptions;
+    if (mode && typeof mode === "object" && !mode.getTokenizer) {
+        modeOptions = mode;
+        mode = modeOptions.path;
+    }
     if (typeof mode == "string") {
         waiting++;
         config.loadModule(['mode', mode], function(m) {
-            if (!modeCache[mode]) modeCache[mode] = new m.Mode();
+            if (!modeCache[mode] || modeOptions)
+                modeCache[mode] = new m.Mode(modeOptions);
             mode = modeCache[mode];
             --waiting || done();
         });
@@ -101,7 +105,6 @@ highlight.render = function(input, mode, theme, lineStart, disableGutter, callba
     }
     return --waiting || done();
 };
-
 highlight.renderSync = function(input, mode, theme, lineStart, disableGutter) {
     lineStart = parseInt(lineStart || 1, 10);
 

@@ -230,10 +230,12 @@ var supportedModes = {
     Diff:        ["diff|patch"],
     Dockerfile:  ["^Dockerfile"],
     Dot:         ["dot"],
+    Eiffel:      ["e"],
     Erlang:      ["erl|hrl"],
     EJS:         ["ejs"],
     Forth:       ["frt|fs|ldr"],
     FTL:         ["ftl"],
+    Gcode:       ["gcode"],
     Gherkin:     ["feature"],
     Gitignore:   ["^.gitignore"],
     Glsl:        ["glsl|frag|vert"],
@@ -279,6 +281,7 @@ var supportedModes = {
     pgSQL:       ["pgsql"],
     PHP:         ["php|phtml"],
     Powershell:  ["ps1"],
+    Praat:       ["praat|praatscript|psc|proc"],
     Prolog:      ["plg|prolog"],
     Properties:  ["properties"],
     Protobuf:    ["proto"],
@@ -310,7 +313,7 @@ var supportedModes = {
     Twig:        ["twig"],
     Typescript:  ["ts|typescript|str"],
     Vala:        ["vala"],
-    VBScript:    ["vbs"],
+    VBScript:    ["vbs|vb"],
     Velocity:    ["vm"],
     Verilog:     ["v|vh|sv|svh"],
     XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl"],
@@ -322,7 +325,7 @@ var nameOverrides = {
     ObjectiveC: "Objective-C",
     CSharp: "C#",
     golang: "Go",
-    C_Cpp: "C/C++",
+    C_Cpp: "C and C++",
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
     FTL: "FreeMarker"
@@ -563,11 +566,14 @@ exports.$detectIndentation = function(lines, fallback) {
     var first = {score: 0, length: 0};
     var spaceIndents = 0;
     for (var i = 1; i < 12; i++) {
+        var score = getScore(i);
         if (i == 1) {
-            spaceIndents = getScore(i);
-            var score = stats.length && 1;
+            spaceIndents = score;
+            score = stats[1] ? 0.9 : 0.8;
+            if (!stats.length)
+                score = 0
         } else
-            var score = getScore(i) / spaceIndents;
+            score /= spaceIndents;
 
         if (changes[i])
             score += changes[i] / changesTotal;
@@ -2955,7 +2961,7 @@ module.exports = {
             var column = util.getRightNthChar(editor, cursor, param, count || 1);
 
             if (isRepeat && column == 0 && !(count > 1))
-                var column = util.getRightNthChar(editor, cursor, param, 2);
+                column = util.getRightNthChar(editor, cursor, param, 2);
                 
             if (typeof column === "number") {
                 cursor.column += column + (isSel ? 1 : 0);
@@ -2973,8 +2979,8 @@ module.exports = {
             var cursor = editor.getCursorPosition();
             var column = util.getLeftNthChar(editor, cursor, param, count || 1);
 
-            if (isRepeat && column == 0 && !(count > 1))
-                var column = util.getLeftNthChar(editor, cursor, param, 2);
+            if (isRepeat && column === 0 && !(count > 1))
+                column = util.getLeftNthChar(editor, cursor, param, 2);
             
             if (typeof column === "number") {
                 cursor.column -= column;
@@ -3087,7 +3093,7 @@ module.exports = {
                 content += "\n";
 
             if (content.length) {
-                editor.navigateLineEnd()
+                editor.navigateLineEnd();
                 editor.insert(content);
                 util.insertMode(editor);
             }
@@ -3104,7 +3110,7 @@ module.exports = {
             if (content.length) {
                 if(row > 0) {
                     editor.navigateUp();
-                    editor.navigateLineEnd()
+                    editor.navigateLineEnd();
                     editor.insert(content);
                 } else {
                     editor.session.insert({row: 0, column: 0}, content);
@@ -4686,6 +4692,10 @@ var SnippetManager = function() {
         var snippetMap = this.snippetMap;
         var snippetNameMap = this.snippetNameMap;
         var self = this;
+        
+        if (!snippets) 
+            snippets = [];
+        
         function wrapRegexp(src) {
             if (src && !/^\^?\(.*\)\$?$|^\\b$/.test(src))
                 src = "(?:" + src + ")";
@@ -4738,7 +4748,7 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger, "", true);
         }
 
-        if (snippets.content)
+        if (snippets && snippets.content)
             addSnippet(snippets);
         else if (Array.isArray(snippets))
             snippets.forEach(addSnippet);
@@ -5418,6 +5428,7 @@ var $singleLineEditor = function(el) {
     editor.renderer.setHighlightGutterLine(false);
 
     editor.$mouseHandler.$focusWaitTimout = 0;
+    editor.$highlightTagPending = true;
 
     return editor;
 };
@@ -5468,7 +5479,7 @@ var AcePopup = function(parentNode) {
             popup.session.removeMarker(hoverMarker.id);
             hoverMarker.id = null;
         }
-    }
+    };
     popup.setSelectOnHover(false);
     popup.on("mousemove", function(e) {
         if (!lastMouseEvent) {
@@ -5536,8 +5547,8 @@ var AcePopup = function(parentNode) {
     };
 
     var bgTokenizer = popup.session.bgTokenizer;
-    bgTokenizer.$tokenizeRow = function(i) {
-        var data = popup.data[i];
+    bgTokenizer.$tokenizeRow = function(row) {
+        var data = popup.data[row];
         var tokens = [];
         if (!data)
             return tokens;
@@ -5571,7 +5582,7 @@ var AcePopup = function(parentNode) {
 
     popup.session.$computeWidth = function() {
         return this.screenWidth = 0;
-    }
+    };
     popup.isOpen = false;
     popup.isTopdown = false;
 
@@ -7006,28 +7017,11 @@ bindDropdown("folding", function(value) {
 });
 
 bindDropdown("soft_wrap", function(value) {
-    var session = env.editor.session;
-    var renderer = env.editor.renderer;
-    switch (value) {
-        case "off":
-            session.setUseWrapMode(false);
-            renderer.setPrintMarginColumn(80);
-            break;
-        case "free":
-            session.setUseWrapMode(true);
-            session.setWrapLimitRange(null, null);
-            renderer.setPrintMarginColumn(80);
-            break;
-        default:
-            session.setUseWrapMode(true);
-            var col = parseInt(value, 10);
-            session.setWrapLimitRange(col, col);
-            renderer.setPrintMarginColumn(col);
-    }
+    env.editor.setOption("wrap", value);
 });
 
 bindCheckbox("select_style", function(checked) {
-    env.editor.setSelectionStyle(checked ? "line" : "text");
+    env.editor.setOption("selectionStyle", checked ? "line" : "text");
 });
 
 bindCheckbox("highlight_active", function(checked) {

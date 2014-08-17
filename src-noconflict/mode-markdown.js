@@ -262,7 +262,7 @@ var JavaScriptHighlightRules = function() {
         ],
         "regex_character_class": [
             {
-                token: "regexp.keyword.operator",
+                token: "regexp.charclass.keyword.operator",
                 regex: "\\\\(?:u[\\da-fA-F]{4}|x[\\da-fA-F]{2}|.)"
             }, {
                 token: "constant.language.escape",
@@ -1288,7 +1288,11 @@ var TokenIterator = require("../../token_iterator").TokenIterator;
 
 var FoldMode = exports.FoldMode = function(voidElements, optionalEndTags) {
     BaseFoldMode.call(this);
-    this.voidElements = oop.mixin(voidElements || {}, optionalEndTags || {});
+    this.voidElements = voidElements || {};
+    this.optionalEndTags = oop.mixin({}, this.voidElements);
+    if (optionalEndTags)
+        oop.mixin(this.optionalEndTags, optionalEndTags);
+    
 };
 oop.inherits(FoldMode, BaseFoldMode);
 
@@ -1429,10 +1433,10 @@ function is(token, type) {
             if (!tag || top.tagName == tag.tagName) {
                 return stack.pop();
             }
-            else if (this.voidElements.hasOwnProperty(tag.tagName)) {
+            else if (this.optionalEndTags.hasOwnProperty(tag.tagName)) {
                 return;
             }
-            else if (this.voidElements.hasOwnProperty(top.tagName)) {
+            else if (this.optionalEndTags.hasOwnProperty(top.tagName)) {
                 stack.pop();
                 continue;
             } else {
