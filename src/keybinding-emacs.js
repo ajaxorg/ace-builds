@@ -793,9 +793,12 @@ exports.handler.handleKeyboard = function(data, hashId, key, keyCode) {
         if (!command) return undefined;
     }
 
-    if (!command.readonly && !command.isYank)
+    if (!command.readOnly && !command.isYank)
         data.lastCommand = null;
 
+    if (!command.readOnly && editor.emacsMark())
+        editor.setEmacsMark(null)
+        
     if (data.count) {
         var count = data.count;
         data.count = 0;
@@ -870,7 +873,7 @@ exports.emacsKeys = {
     "M-y": "yankRotate",
     "C-g": "keyboardQuit",
 
-    "C-w": "killRegion",
+    "C-w|C-S-W": "killRegion",
     "M-w": "killRingSave",
     "C-Space": "setMark",
     "C-x C-x": "exchangePointAndMark",
@@ -938,7 +941,7 @@ exports.handler.addCommands({
             editor.setEmacsMark(mark);
             editor.selection.setSelectionAnchor(mark.row, mark.column);
         },
-        readonly: true,
+        readOnly: true,
         handlesCount: true,
         multiSelectAction: "forEach"
     },
@@ -960,7 +963,7 @@ exports.handler.addCommands({
             }
             sel.setSelectionRange(range, !sel.isBackwards());
         },
-        readonly: true,
+        readOnly: true,
         handlesCount: true,
         multiSelectAction: "forEach"
     },
@@ -1014,7 +1017,7 @@ exports.handler.addCommands({
             exports.killRing.add(editor.getCopyText());
             editor.commands.byName.cut.exec(editor);
         },
-        readonly: true,
+        readOnly: true,
         multiSelectAction: "forEach"
     },
     killRingSave: {
@@ -1027,7 +1030,7 @@ exports.handler.addCommands({
                 sel.clearSelection();
             }, 0);
         },
-        readonly: true
+        readOnly: true
     },
     keyboardQuit: function(editor) {
         editor.selection.clearSelection();

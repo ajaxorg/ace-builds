@@ -9,7 +9,6 @@ font-size: 12px;\
 }\
 .ace_static_highlight .ace_gutter {\
 width: 25px !important;\
-display: block;\
 float: left;\
 text-align: right;\
 padding: 0 3px 0 0;\
