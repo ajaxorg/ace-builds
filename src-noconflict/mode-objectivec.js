@@ -89,11 +89,12 @@ var c_cppHighlightRules = function() {
 
     var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\d\\$_\u00a1-\uffff]*\\b";
 
-    this.$rules = {
+    this.$rules = { 
         "start" : [
             {
                 token : "comment",
-                regex : "\\/\\/.*$"
+                regex : "//",
+                next : "singleLineComment"
             },
             DocCommentHighlightRules.getStartRule("doc-start"),
             {
@@ -160,14 +161,26 @@ var c_cppHighlightRules = function() {
                 regex : ".+"
             }
         ],
+        "singleLineComment" : [
+            {
+                token : "comment",
+                regex : /\\$/,
+                next : "singleLineComment"
+            }, {
+                token : "comment",
+                regex : /$/,
+                next : "start"
+            }, {
+                defaultToken: "comment"
+            }
+        ],
         "qqstring" : [
             {
                 token : "string",
                 regex : '(?:(?:\\\\.)|(?:[^"\\\\]))*?"',
                 next : "start"
             }, {
-                token : "string",
-                regex : '.+'
+                defaultToken : "string"
             }
         ],
         "qstring" : [
@@ -176,8 +189,7 @@ var c_cppHighlightRules = function() {
                 regex : "(?:(?:\\\\.)|(?:[^'\\\\]))*?'",
                 next : "start"
             }, {
-                token : "string",
-                regex : '.+'
+                defaultToken : "string"
             }
         ],
         "directive" : [

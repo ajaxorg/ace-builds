@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2010, Ajax.org B.V.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of Ajax.org B.V. nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -65,7 +65,7 @@ var _define = function(module, deps, payload) {
         _define.modules = {};
         _define.payloads = {};
     }
-    
+
     _define.payloads[module] = payload;
     _define.modules[module] = null;
 };
@@ -160,7 +160,7 @@ var lookup = function(parentId, moduleName) {
 function exportAce(ns) {
     var require = function(module, callback) {
         return _require("", module, callback);
-    };    
+    };
 
     var root = global;
     if (ns) {
@@ -1937,13 +1937,13 @@ var TextInput = function(parentNode, host) {
     var isSelectionEmpty = true;
     try { var isFocused = document.activeElement === text; } catch(e) {}
     
-    event.addListener(text, "blur", function() {
-        host.onBlur();
+    event.addListener(text, "blur", function(e) {
+        host.onBlur(e);
         isFocused = false;
     });
-    event.addListener(text, "focus", function() {
+    event.addListener(text, "focus", function(e) {
         isFocused = true;
-        host.onFocus();
+        host.onFocus(e);
         resetSelection();
     });
     this.focus = function() { text.focus(); };
@@ -7334,12 +7334,11 @@ function Folding() {
         if (startFold && endFold == startFold)
             return startFold.addSubFold(fold);
 
-        if (
-            (startFold && !startFold.range.isStart(startRow, startColumn))
-            || (endFold && !endFold.range.isEnd(endRow, endColumn))
-        ) {
-            throw new Error("A fold can't intersect already existing fold" + fold.range + startFold.range);
-        }
+        if (startFold && !startFold.range.isStart(startRow, startColumn))
+            this.removeFold(startFold);
+        
+        if (endFold && !endFold.range.isEnd(endRow, endColumn))
+            this.removeFold(endFold);
         var folds = this.getFoldsInRange(fold.range);
         if (folds.length > 0) {
             this.removeFolds(folds);
@@ -9941,7 +9940,7 @@ var Search = function() {
         if (options.wholeWord)
             needle = "\\b" + needle + "\\b";
 
-        var modifier = options.caseSensitive ? "g" : "gi";
+        var modifier = options.caseSensitive ? "gm" : "gmi";
 
         options.$isMultiLine = !$disableFakeMultiline && /[\n\r]/.test(needle);
         if (options.$isMultiLine)
@@ -11431,21 +11430,21 @@ var Editor = function(renderer, session) {
     this.blur = function() {
         this.textInput.blur();
     };
-    this.onFocus = function() {
+    this.onFocus = function(e) {
         if (this.$isFocused)
             return;
         this.$isFocused = true;
         this.renderer.showCursor();
         this.renderer.visualizeFocus();
-        this._emit("focus");
+        this._emit("focus", e);
     };
-    this.onBlur = function() {
+    this.onBlur = function(e) {
         if (!this.$isFocused)
             return;
         this.$isFocused = false;
         this.renderer.hideCursor();
         this.renderer.visualizeBlur();
-        this._emit("blur");
+        this._emit("blur", e);
     };
 
     this.$cursorChange = function() {
@@ -12663,7 +12662,9 @@ var Editor = function(renderer, session) {
                 rect = self.renderer.container.getBoundingClientRect();
         });
         var onAfterRender = this.renderer.on("afterRender", function() {
-            if (shouldScroll && rect && self.isFocused()) {
+            if (shouldScroll && rect && (self.isFocused()
+                || self.searchBox && self.searchBox.isFocused())
+            ) {
                 var renderer = self.renderer;
                 var pos = renderer.$cursorLayer.$pixelPos;
                 var config = renderer.layerConfig;
@@ -16005,14 +16006,9 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
     this.onMessage = function(e) {
         var msg = e.data;
         switch(msg.type) {
-            case "log":
-                window.console && console.log && console.log.apply(console, msg.data);
-                break;
-
             case "event":
                 this._signal(msg.name, {data: msg.data});
                 break;
-
             case "call":
                 var callback = this.callbacks[msg.id];
                 if (callback) {
@@ -16020,7 +16016,17 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
                     delete this.callbacks[msg.id];
                 }
                 break;
+            case "error":
+                this.reportError(msg.data);
+                break;
+            case "log":
+                window.console && console.log && console.log.apply(console, msg.data);
+                break;
         }
+    };
+    
+    this.reportError = function(err) {
+        window.console && console.error && console.error(err);
     };
 
     this.$normalizePath = function(path) {
@@ -16032,7 +16038,8 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
         this.deltaQueue = null;
         this.$worker.terminate();
         this.$worker = null;
-        this.$doc.removeEventListener("change", this.changeListener);
+        if (this.$doc)
+            this.$doc.off("change", this.changeListener);
         this.$doc = null;
     };
 
@@ -17642,9 +17649,10 @@ function LineWidgets(session) {
     this.renderWidgets = this.renderWidgets.bind(this);
     this.measureWidgets = this.measureWidgets.bind(this);
     this.session._changedWidgets = [];
-    this.detach = this.detach.bind(this);
+    this.$onChangeEditor = this.$onChangeEditor.bind(this);
     
     this.session.on("change", this.updateOnChange);
+    this.session.on("changeEditor", this.$onChangeEditor);
 }
 
 (function() {
@@ -17670,8 +17678,12 @@ function LineWidgets(session) {
         return screenRows;
     };    
     
+    this.$onChangeEditor = function(e) {
+        this.attach(e.editor);
+    };
+    
     this.attach = function(editor) {
-        if (editor.widgetManager && editor.widgetManager != this)
+        if (editor  && editor.widgetManager && editor.widgetManager != this)
             editor.widgetManager.detach();
 
         if (this.editor == editor)
@@ -17680,21 +17692,16 @@ function LineWidgets(session) {
         this.detach();
         this.editor = editor;
         
-        this.editor.on("changeSession", this.detach);
-        
-        editor.widgetManager = this;
-
-        editor.renderer.on("beforeRender", this.measureWidgets);
-        editor.renderer.on("afterRender", this.renderWidgets);
+        if (editor) {
+            editor.widgetManager = this;
+            editor.renderer.on("beforeRender", this.measureWidgets);
+            editor.renderer.on("afterRender", this.renderWidgets);
+        }
     };
     this.detach = function(e) {
-        if (e && e.session == this.session)
-            return; // sometimes attach can be called before setSession
         var editor = this.editor;
         if (!editor)
             return;
-
-        editor.off("changeSession", this.detach);
         
         this.editor = null;
         editor.widgetManager = null;

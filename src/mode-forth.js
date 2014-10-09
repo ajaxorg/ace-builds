@@ -235,7 +235,7 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
-    this.lineCommentStart = "(?<=^|\\s)\\.?\\( [^)]*\\)";
+    this.lineCommentStart = "--";
     this.blockComment = {start: "/*", end: "*/"};
     this.$id = "ace/mode/forth";
 }).call(Mode.prototype);

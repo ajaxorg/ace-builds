@@ -132,9 +132,6 @@ require("ace/commands/default_commands").commands.push({
         
         editor.keyBinding.addKeyboardHandler(kb);
         inlineEditor.keyBinding.addKeyboardHandler(kb);
-        editor.on("changeSession", function(e) {
-            w.el.parentNode && w.el.parentNode.removeChild(w.el);
-        });
         inlineEditor.setTheme("ace/theme/solarized_light");
     }
 });
@@ -1021,7 +1018,6 @@ exports.singleLineEditor = function(el) {
 
     renderer.setStyle("ace_one-line");
     var editor = new Editor(renderer);
-    new MultiSelect(editor);
     editor.session.setUndoManager(new UndoManager());
 
     editor.setShowPrintMargin(false);
@@ -5756,7 +5752,7 @@ exports.retrieveFollowingIdentifier = function(text, pos, regex) {
 
 });
 
-define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/event","ace/lib/lang","ace/snippets"], function(require, exports, module) {
+define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/snippets"], function(require, exports, module) {
 "use strict";
 
 var HashHandler = require("./keyboard/hash_handler").HashHandler;
@@ -5764,6 +5760,7 @@ var AcePopup = require("./autocomplete/popup").AcePopup;
 var util = require("./autocomplete/util");
 var event = require("./lib/event");
 var lang = require("./lib/lang");
+var dom = require("./lib/dom");
 var snippetManager = require("./snippets").snippetManager;
 
 var Autocomplete = function() {
@@ -5780,6 +5777,8 @@ var Autocomplete = function() {
     this.changeTimer = lang.delayedCall(function() {
         this.updateCompletions(true);
     }.bind(this));
+    
+    this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);
 };
 
 (function() {
@@ -5792,6 +5791,13 @@ var Autocomplete = function() {
             e.stop();
         }.bind(this));
         this.popup.focus = this.editor.focus.bind(this.editor);
+        this.popup.on("select", this.tooltipTimer.bind(null, null));
+        this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
+        return this.popup;
+    };
+    
+    this.getPopup = function() {
+        return this.popup || this.$init();
     };
 
     this.openPopup = function(editor, prefix, keepPopupPosition) {
@@ -5829,6 +5835,7 @@ var Autocomplete = function() {
         this.editor.off("mousedown", this.mousedownListener);
         this.editor.off("mousewheel", this.mousewheelListener);
         this.changeTimer.cancel();
+        this.hideDocTooltip();
 
         if (this.popup && this.popup.isOpen) {
             this.gatherCompletionsId += 1;
@@ -5852,10 +5859,15 @@ var Autocomplete = function() {
             this.detach();
     };
 
-    this.blurListener = function() {
+    this.blurListener = function(e) {
         var el = document.activeElement;
-        if (el != this.editor.textInput.getElement() && el.parentNode != this.popup.container)
+        var text = this.editor.textInput.getElement()
+        if (el != text && el.parentNode != this.popup.container 
+            && el != this.tooltipNode && e.relatedTarget != this.tooltipNode
+            && e.relatedTarget != text
+        ) {
             this.detach();
+        }
     };
 
     this.mousedownListener = function(e) {
@@ -5903,6 +5915,7 @@ var Autocomplete = function() {
         }
         this.detach();
     };
+
 
     this.commands = {
         "Up": function(editor) { editor.completer.goTo("up"); },
@@ -6023,6 +6036,73 @@ var Autocomplete = function() {
 
     this.cancelContextMenu = function() {
         this.editor.$mouseHandler.cancelContextMenu();
+    };
+    
+    this.updateDocTooltip = function() {
+        var popup = this.popup;
+        var all = popup.data;
+        var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);
+        var doc = null;
+        if (!selected || !this.editor || !this.popup.isOpen)
+            return this.hideDocTooltip();
+        this.editor.completers.some(function(completer) {
+            if (completer.getDocTooltip)
+                doc = completer.getDocTooltip(selected);
+            return doc;
+        });
+        if (!doc)
+            doc = selected;
+        
+        if (typeof doc == "string")
+            doc = {tooltipText: doc}
+        if (!doc || !(doc.docHTML || doc.docText))
+            return this.hideDocTooltip();
+        this.showDocTooltip(doc);
+    };
+    
+    this.showDocTooltip = function(item) {
+        if (!this.tooltipNode) {
+            this.tooltipNode = dom.createElement("pre");
+            this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
+            this.tooltipNode.style.margin = 0;
+            this.tooltipNode.style.pointerEvents = "auto";
+            this.tooltipNode.tabIndex = -1;
+            this.tooltipNode.onblur = this.blurListener.bind(this);
+        }
+        
+        var tooltipNode = this.tooltipNode;
+        if (item.docHTML) {
+            tooltipNode.innerHTML = item.docHTML;
+        } else if (item.docText) {
+            tooltipNode.textContent = item.docText;
+        }
+        
+        if (!tooltipNode.parentNode)
+            document.body.appendChild(tooltipNode);        
+        var popup = this.popup;
+        var rect = popup.container.getBoundingClientRect();
+        tooltipNode.style.top = popup.container.style.top;
+        tooltipNode.style.bottom = popup.container.style.bottom;
+        
+        if (window.innerWidth - rect.right < 320) {
+            tooltipNode.style.right = window.innerWidth - rect.left + "px";
+            tooltipNode.style.left = "";
+        } else {
+            tooltipNode.style.left = (rect.right + 1) + "px";
+            tooltipNode.style.right = "";
+        }
+        tooltipNode.style.display = "block";
+    };
+    
+    this.hideDocTooltip = function() {
+        this.tooltipTimer.cancel();
+        if (!this.tooltipNode) return;
+        var el = this.tooltipNode;
+        if (!this.editor.isFocused() && document.activeElement == el)
+            this.editor.focus();
+        this.tooltipNode = null;
+        if (el.parentNode) 
+            el.parentNode.removeChild(el);
     };
 
 }).call(Autocomplete.prototype);
@@ -6151,12 +6231,13 @@ define("ace/autocomplete/text_completer",["require","exports","module","ace/rang
     };
 });
 
-define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module) {
+define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module) {
 "use strict";
 
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
 var config = require("../config");
+var lang = require("../lib/lang");
 var util = require("../autocomplete/util");
 
 var textCompleter = require("../autocomplete/text_completer");
@@ -6182,15 +6263,27 @@ var snippetCompleter = {
                 completions.push({
                     caption: caption,
                     snippet: s.content,
-                    meta: s.tabTrigger && !s.name ? s.tabTrigger + "\u21E5 " : "snippet"
+                    meta: s.tabTrigger && !s.name ? s.tabTrigger + "\u21E5 " : "snippet",
+                    type: "snippet"
                 });
             }
         }, this);
         callback(null, completions);
+    },
+    getDocTooltip: function(item) {
+        if (item.type == "snippet" && !item.docHTML) {
+            item.docHTML = [
+                "<b>", lang.escapeHTML(item.caption), "</b>", "<hr></hr>",
+                lang.escapeHTML(item.snippet)
+            ].join("");
+        }
     }
 };
 
 var completers = [snippetCompleter, textCompleter, keyWordCompleter];
+exports.setCompleters = function(val) {
+    completers = val || [];
+};
 exports.addCompleter = function(completer) {
     completers.push(completer);
 };

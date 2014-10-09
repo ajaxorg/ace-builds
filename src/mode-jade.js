@@ -1618,7 +1618,7 @@ define("ace/mode/coffee_highlight_rules",["require","exports","module","ace/lib/
                         }
                         if (val == "}" && stack.length) {
                             stack.shift();
-                            this.next = stack.shift();
+                            this.next = stack.shift() || "";
                             if (this.next.indexOf("string") != -1)
                                 return "paren.string";
                         }
