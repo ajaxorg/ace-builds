@@ -227,8 +227,12 @@ var supportedModes = {
     Diff:        ["diff|patch"],
     Dockerfile:  ["^Dockerfile"],
     Dot:         ["dot"],
+    Dummy:       ["dummy"],
+    DummySyntax: ["dummy"],
     Eiffel:      ["e"],
     EJS:         ["ejs"],
+    Elixir:      ["ex|exs"],
+    Elm:         ["elm"],
     Erlang:      ["erl|hrl"],
     Forth:       ["frt|fs|ldr"],
     FTL:         ["ftl"],
@@ -1950,6 +1954,28 @@ exports.iSearchCommands = [{
     exec: function(iSearch) { iSearch.$editor.execCommand('recenterTopBottom'); },
     readOnly: true,
     isIncrementalSearchCommand: true
+}, {
+    name: 'selectAllMatches',
+    bindKey: 'Ctrl-space',
+    exec: function(iSearch) {
+        var ed = iSearch.$editor,
+            hl = ed.session.$isearchHighlight,
+            ranges = hl && hl.cache ? hl.cache
+                .reduce(function(ranges, ea) {
+                    return ranges.concat(ea ? ea : []); }, []) : [];
+        iSearch.deactivate(false);
+        ranges.forEach(ed.selection.addRange.bind(ed.selection));
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
+}, {
+    name: 'searchAsRegExp',
+    bindKey: 'Alt-r',
+    exec: function(iSearch) {
+        iSearch.convertNeedleToRegExp();
+    },
+    readOnly: true,
+    isIncrementalSearchCommand: true
 }];
 
 function IncrementalSearchKeyboardHandler(iSearch) {
@@ -2012,6 +2038,30 @@ function IncrementalSearch() {
 }
 
 oop.inherits(IncrementalSearch, Search);
+
+function isRegExp(obj) {
+    return obj instanceof RegExp;
+}
+
+function regExpToObject(re) {
+    var string = String(re),
+        start = string.indexOf('/'),
+        flagStart = string.lastIndexOf('/');
+    return {
+        expression: string.slice(start+1, flagStart),
+        flags: string.slice(flagStart+1)
+    }
+}
+
+function stringToRegExp(string, flags) {
+    try {
+        return new RegExp(string, flags);
+    } catch (e) { return string; }
+}
+
+function objectToRegExp(obj) {
+    return stringToRegExp(obj.expression, obj.flags);
+}
 
 ;(function() {
 
@@ -2079,10 +2129,12 @@ oop.inherits(IncrementalSearch, Search);
         };
         options.start = this.$currentPos;
         var session = this.$editor.session,
-            found = this.find(session);
+            found = this.find(session),
+            shouldSelect = this.$editor.emacsMark ?
+                !!this.$editor.emacsMark() : !this.$editor.selection.isEmpty();
         if (found) {
             if (options.backwards) found = Range.fromPoints(found.end, found.start);
-            this.$editor.moveCursorToPosition(found.end);
+            this.$editor.selection.setRange(Range.fromPoints(shouldSelect ? this.$startPos : found.end, found.end));
             if (moveToNext) this.$currentPos = found.end;
             this.highlight(options.re)
         }
@@ -2094,13 +2146,21 @@ oop.inherits(IncrementalSearch, Search);
 
     this.addString = function(s) {
         return this.highlightAndFindWithNeedle(false, function(needle) {
-            return needle + s;
+            if (!isRegExp(needle))
+              return needle + s;
+            var reObj = regExpToObject(needle);
+            reObj.expression += s;
+            return objectToRegExp(reObj);
         });
     }
 
     this.removeChar = function(c) {
         return this.highlightAndFindWithNeedle(false, function(needle) {
-            return needle.length > 0 ? needle.substring(0, needle.length-1) : needle;
+            if (!isRegExp(needle))
+              return needle.substring(0, needle.length-1);
+            var reObj = regExpToObject(needle);
+            reObj.expression = reObj.expression.substring(0, reObj.expression.length-1);
+            return objectToRegExp(reObj);
         });
     }
 
@@ -2121,6 +2181,18 @@ oop.inherits(IncrementalSearch, Search);
 
     this.onPaste = function(text) {
         this.addString(text);
+    }
+
+    this.convertNeedleToRegExp = function() {
+        return this.highlightAndFindWithNeedle(false, function(needle) {
+            return isRegExp(needle) ? needle : stringToRegExp(needle, 'ig');
+        });
+    }
+
+    this.convertNeedleToString = function() {
+        return this.highlightAndFindWithNeedle(false, function(needle) {
+            return isRegExp(needle) ? regExpToObject(needle).expression : needle;
+        });
     }
 
     this.statusMessage = function(found) {
@@ -4214,9 +4286,8 @@ var StatusBar = function(editor, parentNode) {
             str && status.push(str, separator || "|");
         }
 
-        if (editor.$vimModeHandler)
-            add(editor.$vimModeHandler.getStatusText());
-        else if (editor.commands.recording)
+        add(editor.keyBinding.getStatusText(editor));
+        if (editor.commands.recording)
             add("REC");
 
         var c = editor.selection.lead;
@@ -5137,21 +5208,13 @@ var Editor = require("./editor").Editor;
 
 });
 
-define("ace/ext/emmet",["require","exports","module","ace/keyboard/hash_handler","ace/editor","ace/snippets","ace/range","resources","resources","range","tabStops","resources","utils","actions","ace/config"], function(require, exports, module) {
+define("ace/ext/emmet",["require","exports","module","ace/keyboard/hash_handler","ace/editor","ace/snippets","ace/range","resources","resources","range","tabStops","resources","utils","actions","ace/config","ace/config"], function(require, exports, module) {
 "use strict";
 var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
 var Editor = require("ace/editor").Editor;
 var snippetManager = require("ace/snippets").snippetManager;
 var Range = require("ace/range").Range;
-var emmet;
-
-Editor.prototype.indexToPosition = function(index) {
-    return this.session.doc.indexToPosition(index);
-};
-
-Editor.prototype.positionToIndex = function(pos) {
-    return this.session.doc.positionToIndex(pos);
-};
+var emmet, emmetPath;
 function AceEmmetEditor() {}
 
 AceEmmetEditor.prototype = {
@@ -5166,21 +5229,24 @@ AceEmmetEditor.prototype = {
     },
     getSelectionRange: function() {
         var range = this.ace.getSelectionRange();
+        var doc = this.ace.session.doc;
         return {
-            start: this.ace.positionToIndex(range.start),
-            end: this.ace.positionToIndex(range.end)
+            start: doc.positionToIndex(range.start),
+            end: doc.positionToIndex(range.end)
         };
     },
     createSelection: function(start, end) {
+        var doc = this.ace.session.doc;
         this.ace.selection.setRange({
-            start: this.ace.indexToPosition(start),
-            end: this.ace.indexToPosition(end)
+            start: doc.indexToPosition(start),
+            end: doc.indexToPosition(end)
         });
     },
     getCurrentLineRange: function() {
-        var row = this.ace.getCursorPosition().row;
-        var lineLength = this.ace.session.getLine(row).length;
-        var index = this.ace.positionToIndex({row: row, column: 0});
+        var ace = this.ace;
+        var row = ace.getCursorPosition().row;
+        var lineLength = ace.session.getLine(row).length;
+        var index = ace.session.doc.positionToIndex({row: row, column: 0});
         return {
             start: index,
             end: index + lineLength
@@ -5188,10 +5254,10 @@ AceEmmetEditor.prototype = {
     },
     getCaretPos: function(){
         var pos = this.ace.getCursorPosition();
-        return this.ace.positionToIndex(pos);
+        return this.ace.session.doc.positionToIndex(pos);
     },
     setCaretPos: function(index){
-        var pos = this.ace.indexToPosition(index);
+        var pos = this.ace.session.doc.indexToPosition(index);
         this.ace.selection.moveToPosition(pos);
     },
     getCurrentLine: function() {
@@ -5205,13 +5271,14 @@ AceEmmetEditor.prototype = {
             start = 0;        
         
         var editor = this.ace;
-        var range = Range.fromPoints(editor.indexToPosition(start), editor.indexToPosition(end));
+        var doc = editor.session.doc;
+        var range = Range.fromPoints(doc.indexToPosition(start), doc.indexToPosition(end));
         editor.session.remove(range);
         
         range.end = range.start;
         
         value = this.$updateTabstops(value);
-        snippetManager.insertSnippet(editor, value)
+        snippetManager.insertSnippet(editor, value);
     },
     getContent: function(){
         return this.ace.getValue();
@@ -5285,7 +5352,7 @@ AceEmmetEditor.prototype = {
                     lastZero = range.create(data.start, result);
                 }
 
-                return result
+                return result;
             },
             escape: function(ch) {
                 if (ch == '$') return '\\$';
@@ -5336,28 +5403,33 @@ var keymap = {
 var editorProxy = new AceEmmetEditor();
 exports.commands = new HashHandler();
 exports.runEmmetCommand = function(editor) {
-    editorProxy.setupContext(editor);
-    if (editorProxy.getSyntax() == "php")
-        return false;
-    var actions = emmet.require("actions");
-
-    if (this.action == "expand_abbreviation_with_tab") {
-        if (!editor.selection.isEmpty())
-            return false;
-    }
-    
-    if (this.action == "wrap_with_abbreviation") {
-        return setTimeout(function() {
-            actions.run("wrap_with_abbreviation", editorProxy);
-        }, 0);
-    }
-    
     try {
+        editorProxy.setupContext(editor);
+        if (editorProxy.getSyntax() == "php")
+            return false;
+        var actions = emmet.require("actions");
+    
+        if (this.action == "expand_abbreviation_with_tab") {
+            if (!editor.selection.isEmpty())
+                return false;
+        }
+        
+        if (this.action == "wrap_with_abbreviation") {
+            return setTimeout(function() {
+                actions.run("wrap_with_abbreviation", editorProxy);
+            }, 0);
+        }
+        
+        var pos = editor.selection.lead;
+        var token = editor.session.getTokenAt(pos.row, pos.column);
+        if (token && /\btag\b/.test(token.type))
+            return false;
+        
         var result = actions.run(this.action, editorProxy);
     } catch(e) {
         editor._signal("changeStatus", typeof e == "string" ? e : e.message);
         console.log(e);
-        result = false
+        result = false;
     }
     return result;
 };
@@ -5372,20 +5444,34 @@ for (var command in keymap) {
     });
 }
 
+exports.updateCommands = function(editor, enabled) {
+    if (enabled) {
+        editor.keyBinding.addKeyboardHandler(exports.commands);
+    } else {
+        editor.keyBinding.removeKeyboardHandler(exports.commands);
+    }
+};
+
+exports.isSupportedMode = function(modeId) {
+    return modeId && /css|less|scss|sass|stylus|html|php|twig|ejs/.test(modeId);
+};
+
 var onChangeMode = function(e, target) {
     var editor = target;
     if (!editor)
         return;
-    var modeId = editor.session.$modeId;
-    var enabled = modeId && /css|less|scss|sass|stylus|html|php/.test(modeId);
+    var enabled = exports.isSupportedMode(editor.session.$modeId);
     if (e.enableEmmet === false)
         enabled = false;
-    if (enabled)
-        editor.keyBinding.addKeyboardHandler(exports.commands);
-    else
-        editor.keyBinding.removeKeyboardHandler(exports.commands);
+    if (enabled) {
+        if (typeof emmetPath == "string") {
+            require("ace/config").loadModule(emmetPath, function() {
+                emmetPath = null;
+            });
+        }
+    }
+    exports.updateCommands(editor, enabled);
 };
-
 
 exports.AceEmmetEditor = AceEmmetEditor;
 require("ace/config").defineOptions(Editor.prototype, "editor", {
@@ -5398,8 +5484,12 @@ require("ace/config").defineOptions(Editor.prototype, "editor", {
     }
 });
 
-
-exports.setCore = function(e) {emmet = e;};
+exports.setCore = function(e) {
+    if (typeof e == "string")
+       emmetPath = e;
+    else
+       emmet = e;
+};
 });
 
 define("ace/autocomplete/popup",["require","exports","module","ace/edit_session","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
@@ -5791,6 +5881,7 @@ var Autocomplete = function() {
             e.stop();
         }.bind(this));
         this.popup.focus = this.editor.focus.bind(this.editor);
+        this.popup.on("show", this.tooltipTimer.bind(null, null));
         this.popup.on("select", this.tooltipTimer.bind(null, null));
         this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
         return this.popup;
@@ -5899,7 +5990,7 @@ var Autocomplete = function() {
             return false;
 
         if (data.completer && data.completer.insertMatch) {
-            data.completer.insertMatch(this.editor);
+            data.completer.insertMatch(this.editor, data);
         } else {
             if (this.completions.filterText) {
                 var ranges = this.editor.selection.getAllRanges();
@@ -6054,7 +6145,7 @@ var Autocomplete = function() {
             doc = selected;
         
         if (typeof doc == "string")
-            doc = {tooltipText: doc}
+            doc = {docText: doc}
         if (!doc || !(doc.docHTML || doc.docText))
             return this.hideDocTooltip();
         this.showDocTooltip(doc);
@@ -6062,7 +6153,7 @@ var Autocomplete = function() {
     
     this.showDocTooltip = function(item) {
         if (!this.tooltipNode) {
-            this.tooltipNode = dom.createElement("pre");
+            this.tooltipNode = dom.createElement("div");
             this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
             this.tooltipNode.style.margin = 0;
             this.tooltipNode.style.pointerEvents = "auto";
@@ -6243,6 +6334,9 @@ var util = require("../autocomplete/util");
 var textCompleter = require("../autocomplete/text_completer");
 var keyWordCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
+        if (session.$mode.completer) {
+            return session.$mode.completer.getCompletions(editor, session, pos, prefix, callback);
+        }
         var state = editor.session.getState(pos.row);
         var completions = session.$mode.getCompletions(state, session, pos, prefix);
         callback(null, completions);
@@ -6294,9 +6388,7 @@ exports.snippetCompleter = snippetCompleter;
 var expandSnippet = {
     name: "expandSnippet",
     exec: function(editor) {
-        var success = snippetManager.expandWithTab(editor);
-        if (!success)
-            editor.execCommand("indent");
+        return snippetManager.expandWithTab(editor);
     },
     bindKey: "Tab"
 };

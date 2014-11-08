@@ -1290,6 +1290,7 @@ var Autocomplete = function() {
             e.stop();
         }.bind(this));
         this.popup.focus = this.editor.focus.bind(this.editor);
+        this.popup.on("show", this.tooltipTimer.bind(null, null));
         this.popup.on("select", this.tooltipTimer.bind(null, null));
         this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
         return this.popup;
@@ -1398,7 +1399,7 @@ var Autocomplete = function() {
             return false;
 
         if (data.completer && data.completer.insertMatch) {
-            data.completer.insertMatch(this.editor);
+            data.completer.insertMatch(this.editor, data);
         } else {
             if (this.completions.filterText) {
                 var ranges = this.editor.selection.getAllRanges();
@@ -1553,7 +1554,7 @@ var Autocomplete = function() {
             doc = selected;
         
         if (typeof doc == "string")
-            doc = {tooltipText: doc}
+            doc = {docText: doc}
         if (!doc || !(doc.docHTML || doc.docText))
             return this.hideDocTooltip();
         this.showDocTooltip(doc);
@@ -1561,7 +1562,7 @@ var Autocomplete = function() {
     
     this.showDocTooltip = function(item) {
         if (!this.tooltipNode) {
-            this.tooltipNode = dom.createElement("pre");
+            this.tooltipNode = dom.createElement("div");
             this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
             this.tooltipNode.style.margin = 0;
             this.tooltipNode.style.pointerEvents = "auto";
@@ -1742,6 +1743,9 @@ var util = require("../autocomplete/util");
 var textCompleter = require("../autocomplete/text_completer");
 var keyWordCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
+        if (session.$mode.completer) {
+            return session.$mode.completer.getCompletions(editor, session, pos, prefix, callback);
+        }
         var state = editor.session.getState(pos.row);
         var completions = session.$mode.getCompletions(state, session, pos, prefix);
         callback(null, completions);
@@ -1793,9 +1797,7 @@ exports.snippetCompleter = snippetCompleter;
 var expandSnippet = {
     name: "expandSnippet",
     exec: function(editor) {
-        var success = snippetManager.expandWithTab(editor);
-        if (!success)
-            editor.execCommand("indent");
+        return snippetManager.expandWithTab(editor);
     },
     bindKey: "Tab"
 };
@@ -1911,7 +1913,6 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     }
 });
 });
-;
                 (function() {
                     ace.require(["ace/ext/language_tools"], function() {});
                 })();

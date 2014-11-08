@@ -488,7 +488,6 @@ patch(
 useragent.isOldIE = true;
 
 });
-;
                 (function() {
                     window.require(["ace/ext/old_ie"], function() {});
                 })();

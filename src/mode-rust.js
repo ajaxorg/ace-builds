@@ -17,6 +17,35 @@ var RustHighlightRules = function() {
                 next: 'pop' },
               { include: '#rust_escaped_character' },
               { defaultToken: 'string.quoted.single.source.rust' } ] },
+         {
+            stateName: "bracketedComment",
+            onMatch : function(value, currentState, stack){
+                stack.unshift(this.next, value.length - 1, currentState);
+                return "string.quoted.raw.source.rust";
+            },
+            regex : /r#*"/,
+            next  : [
+                {
+                    onMatch : function(value, currentState, stack) {
+                        var token = "string.quoted.raw.source.rust";
+                        if (value.length >= stack[1]) {
+                            if (value.length > stack[1])
+                                token = "invalid";
+                            stack.shift();
+                            stack.shift();
+                            this.next = stack.shift();
+                        } else {
+                            this.next = "";
+                        }
+                        return token;
+                    },
+                    regex : /"#*/,
+                    next  : "start"
+                }, {
+                    defaultToken : "string.quoted.raw.source.rust"
+                }
+            ]
+         },
          { token: 'string.quoted.double.source.rust',
            regex: '"',
            push: 
@@ -64,10 +93,14 @@ var RustHighlightRules = function() {
                 regex: '$',
                 next: 'pop' },
               { defaultToken: 'comment.line.double-dash.source.rust' } ] },
-         { token: 'comment.block.source.rust',
+         { token: 'comment.start.block.source.rust',
            regex: '/\\*',
+           stateName: 'comment',
            push: 
-            [ { token: 'comment.block.source.rust',
+            [ { token: 'comment.start.block.source.rust',
+                regex: '/\\*',
+                push: 'comment' },
+              { token: 'comment.end.block.source.rust',
                 regex: '\\*/',
                 next: 'pop' },
               { defaultToken: 'comment.block.source.rust' } ] } ],

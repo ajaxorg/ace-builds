@@ -5,21 +5,27 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var DocCommentHighlightRules = function() {
-
     this.$rules = {
         "start" : [ {
             token : "comment.doc.tag",
             regex : "@[\\w\\d_]+" // TODO: fix email addresses
-        }, {
-            token : "comment.doc.tag",
-            regex : "\\bTODO\\b"
-        }, {
-            defaultToken : "comment.doc"
+        }, 
+        DocCommentHighlightRules.getTagRule(),
+        {
+            defaultToken : "comment.doc",
+            caseInsensitive: true
         }]
     };
 };
 
 oop.inherits(DocCommentHighlightRules, TextHighlightRules);
+
+DocCommentHighlightRules.getTagRule = function(start) {
+    return {
+        token : "comment.doc.tag.storage.type",
+        regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
+    };
+}
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -649,20 +655,24 @@ var JavaScriptHighlightRules = function(options) {
             }
         ],
         "comment_regex_allowed" : [
+            DocCommentHighlightRules.getTagRule(),
             {token : "comment", regex : "\\*\\/", next : "start"},
-            {defaultToken : "comment"}
+            {defaultToken : "comment", caseInsensitive: true}
         ],
         "comment" : [
+            DocCommentHighlightRules.getTagRule(),
             {token : "comment", regex : "\\*\\/", next : "no_regex"},
-            {defaultToken : "comment"}
+            {defaultToken : "comment", caseInsensitive: true}
         ],
         "line_comment_regex_allowed" : [
+            DocCommentHighlightRules.getTagRule(),
             {token : "comment", regex : "$|^", next : "start"},
-            {defaultToken : "comment"}
+            {defaultToken : "comment", caseInsensitive: true}
         ],
         "line_comment" : [
+            DocCommentHighlightRules.getTagRule(),
             {token : "comment", regex : "$|^", next : "no_regex"},
-            {defaultToken : "comment"}
+            {defaultToken : "comment", caseInsensitive: true}
         ],
         "qqstring" : [
             {

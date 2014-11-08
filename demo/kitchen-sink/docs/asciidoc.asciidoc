@@ -5230,7 +5230,7 @@ Example `~/.vimrc` File
 set background=dark
 
 " Show tabs and trailing characters.
-set listchars=tab:ï¿½ï¿½,trail:ï¿½
+set listchars=tab:»·,trail:·
 set list
 
 " Don't highlight searched text.

@@ -1209,7 +1209,6 @@ exports.getMatchOffsets = function(string, regExp) {
     return matches;
 };
 exports.deferredCall = function(fcn) {
-
     var timer = null;
     var callback = function() {
         timer = null;
@@ -1603,7 +1602,8 @@ oop.inherits(JsonWorker, Mirror);
         var value = this.doc.getValue();
 
         try {
-            var result = parse(value);
+            if (value)
+                parse(value);
         } catch (e) {
             var pos = this.doc.indexToPosition(e.at-1);
             this.sender.emit("error", {

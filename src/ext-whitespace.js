@@ -175,7 +175,6 @@ exports.commands = [{
 }];
 
 });
-;
                 (function() {
                     window.require(["ace/ext/whitespace"], function() {});
                 })();

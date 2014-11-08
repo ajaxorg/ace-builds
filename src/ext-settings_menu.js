@@ -113,8 +113,12 @@ var supportedModes = {
     Diff:        ["diff|patch"],
     Dockerfile:  ["^Dockerfile"],
     Dot:         ["dot"],
+    Dummy:       ["dummy"],
+    DummySyntax: ["dummy"],
     Eiffel:      ["e"],
     EJS:         ["ejs"],
+    Elixir:      ["ex|exs"],
+    Elm:         ["elm"],
     Erlang:      ["erl|hrl"],
     Forth:       ["frt|fs|ldr"],
     FTL:         ["ftl"],
@@ -404,6 +408,12 @@ module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
         elements.forEach(function(element) {
             topmenu.appendChild(element);
         });
+        
+        var el = topmenu.appendChild(document.createElement('div'));
+        var version = "1.1.7";
+        el.style.padding = "1em";
+        el.textContent = "Ace version " + version;
+        
         return topmenu;
     }
     function createNewEntry(obj, clss, item, val) {
@@ -620,7 +630,6 @@ module.exports.init = function(editor) {
     };
 };
 });
-;
                 (function() {
                     window.require(["ace/ext/settings_menu"], function() {});
                 })();

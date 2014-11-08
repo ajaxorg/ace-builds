@@ -1324,6 +1324,9 @@ var Keys = (function() {
         }
     })();
 
+    ret.KEY_MODS[0] = "";
+    ret.KEY_MODS[-1] = "input";
+
     return ret;
 })();
 oop.mixin(exports, Keys);
@@ -1831,7 +1834,6 @@ exports.getMatchOffsets = function(string, regExp) {
     return matches;
 };
 exports.deferredCall = function(fcn) {
-
     var timer = null;
     var callback = function() {
         timer = null;
@@ -3966,8 +3968,16 @@ var KeyBinding = function(editor) {
     this.getKeyboardHandler = function() {
         return this.$handlers[this.$handlers.length - 1];
     };
+    
+    this.getStatusText = function() {
+        var data = this.$data;
+        var editor = data.editor;
+        return this.$handlers.map(function(h) {
+            return h.getStatusText && h.getStatusText(editor, data) || "";
+        }).filter(Boolean).join(" ");
+    };
 
-    this.$callKeyboardHandlers = function (hashId, keyString, keyCode, e) {
+    this.$callKeyboardHandlers = function(hashId, keyString, keyCode, e) {
         var toExecute;
         var success = false;
         var commands = this.$editor.commands;
@@ -4859,7 +4869,7 @@ exports.Selection = Selection;
 
 ace.define("ace/tokenizer",["require","exports","module"], function(require, exports, module) {
 "use strict";
-var MAX_TOKEN_COUNT = 1000;
+var MAX_TOKEN_COUNT = 2000;
 var Tokenizer = function(rules) {
     this.states = rules;
 
@@ -4890,9 +4900,11 @@ var Tokenizer = function(rules) {
                 if (rule.token.length == 1 || matchcount == 1) {
                     rule.token = rule.token[0];
                 } else if (matchcount - 1 != rule.token.length) {
-                    throw new Error("number of classes and regexp groups in '" + 
-                        rule.token + "'\n'" + rule.regex +  "' doesn't match\n"
-                        + (matchcount - 1) + "!=" + rule.token.length);
+                    this.reportError("number of classes and regexp groups doesn't match", { 
+                        rule: rule,
+                        groupCount: matchcount - 1
+                    });
+                    rule.token = rule.token[0];
                 } else {
                     rule.tokenArray = rule.token;
                     rule.token = null;
@@ -5043,6 +5055,7 @@ var Tokenizer = function(rules) {
 
         var match, tokens = [];
         var lastIndex = 0;
+        var matchAttempts = 0;
 
         var token = {type: null, value: ""};
 
@@ -5083,7 +5096,7 @@ var Tokenizer = function(rules) {
                     
                     state = this.states[currentState];
                     if (!state) {
-                        window.console && console.error && console.error(currentState, "doesn't exist");
+                        this.reportError("state doesn't exist", currentState);
                         currentState = "start";
                         state = this.states[currentState];
                     }
@@ -5096,7 +5109,7 @@ var Tokenizer = function(rules) {
             }
 
             if (value) {
-                if (typeof type == "string") {
+                if (typeof type === "string") {
                     if ((!rule || rule.merge !== false) && token.type === type) {
                         token.value += value;
                     } else {
@@ -5118,7 +5131,13 @@ var Tokenizer = function(rules) {
 
             lastIndex = index;
 
-            if (tokens.length > MAX_TOKEN_COUNT) {
+            if (matchAttempts++ > MAX_TOKEN_COUNT) {
+                if (matchAttempts > 2 * line.length) {
+                    this.reportError("infinite loop with in ace tokenizer", {
+                        startState: startState,
+                        line: line
+                    });
+                }
                 while (lastIndex < line.length) {
                     if (token.type)
                         tokens.push(token);
@@ -5145,7 +5164,14 @@ var Tokenizer = function(rules) {
             state : stack.length ? stack : currentState
         };
     };
-
+    
+    this.reportError = function(msg, data) {
+        var e = new Error(msg);
+        e.data = data;
+        if (typeof console == "object" && console.error)
+            console.error(e);
+        setTimeout(function() { throw e; });
+    };
 }).call(Tokenizer.prototype);
 
 exports.Tokenizer = Tokenizer;
@@ -8991,7 +9017,7 @@ var EditSession = function(text, mode) {
         }
     };
     this.adjustWrapLimit = function(desiredLimit, $printMargin) {
-        var limits = this.$wrapLimitRange
+        var limits = this.$wrapLimitRange;
         if (limits.max < 0)
             limits = {min: $printMargin, max: $printMargin};
         var wrapLimit = this.$constrainWrapLimit(desiredLimit, limits.min, limits.max);
@@ -9091,7 +9117,7 @@ var EditSession = function(text, mode) {
                 var foldLine = this.getFoldLine(firstRow);
                 var idx = 0;
                 if (foldLine) {
-                    var cmp = foldLine.range.compareInside(start.row, start.column)
+                    var cmp = foldLine.range.compareInside(start.row, start.column);
                     if (cmp == 0) {
                         foldLine = foldLine.split(start.row, start.column);
                         if (foldLine) {
@@ -9437,7 +9463,7 @@ var EditSession = function(text, mode) {
             return {
                 row: maxRow,
                 column: this.getLine(maxRow).length
-            }
+            };
         } else {
             line = this.getLine(docRow);
             foldLine = null;
@@ -10035,35 +10061,25 @@ ace.define("ace/keyboard/hash_handler",["require","exports","module","ace/lib/ke
 
 var keyUtil = require("../lib/keys");
 var useragent = require("../lib/useragent");
+var KEY_MODS = keyUtil.KEY_MODS;
 
 function HashHandler(config, platform) {
     this.platform = platform || (useragent.isMac ? "mac" : "win");
     this.commands = {};
     this.commandKeyBinding = {};
-    if (this.__defineGetter__ && this.__defineSetter__ && typeof console != "undefined" && console.error) {
-        var warned = false;
-        var warn = function() {
-            if (!warned) {
-                warned = true;
-                console.error("commmandKeyBinding has too many m's. use commandKeyBinding");
-            }
-        };
-        this.__defineGetter__("commmandKeyBinding", function() {
-            warn();
-            return this.commandKeyBinding;
-        });
-        this.__defineSetter__("commmandKeyBinding", function(val) {
-            warn();
-            return this.commandKeyBinding = val;
-        });
-    } else {
-        this.commmandKeyBinding = this.commandKeyBinding;
-    }
-
     this.addCommands(config);
-};
+    this.$singleCommand = true;
+}
+
+function MultiHashHandler(config, platform) {
+    HashHandler.call(this, config, platform);
+    this.$singleCommand = false;
+}
+
+MultiHashHandler.prototype = HashHandler.prototype;
 
 (function() {
+    
 
     this.addCommand = function(command) {
         if (this.commands[command.name])
@@ -10075,33 +10091,72 @@ function HashHandler(config, platform) {
             this._buildKeyHash(command);
     };
 
-    this.removeCommand = function(command) {
-        var name = (typeof command === 'string' ? command : command.name);
+    this.removeCommand = function(command, keepCommand) {
+        var name = command && (typeof command === 'string' ? command : command.name);
         command = this.commands[name];
-        delete this.commands[name];
+        if (!keepCommand)
+            delete this.commands[name];
         var ckb = this.commandKeyBinding;
-        for (var hashId in ckb) {
-            for (var key in ckb[hashId]) {
-                if (ckb[hashId][key] == command)
-                    delete ckb[hashId][key];
+        for (var keyId in ckb) {
+            var cmdGroup = ckb[keyId];
+            if (cmdGroup == command) {
+                delete ckb[keyId];
+            } else if (Array.isArray(cmdGroup)) {
+                var i = cmdGroup.indexOf(command);
+                if (i != -1) {
+                    cmdGroup.splice(i, 1);
+                    if (cmdGroup.length == 1)
+                        ckb[keyId] = cmdGroup[0];
+                }
             }
         }
     };
 
-    this.bindKey = function(key, command) {
-        if(!key)
+    this.bindKey = function(key, command, asDefault) {
+        if (typeof key == "object")
+            key = key[this.platform];
+        if (!key)
             return;
-        if (typeof command == "function") {
-            this.addCommand({exec: command, bindKey: key, name: command.name || key});
-            return;
-        }
-
-        var ckb = this.commandKeyBinding;
+        if (typeof command == "function")
+            return this.addCommand({exec: command, bindKey: key, name: command.name || key});
+        
         key.split("|").forEach(function(keyPart) {
-            var binding = this.parseKeys(keyPart, command);
-            var hashId = binding.hashId;
-            (ckb[hashId] || (ckb[hashId] = {}))[binding.key] = command;
+            var chain = "";
+            if (keyPart.indexOf(" ") != -1) {
+                var parts = keyPart.split(/\s+/);
+                keyPart = parts.pop();
+                parts.forEach(function(keyPart) {
+                    var binding = this.parseKeys(keyPart);
+                    var id = KEY_MODS[binding.hashId] + binding.key;
+                    chain += (chain ? " " : "") + id;
+                    this._addCommandToBinding(chain, "chainKeys");
+                }, this);
+                chain += " ";
+            }
+            var binding = this.parseKeys(keyPart);
+            var id = KEY_MODS[binding.hashId] + binding.key;
+            this._addCommandToBinding(chain + id, command, asDefault);
         }, this);
+    };
+    
+    this._addCommandToBinding = function(keyId, command, asDefault) {
+        var ckb = this.commandKeyBinding, i;
+        if (!command) {
+            delete ckb[keyId];
+        } else if (!ckb[keyId] || this.$singleCommand) {
+            ckb[keyId] = command;
+        } else {
+            if (!Array.isArray(ckb[keyId])) {
+                ckb[keyId] = [ckb[keyId]];
+            } else if ((i = ckb[keyId].indexOf(command)) != -1) {
+                ckb[keyId].splice(i, 1);
+            }
+            
+            if (asDefault || command.isDefault)
+                ckb[keyId].unshift(command);
+            else
+                ckb[keyId].push(command);
+        }
     };
 
     this.addCommands = function(commands) {
@@ -10139,17 +10194,9 @@ function HashHandler(config, platform) {
     };
 
     this._buildKeyHash = function(command) {
-        var binding = command.bindKey;
-        if (!binding)
-            return;
-
-        var key = typeof binding == "string" ? binding: binding[this.platform];
-        this.bindKey(key, command);
+        this.bindKey(command.bindKey, command);
     };
     this.parseKeys = function(keys) {
-        if (keys.indexOf(" ") != -1)
-            keys = keys.split(/\s+/).pop();
-
         var parts = keys.toLowerCase().split(/[\-\+]([\-\+])?/).filter(function(x){return x});
         var key = parts.pop();
 
@@ -10166,7 +10213,7 @@ function HashHandler(config, platform) {
             var modifier = keyUtil.KEY_MODS[parts[i]];
             if (modifier == null) {
                 if (typeof console != "undefined")
-                console.error("invalid modifier " + parts[i] + " in " + keys);
+                    console.error("invalid modifier " + parts[i] + " in " + keys);
                 return false;
             }
             hashId |= modifier;
@@ -10175,44 +10222,66 @@ function HashHandler(config, platform) {
     };
 
     this.findKeyCommand = function findKeyCommand(hashId, keyString) {
-        var ckbr = this.commandKeyBinding;
-        return ckbr[hashId] && ckbr[hashId][keyString];
+        var key = KEY_MODS[hashId] + keyString;
+        return this.commandKeyBinding[key];
     };
 
     this.handleKeyboard = function(data, hashId, keyString, keyCode) {
-        return {
-            command: this.findKeyCommand(hashId, keyString)
-        };
+        var key = KEY_MODS[hashId] + keyString;
+        var command = this.commandKeyBinding[key];
+        if (data.$keyChain) {
+            data.$keyChain += " " + key;
+            command = this.commandKeyBinding[data.$keyChain] || command;
+        }
+        
+        if (command) {
+            if (command == "chainKeys" || command[command.length - 1] == "chainKeys") {
+                data.$keyChain = data.$keyChain || key;
+                return {command: "null"};
+            }
+        }
+        
+        if (data.$keyChain && keyCode > 0)
+            data.$keyChain = "";
+        return {command: command};
     };
 
-}).call(HashHandler.prototype)
+}).call(HashHandler.prototype);
 
 exports.HashHandler = HashHandler;
+exports.MultiHashHandler = MultiHashHandler;
 });
 
 ace.define("ace/commands/command_manager",["require","exports","module","ace/lib/oop","ace/keyboard/hash_handler","ace/lib/event_emitter"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
-var HashHandler = require("../keyboard/hash_handler").HashHandler;
+var MultiHashHandler = require("../keyboard/hash_handler").MultiHashHandler;
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 
 var CommandManager = function(platform, commands) {
-    HashHandler.call(this, commands, platform);
+    MultiHashHandler.call(this, commands, platform);
     this.byName = this.commands;
     this.setDefaultHandler("exec", function(e) {
         return e.command.exec(e.editor, e.args || {});
     });
 };
 
-oop.inherits(CommandManager, HashHandler);
+oop.inherits(CommandManager, MultiHashHandler);
 
 (function() {
 
     oop.implement(this, EventEmitter);
 
     this.exec = function(command, editor, args) {
-        if (typeof command === 'string')
+        if (Array.isArray(command)) {
+            for (var i = command.length; i--; ) {
+                if (this.exec(command[i], editor, args)) return true;
+            }
+            return false;
+        }
+        
+        if (typeof command === "string")
             command = this.commands[command];
 
         if (!command)
@@ -10222,10 +10291,10 @@ oop.inherits(CommandManager, HashHandler);
             return false;
 
         var e = {editor: editor, command: command, args: args};
-        var retvalue = this._emit("exec", e);
+        e.returnValue = this._emit("exec", e);
         this._signal("afterExec", e);
 
-        return retvalue === false ? false : true;
+        return e.returnValue === false ? false : true;
     };
 
     this.toggleRecording = function(editor) {
@@ -11021,30 +11090,8 @@ var Editor = function(renderer, session) {
         function last(a) {return a[a.length - 1]}
 
         this.selections = [];
-        this.commands.on("exec", function(e) {
-            this.startOperation(e);
-
-            var command = e.command;
-            if (command.aceCommandGroup == "fileJump") {
-                var prev = this.prevOp;
-                if (!prev || prev.command.aceCommandGroup != "fileJump") {
-                    this.lastFileJumpPos = last(this.selections);
-                }
-            } else {
-                this.lastFileJumpPos = null;
-            }
-        }.bind(this), true);
-
-        this.commands.on("afterExec", function(e) {
-            var command = e.command;
-
-            if (command.aceCommandGroup == "fileJump") {
-                if (this.lastFileJumpPos && !this.curOp.selectionChanged) {
-                    this.selection.fromJSON(this.lastFileJumpPos);
-                }
-            }
-            this.endOperation(e);
-        }.bind(this), true);
+        this.commands.on("exec", this.startOperation.bind(this), true);
+        this.commands.on("afterExec", this.endOperation.bind(this), true);
 
         this.$opResetTimer = lang.delayedCall(this.endOperation.bind(this));
 
@@ -11078,19 +11125,15 @@ var Editor = function(renderer, session) {
             args: commadEvent.args,
             scrollTop: this.renderer.scrollTop
         };
-        
-        var command = this.curOp.command;
-        if (command && command.scrollIntoView)
-            this.$blockScrolling++;
-
-        this.selections.push(this.selection.toJSON());
     };
 
-    this.endOperation = function() {
+    this.endOperation = function(e) {
         if (this.curOp) {
+            if (e && e.returnValue === false)
+                return this.curOp = null;
+                
             var command = this.curOp.command;
             if (command && command.scrollIntoView) {
-                this.$blockScrolling--;
                 switch (command.scrollIntoView) {
                     case "center":
                         this.renderer.scrollCursorIntoView(null, 0.5);
@@ -11152,19 +11195,19 @@ var Editor = function(renderer, session) {
         else if (mergeableCommands.indexOf(e.command.name) !== -1)
             this.sequenceStartTime = Date.now();
     };
-    this.setKeyboardHandler = function(keyboardHandler) {
-        if (!keyboardHandler) {
-            this.keyBinding.setKeyboardHandler(null);
-        } else if (typeof keyboardHandler === "string") {
+    this.setKeyboardHandler = function(keyboardHandler, cb) {
+        if (keyboardHandler && typeof keyboardHandler === "string") {
             this.$keybindingId = keyboardHandler;
             var _self = this;
             config.loadModule(["keybinding", keyboardHandler], function(module) {
                 if (_self.$keybindingId == keyboardHandler)
                     _self.keyBinding.setKeyboardHandler(module && module.handler);
+                cb && cb();
             });
         } else {
             this.$keybindingId = null;
             this.keyBinding.setKeyboardHandler(keyboardHandler);
+            cb && cb();
         }
     };
     this.getKeyboardHandler = function() {
@@ -11630,9 +11673,8 @@ var Editor = function(renderer, session) {
         this.insert(e.text, true);
     };
 
-
     this.execCommand = function(command, args) {
-        this.commands.exec(command, this, args);
+        return this.commands.exec(command, this, args);
     };
     this.insert = function(text, pasted) {
         var session = this.session;
@@ -15378,23 +15420,24 @@ var VirtualRenderer = function(container, theme) {
             this.scrollBarH.setVisible(horizScroll);
         }
         
-        if (!this.$maxLines && this.$scrollPastEnd) {
-            maxHeight += (size.scrollerHeight - this.lineHeight) * this.$scrollPastEnd;
-        }
-        
-        var vScroll = !hideScrollbars && (this.$vScrollBarAlwaysVisible ||
-            size.scrollerHeight - maxHeight < 0);
-        var vScrollChanged = this.$vScroll !== vScroll;
-        if (vScrollChanged) {
-            this.$vScroll = vScroll;
-            this.scrollBarV.setVisible(vScroll);
-        }
+        var scrollPastEnd = !this.$maxLines && this.$scrollPastEnd
+            ? (size.scrollerHeight - this.lineHeight) * this.$scrollPastEnd
+            : 0;
+        maxHeight += scrollPastEnd;
         
         this.session.setScrollTop(Math.max(-this.scrollMargin.top,
             Math.min(this.scrollTop, maxHeight - size.scrollerHeight + this.scrollMargin.bottom)));
 
         this.session.setScrollLeft(Math.max(-this.scrollMargin.left, Math.min(this.scrollLeft, 
             longestLine + 2 * this.$padding - size.scrollerWidth + this.scrollMargin.right)));
+        
+        var vScroll = !hideScrollbars && (this.$vScrollBarAlwaysVisible ||
+            size.scrollerHeight - maxHeight + scrollPastEnd < 0 || this.scrollTop);
+        var vScrollChanged = this.$vScroll !== vScroll;
+        if (vScrollChanged) {
+            this.$vScroll = vScroll;
+            this.scrollBarV.setVisible(vScroll);
+        }
 
         var lineCount = Math.ceil(minHeight / this.lineHeight) - 1;
         var firstRow = Math.max(0, Math.round((this.scrollTop - offset) / this.lineHeight));
@@ -18149,7 +18192,6 @@ exports.createEditSession = function(text, mode) {
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
 });
-;
             (function() {
                 ace.require(["ace/ace"], function(a) {
                     a && a.config.init(true);

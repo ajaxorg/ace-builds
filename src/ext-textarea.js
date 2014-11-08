@@ -626,7 +626,6 @@ exports.defaultOptions = {
 };
 
 });
-;
                 (function() {
                     window.require(["ace/ext/textarea"], function() {});
                 })();

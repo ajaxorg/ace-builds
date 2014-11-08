@@ -403,7 +403,6 @@ exports.Search = function(editor, isReplace) {
 };
 
 });
-;
                 (function() {
                     window.require(["ace/ext/searchbox"], function() {});
                 })();

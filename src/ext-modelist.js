@@ -57,8 +57,12 @@ var supportedModes = {
     Diff:        ["diff|patch"],
     Dockerfile:  ["^Dockerfile"],
     Dot:         ["dot"],
+    Dummy:       ["dummy"],
+    DummySyntax: ["dummy"],
     Eiffel:      ["e"],
     EJS:         ["ejs"],
+    Elixir:      ["ex|exs"],
+    Elm:         ["elm"],
     Erlang:      ["erl|hrl"],
     Forth:       ["frt|fs|ldr"],
     FTL:         ["ftl"],
@@ -176,7 +180,6 @@ module.exports = {
 };
 
 });
-;
                 (function() {
                     window.require(["ace/ext/modelist"], function() {});
                 })();

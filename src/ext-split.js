@@ -240,7 +240,6 @@ define("ace/ext/split",["require","exports","module","ace/split"], function(requ
 module.exports = require("../split");
 
 });
-;
                 (function() {
                     window.require(["ace/ext/split"], function() {});
                 })();
