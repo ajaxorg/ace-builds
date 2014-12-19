@@ -101,6 +101,7 @@ var supportedModes = {
     Lucene:      ["lucene"],
     Makefile:    ["^Makefile|^GNUmakefile|^makefile|^OCamlMakefile|make"],
     Markdown:    ["md|markdown"],
+    Mask:        ["mask"],
     MATLAB:      ["matlab"],
     MEL:         ["mel"],
     MUSHCode:    ["mc|mush"],

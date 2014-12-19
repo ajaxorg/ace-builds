@@ -157,6 +157,7 @@ var supportedModes = {
     Lucene:      ["lucene"],
     Makefile:    ["^Makefile|^GNUmakefile|^makefile|^OCamlMakefile|make"],
     Markdown:    ["md|markdown"],
+    Mask:        ["mask"],
     MATLAB:      ["matlab"],
     MEL:         ["mel"],
     MUSHCode:    ["mc|mush"],
@@ -410,7 +411,7 @@ module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
         });
         
         var el = topmenu.appendChild(document.createElement('div'));
-        var version = "1.1.7";
+        var version = "1.1.8";
         el.style.padding = "1em";
         el.textContent = "Ace version " + version;
         
