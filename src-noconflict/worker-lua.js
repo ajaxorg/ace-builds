@@ -2836,20 +2836,20 @@ oop.inherits(Worker, Mirror);
 
     this.onUpdate = function() {
         var value = this.doc.getValue();
+        var errors = [];
         try {
             luaparse.parse(value);
         } catch(e) {
             if (e instanceof SyntaxError) {
-                this.sender.emit("error", {
-					row: e.line - 1,
-					column: e.column,
-					text: e.message,
-					type: "error"
-				});
+                errors.push({
+                    row: e.line - 1,
+                    column: e.column,
+                    text: e.message,
+                    type: "error"
+                });
             }
-            return;
         }
-        this.sender.emit("ok");
+        this.sender.emit("annotate", errors);
     };
 
 }).call(Worker.prototype);

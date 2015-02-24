@@ -73,7 +73,7 @@ var ShHighlightRules = function() {
             token : "keyword.operator"
         }, {
             stateName: "heredoc",
-            regex : "(<<)(\\s*)(['\"`]?)([\\w\\-]+)(['\"`]?)",
+            regex : "(<<-?)(\\s*)(['\"`]?)([\\w\\-]+)(['\"`]?)",
             onMatch : function(value, currentState, stack) {
                 var next = value[2] == '-' ? "indentedHeredoc" : "heredoc";
                 var tokens = value.split(this.splitRegex);
@@ -540,7 +540,7 @@ var CstyleBehaviour = function() {
                     text: quote + selected + quote,
                     selection: false
                 };
-            } else {
+            } else if (!selected) {
                 var cursor = editor.getCursorPosition();
                 var line = session.doc.getLine(cursor.row);
                 var leftChar = line.substring(cursor.column-1, cursor.column);
@@ -561,7 +561,7 @@ var CstyleBehaviour = function() {
                     if (stringBefore && !stringAfter)
                         return null; // wrap string with different quote
                     if (stringBefore && stringAfter)
-                        return null; // do not pair quotes inside strings 
+                        return null; // do not pair quotes inside strings
                     var wordRe = session.$mode.tokenRe;
                     wordRe.lastIndex = 0;
                     var isWordBefore = wordRe.test(leftChar);

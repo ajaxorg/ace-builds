@@ -668,7 +668,7 @@ var CstyleBehaviour = function() {
                     text: quote + selected + quote,
                     selection: false
                 };
-            } else {
+            } else if (!selected) {
                 var cursor = editor.getCursorPosition();
                 var line = session.doc.getLine(cursor.row);
                 var leftChar = line.substring(cursor.column-1, cursor.column);
@@ -689,7 +689,7 @@ var CstyleBehaviour = function() {
                     if (stringBefore && !stringAfter)
                         return null; // wrap string with different quote
                     if (stringBefore && stringAfter)
-                        return null; // do not pair quotes inside strings 
+                        return null; // do not pair quotes inside strings
                     var wordRe = session.$mode.tokenRe;
                     wordRe.lastIndex = 0;
                     var isWordBefore = wordRe.test(leftChar);
@@ -1007,7 +1007,7 @@ oop.inherits(Mode, TextMode);
         var worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker");
         worker.attachToDocument(session.getDocument());
 
-        worker.on("jslint", function(results) {
+        worker.on("annotate", function(results) {
             session.setAnnotations(results.data);
         });
 
@@ -1298,7 +1298,7 @@ oop.inherits(Mode, TextMode);
         var worker = new WorkerClient(["ace"], "ace/mode/css_worker", "Worker");
         worker.attachToDocument(session.getDocument());
 
-        worker.on("csslint", function(e) {
+        worker.on("annotate", function(e) {
             session.setAnnotations(e.data);
         });
 
@@ -1323,6 +1323,9 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var XmlHighlightRules = function(normalize) {
+
+    var tagRegex = "[a-zA-Z][-_a-zA-Z0-9]*";
+
     this.$rules = {
         start : [
             {token : "string.cdata.xml", regex : "<\\!\\[CDATA\\[", next : "cdata"},
@@ -1332,7 +1335,7 @@ var XmlHighlightRules = function(normalize) {
             },
             {
                 token : ["punctuation.instruction.xml", "keyword.instruction.xml"],
-                regex : "(<\\?)([-_a-zA-Z0-9]+)", next : "processing_instruction",
+                regex : "(<\\?)(" + tagRegex + ")", next : "processing_instruction",
             },
             {token : "comment.xml", regex : "<\\!--", next : "comment"},
             {
@@ -1348,7 +1351,7 @@ var XmlHighlightRules = function(normalize) {
 
         xml_decl : [{
             token : "entity.other.attribute-name.decl-attribute-name.xml",
-            regex : "(?:[-_a-zA-Z0-9]+:)?[-_a-zA-Z0-9]+"
+            regex : "(?:" + tagRegex + ":)?" + tagRegex + ""
         }, {
             token : "keyword.operator.decl-attribute-equals.xml",
             regex : "="
@@ -1384,7 +1387,7 @@ var XmlHighlightRules = function(normalize) {
             next: "pop"
         }, {
             token : ["punctuation.markup-decl.xml", "keyword.markup-decl.xml"],
-            regex : "(<\\!)([-_a-zA-Z0-9]+)",
+            regex : "(<\\!)(" + tagRegex + ")",
             push : [{
                 token : "text",
                 regex : "\\s+"
@@ -1420,7 +1423,7 @@ var XmlHighlightRules = function(normalize) {
 
         tag : [{
             token : ["meta.tag.punctuation.tag-open.xml", "meta.tag.punctuation.end-tag-open.xml", "meta.tag.tag-name.xml"],
-            regex : "(?:(<)|(</))((?:[-_a-zA-Z0-9]+:)?[-_a-zA-Z0-9]+)",
+            regex : "(?:(<)|(</))((?:" + tagRegex + ":)?" + tagRegex + ")",
             next: [
                 {include : "attributes"},
                 {token : "meta.tag.punctuation.tag-close.xml", regex : "/?>", next : "start"}
@@ -1451,7 +1454,7 @@ var XmlHighlightRules = function(normalize) {
 
         attributes: [{
             token : "entity.other.attribute-name.xml",
-            regex : "(?:[-_a-zA-Z0-9]+:)?[-_a-zA-Z0-9]+"
+            regex : "(?:" + tagRegex + ":)?" + tagRegex + ""
         }, {
             token : "keyword.operator.attribute-equals.xml",
             regex : "="
@@ -1726,6 +1729,8 @@ var XmlBehaviour = function () {
             var token = iterator.getCurrentToken();
 
             if (token && token.type.indexOf("tag-close") !== -1) {
+                if (token.value == "/>")
+                    return;
                 while (token && token.type.indexOf("tag-name") === -1) {
                     token = iterator.stepBackward();
                 }
@@ -2004,6 +2009,8 @@ function is(token, type) {
                 row: row,
                 column: firstTag.start.column + firstTag.tagName.length + 2
             };
+            if (firstTag.start.row == firstTag.end.row)
+                start.column = firstTag.end.column;
             while (tag = this._readTagForward(iterator)) {
                 if (tag.selfClosing) {
                     if (!stack.length) {
@@ -2045,6 +2052,8 @@ function is(token, type) {
                     this._pop(stack, tag);
                     if (stack.length == 0) {
                         tag.start.column += tag.tagName.length + 2;
+                        if (tag.start.row == tag.end.row && tag.start.column < tag.end.column)
+                            tag.start.column = tag.end.column;
                         return Range.fromPoints(tag.start, end);
                     }
                 }
@@ -2836,11 +2845,11 @@ oop.inherits(Mode, TextMode);
         var worker = new WorkerClient(["ace"], "ace/mode/lua_worker", "Worker");
         worker.attachToDocument(session.getDocument());
         
-        worker.on("error", function(e) {
-            session.setAnnotations([e.data]);
+        worker.on("annotate", function(e) {
+            session.setAnnotations(e.data);
         });
         
-        worker.on("ok", function(e) {
+        worker.on("terminate", function() {
             session.clearAnnotations();
         });
         

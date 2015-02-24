@@ -66,13 +66,13 @@ var c_cppHighlightRules = function() {
     var storageType = (
         "asm|__asm__|auto|bool|_Bool|char|_Complex|double|enum|float|" +
         "_Imaginary|int|long|short|signed|struct|typedef|union|unsigned|void|" +
-        "class|wchar_t|template"
+        "class|wchar_t|template|char16_t|char32_t"
     );
 
     var storageModifiers = (
         "const|extern|register|restrict|static|volatile|inline|private|" +
         "protected|public|friend|explicit|virtual|export|mutable|typename|" +
-        "constexpr|new|delete"
+        "constexpr|new|delete|alignas|alignof|decltype|noexcept|thread_local"
     );
 
     var keywordOperators = (
@@ -81,7 +81,7 @@ var c_cppHighlightRules = function() {
     );
 
     var builtinConstants = (
-        "NULL|true|false|TRUE|FALSE"
+        "NULL|true|false|TRUE|FALSE|nullptr"
     );
 
     var keywordMapper = this.$keywords = this.createKeywordMapper({
@@ -129,11 +129,11 @@ var c_cppHighlightRules = function() {
                 regex : "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?(L|l|UL|ul|u|U|F|f|ll|LL|ull|ULL)?\\b"
             }, {
                 token : "keyword", // pre-compiler directives
-                regex : "#\\s*(?:include|import|pragma|line|define|undef|if|ifdef|else|elif|ifndef)\\b",
+                regex : "#\\s*(?:include|import|pragma|line|define|undef)\\b",
                 next  : "directive"
             }, {
                 token : "keyword", // special case pre-compiler directive
-                regex : "(?:#\\s*endif)\\b"
+                regex : "#\\s*(?:endif|if|ifdef|else|elif|ifndef)\\b"
             }, {
                 token : "support.function.C99.c",
                 regex : cFunctions
@@ -507,7 +507,7 @@ var CstyleBehaviour = function() {
                     text: quote + selected + quote,
                     selection: false
                 };
-            } else {
+            } else if (!selected) {
                 var cursor = editor.getCursorPosition();
                 var line = session.doc.getLine(cursor.row);
                 var leftChar = line.substring(cursor.column-1, cursor.column);
@@ -528,7 +528,7 @@ var CstyleBehaviour = function() {
                     if (stringBefore && !stringAfter)
                         return null; // wrap string with different quote
                     if (stringBefore && stringAfter)
-                        return null; // do not pair quotes inside strings 
+                        return null; // do not pair quotes inside strings
                     var wordRe = session.$mode.tokenRe;
                     wordRe.lastIndex = 0;
                     var isWordBefore = wordRe.test(leftChar);

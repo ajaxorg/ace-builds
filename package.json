@@ -1,19 +1,13 @@
 {
-    "name": "ace-builds",
-    "version": "1.1.8",
-    "description": "Ace (Ajax.org Cloud9 Editor)",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/ajaxorg/ace-builds.git"
-    },
-    "author": "",
-    "license": "BSD",
-    "bugs": {
-        "url": "https://github.com/ajaxorg/ace-builds/issues"
-    },
-    "homepage": "https://github.com/ajaxorg/ace-builds"
+  "name": "MiniCodeEdit",
+  "version": "0.1.11",
+  "description": "A very small code editor.",
+  "main": "editor.html",
+  "window": {
+    "width": 400,
+    "height": 520,
+    "show": true,
+    "title": "Mini Code Editor",
+    "toolbar": true
+  }
 }

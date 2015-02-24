@@ -6238,11 +6238,7 @@ oop.inherits(PhpWorker, Mirror);
             });
         }
 
-        if (errors.length) {
-            this.sender.emit("error", errors);
-        } else {
-            this.sender.emit("ok");
-        }
+        this.sender.emit("annotate", errors);
     };
 
 }).call(PhpWorker.prototype);

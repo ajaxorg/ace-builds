@@ -334,7 +334,7 @@ var CstyleBehaviour = function() {
                     text: quote + selected + quote,
                     selection: false
                 };
-            } else {
+            } else if (!selected) {
                 var cursor = editor.getCursorPosition();
                 var line = session.doc.getLine(cursor.row);
                 var leftChar = line.substring(cursor.column-1, cursor.column);
@@ -355,7 +355,7 @@ var CstyleBehaviour = function() {
                     if (stringBefore && !stringAfter)
                         return null; // wrap string with different quote
                     if (stringBefore && stringAfter)
-                        return null; // do not pair quotes inside strings 
+                        return null; // do not pair quotes inside strings
                     var wordRe = session.$mode.tokenRe;
                     wordRe.lastIndex = 0;
                     var isWordBefore = wordRe.test(leftChar);
@@ -649,11 +649,11 @@ oop.inherits(Mode, TextMode);
         var worker = new WorkerClient(["ace"], "ace/mode/json_worker", "JsonWorker");
         worker.attachToDocument(session.getDocument());
 
-        worker.on("error", function(e) {
-            session.setAnnotations([e.data]);
+        worker.on("annotate", function(e) {
+            session.setAnnotations(e.data);
         });
 
-        worker.on("ok", function() {
+        worker.on("terminate", function() {
             session.clearAnnotations();
         });
 

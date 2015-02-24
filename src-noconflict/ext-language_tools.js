@@ -1266,9 +1266,10 @@ var dom = require("./lib/dom");
 var snippetManager = require("./snippets").snippetManager;
 
 var Autocomplete = function() {
-    this.autoInsert = true;
+    this.autoInsert = false;
     this.autoSelect = true;
     this.exactMatch = false;
+    this.gatherCompletionsId = 0;
     this.keyboardHandler = new HashHandler();
     this.keyboardHandler.bindKeys(this.commands);
 
@@ -1285,7 +1286,6 @@ var Autocomplete = function() {
 };
 
 (function() {
-    this.gatherCompletionsId = 0;
 
     this.$init = function() {
         this.popup = new AcePopup(document.body || document.documentElement);
@@ -1310,6 +1310,8 @@ var Autocomplete = function() {
 
         this.popup.setData(this.completions.filtered);
 
+        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+        
         var renderer = editor.renderer;
         this.popup.setRow(this.autoSelect ? 0 : -1);
         if (!keepPopupPosition) {
@@ -1341,10 +1343,9 @@ var Autocomplete = function() {
         this.changeTimer.cancel();
         this.hideDocTooltip();
 
-        if (this.popup && this.popup.isOpen) {
-            this.gatherCompletionsId += 1;
+        this.gatherCompletionsId += 1;
+        if (this.popup && this.popup.isOpen)
             this.popup.hide();
-        }
 
         if (this.base)
             this.base.detach();
@@ -1484,7 +1485,6 @@ var Autocomplete = function() {
             editor.completer = this;
         }
 
-        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
         editor.on("changeSelection", this.changeListener);
         editor.on("blur", this.blurListener);
         editor.on("mousedown", this.mousedownListener);
@@ -1620,7 +1620,7 @@ Autocomplete.startCommand = {
     exec: function(editor) {
         if (!editor.completer)
             editor.completer = new Autocomplete();
-        editor.completer.autoInsert =
+        editor.completer.autoInsert = false;
         editor.completer.autoSelect = true;
         editor.completer.showPopup(editor);
         editor.completer.cancelContextMenu();
@@ -1854,7 +1854,7 @@ var loadSnippetFile = function(id) {
 function getCompletionPrefix(editor) {
     var pos = editor.getCursorPosition();
     var line = editor.session.getLine(pos.row);
-    var prefix = util.retrievePrecedingIdentifier(line, pos.column);
+    var prefix;
     editor.completers.forEach(function(completer) {
         if (completer.identifierRegexps) {
             completer.identifierRegexps.forEach(function(identifierRegex) {
@@ -1863,7 +1863,7 @@ function getCompletionPrefix(editor) {
             });
         }
     });
-    return prefix;
+    return prefix || util.retrievePrecedingIdentifier(line, pos.column);
 }
 
 var doLiveAutocomplete = function(e) {
@@ -1880,7 +1880,6 @@ var doLiveAutocomplete = function(e) {
             if (!editor.completer) {
                 editor.completer = new Autocomplete();
             }
-            editor.completer.autoSelect = false;
             editor.completer.autoInsert = false;
             editor.completer.showPopup(editor);
         }

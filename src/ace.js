@@ -38,69 +38,62 @@
 
 var ACE_NAMESPACE = "";
 
-var global = (function() {
-    return this;
-})();
+var global = (function() { return this; })();
+if (!global && typeof window != "undefined") global = window; // strict mode
 
 
 if (!ACE_NAMESPACE && typeof requirejs !== "undefined")
     return;
 
 
-var _define = function(module, deps, payload) {
-    if (typeof module !== 'string') {
-        if (_define.original)
-            _define.original.apply(window, arguments);
+var define = function(module, deps, payload) {
+    if (typeof module !== "string") {
+        if (define.original)
+            define.original.apply(this, arguments);
         else {
-            console.error('dropping module because define wasn\'t a string.');
+            console.error("dropping module because define wasn\'t a string.");
             console.trace();
         }
         return;
     }
-
     if (arguments.length == 2)
         payload = deps;
-
-    if (!_define.modules) {
-        _define.modules = {};
-        _define.payloads = {};
+    if (!define.modules[module]) {
+        define.payloads[module] = payload;
+        define.modules[module] = null;
     }
-
-    _define.payloads[module] = payload;
-    _define.modules[module] = null;
 };
+
+define.modules = {};
+define.payloads = {};
 
 /**
  * Get at functionality define()ed using the function above
  */
 var _require = function(parentId, module, callback) {
-    if (Object.prototype.toString.call(module) === "[object Array]") {
+    if (typeof module === "string") {
+        var payload = lookup(parentId, module);
+        if (payload != undefined) {
+            callback && callback();
+            return payload;
+        }
+    } else if (Object.prototype.toString.call(module) === "[object Array]") {
         var params = [];
         for (var i = 0, l = module.length; i < l; ++i) {
             var dep = lookup(parentId, module[i]);
-            if (!dep && _require.original)
-                return _require.original.apply(window, arguments);
+            if (dep == undefined && require.original)
+                return;
             params.push(dep);
         }
-        if (callback) {
-            callback.apply(null, params);
-        }
+        return callback && callback.apply(null, params) || true;
     }
-    else if (typeof module === 'string') {
-        var payload = lookup(parentId, module);
-        if (!payload && _require.original)
-            return _require.original.apply(window, arguments);
+};
 
-        if (callback) {
-            callback();
-        }
-
-        return payload;
-    }
-    else {
-        if (_require.original)
-            return _require.original.apply(window, arguments);
-    }
+var require = function(module, callback) {
+    var packagedModule = _require("", module, callback);
+    if (packagedModule == undefined && require.original)
+        return require.original.apply(this, arguments);
+    return packagedModule;
 };
 
 var normalizeModule = function(parentId, moduleName) {
@@ -119,7 +112,6 @@ var normalizeModule = function(parentId, moduleName) {
             moduleName = moduleName.replace(/\/\.\//, "/").replace(/[^\/]+\/\.\.\//, "");
         }
     }
-
     return moduleName;
 };
 
@@ -128,12 +120,11 @@ var normalizeModule = function(parentId, moduleName) {
  * definition function if needed.
  */
 var lookup = function(parentId, moduleName) {
-
     moduleName = normalizeModule(parentId, moduleName);
 
-    var module = _define.modules[moduleName];
+    var module = define.modules[moduleName];
     if (!module) {
-        module = _define.payloads[moduleName];
+        module = define.payloads[moduleName];
         if (typeof module === 'function') {
             var exports = {};
             var mod = {
@@ -149,19 +140,15 @@ var lookup = function(parentId, moduleName) {
 
             var returnValue = module(req, exports, mod);
             exports = returnValue || mod.exports;
-            _define.modules[moduleName] = exports;
-            delete _define.payloads[moduleName];
+            define.modules[moduleName] = exports;
+            delete define.payloads[moduleName];
         }
-        module = _define.modules[moduleName] = exports || module;
+        module = define.modules[moduleName] = exports || module;
     }
     return module;
 };
 
 function exportAce(ns) {
-    var require = function(module, callback) {
-        return _require("", module, callback);
-    };
-
     var root = global;
     if (ns) {
         if (!global[ns])
@@ -170,13 +157,13 @@ function exportAce(ns) {
     }
 
     if (!root.define || !root.define.packaged) {
-        _define.original = root.define;
-        root.define = _define;
+        define.original = root.define;
+        root.define = define;
         root.define.packaged = true;
     }
 
     if (!root.require || !root.require.packaged) {
-        _require.original = root.require;
+        require.original = root.require;
         root.require = require;
         root.require.packaged = true;
     }
@@ -1326,7 +1313,7 @@ var Keys = (function() {
     })();
 
     ret.KEY_MODS[0] = "";
-    ret.KEY_MODS[-1] = "input";
+    ret.KEY_MODS[-1] = "input-";
 
     return ret;
 })();
@@ -1590,32 +1577,17 @@ function normalizeCommandKeys(callback, e, keyCode) {
         if (keyCode === 18 || keyCode === 17) {
             var location = "location" in e ? e.location : e.keyLocation;
             if (keyCode === 17 && location === 1) {
-                ts = e.timeStamp;
+                if (pressedKeys[keyCode] == 1)
+                    ts = e.timeStamp;
             } else if (keyCode === 18 && hashId === 3 && location === 2) {
-                var dt = -ts;
-                ts = e.timeStamp;
-                dt += ts;
-                if (dt < 3)
+                var dt = e.timestamp - ts;
+                if (dt < 50)
                     pressedKeys.altGr = true;
             }
         }
     }
     
     if (keyCode in keys.MODIFIER_KEYS) {
-        switch (keys.MODIFIER_KEYS[keyCode]) {
-            case "Alt":
-                hashId = 2;
-                break;
-            case "Shift":
-                hashId = 4;
-                break;
-            case "Ctrl":
-                hashId = 1;
-                break;
-            default:
-                hashId = 8;
-                break;
-        }
         keyCode = -1;
     }
 
@@ -1662,7 +1634,7 @@ exports.addCommandKeyListener = function(el, callback) {
         var lastDefaultPrevented = null;
 
         addListener(el, "keydown", function(e) {
-            pressedKeys[e.keyCode] = true;
+            pressedKeys[e.keyCode] = (pressedKeys[e.keyCode] || 0) + 1;
             var result = normalizeCommandKeys(callback, e, e.keyCode);
             lastDefaultPrevented = e.defaultPrevented;
             return result;
@@ -1928,7 +1900,7 @@ var TextInput = function(parentNode, host) {
     text.setAttribute("spellcheck", false);
 
     text.style.opacity = "0";
-    if (useragent.isOldIE) text.style.top = "-100px";
+    if (useragent.isOldIE) text.style.top = "-1000px";
     parentNode.insertBefore(text, parentNode.firstChild);
 
     var PLACEHOLDER = "\x01\x01";
@@ -1951,7 +1923,7 @@ var TextInput = function(parentNode, host) {
     });
     this.focus = function() {
         text.style.position = "fixed";
-        text.style.top = "-10000000px";
+        text.style.top = "-1000px";
         text.focus();
         setTimeout(function() {
             text.style.position = "";
@@ -1974,6 +1946,8 @@ var TextInput = function(parentNode, host) {
     function resetSelection(isEmpty) {
         if (inComposition)
             return;
+        inComposition = true;
+        
         if (inputHandler) {
             selectionStart = 0;
             selectionEnd = isEmpty ? 0 : text.value.length - 1;
@@ -1984,6 +1958,8 @@ var TextInput = function(parentNode, host) {
         try {
             text.setSelectionRange(selectionStart, selectionEnd);
         } catch(e){}
+        
+        inComposition = false;
     }
 
     function resetValue() {
@@ -7860,7 +7836,7 @@ function Folding() {
             this.foldAll(startRow, endRow, options.all ? 10000 : 0);
         } else if (options.children) {
             endRow = range ? range.end.row : this.getLength();
-            this.foldAll(row + 1, range.end.row, options.all ? 10000 : 0);
+            this.foldAll(row + 1, endRow, options.all ? 10000 : 0);
         } else if (range) {
             if (options.all) 
                 range.collapseChildren = 10000;
@@ -8575,17 +8551,17 @@ var EditSession = function(text, mode) {
         config.loadModule(["mode", path], function(m) {
             if (this.$modeId !== path)
                 return cb && cb();
-            if (this.$modes[path] && !options)
-                return this.$onChangeMode(this.$modes[path]);
-            if (m && m.Mode) {
+            if (this.$modes[path] && !options) {
+                this.$onChangeMode(this.$modes[path]);
+            } else if (m && m.Mode) {
                 m = new m.Mode(options);
                 if (!options) {
                     this.$modes[path] = m;
                     m.$id = path;
                 }
                 this.$onChangeMode(m);
-                cb && cb();
             }
+            cb && cb();
         }.bind(this));
         if (!this.$mode)
             this.$onChangeMode(this.$modes["ace/mode/text"], true);
@@ -9049,12 +9025,10 @@ var EditSession = function(text, mode) {
     };
     this.setWrapLimitRange = function(min, max) {
         if (this.$wrapLimitRange.min !== min || this.$wrapLimitRange.max !== max) {
-            this.$wrapLimitRange = {
-                min: min,
-                max: max
-            };
+            this.$wrapLimitRange = { min: min, max: max };
             this.$modified = true;
-            this._signal("changeWrapMode");
+            if (this.$useWrapMode)
+                this._signal("changeWrapMode");
         }
     };
     this.adjustWrapLimit = function(desiredLimit, $printMargin) {
@@ -9718,6 +9692,7 @@ config.defineOptions(EditSession.prototype, "session", {
 
             if (this.$wrap == value)
                 return;
+            this.$wrap = value;
             if (!value) {
                 this.setUseWrapMode(false);
             } else {
@@ -9725,7 +9700,6 @@ config.defineOptions(EditSession.prototype, "session", {
                 this.setWrapLimitRange(col, col);
                 this.setUseWrapMode(true);
             }
-            this.$wrap = value;
         },
         get: function() {
             if (this.getUseWrapMode()) {
@@ -10471,29 +10445,33 @@ exports.commands = [{
     name: "fold",
     bindKey: bindKey("Alt-L|Ctrl-F1", "Command-Alt-L|Command-F1"),
     exec: function(editor) { editor.session.toggleFold(false); },
+    multiSelectAction: "forEach",
     scrollIntoView: "center",
     readOnly: true
 }, {
     name: "unfold",
     bindKey: bindKey("Alt-Shift-L|Ctrl-Shift-F1", "Command-Alt-Shift-L|Command-Shift-F1"),
     exec: function(editor) { editor.session.toggleFold(true); },
+    multiSelectAction: "forEach",
     scrollIntoView: "center",
     readOnly: true
 }, {
     name: "toggleFoldWidget",
     bindKey: bindKey("F2", "F2"),
     exec: function(editor) { editor.session.toggleFoldWidget(); },
+    multiSelectAction: "forEach",
     scrollIntoView: "center",
     readOnly: true
 }, {
     name: "toggleParentFoldWidget",
     bindKey: bindKey("Alt-F2", "Alt-F2"),
     exec: function(editor) { editor.session.toggleFoldWidget(true); },
+    multiSelectAction: "forEach",
     scrollIntoView: "center",
     readOnly: true
 }, {
     name: "foldall",
-    bindKey: bindKey("Ctrl-Alt-0", "Ctrl-Command-Option-0"),
+    bindKey: bindKey(null, "Ctrl-Command-Option-0"),
     exec: function(editor) { editor.session.foldAll(); },
     scrollIntoView: "center",
     readOnly: true
@@ -10789,7 +10767,7 @@ exports.commands = [{
     readOnly: true
 }, {
     name: "passKeysToBrowser",
-    bindKey: bindKey("null", "null"),
+    bindKey: bindKey(null, null),
     exec: function() {},
     passEvent: true,
     readOnly: true
@@ -11473,9 +11451,12 @@ var Editor = function(renderer, session) {
                 return;
             }
             
-            if (token.type.indexOf("tag-open") != -1)
+            if (token.type.indexOf("tag-open") != -1) {
                 token = iterator.stepForward();
-
+                if (!token)
+                    return;
+            }
+            
             var tag = token.value;
             var depth = 0;
             var prevToken = iterator.stepBackward();
@@ -14629,6 +14610,7 @@ text-indent: 0;\
 z-index: 1;\
 position: absolute;\
 overflow: hidden;\
+word-wrap: normal;\
 white-space: pre;\
 height: 100%;\
 width: 100%;\
@@ -15332,7 +15314,7 @@ var VirtualRenderer = function(container, theme) {
         this.setOption("hScrollBarAlwaysVisible", alwaysVisible);
     };
     this.getVScrollBarAlwaysVisible = function() {
-        return this.$hScrollBarAlwaysVisible;
+        return this.$vScrollBarAlwaysVisible;
     };
     this.setVScrollBarAlwaysVisible = function(alwaysVisible) {
         this.setOption("vScrollBarAlwaysVisible", alwaysVisible);
@@ -18064,7 +18046,7 @@ function findAnnotations(session, row, dir) {
     if (i < 0)
         i = -i - 1;
     
-    if (i >= annotations.length - 1)
+    if (i >= annotations.length)
         i = dir > 0 ? 0 : annotations.length - 1;
     else if (i === 0 && dir < 0)
         i = annotations.length - 1;

@@ -251,6 +251,9 @@ var RubyHighlightRules = function() {
                     return currentState;
                 }
             }, {
+               token : "string.character",
+               regex : "\\B\\?."
+            }, {
                 token : "keyword.operator",
                 regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
             }, {
@@ -552,7 +555,7 @@ var CstyleBehaviour = function() {
                     text: quote + selected + quote,
                     selection: false
                 };
-            } else {
+            } else if (!selected) {
                 var cursor = editor.getCursorPosition();
                 var line = session.doc.getLine(cursor.row);
                 var leftChar = line.substring(cursor.column-1, cursor.column);
@@ -573,7 +576,7 @@ var CstyleBehaviour = function() {
                     if (stringBefore && !stringAfter)
                         return null; // wrap string with different quote
                     if (stringBefore && stringAfter)
-                        return null; // do not pair quotes inside strings 
+                        return null; // do not pair quotes inside strings
                     var wordRe = session.$mode.tokenRe;
                     wordRe.lastIndex = 0;
                     var isWordBefore = wordRe.test(leftChar);

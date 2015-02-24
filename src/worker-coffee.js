@@ -6877,13 +6877,13 @@ oop.inherits(Worker, Mirror);
 
     this.onUpdate = function() {
         var value = this.doc.getValue();
-
+        var errors = [];
         try {
             coffee.parse(value).compile();
         } catch(e) {
             var loc = e.location;
             if (loc) {
-                this.sender.emit("error", {
+                errors.push({
                     row: loc.first_line,
                     column: loc.first_column,
                     endRow: loc.last_line,
@@ -6892,9 +6892,8 @@ oop.inherits(Worker, Mirror);
                     type: "error"
                 });
             }
-            return;
         }
-        this.sender.emit("ok");
+        this.sender.emit("annotate", errors);
     };
 
 }).call(Worker.prototype);
