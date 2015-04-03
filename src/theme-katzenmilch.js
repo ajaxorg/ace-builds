@@ -45,6 +45,9 @@ background-color: rgb(232, 242, 254)\
 .ace-katzenmilch .ace_marker-layer .ace_selected-word {\
 border: 1px solid rgba(100, 5, 208, 0.27)\
 }\
+.ace-katzenmilch .ace_invisible {\
+color: #BFBFBF\
+}\
 .ace-katzenmilch .ace_fold {\
 background-color: rgba(2, 95, 73, 0.97);\
 border-color: rgba(15, 0, 9, 1.0)\

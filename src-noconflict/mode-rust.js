@@ -4,19 +4,14 @@ ace.define("ace/mode/rust_highlight_rules",["require","exports","module","ace/li
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
+var stringEscape = /\\(?:[nrt0'"]|x[\da-fA-F]{2}|u\{[\da-fA-F]{6}\})/.source;
 var RustHighlightRules = function() {
 
     this.$rules = { start: 
        [ { token: 'variable.other.source.rust',
            regex: '\'[a-zA-Z_][a-zA-Z0-9_]*[^\\\']' },
          { token: 'string.quoted.single.source.rust',
-           regex: '\'',
-           push: 
-            [ { token: 'string.quoted.single.source.rust',
-                regex: '\'',
-                next: 'pop' },
-              { include: '#rust_escaped_character' },
-              { defaultToken: 'string.quoted.single.source.rust' } ] },
+           regex: "'(?:[^'\\\\]|" + stringEscape + ")'" },
          {
             stateName: "bracketedComment",
             onMatch : function(value, currentState, stack){
@@ -52,14 +47,15 @@ var RustHighlightRules = function() {
             [ { token: 'string.quoted.double.source.rust',
                 regex: '"',
                 next: 'pop' },
-              { include: '#rust_escaped_character' },
+              { token: 'constant.character.escape.source.rust',
+                regex: stringEscape },
               { defaultToken: 'string.quoted.double.source.rust' } ] },
          { token: [ 'keyword.source.rust', 'meta.function.source.rust',
               'entity.name.function.source.rust', 'meta.function.source.rust' ],
            regex: '\\b(fn)(\\s+)([a-zA-Z_][a-zA-Z0-9_][\\w\\:,+ \\\'<>]*)(\\s*\\()' },
          { token: 'support.constant', regex: '\\b[a-zA-Z_][\\w\\d]*::' },
          { token: 'keyword.source.rust',
-           regex: '\\b(?:as|assert|break|claim|const|copy|Copy|do|drop|else|extern|fail|for|if|impl|in|let|log|loop|match|mod|module|move|mut|Owned|priv|pub|pure|ref|return|unchecked|unsafe|use|while|mod|Send|static|trait|class|struct|enum|type)\\b' },
+           regex: '\\b(?:as|assert|break|claim|const|do|drop|else|extern|fail|for|if|impl|in|let|log|loop|match|mod|module|move|mut|Owned|priv|pub|pure|ref|return|unchecked|unsafe|use|while|mod|Send|static|trait|class|struct|enum|type)\\b' },
          { token: 'storage.type.source.rust',
            regex: '\\b(?:Self|m32|m64|m128|f80|f16|f128|int|uint|isize|usize|float|char|bool|u8|u16|u32|u64|f32|f64|i8|i16|i32|i64|str|option|either|c_float|c_double|c_void|FILE|fpos_t|DIR|dirent|c_char|c_schar|c_uchar|c_short|c_ushort|c_int|c_uint|c_long|c_ulong|size_t|ptrdiff_t|clock_t|time_t|c_longlong|c_ulonglong|intptr_t|uintptr_t|off_t|dev_t|ino_t|pid_t|mode_t|ssize_t)\\b' },
          { token: 'variable.language.source.rust', regex: '\\bself\\b' },
@@ -103,10 +99,7 @@ var RustHighlightRules = function() {
               { token: 'comment.end.block.source.rust',
                 regex: '\\*/',
                 next: 'pop' },
-              { defaultToken: 'comment.block.source.rust' } ] } ],
-      '#rust_escaped_character': 
-       [ { token: 'constant.character.escape.source.rust',
-           regex: '\\\\(?:x[\\da-fA-F]{2}|[0-2][0-7]{,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.)' } ] }
+              { defaultToken: 'comment.block.source.rust' } ] } ] }
     
     this.normalizeRules();
 };

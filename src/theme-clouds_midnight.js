@@ -41,7 +41,7 @@ background-color: rgba(215, 215, 215, 0.031)\
 border: 1px solid #000000\
 }\
 .ace-clouds-midnight .ace_invisible {\
-color: #BFBFBF\
+color: #666\
 }\
 .ace-clouds-midnight .ace_keyword,\
 .ace-clouds-midnight .ace_meta,\

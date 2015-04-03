@@ -95,7 +95,7 @@ var supportedModes = {
     ActionScript:["as"],
     ADA:         ["ada|adb"],
     Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
-    AsciiDoc:    ["asciidoc"],
+    AsciiDoc:    ["asciidoc|adoc"],
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
@@ -414,7 +414,7 @@ module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
         });
         
         var el = topmenu.appendChild(document.createElement('div'));
-        var version = "1.1.8";
+        var version = "1.1.9";
         el.style.padding = "1em";
         el.textContent = "Ace version " + version;
         

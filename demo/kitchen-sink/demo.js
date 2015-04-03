@@ -1269,7 +1269,7 @@ var supportedModes = {
     ActionScript:["as"],
     ADA:         ["ada|adb"],
     Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
-    AsciiDoc:    ["asciidoc"],
+    AsciiDoc:    ["asciidoc|adoc"],
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
@@ -4024,8 +4024,12 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
   };
   this.scrollInfo = function() { return 0; };
   this.scrollIntoView = function(pos, margin) {
-    if (pos)
-      this.ace.renderer.scrollCursorIntoView(toAcePos(pos), null, margin);
+    if (pos) {
+      var renderer = this.ace.renderer;
+      var viewMargin = { "top": 0, "bottom": margin };
+      renderer.scrollCursorIntoView(toAcePos(pos),
+        (renderer.lineHeight * 2) / renderer.$size.scrollerHeight, viewMargin);
+    }
   };
   this.getLine = function(row) { return this.ace.session.getLine(row) };
   this.getRange = function(s, e) {
@@ -4340,7 +4344,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
     if (inp) {
       if (options.value) {
         inp.value = options.value;
-        inp.select();
+        if (options.select !== false) inp.select();
       }
 
       if (options.onInput)
@@ -4647,9 +4651,11 @@ dom.importCssString(".normal-mode .ace_cursor{\
     }
 
     var numberRegex = /[\d]/;
-    var wordRegexp = [{test: CodeMirror.isWordChar}, {test: function(ch) {
-      return !CodeMirror.isWordChar(ch) && !/\s/.test(ch);
-    }}], bigWordRegexp = [(/\S/)];
+    var wordCharTest = [CodeMirror.isWordChar, function(ch) {
+      return ch && !CodeMirror.isWordChar(ch) && !/\s/.test(ch);
+    }], bigWordCharTest = [function(ch) {
+      return /\S/.test(ch);
+    }];
     function makeKeyRange(start, size) {
       var keys = [];
       for (var i = start; i < start + size; i++) {
@@ -4887,6 +4893,8 @@ dom.importCssString(".normal-mode .ace_cursor{\
       },
       maybeInitVimState_: maybeInitVimState,
 
+      suppressErrorLogging: false,
+
       InsertModeKey: InsertModeKey,
       map: function(lhs, rhs, ctx) {
         exCommandDispatcher.map(lhs, rhs, ctx);
@@ -5016,7 +5024,9 @@ dom.importCssString(".normal-mode .ace_cursor{\
               } catch (e) {
                 cm.state.vim = undefined;
                 maybeInitVimState(cm);
-                console['log'](e);
+                if (!CodeMirror.Vim.suppressErrorLogging) {
+                  console['log'](e);
+                }
                 throw e;
               }
               return true;
@@ -5026,7 +5036,16 @@ dom.importCssString(".normal-mode .ace_cursor{\
       },
       handleEx: function(cm, input) {
         exCommandDispatcher.processCommand(cm, input);
-      }
+      },
+
+      defineMotion: defineMotion,
+      defineAction: defineAction,
+      defineOperator: defineOperator,
+      mapCommand: mapCommand,
+      _mapCommand: _mapCommand,
+
+      exitVisualMode: exitVisualMode,
+      exitInsertMode: exitInsertMode
     };
     function InputState() {
       this.prefixRepeat = [];
@@ -5238,12 +5257,10 @@ dom.importCssString(".normal-mode .ace_cursor{\
             break;
           case 'search':
             this.processSearch(cm, vim, command);
-            clearInputState(cm);
             break;
           case 'ex':
           case 'keyToEx':
             this.processEx(cm, vim, command);
-            clearInputState(cm);
             break;
           default:
             break;
@@ -5329,6 +5346,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
             updateSearchQuery(cm, query, ignoreCase, smartCase);
           } catch (e) {
             showConfirm(cm, 'Invalid regex: ' + query);
+            clearInputState(cm);
             return;
           }
           commandDispatcher.processMotion(cm, vim, {
@@ -5377,6 +5395,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
             clearSearchHighlight(cm);
             cm.scrollTo(originalScrollPos.left, originalScrollPos.top);
             CodeMirror.e_stop(e);
+            clearInputState(cm);
             close();
             cm.focus();
           }
@@ -5437,6 +5456,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
             vimGlobalState.exCommandHistoryController.pushInput(input);
             vimGlobalState.exCommandHistoryController.reset();
             CodeMirror.e_stop(e);
+            clearInputState(cm);
             close();
             cm.focus();
           }
@@ -5454,7 +5474,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         } else {
           if (vim.visualMode) {
             showPrompt(cm, { onClose: onPromptClose, prefix: ':', value: '\'<,\'>',
-                onKeyDown: onPromptKeyDown});
+                onKeyDown: onPromptKeyDown, select: false});
           } else {
             showPrompt(cm, { onClose: onPromptClose, prefix: ':',
                 onKeyDown: onPromptKeyDown});
@@ -5626,7 +5646,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
           var operatorMoveTo = operators[operator](
             cm, operatorArgs, cmSel.ranges, oldAnchor, newHead);
           if (vim.visualMode) {
-            exitVisualMode(cm);
+            exitVisualMode(cm, operatorMoveTo != null);
           }
           if (operatorMoveTo) {
             cm.setCursor(operatorMoveTo);
@@ -5962,6 +5982,10 @@ dom.importCssString(".normal-mode .ace_cursor{\
       }
     };
 
+    function defineMotion(name, fn) {
+      motions[name] = fn;
+    }
+
     function fillArray(val, times) {
       var arr = [];
       for (var i = 0; i < times; i++) {
@@ -6034,7 +6058,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         vimGlobalState.registerController.pushText(
             args.registerName, 'delete', text,
             args.linewise, vim.visualBlock);
-        return finalHead;
+        return clipCursorToContent(cm, finalHead);
       },
       indent: function(cm, args, ranges) {
         var vim = cm.state.vim;
@@ -6096,6 +6120,10 @@ dom.importCssString(".normal-mode .ace_cursor{\
         return endPos;
       }
     };
+
+    function defineOperator(name, fn) {
+      operators[name] = fn;
+    }
 
     var actions = {
       jumpListWalk: function(cm, actionArgs, vim) {
@@ -6303,6 +6331,11 @@ dom.importCssString(".normal-mode .ace_cursor{\
         if (vim.visualMode) {
           curStart = cm.getCursor('anchor');
           curEnd = cm.getCursor('head');
+          if (cursorIsBefore(curEnd, curStart)) {
+            var tmp = curEnd;
+            curEnd = curStart;
+            curStart = tmp;
+          }
           curEnd.ch = lineLength(cm, curEnd.line) - 1;
         } else {
           var repeat = Math.max(actionArgs.repeat, 2);
@@ -6320,10 +6353,10 @@ dom.importCssString(".normal-mode .ace_cursor{\
           cm.replaceRange(text, curStart, tmp);
         }
         var curFinalPos = Pos(curStart.line, finalCh);
-        cm.setCursor(curFinalPos);
         if (vim.visualMode) {
-          exitVisualMode(cm);
+          exitVisualMode(cm, false);
         }
+        cm.setCursor(curFinalPos);
       },
       newLineAndEnterInsertMode: function(cm, actionArgs, vim) {
         vim.insertMode = true;
@@ -6474,7 +6507,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
           }
         }
         if (vim.visualMode) {
-          exitVisualMode(cm);
+          exitVisualMode(cm, false);
         }
         cm.setCursor(curPosFinal);
       },
@@ -6529,7 +6562,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
             curStart = cursorIsBefore(selections[0].anchor, selections[0].head) ?
                          selections[0].anchor : selections[0].head;
             cm.setCursor(curStart);
-            exitVisualMode(cm);
+            exitVisualMode(cm, false);
           } else {
             cm.setCursor(offsetCursor(curEnd, 0, -1));
           }
@@ -6576,6 +6609,10 @@ dom.importCssString(".normal-mode .ace_cursor{\
       },
       exitInsertMode: exitInsertMode
     };
+
+    function defineAction(name, fn) {
+      actions[name] = fn;
+    }
     function clipCursorToContent(cm, cur, includeLineBreak) {
       var line = Math.min(Math.max(cm.firstLine(), cur.line), cm.lastLine() );
       var maxCh = lineLength(cm, line) - 1;
@@ -6691,9 +6728,6 @@ dom.importCssString(".normal-mode .ace_cursor{\
     }
     function lineLength(cm, lineNum) {
       return cm.getLine(lineNum).length;
-    }
-    function reverse(s){
-      return s.split('').reverse().join('');
     }
     function trim(s) {
       if (s.trim) {
@@ -6964,55 +6998,36 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var cur = getHead(cm);
       var line = cm.getLine(cur.line);
       var idx = cur.ch;
-      var textAfterIdx = line.substring(idx);
-      var firstMatchedChar;
-      if (noSymbol) {
-        firstMatchedChar = textAfterIdx.search(/\w/);
-      } else {
-        firstMatchedChar = textAfterIdx.search(/\S/);
+      var test = noSymbol ? wordCharTest[0] : bigWordCharTest [0];
+      while (!test(line.charAt(idx))) {
+        idx++;
+        if (idx >= line.length) { return null; }
       }
-      if (firstMatchedChar == -1) {
-        return null;
-      }
-      idx += firstMatchedChar;
-      textAfterIdx = line.substring(idx);
-      var textBeforeIdx = line.substring(0, idx);
 
-      var matchRegex;
       if (bigWord) {
-        matchRegex = /^\S+/;
+        test = bigWordCharTest[0];
       } else {
-        if ((/\w/).test(line.charAt(idx))) {
-          matchRegex = /^\w+/;
-        } else {
-          matchRegex = /^[^\w\s]+/;
+        test = wordCharTest[0];
+        if (!test(line.charAt(idx))) {
+          test = wordCharTest[1];
         }
       }
 
-      var wordAfterRegex = matchRegex.exec(textAfterIdx);
-      var wordStart = idx;
-      var wordEnd = idx + wordAfterRegex[0].length;
-      var revTextBeforeIdx = reverse(textBeforeIdx);
-      var wordBeforeRegex = matchRegex.exec(revTextBeforeIdx);
-      if (wordBeforeRegex) {
-        wordStart -= wordBeforeRegex[0].length;
-      }
+      var end = idx, start = idx;
+      while (test(line.charAt(end)) && end < line.length) { end++; }
+      while (test(line.charAt(start)) && start >= 0) { start--; }
+      start++;
 
       if (inclusive) {
-        var textAfterWordEnd = line.substring(wordEnd);
-        var whitespacesAfterWord = textAfterWordEnd.match(/^\s*/)[0].length;
-        if (whitespacesAfterWord > 0) {
-          wordEnd += whitespacesAfterWord;
-        } else {
-          var revTrim = revTextBeforeIdx.length - wordStart;
-          var textBeforeWordStart = revTextBeforeIdx.substring(revTrim);
-          var whitespacesBeforeWord = textBeforeWordStart.match(/^\s*/)[0].length;
-          wordStart -= whitespacesBeforeWord;
+        var wordEnd = end;
+        while (/\s/.test(line.charAt(end)) && end < line.length) { end++; }
+        if (wordEnd == end) {
+          var wordStart = start;
+          while (/\s/.test(line.charAt(start - 1)) && start > 0) { start--; }
+          if (!start) { start = wordStart; }
         }
       }
-
-      return { start: Pos(cur.line, wordStart),
-               end: Pos(cur.line, wordEnd) };
+      return { start: Pos(cur.line, start), end: Pos(cur.line, end) };
     }
 
     function recordJumpPosition(cm, oldCur, newCur) {
@@ -7149,7 +7164,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var pos = cur.ch;
       var line = cm.getLine(lineNum);
       var dir = forward ? 1 : -1;
-      var regexps = bigWord ? bigWordRegexp : wordRegexp;
+      var charTests = bigWord ? bigWordCharTest: wordCharTest;
 
       if (emptyLineIsWord && line == '') {
         lineNum += dir;
@@ -7168,10 +7183,10 @@ dom.importCssString(".normal-mode .ace_cursor{\
         var wordStart = stop, wordEnd = stop;
         while (pos != stop) {
           var foundWord = false;
-          for (var i = 0; i < regexps.length && !foundWord; ++i) {
-            if (regexps[i].test(line.charAt(pos))) {
+          for (var i = 0; i < charTests.length && !foundWord; ++i) {
+            if (charTests[i](line.charAt(pos))) {
               wordStart = pos;
-              while (pos != stop && regexps[i].test(line.charAt(pos))) {
+              while (pos != stop && charTests[i](line.charAt(pos))) {
                 pos += dir;
               }
               wordEnd = pos;
@@ -7431,6 +7446,12 @@ dom.importCssString(".normal-mode .ace_cursor{\
       },
       setReversed: function(reversed) {
         vimGlobalState.isReversed = reversed;
+      },
+      getScrollbarAnnotate: function() {
+        return this.annotate;
+      },
+      setScrollbarAnnotate: function(annotate) {
+        this.annotate = annotate;
       }
     };
     function getSearchState(cm) {
@@ -7440,7 +7461,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
     function dialog(cm, template, shortText, onClose, options) {
       if (cm.openDialog) {
         cm.openDialog(template, onClose, { bottom: true, value: options.value,
-            onKeyDown: options.onKeyDown, onKeyUp: options.onKeyUp });
+            onKeyDown: options.onKeyDown, onKeyUp: options.onKeyUp, select: options.select });
       }
       else {
         onClose(prompt(shortText, ''));
@@ -7669,14 +7690,21 @@ dom.importCssString(".normal-mode .ace_cursor{\
       };
     }
     function highlightSearchMatches(cm, query) {
-      var overlay = getSearchState(cm).getOverlay();
+      var searchState = getSearchState(cm);
+      var overlay = searchState.getOverlay();
       if (!overlay || query != overlay.query) {
         if (overlay) {
           cm.removeOverlay(overlay);
         }
         overlay = searchOverlay(query);
         cm.addOverlay(overlay);
-        getSearchState(cm).setOverlay(overlay);
+        if (cm.showMatchesOnScrollbar) {
+          if (searchState.getScrollbarAnnotate()) {
+            searchState.getScrollbarAnnotate().clear();
+          }
+          searchState.setScrollbarAnnotate(cm.showMatchesOnScrollbar(query));
+        }
+        searchState.setOverlay(overlay);
       }
     }
     function findNext(cm, prev, query, repeat) {
@@ -7699,8 +7727,13 @@ dom.importCssString(".normal-mode .ace_cursor{\
       });
     }
     function clearSearchHighlight(cm) {
+      var state = getSearchState(cm);
       cm.removeOverlay(getSearchState(cm).getOverlay());
-      getSearchState(cm).setOverlay(null);
+      state.setOverlay(null);
+      if (state.getScrollbarAnnotate()) {
+        state.getScrollbarAnnotate().clear();
+        state.setScrollbarAnnotate(null);
+      }
     }
     function isInRange(pos, start, end) {
       if (typeof pos != 'number') {
@@ -8418,6 +8451,19 @@ dom.importCssString(".normal-mode .ace_cursor{\
         logInsertModeChange(macroModeState);
       }
     }
+
+    function _mapCommand(command) {
+      defaultKeymap.push(command);
+    }
+
+    function mapCommand(keys, type, name, args, extra) {
+      var command = {keys: keys, type: type};
+      command[type] = name;
+      command[type + "Args"] = args;
+      for (var key in extra)
+        command[key] = extra[key];
+      _mapCommand(command);
+    }
     defineOption('insertModeEscKeysTimeout', 200, 'number');
 
     CodeMirror.keyMap['vim-insert'] = {
@@ -8568,6 +8614,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var macroModeState = vimGlobalState.macroModeState;
       var lastChange = macroModeState.lastInsertModeChanges;
       var keyName = CodeMirror.keyName(e);
+      if (!keyName) { return; }
       function onKeyFound() {
         lastChange.changes.push(new InsertModeKey(keyName));
         return true;
@@ -10688,7 +10735,7 @@ var Autocomplete = function() {
     this.blurListener = function(e) {
         var el = document.activeElement;
         var text = this.editor.textInput.getElement()
-        if (el != text && el.parentNode != this.popup.container
+        if (el != text && ( !this.popup || el.parentNode != this.popup.container )
             && el != this.tooltipNode && e.relatedTarget != this.tooltipNode
             && e.relatedTarget != text
         ) {
@@ -10750,7 +10797,6 @@ var Autocomplete = function() {
         "Ctrl-Down|Ctrl-End": function(editor) { editor.completer.goTo("end"); },
 
         "Esc": function(editor) { editor.completer.detach(); },
-        "Space": function(editor) { editor.completer.detach(); editor.insert(" ");},
         "Return": function(editor) { return editor.completer.insertMatch(); },
         "Shift-Return": function(editor) { editor.completer.insertMatch(true); },
         "Tab": function(editor) {
@@ -12067,7 +12113,7 @@ new StatusBar(env.editor, cmdLine.container);
 
 
 var Emmet = require("ace/ext/emmet");
-net.loadScript("https://nightwing.github.io/emmet-core/emmet.js", function() {
+net.loadScript("https://cloud9ide.github.io/emmet-core/emmet.js", function() {
     Emmet.setCore(window.emmet);
     env.editor.setOption("enableEmmet", true);
 });
