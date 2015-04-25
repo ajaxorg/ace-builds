@@ -1870,7 +1870,6 @@ function getCompletionPrefix(editor) {
 
 var doLiveAutocomplete = function(e) {
     var editor = e.editor;
-    var text = e.args || "";
     var hasCompleter = editor.completer && editor.completer.activated;
     if (e.command.name === "backspace") {
         if (hasCompleter && !getCompletionPrefix(editor))

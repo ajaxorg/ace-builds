@@ -50,9 +50,8 @@ var RustHighlightRules = function() {
               { token: 'constant.character.escape.source.rust',
                 regex: stringEscape },
               { defaultToken: 'string.quoted.double.source.rust' } ] },
-         { token: [ 'keyword.source.rust', 'meta.function.source.rust',
-              'entity.name.function.source.rust', 'meta.function.source.rust' ],
-           regex: '\\b(fn)(\\s+)([a-zA-Z_][a-zA-Z0-9_][\\w\\:,+ \\\'<>]*)(\\s*\\()' },
+         { token: [ 'keyword.source.rust', 'text', 'entity.name.function.source.rust' ],
+           regex: '\\b(fn)(\\s+)([a-zA-Z_][a-zA-Z0-9_]*)' },
          { token: 'support.constant', regex: '\\b[a-zA-Z_][\\w\\d]*::' },
          { token: 'keyword.source.rust',
            regex: '\\b(?:as|assert|break|claim|const|do|drop|else|extern|fail|for|if|impl|in|let|log|loop|match|mod|module|move|mut|Owned|priv|pub|pure|ref|return|unchecked|unsafe|use|while|mod|Send|static|trait|class|struct|enum|type)\\b' },
@@ -141,7 +140,7 @@ oop.inherits(FoldMode, BaseFoldMode);
     this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
-    this.startRegionRe = /^\s*(\/\*|\/\/)#region\b/;
+    this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
     this._getFoldWidgetBase = this.getFoldWidget;
     this.getFoldWidget = function(session, foldStyle, row) {
         var line = session.getLine(row);
@@ -229,13 +228,12 @@ oop.inherits(FoldMode, BaseFoldMode);
         
         return new Range(startRow, startColumn, endRow, session.getLine(endRow).length);
     };
-    
     this.getCommentRegionBlock = function(session, line, row) {
         var startColumn = line.search(/\s*$/);
         var maxRow = session.getLength();
         var startRow = row;
         
-        var re = /^\s*(?:\/\*|\/\/)#(end)?region\b/;
+        var re = /^\s*(?:\/\*|\/\/|--)#?(end)?region\b/;
         var depth = 1;
         while (++row < maxRow) {
             line = session.getLine(row);

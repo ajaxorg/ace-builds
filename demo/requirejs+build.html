@@ -28,7 +28,7 @@
     }
 }</pre>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.17/require.js"></script>
+<script src="../demo/kitchen-sink/require.js"></script>
 <script>
     require.config({paths: {ace: "../src"}})
     define('testace', ['ace/ace'],
@@ -37,6 +37,9 @@
             var editor = ace.edit("editor");
             editor.setTheme("ace/theme/twilight");
             editor.session.setMode("ace/mode/javascript");
+            require(["ace/requirejs/text!src/ace"], function(e){
+                editor.setValue(e);
+            })
         }
     );
     require(['testace'])
