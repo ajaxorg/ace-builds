@@ -680,8 +680,8 @@ var CstyleBehaviour = function() {
                 if (leftChar == "\\" && token && /escape/.test(token.type))
                     return null;
                 
-                var stringBefore = token && /string/.test(token.type);
-                var stringAfter = !rightToken || /string/.test(rightToken.type);
+                var stringBefore = token && /string|escape/.test(token.type);
+                var stringAfter = !rightToken || /string|escape/.test(rightToken.type);
                 
                 var pair;
                 if (rightChar == quote) {
@@ -2778,9 +2778,9 @@ oop.inherits(Mode, TextMode);
                     level += indentKeywords[token.value];
                 }
             } else if (token.type == "paren.lparen") {
-                level ++;
+                level += token.value.length;
             } else if (token.type == "paren.rparen") {
-                level --;
+                level -= token.value.length;
             }
         }
         if (level < 0) {

@@ -99,8 +99,8 @@ var supportedModes = {
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
-    C9Search:    ["c9search_results"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp"],
+    C9Search:    ["c9search_results"],
     Cirru:       ["cirru|cr"],
     Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
@@ -161,6 +161,7 @@ var supportedModes = {
     Markdown:    ["md|markdown"],
     Mask:        ["mask"],
     MATLAB:      ["matlab"],
+    Maze:        ["mz"],
     MEL:         ["mel"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
@@ -170,7 +171,7 @@ var supportedModes = {
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
-    PHP:         ["php|phtml"],
+    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
     Prolog:      ["plg|prolog"],
@@ -417,7 +418,7 @@ module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
         });
         
         var el = topmenu.appendChild(document.createElement('div'));
-        var version = "1.1.9";
+        var version = "1.2.0";
         el.style.padding = "1em";
         el.textContent = "Ace version " + version;
         

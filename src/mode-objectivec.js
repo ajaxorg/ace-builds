@@ -99,6 +99,10 @@ var c_cppHighlightRules = function() {
         "start" : [
             {
                 token : "comment",
+                regex : "//$",
+                next : "start"
+            }, {
+                token : "comment",
                 regex : "//",
                 next : "singleLineComment"
             },

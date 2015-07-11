@@ -624,11 +624,11 @@ var TabstopManager = function(editor) {
         this.editor = null;
     };
 
-    this.onChange = function(e) {
-        var changeRange = e.data.range;
-        var isRemove = e.data.action[0] == "r";
-        var start = changeRange.start;
-        var end = changeRange.end;
+    this.onChange = function(delta) {
+        var changeRange = delta;
+        var isRemove = delta.action[0] == "r";
+        var start = delta.start;
+        var end = delta.end;
         var startRow = start.row;
         var endRow = end.row;
         var lineDif = endRow - startRow;
@@ -901,10 +901,9 @@ var Editor = require("./editor").Editor;
 
 });
 
-define("ace/autocomplete/popup",["require","exports","module","ace/edit_session","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
+define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
-var EditSession = require("../edit_session").EditSession;
 var Renderer = require("../virtual_renderer").VirtualRenderer;
 var Editor = require("../editor").Editor;
 var Range = require("../range").Range;
@@ -1090,8 +1089,8 @@ var AcePopup = function(parentNode) {
 
     popup.data = [];
     popup.setData = function(list) {
-        popup.data = list || [];
         popup.setValue(lang.stringRepeat("\n", list.length), -1);
+        popup.data = list || [];
         popup.setRow(0);
     };
     popup.getData = function(row) {
@@ -1329,7 +1328,7 @@ var Autocomplete = function() {
             var rect = editor.container.getBoundingClientRect();
             pos.top += rect.top - renderer.layerConfig.offset;
             pos.left += rect.left - editor.renderer.scrollLeft;
-            pos.left += renderer.$gutterLayer.gutterWidth;
+            pos.left += renderer.gutterWidth;
 
             this.popup.show(pos, lineHeight);
         } else if (keepPopupPosition && !prefix) {
@@ -1369,10 +1368,11 @@ var Autocomplete = function() {
 
     this.blurListener = function(e) {
         var el = document.activeElement;
-        var text = this.editor.textInput.getElement()
-        if (el != text && ( !this.popup || el.parentNode != this.popup.container )
-            && el != this.tooltipNode && e.relatedTarget != this.tooltipNode
-            && e.relatedTarget != text
+        var text = this.editor.textInput.getElement();
+        var fromTooltip = e.relatedTarget && e.relatedTarget == this.tooltipNode;
+        var container = this.popup && this.popup.container;
+        if (el != text && el.parentNode != container && !fromTooltip
+            && el != this.tooltipNode && e.relatedTarget != text
         ) {
             this.detach();
         }
@@ -1400,7 +1400,7 @@ var Autocomplete = function() {
         this.popup.setRow(row);
     };
 
-    this.insertMatch = function(data) {
+    this.insertMatch = function(data, options) {
         if (!data)
             data = this.popup.getData(this.popup.getRow());
         if (!data)
@@ -1433,7 +1433,7 @@ var Autocomplete = function() {
 
         "Esc": function(editor) { editor.completer.detach(); },
         "Return": function(editor) { return editor.completer.insertMatch(); },
-        "Shift-Return": function(editor) { editor.completer.insertMatch(true); },
+        "Shift-Return": function(editor) { editor.completer.insertMatch(null, {deleteSuffix: true}); },
         "Tab": function(editor) {
             var result = editor.completer.insertMatch();
             if (!result && !editor.tabstopManager)
@@ -1564,7 +1564,7 @@ var Autocomplete = function() {
             doc = selected;
 
         if (typeof doc == "string")
-            doc = {docText: doc}
+            doc = {docText: doc};
         if (!doc || !(doc.docHTML || doc.docText))
             return this.hideDocTooltip();
         this.showDocTooltip(doc);
@@ -1630,7 +1630,7 @@ Autocomplete.startCommand = {
     bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
 };
 
-var FilteredList = function(array, filterText, mutateData) {
+var FilteredList = function(array, filterText) {
     this.all = array;
     this.filtered = array;
     this.filterText = filterText || "";

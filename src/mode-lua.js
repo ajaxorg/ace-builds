@@ -342,9 +342,9 @@ oop.inherits(Mode, TextMode);
                     level += indentKeywords[token.value];
                 }
             } else if (token.type == "paren.lparen") {
-                level ++;
+                level += token.value.length;
             } else if (token.type == "paren.rparen") {
-                level --;
+                level -= token.value.length;
             }
         }
         if (level < 0) {

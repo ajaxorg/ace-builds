@@ -1052,7 +1052,7 @@ function warn() {
     s.shift(); // remove warn
     s.shift(); // remove the getter
     s = s.join("\n");
-    if (!/at Object.InjectedScript.|@debugger eval|snippets:\/{3}/.test(s)) {
+    if (!/at Object.InjectedScript.|@debugger eval|snippets:\/{3}|<anonymous>:\d+:\d+/.test(s)) {
         console.error("trying to access to global variable");
     }
 }
@@ -1273,8 +1273,8 @@ var supportedModes = {
     Assembly_x86:["asm"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
-    C9Search:    ["c9search_results"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp"],
+    C9Search:    ["c9search_results"],
     Cirru:       ["cirru|cr"],
     Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
@@ -1335,6 +1335,7 @@ var supportedModes = {
     Markdown:    ["md|markdown"],
     Mask:        ["mask"],
     MATLAB:      ["matlab"],
+    Maze:        ["mz"],
     MEL:         ["mel"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
@@ -1344,7 +1345,7 @@ var supportedModes = {
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
-    PHP:         ["php|phtml"],
+    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
     Prolog:      ["plg|prolog"],
@@ -1560,7 +1561,6 @@ background: rgb(181, 213, 255);\
 }\
 .ace-tm.ace_multiselect .ace_selection.ace_start {\
 box-shadow: 0 0 3px 0px white;\
-border-radius: 2px;\
 }\
 .ace-tm .ace_marker-layer .ace_step {\
 background: rgb(252, 255, 0);\
@@ -1606,18 +1606,20 @@ exports.$detectIndentation = function(lines, fallback) {
         if (!/^\s*[^*+\-\s]/.test(line))
             continue;
 
-        if (line[0] == "\t")
+        if (line[0] == "\t") {
             tabIndents++;
-
-        var spaces = line.match(/^ */)[0].length;
-        if (spaces && line[spaces] != "\t") {
-            var diff = spaces - prevSpaces;
-            if (diff > 0 && !(prevSpaces%diff) && !(spaces%diff))
-                changes[diff] = (changes[diff] || 0) + 1;
-
-            stats[spaces] = (stats[spaces] || 0) + 1;
+            prevSpaces = -Number.MAX_VALUE;
+        } else {
+            var spaces = line.match(/^ */)[0].length;
+            if (spaces && line[spaces] != "\t") {
+                var diff = spaces - prevSpaces;
+                if (diff > 0 && !(prevSpaces%diff) && !(spaces%diff))
+                    changes[diff] = (changes[diff] || 0) + 1;
+    
+                stats[spaces] = (stats[spaces] || 0) + 1;
+            }
+            prevSpaces = spaces;
         }
-        prevSpaces = spaces;
         while (i < max && line[line.length - 1] == "\\")
             line = lines[i++];
     }
@@ -1639,7 +1641,7 @@ exports.$detectIndentation = function(lines, fallback) {
             spaceIndents = score;
             score = stats[1] ? 0.9 : 0.8;
             if (!stats.length)
-                score = 0
+                score = 0;
         } else
             score /= spaceIndents;
 
@@ -1653,9 +1655,11 @@ exports.$detectIndentation = function(lines, fallback) {
     if (first.score && first.score > 1.4)
         var tabLength = first.length;
 
-    if (tabIndents > spaceIndents + 1)
+    if (tabIndents > spaceIndents + 1) {
+        if (tabLength == 1 || spaceIndents < tabIndents / 4 || first.score < 1.8)
+            tabLength = undefined;
         return {ch: "\t", length: tabLength};
-
+    }
     if (spaceIndents > tabIndents + 1)
         return {ch: " ", length: tabLength};
 };
@@ -2482,13 +2486,12 @@ var ElasticTabstopsLite = function(editor) {
     this.onExec = function() {
         recordChanges = true;
     };
-    this.onChange = function(e) {
-        var range = e.data.range
+    this.onChange = function(delta) {
         if (recordChanges) {
-            if (changedRows.indexOf(range.start.row) == -1)
-                changedRows.push(range.start.row);
-            if (range.end.row != range.start.row)
-                changedRows.push(range.end.row);
+            if (changedRows.indexOf(delta.start.row) == -1)
+                changedRows.push(delta.start.row);
+            if (delta.end.row != delta.start.row)
+                changedRows.push(delta.end.row);
         }
     };
 };
@@ -3682,6 +3685,7 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
   CodeMirror.on = event.addListener;
   CodeMirror.off = event.removeListener;
   CodeMirror.isWordChar = function(ch) {
+    if (ch < "\x7f") return /^\w$/.test(ch);
     TextModeTokenRe.lastIndex = 0;
     return TextModeTokenRe.test(ch);
   };
@@ -3699,13 +3703,6 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
     return this.ace.inVirtualSelectionMode && this.ace.selection.index;
   };
   this.onChange = function(delta) {
-    var oldDelta = delta.data;
-    delta = {
-      start: oldDelta.range.start,
-      end: oldDelta.range.end,
-      action: oldDelta.action,
-      lines: oldDelta.lines || [oldDelta.text]
-    };// v1.2 api compatibility
     if (delta.action[0] == 'i') {
       var change = { text: delta.lines };
       var curOp = this.curOp = this.curOp || {};
@@ -4054,7 +4051,9 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
   var optMap = {
     indentWithTabs: "useSoftTabs",
     indentUnit: "tabSize",
-    firstLineNumber: "firstLineNumber"
+    tabSize: "tabSize",
+    firstLineNumber: "firstLineNumber",
+    readOnly: "readOnly"
   };
   this.setOption = function(name, val) {
     this.state[name] = val;
@@ -4097,7 +4096,6 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
         highlight.session = null;
       };
       highlight.updateOnChange = function(delta) {
-        delta = delta.data.range;// v1.2 api compatibility
         var row = delta.start.row;
         if (row == delta.end.row) highlight.cache[row] = undefined;
         else highlight.cache.splice(row, highlight.cache.length);
@@ -4288,6 +4286,23 @@ dom.importCssString(".normal-mode .ace_cursor{\
   font-family: monospace;\
 }", "vimMode");
 (function() {
+  function dialogDiv(cm, template, bottom) {
+    var wrap = cm.ace.container;
+    var dialog;
+    dialog = wrap.appendChild(document.createElement("div"));
+    if (bottom)
+      dialog.className = "ace_dialog ace_dialog-bottom";
+    else
+      dialog.className = "ace_dialog ace_dialog-top";
+
+    if (typeof template == "string") {
+      dialog.innerHTML = template;
+    } else { // Assuming it's a detached DOM element.
+      dialog.appendChild(template);
+    }
+    return dialog;
+  }
+
   function closeNotification(cm, newVal) {
     if (cm.state.currentNotificationClose)
       cm.state.currentNotificationClose();
@@ -4526,6 +4541,27 @@ dom.importCssString(".normal-mode .ace_cursor{\
     { keys: 'g#', type: 'search', searchArgs: { forward: false, querySrc: 'wordUnderCursor', toJumplist: true }},
     { keys: ':', type: 'ex' }
   ];
+  var defaultExCommandMap = [
+    { name: 'colorscheme', shortName: 'colo' },
+    { name: 'map' },
+    { name: 'imap', shortName: 'im' },
+    { name: 'nmap', shortName: 'nm' },
+    { name: 'vmap', shortName: 'vm' },
+    { name: 'unmap' },
+    { name: 'write', shortName: 'w' },
+    { name: 'undo', shortName: 'u' },
+    { name: 'redo', shortName: 'red' },
+    { name: 'set', shortName: 'se' },
+    { name: 'set', shortName: 'se' },
+    { name: 'setlocal', shortName: 'setl' },
+    { name: 'setglobal', shortName: 'setg' },
+    { name: 'sort', shortName: 'sor' },
+    { name: 'substitute', shortName: 's', possiblyAsync: true },
+    { name: 'nohlsearch', shortName: 'noh' },
+    { name: 'delmarks', shortName: 'delm' },
+    { name: 'registers', shortName: 'reg', excludeFromCommandHistory: true },
+    { name: 'global', shortName: 'g' }
+  ];
 
   var Pos = CodeMirror.Pos;
 
@@ -4750,7 +4786,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         return;
       }
       if (name === undefined) {
-        var mode = cm.getMode().name;
+        var mode = cm.getOption('mode');
         return mode == 'null' ? '' : mode;
       } else {
         var mode = name == '' ? 'null' : name;
@@ -4928,13 +4964,15 @@ dom.importCssString(".normal-mode .ace_cursor{\
         exCommandDispatcher.map(lhs, rhs, ctx);
       },
       unmap: function(lhs, ctx) {
-        exCommandDispatcher.unmap(lhs, ctx);
+        exCommandDispatcher.unmap(lhs, ctx || "normal");
       },
       setOption: setOption,
       getOption: getOption,
       defineOption: defineOption,
       defineEx: function(name, prefix, func){
-        if (name.indexOf(prefix) !== 0) {
+        if (!prefix) {
+          prefix = name;
+        } else if (name.indexOf(prefix) !== 0) {
           throw new Error('(Vim.defineEx) "'+prefix+'" is not a prefix of "'+name+'", command not registered');
         }
         exCommands[name]=func;
@@ -5041,6 +5079,8 @@ dom.importCssString(".normal-mode .ace_cursor{\
           return function() {};
         } else {
           return function() {
+            if ((command.operator || command.isEdit) && cm.getOption('readOnly'))
+              return; // ace_patch
             return cm.operation(function() {
               cm.curOp.isVimOp = true;
               try {
@@ -5071,6 +5111,8 @@ dom.importCssString(".normal-mode .ace_cursor{\
       defineOperator: defineOperator,
       mapCommand: mapCommand,
       _mapCommand: _mapCommand,
+
+      defineRegister: defineRegister,
 
       exitVisualMode: exitVisualMode,
       exitInsertMode: exitInsertMode
@@ -5150,6 +5192,14 @@ dom.importCssString(".normal-mode .ace_cursor{\
         return this.keyBuffer.join('');
       }
     };
+    function defineRegister(name, register) {
+      var registers = vimGlobalState.registerController.registers[name];
+      if (!name || name.length != 1) {
+        throw Error('Register name must be 1 character');
+      }
+      registers[name] = register;
+      validRegisters.push(name);
+    }
     function RegisterController(registers) {
       this.registers = registers;
       this.unnamedRegister = registers['"'] = new Register();
@@ -5510,7 +5560,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         } else {
           if (vim.visualMode) {
             showPrompt(cm, { onClose: onPromptClose, prefix: ':', value: '\'<,\'>',
-                onKeyDown: onPromptKeyDown, select: false});
+                onKeyDown: onPromptKeyDown});
           } else {
             showPrompt(cm, { onClose: onPromptClose, prefix: ':',
                 onKeyDown: onPromptKeyDown});
@@ -5560,7 +5610,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
           }
           if (motionArgs.toJumplist) {
             if (!operator)
-              cm.ace.curOp.command.scrollIntoView = "center-animate"; // ace patch
+              cm.ace.curOp.command.scrollIntoView = "center-animate"; // ace_patch
             var jumpList = vimGlobalState.jumpList;
             var cachedCursor = jumpList.cachedCursor;
             if (cachedCursor) {
@@ -6177,7 +6227,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         var markPos = mark ? mark.find() : undefined;
         markPos = markPos ? markPos : cm.getCursor();
         cm.setCursor(markPos);
-        cm.ace.curOp.command.scrollIntoView = "center-animate"; // ace patch
+        cm.ace.curOp.command.scrollIntoView = "center-animate"; // ace_patch
       },
       scroll: function(cm, actionArgs, vim) {
         if (vim.visualMode) {
@@ -6455,7 +6505,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         }
         var linewise = register.linewise;
         var blockwise = register.blockwise;
-        if (linewise) {
+        if (linewise && !blockwise) {
           if(vim.visualMode) {
             text = vim.visualLine ? text.slice(0, -1) : '\n' + text.slice(0, text.length - 1) + '\n';
           } else if (actionArgs.after) {
@@ -7345,7 +7395,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var min = cm.firstLine();
       var max = cm.lastLine();
       var start, end, i = line;
-      function isEmpty(i) { return !/\S/.test(cm.getLine(i)); }
+      function isEmpty(i) { return !/\S/.test(cm.getLine(i)); } // ace_patch
       function isBoundary(i, dir, any) {
         if (any) { return isEmpty(i) != isEmpty(i + dir); }
         return !isEmpty(i) && isEmpty(i + dir);
@@ -7565,13 +7615,17 @@ dom.importCssString(".normal-mode .ace_cursor{\
       }
       return out.join('');
     }
+    var charUnescapes = {'\\n': '\n', '\\r': '\r', '\\t': '\t'};
     function translateRegexReplace(str) {
       var escapeNextChar = false;
       var out = [];
       for (var i = -1; i < str.length; i++) {
         var c = str.charAt(i) || '';
         var n = str.charAt(i+1) || '';
-        if (escapeNextChar) {
+        if (charUnescapes[c + n]) {
+          out.push(charUnescapes[c+n]);
+          i++;
+        } else if (escapeNextChar) {
           out.push(c);
           escapeNextChar = false;
         } else {
@@ -7595,6 +7649,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       }
       return out.join('');
     }
+    var unescapes = {'\\/': '/', '\\\\': '\\', '\\n': '\n', '\\r': '\r', '\\t': '\t'};
     function unescapeRegexReplace(str) {
       var stream = new CodeMirror.StringStream(str);
       var output = [];
@@ -7602,11 +7657,15 @@ dom.importCssString(".normal-mode .ace_cursor{\
         while (stream.peek() && stream.peek() != '\\') {
           output.push(stream.next());
         }
-        if (stream.match('\\/', true)) {
-          output.push('/');
-        } else if (stream.match('\\\\', true)) {
-          output.push('\\');
-        } else {
+        var matched = false;
+        for (var matcher in unescapes) {
+          if (stream.match(matcher, true)) {
+            matched = true;
+            output.push(unescapes[matcher]);
+            break;
+          }
+        }
+        if (!matched) {
           output.push(stream.next());
         }
       }
@@ -7797,27 +7856,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         bottom: renderer.getLastFullyVisibleRow()
       }
     }
-    var defaultExCommandMap = [
-      { name: 'colorscheme', shortName: 'colo' },
-      { name: 'map' },
-      { name: 'imap', shortName: 'im' },
-      { name: 'nmap', shortName: 'nm' },
-      { name: 'vmap', shortName: 'vm' },
-      { name: 'unmap' },
-      { name: 'write', shortName: 'w' },
-      { name: 'undo', shortName: 'u' },
-      { name: 'redo', shortName: 'red' },
-      { name: 'set', shortName: 'se' },
-      { name: 'set', shortName: 'se' },
-      { name: 'setlocal', shortName: 'setl' },
-      { name: 'setglobal', shortName: 'setg' },
-      { name: 'sort', shortName: 'sor' },
-      { name: 'substitute', shortName: 's', possiblyAsync: true },
-      { name: 'nohlsearch', shortName: 'noh' },
-      { name: 'delmarks', shortName: 'delm' },
-      { name: 'registers', shortName: 'reg', excludeFromCommandHistory: true },
-      { name: 'global', shortName: 'g' }
-    ];
+
     var ExCommandDispatcher = function() {
       this.buildCommandMap_();
     };
@@ -8316,6 +8355,9 @@ dom.importCssString(".normal-mode .ace_cursor{\
         var query = state.getQuery();
         var lineStart = (params.line !== undefined) ? params.line : cm.getCursor().line;
         var lineEnd = params.lineEnd || lineStart;
+        if (lineStart == cm.firstLine() && lineEnd == cm.lastLine()) {
+          lineEnd = Infinity;
+        }
         if (count) {
           lineStart = lineEnd;
           lineEnd = lineStart + count - 1;
@@ -8406,8 +8448,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         searchCursor.replace(newText);
       }
       function next() {
-        var found;
-        while(found = searchCursor.findNext() &&
+        while(searchCursor.findNext() &&
               isInRange(searchCursor.from(), lineStart, lineEnd)) {
           if (!global && lastPos && searchCursor.from().line == lastPos.line) {
             continue;
@@ -8522,7 +8563,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
     }
 
     function _mapCommand(command) {
-      defaultKeymap.push(command);
+      defaultKeymap.unshift(command);
     }
 
     function mapCommand(keys, type, name, args, extra) {
@@ -8559,6 +8600,13 @@ dom.importCssString(".normal-mode .ace_cursor{\
 
     function executeMacroRegister(cm, vim, macroModeState, registerName) {
       var register = vimGlobalState.registerController.getRegister(registerName);
+      if (registerName == ':') {
+        if (register.keyBuffer[0]) {
+          exCommandDispatcher.processCommand(cm, register.keyBuffer[0]);
+        }
+        macroModeState.isPlaying = false;
+        return;
+      }
       var keyBuffer = register.keyBuffer;
       var imc = 0;
       macroModeState.isPlaying = true;
@@ -8596,7 +8644,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       if (macroModeState.isPlaying) { return; }
       var registerName = macroModeState.latestRegister;
       var register = vimGlobalState.registerController.getRegister(registerName);
-      if (register) {
+      if (register && register.pushInsertModeChanges) {
         register.pushInsertModeChanges(macroModeState.lastInsertModeChanges);
       }
     }
@@ -8605,7 +8653,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       if (macroModeState.isPlaying) { return; }
       var registerName = macroModeState.latestRegister;
       var register = vimGlobalState.registerController.getRegister(registerName);
-      if (register) {
+      if (register && register.pushSearchQuery) {
         register.pushSearchQuery(query);
       }
     }
@@ -9774,11 +9822,11 @@ var TabstopManager = function(editor) {
         this.editor = null;
     };
 
-    this.onChange = function(e) {
-        var changeRange = e.data.range;
-        var isRemove = e.data.action[0] == "r";
-        var start = changeRange.start;
-        var end = changeRange.end;
+    this.onChange = function(delta) {
+        var changeRange = delta;
+        var isRemove = delta.action[0] == "r";
+        var start = delta.start;
+        var end = delta.end;
         var startRow = start.row;
         var endRow = end.row;
         var lineDif = endRow - startRow;
@@ -10335,10 +10383,9 @@ exports.setCore = function(e) {
 };
 });
 
-define("ace/autocomplete/popup",["require","exports","module","ace/edit_session","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
+define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
-var EditSession = require("../edit_session").EditSession;
 var Renderer = require("../virtual_renderer").VirtualRenderer;
 var Editor = require("../editor").Editor;
 var Range = require("../range").Range;
@@ -10524,8 +10571,8 @@ var AcePopup = function(parentNode) {
 
     popup.data = [];
     popup.setData = function(list) {
-        popup.data = list || [];
         popup.setValue(lang.stringRepeat("\n", list.length), -1);
+        popup.data = list || [];
         popup.setRow(0);
     };
     popup.getData = function(row) {
@@ -10763,7 +10810,7 @@ var Autocomplete = function() {
             var rect = editor.container.getBoundingClientRect();
             pos.top += rect.top - renderer.layerConfig.offset;
             pos.left += rect.left - editor.renderer.scrollLeft;
-            pos.left += renderer.$gutterLayer.gutterWidth;
+            pos.left += renderer.gutterWidth;
 
             this.popup.show(pos, lineHeight);
         } else if (keepPopupPosition && !prefix) {
@@ -10803,10 +10850,11 @@ var Autocomplete = function() {
 
     this.blurListener = function(e) {
         var el = document.activeElement;
-        var text = this.editor.textInput.getElement()
-        if (el != text && ( !this.popup || el.parentNode != this.popup.container )
-            && el != this.tooltipNode && e.relatedTarget != this.tooltipNode
-            && e.relatedTarget != text
+        var text = this.editor.textInput.getElement();
+        var fromTooltip = e.relatedTarget && e.relatedTarget == this.tooltipNode;
+        var container = this.popup && this.popup.container;
+        if (el != text && el.parentNode != container && !fromTooltip
+            && el != this.tooltipNode && e.relatedTarget != text
         ) {
             this.detach();
         }
@@ -10834,7 +10882,7 @@ var Autocomplete = function() {
         this.popup.setRow(row);
     };
 
-    this.insertMatch = function(data) {
+    this.insertMatch = function(data, options) {
         if (!data)
             data = this.popup.getData(this.popup.getRow());
         if (!data)
@@ -10867,7 +10915,7 @@ var Autocomplete = function() {
 
         "Esc": function(editor) { editor.completer.detach(); },
         "Return": function(editor) { return editor.completer.insertMatch(); },
-        "Shift-Return": function(editor) { editor.completer.insertMatch(true); },
+        "Shift-Return": function(editor) { editor.completer.insertMatch(null, {deleteSuffix: true}); },
         "Tab": function(editor) {
             var result = editor.completer.insertMatch();
             if (!result && !editor.tabstopManager)
@@ -10998,7 +11046,7 @@ var Autocomplete = function() {
             doc = selected;
 
         if (typeof doc == "string")
-            doc = {docText: doc}
+            doc = {docText: doc};
         if (!doc || !(doc.docHTML || doc.docText))
             return this.hideDocTooltip();
         this.showDocTooltip(doc);
@@ -11064,7 +11112,7 @@ Autocomplete.startCommand = {
     bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
 };
 
-var FilteredList = function(array, filterText, mutateData) {
+var FilteredList = function(array, filterText) {
     this.all = array;
     this.filtered = array;
     this.filterText = filterText || "";

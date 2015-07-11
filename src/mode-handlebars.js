@@ -680,8 +680,8 @@ var CstyleBehaviour = function() {
                 if (leftChar == "\\" && token && /escape/.test(token.type))
                     return null;
                 
-                var stringBefore = token && /string/.test(token.type);
-                var stringAfter = !rightToken || /string/.test(rightToken.type);
+                var stringBefore = token && /string|escape/.test(token.type);
+                var stringAfter = !rightToken || /string|escape/.test(rightToken.type);
                 
                 var pair;
                 if (rightChar == quote) {
@@ -2535,7 +2535,6 @@ var Mode = function() {
     HtmlMode.call(this);
     this.HighlightRules = HandlebarsHighlightRules;
     this.$behaviour = new HtmlBehaviour();
-
     
     this.foldingRules = new HtmlFoldMode();
 };
@@ -2543,7 +2542,7 @@ var Mode = function() {
 oop.inherits(Mode, HtmlMode);
 
 (function() {
-    this.blockComment = {start: "{!--", end: "--}"};
+    this.blockComment = {start: "{{!--", end: "--}}"};
     this.$id = "ace/mode/handlebars";
 }).call(Mode.prototype);
 

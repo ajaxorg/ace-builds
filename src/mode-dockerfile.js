@@ -551,8 +551,8 @@ var CstyleBehaviour = function() {
                 if (leftChar == "\\" && token && /escape/.test(token.type))
                     return null;
                 
-                var stringBefore = token && /string/.test(token.type);
-                var stringAfter = !rightToken || /string/.test(rightToken.type);
+                var stringBefore = token && /string|escape/.test(token.type);
+                var stringAfter = !rightToken || /string|escape/.test(rightToken.type);
                 
                 var pair;
                 if (rightChar == quote) {
@@ -765,7 +765,7 @@ var DockerfileHighlightRules = function() {
         if (startRules[i].token == "variable.language") {
             startRules.splice(i, 0, {
                 token: "constant.language",
-                regex: "(?:^(?:FROM|MAINTAINER|RUN|CMD|EXPOSE|ENV|ADD|ENTRYPOINT|VOLUME|USER|WORKDIR|ONBUILD|COPY)\\b)",
+                regex: "(?:^(?:FROM|MAINTAINER|RUN|CMD|EXPOSE|ENV|ADD|ENTRYPOINT|VOLUME|USER|WORKDIR|ONBUILD|COPY|LABEL)\\b)",
                 caseInsensitive: true
             });
             break;
