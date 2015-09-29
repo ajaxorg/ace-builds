@@ -502,7 +502,10 @@ var SnippetManager = function() {
                     s.guard = "\\b";
                 s.trigger = lang.escapeRegExp(s.tabTrigger);
             }
-
+            
+            if (!s.trigger && !s.guard && !s.endTrigger && !s.endGuard)
+                return;
+            
             s.startRe = guardedRegexp(s.trigger, s.guard, true);
             s.triggerRe = new RegExp(s.trigger, "", true);
 
@@ -996,7 +999,7 @@ AceEmmetEditor.prototype = {
         return syntax;
     },
     getProfileName: function() {
-        switch(this.getSyntax()) {
+        switch (this.getSyntax()) {
           case "css": return "css";
           case "xml":
           case "xsl":
@@ -1006,8 +1009,10 @@ AceEmmetEditor.prototype = {
             if (!profile)
                 profile = this.ace.session.getLines(0,2).join("").search(/<!DOCTYPE[^>]+XHTML/i) != -1 ? "xhtml": "html";
             return profile;
+          default:
+            var mode = this.ace.session.$mode;
+            return mode.emmetConfig && mode.emmetConfig.profile || "xhtml";
         }
-        return "xhtml";
     },
     prompt: function(title) {
         return prompt(title);
@@ -1095,11 +1100,9 @@ var keymap = {
 
 var editorProxy = new AceEmmetEditor();
 exports.commands = new HashHandler();
-exports.runEmmetCommand = function(editor) {
+exports.runEmmetCommand = function runEmmetCommand(editor) {
     try {
         editorProxy.setupContext(editor);
-        if (editorProxy.getSyntax() == "php")
-            return false;
         var actions = emmet.require("actions");
     
         if (this.action == "expand_abbreviation_with_tab") {
@@ -1120,6 +1123,10 @@ exports.runEmmetCommand = function(editor) {
         
         var result = actions.run(this.action, editorProxy);
     } catch(e) {
+        if (!emmet) {
+            load(runEmmetCommand.bind(this, editor));
+            return true;
+        }
         editor._signal("changeStatus", typeof e == "string" ? e : e.message);
         console.log(e);
         result = false;
@@ -1145,25 +1152,47 @@ exports.updateCommands = function(editor, enabled) {
     }
 };
 
-exports.isSupportedMode = function(modeId) {
-    return modeId && /css|less|scss|sass|stylus|html|php|twig|ejs|handlebars/.test(modeId);
+exports.isSupportedMode = function(mode) {
+    if (!mode) return false;
+    if (mode.emmetConfig) return true;
+    var id = mode.$id || mode;
+    return /css|less|scss|sass|stylus|html|php|twig|ejs|handlebars/.test(id);
 };
+
+exports.isAvailable = function(editor, command) {
+    if (/(evaluate_math_expression|expand_abbreviation)$/.test(command))
+        return true;
+    var mode = editor.session.$mode;
+    var isSupported = exports.isSupportedMode(mode);
+    if (isSupported && mode.$modes) {
+        try {
+            editorProxy.setupContext(editor);
+            if (/js|php/.test(editorProxy.getSyntax()))
+                isSupported = false;
+        } catch(e) {}
+    }
+    return isSupported;
+}
 
 var onChangeMode = function(e, target) {
     var editor = target;
     if (!editor)
         return;
-    var enabled = exports.isSupportedMode(editor.session.$modeId);
+    var enabled = exports.isSupportedMode(editor.session.$mode);
     if (e.enableEmmet === false)
         enabled = false;
-    if (enabled) {
-        if (typeof emmetPath == "string") {
-            require("ace/config").loadModule(emmetPath, function() {
-                emmetPath = null;
-            });
-        }
-    }
+    if (enabled)
+        load();
     exports.updateCommands(editor, enabled);
+};
+
+var load = function(cb) {
+    if (typeof emmetPath == "string") {
+        require("ace/config").loadModule(emmetPath, function() {
+            emmetPath = null;
+            cb && cb();
+        });
+    }
 };
 
 exports.AceEmmetEditor = AceEmmetEditor;

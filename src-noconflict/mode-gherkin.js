@@ -5,6 +5,18 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var stringEscape =  "\\\\(x[0-9A-Fa-f]{2}|[0-7]{3}|[\\\\abfnrtv'\"]|U[0-9A-Fa-f]{8}|u[0-9A-Fa-f]{4})";
 
 var GherkinHighlightRules = function() {
+    var languages = [{
+        name: "en",
+        labels: "Feature|Background|Scenario(?: Outline)?|Examples",
+        keywords: "Given|When|Then|And|But"
+    }];
+    
+    var labels = languages.map(function(l) {
+        return l.labels;
+    }).join("|");
+    var keywords = languages.map(function(l) {
+        return l.keywords;
+    }).join("|");
     this.$rules = {
         start : [{
             token: 'constant.numeric',
@@ -14,7 +26,10 @@ var GherkinHighlightRules = function() {
             regex : "#.*$"
         }, {
             token : "keyword",
-            regex : "Feature:|Background:|Scenario:|Scenario\ Outline:|Examples:|Given|When|Then|And|But|\\*",
+            regex : "(?:" + labels + "):|(?:" + keywords + ")\\b",
+        }, {
+            token : "keyword",
+            regex : "\\*",
         }, {
             token : "string",           // multi line """ string start
             regex : '"{3}',
@@ -39,7 +54,7 @@ var GherkinHighlightRules = function() {
             }]
         }, {
             token : "comment",
-            regex : "<.+>"
+            regex : "<[^>]+>"
         }, {
             token : "comment",
             regex : "\\|(?=.)",

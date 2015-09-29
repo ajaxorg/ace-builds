@@ -333,8 +333,8 @@ oop.inherits(Mode, TextMode);
 
     this.lineCommentStart = "#";
     this.blockComment = [
-        {start: "=begin", end: "=cut"},
-        {start: "=item", end: "=cut"}
+        {start: "=begin", end: "=cut", lineStartOnly: true},
+        {start: "=item", end: "=cut", lineStartOnly: true}
     ];
 
 
