@@ -1309,6 +1309,7 @@ var supportedModes = {
     haXe:        ["hx"],
     HTML:        ["html|htm|xhtml"],
     HTML_Ruby:   ["erb|rhtml|html.erb"],
+    HTML_Elixir: ["eex|html.eex"],
     INI:         ["ini|conf|cfg|prefs"],
     Io:          ["io"],
     Jack:        ["jack"],
@@ -1398,6 +1399,7 @@ var nameOverrides = {
     C_Cpp: "C and C++",
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
+    HTML_Elixir: "HTML (Elixir)",
     FTL: "FreeMarker"
 };
 var modesByName = {};
@@ -3072,7 +3074,8 @@ oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
         var iSearch = this.$iSearch;
         HashHandler.call(this, exports.iSearchCommands, editor.commands.platform);
         this.$commandExecHandler = editor.commands.addEventListener('exec', function(e) {
-            if (!e.command.isIncrementalSearchCommand) return undefined;
+            if (!e.command.isIncrementalSearchCommand)
+                return iSearch.deactivate();
             e.stopPropagation();
             e.preventDefault();
             var scrollTop = editor.session.getScrollTop();
@@ -3099,7 +3102,7 @@ oop.inherits(IncrementalSearchKeyboardHandler, HashHandler);
             var extendCmd = this.commands.extendSearchTerm;
             if (extendCmd) { return {command: extendCmd, args: key}; }
         }
-        return {command: "null", passEvent: hashId == 0 || hashId == 4};
+        return false;
     };
 
 }).call(IncrementalSearchKeyboardHandler.prototype);
@@ -5077,7 +5080,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         if (command === false) {
           return undefined;
         } else if (command === true) {
-          return function() {};
+          return function() { return true; };
         } else {
           return function() {
             if ((command.operator || command.isEdit) && cm.getOption('readOnly'))
@@ -5862,12 +5865,14 @@ dom.importCssString(".normal-mode .ace_cursor{\
             (line > last && cur.line == last)) {
           return;
         }
-        var fold = cm.ace.session.getFoldAt(line, endCh);
+        var fold = cm.ace.session.getFoldLine(line);
         if (fold) {
-          if (motionArgs.forward)
-            line = fold.end.row + 1;
-          else
-            line = fold.start.row - 1;
+          if (motionArgs.forward) {
+            if (line > fold.start.row)
+              line = fold.end.row + 1;
+          } else {
+            line = fold.start.row;
+          }
         }
         if (motionArgs.toFirstChar){
           endCh=findFirstNonWhiteSpaceCharacter(cm.getLine(line));
@@ -7401,8 +7406,17 @@ dom.importCssString(".normal-mode .ace_cursor{\
         if (any) { return isEmpty(i) != isEmpty(i + dir); }
         return !isEmpty(i) && isEmpty(i + dir);
       }
+      function skipFold(i) {
+          dir = dir > 0 ? 1 : -1;
+          var foldLine = cm.ace.session.getFoldLine(i);
+          if (foldLine) {
+              if (i + dir > foldLine.start.row && i + dir < foldLine.end.row)
+                  dir = (dir > 0 ? foldLine.end.row : foldLine.start.row) - i;
+          }
+      }
       if (dir) {
         while (min <= i && i <= max && repeat > 0) {
+          skipFold(i);
           if (isBoundary(i, dir)) { repeat--; }
           i += dir;
         }
@@ -9162,13 +9176,11 @@ var StatusBar = function(editor, parentNode) {
 
     var statusUpdate = lang.delayedCall(function(){
         this.updateStatus(editor)
-    }.bind(this));
-    editor.on("changeStatus", function() {
-        statusUpdate.schedule(100);
-    });
-    editor.on("changeSelection", function() {
-        statusUpdate.schedule(100);
-    });
+    }.bind(this)).schedule.bind(null, 100);
+    
+    editor.on("changeStatus", statusUpdate);
+    editor.on("changeSelection", statusUpdate);
+    editor.on("keyboardActivity", statusUpdate);
 };
 
 (function(){
@@ -9181,13 +9193,17 @@ var StatusBar = function(editor, parentNode) {
         add(editor.keyBinding.getStatusText(editor));
         if (editor.commands.recording)
             add("REC");
-
-        var c = editor.selection.lead;
-        add(c.row + ":" + c.column, " ");
-        if (!editor.selection.isEmpty()) {
+        
+        var sel = editor.selection;
+        var c = sel.lead;
+        
+        if (!sel.isEmpty()) {
             var r = editor.getSelectionRange();
-            add("(" + (r.end.row - r.start.row) + ":"  +(r.end.column - r.start.column) + ")");
+            add("(" + (r.end.row - r.start.row) + ":"  +(r.end.column - r.start.column) + ")", " ");
         }
+        add(c.row + ":" + c.column, " ");        
+        if (sel.rangeCount)
+            add("[" + sel.rangeCount + "]", " ");
         status.pop();
         this.element.textContent = status.join("");
     };

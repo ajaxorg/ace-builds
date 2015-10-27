@@ -79,6 +79,7 @@ var supportedModes = {
     haXe:        ["hx"],
     HTML:        ["html|htm|xhtml"],
     HTML_Ruby:   ["erb|rhtml|html.erb"],
+    HTML_Elixir: ["eex|html.eex"],
     INI:         ["ini|conf|cfg|prefs"],
     Io:          ["io"],
     Jack:        ["jack"],
@@ -168,6 +169,7 @@ var nameOverrides = {
     C_Cpp: "C and C++",
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
+    HTML_Elixir: "HTML (Elixir)",
     FTL: "FreeMarker"
 };
 var modesByName = {};

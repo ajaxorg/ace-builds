@@ -135,6 +135,7 @@ var supportedModes = {
     haXe:        ["hx"],
     HTML:        ["html|htm|xhtml"],
     HTML_Ruby:   ["erb|rhtml|html.erb"],
+    HTML_Elixir: ["eex|html.eex"],
     INI:         ["ini|conf|cfg|prefs"],
     Io:          ["io"],
     Jack:        ["jack"],
@@ -224,6 +225,7 @@ var nameOverrides = {
     C_Cpp: "C and C++",
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
+    HTML_Elixir: "HTML (Elixir)",
     FTL: "FreeMarker"
 };
 var modesByName = {};
@@ -419,7 +421,7 @@ module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
         });
         
         var el = topmenu.appendChild(document.createElement('div'));
-        var version = "1.2.0";
+        var version = "1.2.1";
         el.style.padding = "1em";
         el.textContent = "Ace version " + version;
         

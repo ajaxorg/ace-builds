@@ -136,6 +136,7 @@ var Mode = function(suppressHighlighting) {
 oop.inherits(Mode, TextMode);
 
 (function() {
+   this.lineCommentStart = "%";
    this.getNextLineIndent = function(state, line, tab) {
       return this.$getIndent(line);
    };

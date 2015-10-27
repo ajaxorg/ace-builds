@@ -1159,7 +1159,7 @@ ace.define("ace/mode/typescript_highlight_rules",["require","exports","module","
 var oop = require("../lib/oop");
 var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
 
-var TypeScriptHighlightRules = function() {
+var TypeScriptHighlightRules = function(options) {
 
     var tsRules =  [
         {
@@ -1196,7 +1196,7 @@ var TypeScriptHighlightRules = function() {
         }
     ];
 
-    var JSRules = new JavaScriptHighlightRules().getRules();
+    var JSRules = new JavaScriptHighlightRules({jsx: options && options.jsx}).getRules();
     
     JSRules.start = tsRules.concat(JSRules.start);
     this.$rules = JSRules;

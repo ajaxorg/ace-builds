@@ -2769,7 +2769,7 @@ function GutterHandler(mouseHandler) {
         if (mouseHandler.$tooltipFollowsMouse) {
             moveTooltip(mouseEvent);
         } else {
-            var gutterElement = gutter.$cells[editor.session.documentToScreenRow(row, 0)].element;
+            var gutterElement = mouseEvent.domEvent.target;
             var rect = gutterElement.getBoundingClientRect();
             var style = tooltip.getElement().style;
             style.left = rect.right + "px";
@@ -4089,7 +4089,7 @@ var KeyBinding = function(editor) {
             if (toExecute.command == "null") {
                 success = true;
             } else {
-                success = commands.exec(toExecute.command, this.$editor, toExecute.args, e);                
+                success = commands.exec(toExecute.command, this.$editor, toExecute.args, e);
             }
             if (success && e && hashId != -1 && 
                 toExecute.passEvent != true && toExecute.command.passEvent != true
@@ -4099,6 +4099,15 @@ var KeyBinding = function(editor) {
             if (success)
                 break;
         }
+        
+        if (!success && hashId == -1) {
+            toExecute = {command: "insertstring"};
+            success = commands.exec("insertstring", this.$editor, keyString);
+        }
+        
+        if (success)
+            this.$editor._signal("keyboardActivity", toExecute);
+        
         return success;
     };
 
@@ -4108,9 +4117,7 @@ var KeyBinding = function(editor) {
     };
 
     this.onTextInput = function(text) {
-        var success = this.$callKeyboardHandlers(-1, text);
-        if (!success)
-            this.$editor.commands.exec("insertstring", this.$editor, text);
+        this.$callKeyboardHandlers(-1, text);
     };
 
 }).call(KeyBinding.prototype);
@@ -6459,7 +6466,7 @@ var Document = function(textOrLines) {
         }
     };
     this.replace = function(range, text) {
-        if (!range instanceof Range)
+        if (!(range instanceof Range))
             range = Range.fromPoints(range.start, range.end);
         if (text.length === 0 && range.isEmpty())
             return range.start;
@@ -10441,6 +10448,7 @@ MultiHashHandler.prototype = HashHandler.prototype;
     };
 
     this.handleKeyboard = function(data, hashId, keyString, keyCode) {
+        if (keyCode < 0) return;
         var key = KEY_MODS[hashId] + keyString;
         var command = this.commandKeyBinding[key];
         if (data.$keyChain) {
@@ -13139,7 +13147,7 @@ var UndoManager = function() {
         var deltaSets = this.$undoStack.pop();
         var undoSelectionRange = null;
         if (deltaSets) {
-            undoSelectionRange = this.$doc.undoChanges(this.$deserializeDeltas(deltaSets), dontSelect);
+            undoSelectionRange = this.$doc.undoChanges(deltaSets, dontSelect);
             this.$redoStack.push(deltaSets);
             this.dirtyCounter--;
         }
