@@ -67,7 +67,7 @@ var SwiftHighlightRules = function() {
             + "|safe|Self|self|set|struct|subscript|switch|Type|typealias"
             + "|unowned|unsafe|var|weak|where|while|willSet"
             + "|convenience|dynamic|final|infix|lazy|mutating|nonmutating|optional|override|postfix"
-            + "|prefix|required|static",
+            + "|prefix|required|static|guard|defer",
         "storage.type": "bool|double|Double"
             + "|extension|float|Float|int|Int|private|public|string|String",
         "constant.language":
@@ -143,7 +143,7 @@ var SwiftHighlightRules = function() {
                 regex : "\\/\\/(?=.)",
                 next : [
                     DocCommentHighlightRules.getTagRule(),
-                    {token : "comment", regex : "$|^", nextState : "start"},
+                    {token : "comment", regex : "$|^", next: "start"},
                     {defaultToken : "comment", caseInsensitive: true}
                 ]
             },

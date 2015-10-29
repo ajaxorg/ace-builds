@@ -141,7 +141,7 @@ var supportedModes = {
     Jack:        ["jack"],
     Jade:        ["jade"],
     Java:        ["java"],
-    JavaScript:  ["js|jsm"],
+    JavaScript:  ["js|jsm|jsx"],
     JSON:        ["json"],
     JSONiq:      ["jq"],
     JSP:         ["jsp"],
@@ -399,7 +399,7 @@ module.exports.getSetFunctions = function getSetFunctions (editor) {
 
 });
 
-ace.define("ace/ext/menu_tools/generate_settings_menu",["require","exports","module","ace/ext/menu_tools/element_generator","ace/ext/menu_tools/add_editor_menu_options","ace/ext/menu_tools/get_set_functions"], function(require, exports, module) {
+ace.define("ace/ext/menu_tools/generate_settings_menu",["require","exports","module","ace/ext/menu_tools/element_generator","ace/ext/menu_tools/add_editor_menu_options","ace/ext/menu_tools/get_set_functions","ace/ace"], function(require, exports, module) {
 'use strict';
 var egen = require('./element_generator');
 var addEditorMenuOptions = require('./add_editor_menu_options').addEditorMenuOptions;
@@ -421,7 +421,7 @@ module.exports.generateSettingsMenu = function generateSettingsMenu (editor) {
         });
         
         var el = topmenu.appendChild(document.createElement('div'));
-        var version = "1.2.1";
+        var version = require("../../ace").version;
         el.style.padding = "1em";
         el.textContent = "Ace version " + version;
         
