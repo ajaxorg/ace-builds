@@ -1108,6 +1108,10 @@ exports.runEmmetCommand = function runEmmetCommand(editor) {
         if (this.action == "expand_abbreviation_with_tab") {
             if (!editor.selection.isEmpty())
                 return false;
+            var pos = editor.selection.lead;
+            var token = editor.session.getTokenAt(pos.row, pos.column);
+            if (token && /\btag\b/.test(token.type))
+                return false;
         }
         
         if (this.action == "wrap_with_abbreviation") {
@@ -1115,11 +1119,6 @@ exports.runEmmetCommand = function runEmmetCommand(editor) {
                 actions.run("wrap_with_abbreviation", editorProxy);
             }, 0);
         }
-        
-        var pos = editor.selection.lead;
-        var token = editor.session.getTokenAt(pos.row, pos.column);
-        if (token && /\btag\b/.test(token.type))
-            return false;
         
         var result = actions.run(this.action, editorProxy);
     } catch(e) {

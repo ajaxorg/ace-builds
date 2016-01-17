@@ -348,9 +348,9 @@ oop.inherits(Mode, TextMode);
 
 (function() {
     var indenter = /(?:[({[=:]|[-=]>|\b(?:else|try|(?:swi|ca)tch(?:\s+[$A-Za-z_\x7f-\uffff][$\w\x7f-\uffff]*)?|finally))\s*$|^\s*(else\b\s*)?(?:if|for|while|loop)\b(?!.*\bthen\b)/;
-    var commentLine = /^(\s*)#/;
-    var hereComment = /^\s*###(?!#)/;
-    var indentation = /^\s*/;
+    
+    this.lineCommentStart = "#";
+    this.blockComment = {start: "###", end: "###"};
     
     this.getNextLineIndent = function(state, line, tab) {
         var indent = this.$getIndent(line);
@@ -360,25 +360,6 @@ oop.inherits(Mode, TextMode);
             state === 'start' && indenter.test(line))
             indent += tab;
         return indent;
-    };
-    
-    this.toggleCommentLines = function(state, doc, startRow, endRow){
-        console.log("toggle");
-        var range = new Range(0, 0, 0, 0);
-        for (var i = startRow; i <= endRow; ++i) {
-            var line = doc.getLine(i);
-            if (hereComment.test(line))
-                continue;
-                
-            if (commentLine.test(line))
-                line = line.replace(commentLine, '$1');
-            else
-                line = line.replace(indentation, '$&#');
-    
-            range.end.row = range.start.row = i;
-            range.end.column = line.length + 1;
-            doc.replace(range, line);
-        }
     };
     
     this.checkOutdent = function(state, line, input) {

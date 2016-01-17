@@ -373,7 +373,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         if (!this.isMultiLine()) {
             if (row === this.start.row) {
                 return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
-            };
+            }
         }
 
         if (row < this.start.row)
@@ -2652,9 +2652,7 @@ PHP.Parser.prototype.parseEscapeSequences = function( str, quote ) {
                 return chr(octdec(str));
             }
         }
-        );
-
-    return str;
+    );
 };
 
 PHP.Parser.prototype.TOKEN_NONE    = -1;

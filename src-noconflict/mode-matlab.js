@@ -219,7 +219,7 @@ var keywords = (
             next: "pop"
         }, {
             defaultToken: "comment"
-        }],
+        }]
     };
     
     this.normalizeRules();

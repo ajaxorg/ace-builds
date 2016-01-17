@@ -11,25 +11,25 @@ var LogiQLHighlightRules = function() {
            regex: '/\\*',
            push: 
             [ { token: 'comment.block', regex: '\\*/', next: 'pop' },
-              { defaultToken: 'comment.block' } ],
+              { defaultToken: 'comment.block' } ]
             },
          { token: 'comment.single',
-           regex: '//.*',
+           regex: '//.*'
             },
          { token: 'constant.numeric',
-           regex: '\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?[fd]?',
+           regex: '\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?[fd]?'
             },
          { token: 'string',
            regex: '"',
            push: 
             [ { token: 'string', regex: '"', next: 'pop' },
-              { defaultToken: 'string' } ],
+              { defaultToken: 'string' } ]
             },
          { token: 'constant.language',
-           regex: '\\b(true|false)\\b',
+           regex: '\\b(true|false)\\b'
             },
          { token: 'entity.name.type.logicblox',
-           regex: '`[a-zA-Z_:]+(\\d|\\a)*\\b',
+           regex: '`[a-zA-Z_:]+(\\d|\\a)*\\b'
             },
          { token: 'keyword.start', regex: '->',  comment: 'Constraint' },
          { token: 'keyword.start', regex: '-->', comment: 'Level 1 Constraint'},
@@ -49,19 +49,19 @@ var LogiQLHighlightRules = function() {
             [ { include: '$self' },
               { token: 'support.function',
                 regex: '>>',
-                next: 'pop' } ],
+                next: 'pop' } ]
             },
          { token: 'storage.modifier',
-           regex: '\\b(lang:[\\w:]*)',
+           regex: '\\b(lang:[\\w:]*)'
             },
          { token: [ 'storage.type', 'text' ],
-           regex: '(export|sealed|clauses|block|alias|alias_all)(\\s*\\()(?=`)',
+           regex: '(export|sealed|clauses|block|alias|alias_all)(\\s*\\()(?=`)'
             },
          { token: 'entity.name',
-           regex: '[a-zA-Z_][a-zA-Z_0-9:]*(@prev|@init|@final)?(?=(\\(|\\[))',
+           regex: '[a-zA-Z_][a-zA-Z_0-9:]*(@prev|@init|@final)?(?=(\\(|\\[))'
             },
          { token: 'variable.parameter',
-           regex: '([a-zA-Z][a-zA-Z_0-9]*|_)\\s*(?=(,|\\.|<-|->|\\)|\\]|=))',
+           regex: '([a-zA-Z][a-zA-Z_0-9]*|_)\\s*(?=(,|\\.|<-|->|\\)|\\]|=))'
             } ] }
     
     this.normalizeRules();

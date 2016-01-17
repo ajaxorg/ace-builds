@@ -75,12 +75,13 @@ var Mode = function(name, caption, extensions) {
     this.caption = caption;
     this.mode = "ace/mode/" + name;
     this.extensions = extensions;
+    var re;
     if (/\^/.test(extensions)) {
-        var re = extensions.replace(/\|(\^)?/g, function(a, b){
+        re = extensions.replace(/\|(\^)?/g, function(a, b){
             return "$|" + (b ? "^" : "^.*\\.");
         }) + "$";
     } else {
-        var re = "^.*\\.(" + extensions + ")$";
+        re = "^.*\\.(" + extensions + ")$";
     }
 
     this.extRe = new RegExp(re, "gi");
@@ -127,6 +128,7 @@ var supportedModes = {
     Gherkin:     ["feature"],
     Gitignore:   ["^.gitignore"],
     Glsl:        ["glsl|frag|vert"],
+    Gobstones:   ["gbs"], 
     golang:      ["go"],
     Groovy:      ["groovy"],
     HAML:        ["haml"],
@@ -134,8 +136,8 @@ var supportedModes = {
     Haskell:     ["hs"],
     haXe:        ["hx"],
     HTML:        ["html|htm|xhtml"],
-    HTML_Ruby:   ["erb|rhtml|html.erb"],
     HTML_Elixir: ["eex|html.eex"],
+    HTML_Ruby:   ["erb|rhtml|html.erb"],
     INI:         ["ini|conf|cfg|prefs"],
     Io:          ["io"],
     Jack:        ["jack"],
@@ -167,12 +169,13 @@ var supportedModes = {
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
     Nix:         ["nix"],
+    NSIS:        ["nsi|nsh"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
-    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp"],
+    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
     Prolog:      ["plg|prolog"],
@@ -180,8 +183,10 @@ var supportedModes = {
     Protobuf:    ["proto"],
     Python:      ["py"],
     R:           ["r"],
+    Razor:       ["cshtml"],
     RDoc:        ["Rd"],
     RHTML:       ["Rhtml"],
+    RST:         ["rst"],
     Ruby:        ["rb|ru|gemspec|rake|^Guardfile|^Rakefile|^Gemfile"],
     Rust:        ["rs"],
     SASS:        ["sass"],
@@ -212,6 +217,7 @@ var supportedModes = {
     Velocity:    ["vm"],
     Verilog:     ["v|vh|sv|svh"],
     VHDL:        ["vhd|vhdl"],
+    Wollok:      ["wlk|wpgm|wtest"],
     XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery:      ["xq"],
     YAML:        ["yaml|yml"],

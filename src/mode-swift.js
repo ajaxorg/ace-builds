@@ -157,8 +157,8 @@ var SwiftHighlightRules = function() {
                     {token : "comment.start", regex : /\/\*/, push: "nested_comment"},
                     {token : "comment.end", regex : "\\*\\/", next : "pop"},
                     {defaultToken : "comment", caseInsensitive: true}
-                ],
-            },
+                ]
+            }
         ];
     }
     
@@ -198,7 +198,7 @@ var SwiftHighlightRules = function() {
             }, {
                 token : "paren.rparen",
                 regex : /[\])}]/
-            }, 
+            } 
             
         ]
     };

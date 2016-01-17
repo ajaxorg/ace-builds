@@ -94,7 +94,7 @@ define("ace/mode/golang_highlight_rules",["require","exports","module","ace/lib/
                     regex : /"(?:[^"\\]|\\.)*?"/
                 }, {
                     token : "string", // raw
-                    regex : '[`](?:[^`]*)$',
+                    regex : '`',
                     next : "bqstring"
                 }, {
                     token : "constant.numeric", // rune
@@ -146,7 +146,7 @@ define("ace/mode/golang_highlight_rules",["require","exports","module","ace/lib/
                     regex : "\\*\\/",
                     next : "start"
                 }, {
-                    defaultToken : "comment",
+                    defaultToken : "comment"
                 }
             ],
             "bqstring" : [

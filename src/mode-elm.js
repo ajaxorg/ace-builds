@@ -72,7 +72,7 @@ var ElmHighlightRules = function() {
         }, {
             token: "paren.rparen",
             regex: /[\])}]/
-        }, ],
+        } ],
         markdown: [{
             regex: /\|\]/,
             next: "start"
@@ -103,7 +103,7 @@ var ElmHighlightRules = function() {
         }],
         string: [{
             token: "constant.language.escape",
-            regex: escapeRe,
+            regex: escapeRe
         }, {
             token: "text",
             regex: /\\(\s|$)/,
@@ -121,7 +121,7 @@ var ElmHighlightRules = function() {
             token: "error",
             regex: "",
             next: "start"
-        }],
+        }]
     };
     
     this.normalizeRules();

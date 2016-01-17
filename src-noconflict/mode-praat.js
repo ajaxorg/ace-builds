@@ -223,7 +223,7 @@ var PraatHighlightRules = function() {
                 regex : /"/,
                 next : "start"
             }
-        ],
+        ]
     };
 };
 

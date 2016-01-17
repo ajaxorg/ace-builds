@@ -151,7 +151,7 @@ function OccurKeyboardHandler() {}
 
 oop.inherits(OccurKeyboardHandler, HashHandler);
 
-;(function() {
+(function() {
 
     this.isOccurHandler = true;
 
@@ -406,7 +406,7 @@ function objectToRegExp(obj) {
     return stringToRegExp(obj.expression, obj.flags);
 }
 
-;(function() {
+(function() {
 
     this.activate = function(ed, backwards) {
         this.$editor = ed;
@@ -1105,6 +1105,7 @@ exports.handler.addCommands({
         exec: function(editor) {
             exports.killRing.add(editor.getCopyText());
             editor.commands.byName.cut.exec(editor);
+            editor.setEmacsMark(null);
         },
         readOnly: true,
         multiSelectAction: "forEach"

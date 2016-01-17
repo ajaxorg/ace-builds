@@ -563,7 +563,7 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
         if (!this.isMultiLine()) {
             if (row === this.start.row) {
                 return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
-            };
+            }
         }
 
         if (row < this.start.row)
@@ -10857,7 +10857,7 @@ var SAXParser = require("./html/saxparser").SAXParser;
 var errorTypes = {
     "expected-doctype-but-got-start-tag": "info",
     "expected-doctype-but-got-chars": "info",
-    "non-html-root": "info",
+    "non-html-root": "info"
 }
 
 var Worker = exports.Worker = function(sender) {

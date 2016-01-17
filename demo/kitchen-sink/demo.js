@@ -1249,12 +1249,13 @@ var Mode = function(name, caption, extensions) {
     this.caption = caption;
     this.mode = "ace/mode/" + name;
     this.extensions = extensions;
+    var re;
     if (/\^/.test(extensions)) {
-        var re = extensions.replace(/\|(\^)?/g, function(a, b){
+        re = extensions.replace(/\|(\^)?/g, function(a, b){
             return "$|" + (b ? "^" : "^.*\\.");
         }) + "$";
     } else {
-        var re = "^.*\\.(" + extensions + ")$";
+        re = "^.*\\.(" + extensions + ")$";
     }
 
     this.extRe = new RegExp(re, "gi");
@@ -1301,6 +1302,7 @@ var supportedModes = {
     Gherkin:     ["feature"],
     Gitignore:   ["^.gitignore"],
     Glsl:        ["glsl|frag|vert"],
+    Gobstones:   ["gbs"], 
     golang:      ["go"],
     Groovy:      ["groovy"],
     HAML:        ["haml"],
@@ -1308,8 +1310,8 @@ var supportedModes = {
     Haskell:     ["hs"],
     haXe:        ["hx"],
     HTML:        ["html|htm|xhtml"],
-    HTML_Ruby:   ["erb|rhtml|html.erb"],
     HTML_Elixir: ["eex|html.eex"],
+    HTML_Ruby:   ["erb|rhtml|html.erb"],
     INI:         ["ini|conf|cfg|prefs"],
     Io:          ["io"],
     Jack:        ["jack"],
@@ -1341,12 +1343,13 @@ var supportedModes = {
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
     Nix:         ["nix"],
+    NSIS:        ["nsi|nsh"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
-    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp"],
+    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
     Prolog:      ["plg|prolog"],
@@ -1354,8 +1357,10 @@ var supportedModes = {
     Protobuf:    ["proto"],
     Python:      ["py"],
     R:           ["r"],
+    Razor:       ["cshtml"],
     RDoc:        ["Rd"],
     RHTML:       ["Rhtml"],
+    RST:         ["rst"],
     Ruby:        ["rb|ru|gemspec|rake|^Guardfile|^Rakefile|^Gemfile"],
     Rust:        ["rs"],
     SASS:        ["sass"],
@@ -1386,6 +1391,7 @@ var supportedModes = {
     Velocity:    ["vm"],
     Verilog:     ["v|vh|sv|svh"],
     VHDL:        ["vhd|vhdl"],
+    Wollok:      ["wlk|wpgm|wtest"],
     XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery:      ["xq"],
     YAML:        ["yaml|yml"],
@@ -1950,7 +1956,7 @@ module.exports = {
     hugeDocs: prepareDocList(hugeDocs),
     initDoc: initDoc,
     loadDoc: loadDoc,
-    saveDoc: saveDoc,
+    saveDoc: saveDoc
 };
 module.exports.all = {
     "Mode Examples": module.exports.docs,
@@ -2283,6 +2289,15 @@ var Renderer = require("ace/virtual_renderer").VirtualRenderer;
 var Editor = require("ace/editor").Editor;
 var MultiSelect = require("ace/multi_select").MultiSelect;
 
+var urlOptions = {}
+try {
+    window.location.search.slice(1).split(/[&]/).forEach(function(e) {
+        var parts = e.split("=");
+        urlOptions[decodeURIComponent(parts[0])] = decodeURIComponent(parts[1]);
+    });
+} catch(e) {
+    console.error(e);
+}
 exports.createEditor = function(el) {
     return new Editor(new Renderer(el));
 };
@@ -2398,7 +2413,10 @@ exports.bindCheckbox = function(id, callback, noInit) {
         id = el.id;
     }
     var el = document.getElementById(id);
-    if (localStorage && localStorage.getItem(id))
+    
+    if (urlOptions[id])
+        el.checked = urlOptions[id] == "1";
+    else if (localStorage && localStorage.getItem(id))
         el.checked = localStorage.getItem(id) == "1";
 
     var onCheck = function() {
@@ -2417,7 +2435,10 @@ exports.bindDropdown = function(id, callback, noInit) {
         var el = id;
         id = el.id;
     }
-    if (localStorage && localStorage.getItem(id))
+    
+    if (urlOptions[id])
+        el.value = urlOptions[id];
+    else if (localStorage && localStorage.getItem(id))
         el.value = localStorage.getItem(id);
 
     var onChange = function() {
@@ -2897,7 +2918,7 @@ function OccurKeyboardHandler() {}
 
 oop.inherits(OccurKeyboardHandler, HashHandler);
 
-;(function() {
+(function() {
 
     this.isOccurHandler = true;
 
@@ -3152,7 +3173,7 @@ function objectToRegExp(obj) {
     return stringToRegExp(obj.expression, obj.flags);
 }
 
-;(function() {
+(function() {
 
     this.activate = function(ed, backwards) {
         this.$editor = ed;
@@ -3647,7 +3668,7 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
   CodeMirror.commands = {
     redo: function(cm) { cm.ace.redo(); },
     undo: function(cm) { cm.ace.undo(); },
-    newlineAndIndent: function(cm) { cm.ace.insert("\n"); },
+    newlineAndIndent: function(cm) { cm.ace.insert("\n"); }
   };
   CodeMirror.keyMap = {};
   CodeMirror.addClass = CodeMirror.rmClass =
@@ -4626,10 +4647,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       if (key.charAt(0) == '\'') {
         return key.charAt(1);
       }
-      var pieces = key.split('-');
-      if (/-$/.test(key)) {
-        pieces.splice(-2, 2, '-');
-      }
+      var pieces = key.split(/-(?!$)/);
       var lastPiece = pieces[pieces.length - 1];
       if (pieces.length == 1 && pieces[0].length == 1) {
         return false;
@@ -5053,7 +5071,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         }
 
         function handleKeyNonInsertMode() {
-          if (handleMacroRecording() || handleEsc()) { return true; };
+          if (handleMacroRecording() || handleEsc()) { return true; }
 
           var keys = vim.inputState.keyBuffer = vim.inputState.keyBuffer + key;
           if (/^[1-9]\d*$/.test(keys)) { return true; }
@@ -5613,7 +5631,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
             return;
           }
           if (motionArgs.toJumplist) {
-            if (!operator)
+            if (!operator && cm.ace.curOp != null)
               cm.ace.curOp.command.scrollIntoView = "center-animate"; // ace_patch
             var jumpList = vimGlobalState.jumpList;
             var cachedCursor = jumpList.cachedCursor;
@@ -6104,11 +6122,19 @@ dom.importCssString(".normal-mode .ace_cursor{\
               text = text.slice(0, - match[0].length);
             }
           }
-          var wasLastLine = head.line - 1 == cm.lastLine();
-          cm.replaceRange('', anchor, head);
-          if (args.linewise && !wasLastLine) {
-            CodeMirror.commands.newlineAndIndent(cm);
-            anchor.ch = null;
+          var prevLineEnd = new Pos(anchor.line - 1, Number.MAX_VALUE);
+          var wasLastLine = cm.firstLine() == cm.lastLine();
+          if (head.line > cm.lastLine() && args.linewise && !wasLastLine) {
+            cm.replaceRange('', prevLineEnd, head);
+          } else {
+            cm.replaceRange('', anchor, head);
+          }
+          if (args.linewise) {
+            if (!wasLastLine) {
+              cm.setCursor(prevLineEnd);
+              CodeMirror.commands.newlineAndIndent(cm);
+            }
+            anchor.ch = Number.MAX_VALUE;
           }
           finalHead = anchor;
         } else {
@@ -8204,7 +8230,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
               if (decimal + hex + octal > 1) { return 'Invalid arguments'; }
               number = decimal && 'decimal' || hex && 'hex' || octal && 'octal';
             }
-            if (args.eatSpace() && args.match(/\/.*\//)) { 'patterns not supported'; }
+            if (args.match(/\/.*\//)) { return 'patterns not supported'; }
           }
         }
         var err = parseArgs();
@@ -8520,7 +8546,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       }
       if (!confirm) {
         replaceAll();
-        if (callback) { callback(); };
+        if (callback) { callback(); }
         return;
       }
       showPrompt(cm, {
@@ -8642,7 +8668,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
             exitInsertMode(cm);
           }
         }
-      };
+      }
       macroModeState.isPlaying = false;
     }
 
@@ -8791,7 +8817,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         exitInsertMode(cm);
       }
       macroModeState.isPlaying = false;
-    };
+    }
 
     function repeatInsertModeChanges(cm, changes, repeat) {
       function keyHandler(binding) {
@@ -9120,7 +9146,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
   defaultKeymap.push(
     { keys: 'zc', type: 'action', action: 'fold', actionArgs: { open: false } },
     { keys: 'zC', type: 'action', action: 'fold', actionArgs: { open: false, all: true } },
-    { keys: 'zo', type: 'action', action: 'fold', actionArgs: { open: true, } },
+    { keys: 'zo', type: 'action', action: 'fold', actionArgs: { open: true } },
     { keys: 'zO', type: 'action', action: 'fold', actionArgs: { open: true, all: true } },
     { keys: 'za', type: 'action', action: 'fold', actionArgs: { toggle: true } },
     { keys: 'zA', type: 'action', action: 'fold', actionArgs: { toggle: true, all: true } },
@@ -9154,7 +9180,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
   actions.fold = function(cm, actionArgs, vim) {
     cm.ace.execCommand(['toggleFoldWidget', 'toggleFoldWidget', 'foldOther', 'unfoldall'
       ][(actionArgs.all ? 2 : 0) + (actionArgs.open ? 1 : 0)]);
-  },
+  };
 
   exports.handler.defaultKeymap = defaultKeymap;
   exports.handler.actions = actions;
@@ -10323,6 +10349,10 @@ exports.runEmmetCommand = function runEmmetCommand(editor) {
         if (this.action == "expand_abbreviation_with_tab") {
             if (!editor.selection.isEmpty())
                 return false;
+            var pos = editor.selection.lead;
+            var token = editor.session.getTokenAt(pos.row, pos.column);
+            if (token && /\btag\b/.test(token.type))
+                return false;
         }
         
         if (this.action == "wrap_with_abbreviation") {
@@ -10330,11 +10360,6 @@ exports.runEmmetCommand = function runEmmetCommand(editor) {
                 actions.run("wrap_with_abbreviation", editorProxy);
             }, 0);
         }
-        
-        var pos = editor.selection.lead;
-        var token = editor.session.getTokenAt(pos.row, pos.column);
-        if (token && /\btag\b/.test(token.type))
-            return false;
         
         var result = actions.run(this.action, editorProxy);
     } catch(e) {
@@ -10629,7 +10654,7 @@ var AcePopup = function(parentNode) {
         return selectionMarker.start.row;
     };
     popup.setRow = function(line) {
-        line = Math.max(-1, Math.min(this.data.length, line));
+        line = Math.max(0, Math.min(this.data.length, line));
         if (selectionMarker.start.row != line) {
             popup.selection.clearSelection();
             selectionMarker.start.row = selectionMarker.end.row = line || 0;
@@ -10780,6 +10805,21 @@ exports.retrieveFollowingIdentifier = function(text, pos, regex) {
             break;
     }
     return buf;
+};
+
+exports.getCompletionPrefix = function (editor) {
+    var pos = editor.getCursorPosition();
+    var line = editor.session.getLine(pos.row);
+    var prefix;
+    editor.completers.forEach(function(completer) {
+        if (completer.identifierRegexps) {
+            completer.identifierRegexps.forEach(function(identifierRegex) {
+                if (!prefix && identifierRegex)
+                    prefix = this.retrievePrecedingIdentifier(line, pos.column, identifierRegex);
+            }.bind(this));
+        }
+    }.bind(this));
+    return prefix || this.retrievePrecedingIdentifier(line, pos.column);
 };
 
 });
@@ -10979,7 +11019,7 @@ var Autocomplete = function() {
         var pos = editor.getCursorPosition();
 
         var line = session.getLine(pos.row);
-        var prefix = util.retrievePrecedingIdentifier(line, pos.column);
+        var prefix = util.getCompletionPrefix(editor);
 
         this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
         this.base.$insertRight = true;
@@ -10988,12 +11028,12 @@ var Autocomplete = function() {
         var total = editor.completers.length;
         editor.completers.forEach(function(completer, i) {
             completer.getCompletions(editor, session, pos, prefix, function(err, results) {
-                if (!err)
+                if (!err && results)
                     matches = matches.concat(results);
                 var pos = editor.getCursorPosition();
                 var line = session.getLine(pos.row);
                 callback(null, {
-                    prefix: util.retrievePrecedingIdentifier(line, pos.column, results[0] && results[0].identifierRegex),
+                    prefix: prefix,
                     matches: matches,
                     finished: (--total === 0)
                 });
@@ -11330,7 +11370,8 @@ var snippetCompleter = {
 
 var completers = [snippetCompleter, textCompleter, keyWordCompleter];
 exports.setCompleters = function(val) {
-    completers = val || [];
+    completers.length = 0;
+    if (val) completers.push.apply(completers, val);
 };
 exports.addCompleter = function(completer) {
     completers.push(completer);
@@ -11381,30 +11422,15 @@ var loadSnippetFile = function(id) {
     });
 };
 
-function getCompletionPrefix(editor) {
-    var pos = editor.getCursorPosition();
-    var line = editor.session.getLine(pos.row);
-    var prefix;
-    editor.completers.forEach(function(completer) {
-        if (completer.identifierRegexps) {
-            completer.identifierRegexps.forEach(function(identifierRegex) {
-                if (!prefix && identifierRegex)
-                    prefix = util.retrievePrecedingIdentifier(line, pos.column, identifierRegex);
-            });
-        }
-    });
-    return prefix || util.retrievePrecedingIdentifier(line, pos.column);
-}
-
 var doLiveAutocomplete = function(e) {
     var editor = e.editor;
     var hasCompleter = editor.completer && editor.completer.activated;
     if (e.command.name === "backspace") {
-        if (hasCompleter && !getCompletionPrefix(editor))
+        if (hasCompleter && !util.getCompletionPrefix(editor))
             editor.completer.detach();
     }
     else if (e.command.name === "insertstring") {
-        var prefix = getCompletionPrefix(editor);
+        var prefix = util.getCompletionPrefix(editor);
         if (prefix && !hasCompleter) {
             if (!editor.completer) {
                 editor.completer = new Autocomplete();
@@ -12118,7 +12144,7 @@ function updateUIEditorOptions() {
 themelist.themes.forEach(function(x){ x.value = x.theme });
 fillDropdown(themeEl, {
     Bright: themelist.themes.filter(function(x){return !x.isDark}),
-    Dark: themelist.themes.filter(function(x){return x.isDark}),
+    Dark: themelist.themes.filter(function(x){return x.isDark})
 });
 
 event.addListener(themeEl, "mouseover", function(e){

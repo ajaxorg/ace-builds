@@ -19,17 +19,17 @@ var GherkinHighlightRules = function() {
     }).join("|");
     this.$rules = {
         start : [{
-            token: 'constant.numeric',
+            token: "constant.numeric",
             regex: "(?:(?:[1-9]\\d*)|(?:0))"
         }, {
             token : "comment",
             regex : "#.*$"
         }, {
             token : "keyword",
-            regex : "(?:" + labels + "):|(?:" + keywords + ")\\b",
+            regex : "(?:" + labels + "):|(?:" + keywords + ")\\b"
         }, {
             token : "keyword",
-            regex : "\\*",
+            regex : "\\*"
         }, {
             token : "string",           // multi line """ string start
             regex : '"{3}',
@@ -43,7 +43,7 @@ var GherkinHighlightRules = function() {
             regex : "^\\s*(?=@[\\w])",
             next : [{
                 token : "text",
-                regex : "\\s+",
+                regex : "\\s+"
             }, {
                 token : "variable.parameter",
                 regex : "@[\\w]+"
@@ -147,9 +147,9 @@ oop.inherits(Mode, TextMode);
             if (line.match("Scenario:|Feature:|Scenario\ Outline:|Background:")) {
                 indent += space2;
             } else if(line.match("(Given|Then).+(:)$|Examples:")) {
-            	indent += space2;
+                indent += space2;
             } else if(line.match("\\*.+")) {
-            	indent += "* ";
+                indent += "* ";
             } 
         }
         
