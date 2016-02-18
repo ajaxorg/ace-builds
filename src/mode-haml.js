@@ -198,7 +198,7 @@ define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/
 var oop = require("../lib/oop");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
+var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*";
 
 var JavaScriptHighlightRules = function(options) {
     var keywordMapper = this.createKeywordMapper({
@@ -214,7 +214,7 @@ var JavaScriptHighlightRules = function(options) {
             "JSON|Math|"                                                               + // Other
             "this|arguments|prototype|window|document"                                 , // Pseudo
         "keyword":
-            "const|yield|import|get|set|" +
+            "const|yield|import|get|set|async|await|" +
             "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
             "if|in|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|debugger|" +
             "__parent__|__count__|escape|unescape|with|__proto__|" +
@@ -1252,7 +1252,7 @@ var RubyHighlightRules = RubyExports.RubyHighlightRules;
 
 var HamlHighlightRules = function() {
     HtmlHighlightRules.call(this);
-    this.$rules.start.unshift.apply(this.$rules.start, [
+    this.$rules.start.unshift(
         {
             token : "punctuation.section.comment",
             regex : /^\s*\/.*/
@@ -1286,7 +1286,7 @@ var HamlHighlightRules = function() {
             regex: "=|-|~",
             next: "embedded_ruby"
         }
-    ]);
+    );
     this.$rules.tag_single = [
         {
             token: "meta.tag.haml",
