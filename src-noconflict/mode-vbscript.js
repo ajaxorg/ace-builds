@@ -106,7 +106,7 @@ var VBScriptHighlightRules = function() {
         },
         {
             token: ["keyword.operator.asp"],
-            regex: "\\-|\\+|\\*\\\/|\\>|\\<|\\=|\\&"
+            regex: "\\-|\\+|\\*\\/|\\>|\\<|\\=|\\&"
         }
     ],
     "state_3": [

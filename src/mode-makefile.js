@@ -53,7 +53,7 @@ var ShHighlightRules = function() {
             token : ["text", "comment"],
             regex : /(^|\s)(#.*)$/
         }, {
-            token : "string",
+            token : "string.start",
             regex : '"',
             push : [{
                 token : "constant.language.escape",
@@ -64,7 +64,7 @@ var ShHighlightRules = function() {
                 token : "keyword.operator",
                 regex : /`/ // TODO highlight `
             }, {
-                token : "string",
+                token : "string.end",
                 regex : '"',
                 next: "pop"
             }, {

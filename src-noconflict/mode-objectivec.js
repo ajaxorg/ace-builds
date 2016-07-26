@@ -93,7 +93,7 @@ var c_cppHighlightRules = function() {
         "constant.language": builtinConstants
     }, "identifier");
 
-    var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\d\\$_\u00a1-\uffff]*\\b";
+    var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*\\b";
     var escapeRe = /\\(?:['"?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F\d]{2}|u[a-fA-F\d]{4}U[a-fA-F\d]{8}|.)/.source;
 
     this.$rules = { 
@@ -114,7 +114,7 @@ var c_cppHighlightRules = function() {
                 next : "comment"
             }, {
                 token : "string", // character
-                regex : "'(?:" + escapeRe + "|.)'"
+                regex : "'(?:" + escapeRe + "|.)?'"
             }, {
                 token : "string.start",
                 regex : '"', 
@@ -456,7 +456,7 @@ var ObjectiveCHighlightRules = function() {
     "bracketed_content": [
         {
             token: "punctuation.section.scope.end.objc",
-            regex: "\]",
+            regex: "]",
             next: "start"
         },
         {
@@ -466,14 +466,14 @@ var ObjectiveCHighlightRules = function() {
         },
         {
             token: "support.function.any-method.objc",
-            regex: "\\w+(?::|(?=\]))",
+            regex: "\\w+(?::|(?=]))",
             next: "start"
         }
     ],
     "bracketed_strings": [
         {
             token: "punctuation.section.scope.end.objc",
-            regex: "\]",
+            regex: "]",
             next: "start"
         },
         {
@@ -482,7 +482,7 @@ var ObjectiveCHighlightRules = function() {
         },
         {
             token: ["invalid.illegal.unknown-method.objc", "punctuation.separator.arguments.objc"],
-            regex: "\\b(\w+)(:)"
+            regex: "\\b(\\w+)(:)"
         },
         {
             regex: "\\b(?:ALL|ANY|SOME|NONE)\\b",

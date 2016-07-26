@@ -15,7 +15,7 @@ var ElmHighlightRules = function() {
     
     var smallRe = /[a-z_]/.source;
     var largeRe = /[A-Z]/.source;
-    var idRe = /[a-z_A-Z0-9\']/.source;
+    var idRe = /[a-z_A-Z0-9']/.source;
 
     this.$rules = {
         start: [{
@@ -33,7 +33,7 @@ var ElmHighlightRules = function() {
             regex: "--.*"
         }, {
             token : "keyword",
-            regex : /\.\.|\||:|=|\\|\"|->|<-|\u2192/
+            regex : /\.\.|\||:|=|\\|"|->|<-|\u2192/
         }, {
             token : "keyword.operator",
             regex : /[-!#$%&*+.\/<=>?@\\^|~:\u03BB\u2192]+/

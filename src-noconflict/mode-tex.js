@@ -24,7 +24,7 @@ var TexHighlightRules = function(textClass) {
                next : "nospell"
             }, {
                 token : "keyword", // command
-                regex : "\\\\(?:[a-zA-z0-9]+|[^a-zA-z0-9])"
+                regex : "\\\\(?:[a-zA-Z0-9]+|[^a-zA-Z0-9])"
             }, {
                token : "paren.keyword.operator",
                 regex : "[[({]"
@@ -49,7 +49,7 @@ var TexHighlightRules = function(textClass) {
                regex : "\\\\(?:documentclass|usepackage|newcounter|setcounter|addtocounter|value|arabic|stepcounter|newenvironment|renewenvironment|ref|vref|eqref|pageref|label|cite[a-zA-Z]*|tag|begin|end|bibitem)\\b"
            }, {
                token : "keyword", // command
-               regex : "\\\\(?:[a-zA-z0-9]+|[^a-zA-z0-9])",
+               regex : "\\\\(?:[a-zA-Z0-9]+|[^a-zA-Z0-9])",
                next : "start"
            }, {
                token : "paren.keyword.operator",
