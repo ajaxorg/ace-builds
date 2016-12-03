@@ -433,18 +433,18 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-define("ace/mode/drools",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/drools_highlight_rules","ace/range","ace/mode/folding/drools"], function(require, exports, module) {
+define("ace/mode/drools",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/drools_highlight_rules","ace/mode/folding/drools"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var DroolsHighlightRules = require("./drools_highlight_rules").DroolsHighlightRules;
-var Range = require("../range").Range;
 var DroolsFoldMode = require("./folding/drools").FoldMode;
 
 var Mode = function() {
     this.HighlightRules = DroolsHighlightRules;
     this.foldingRules = new DroolsFoldMode();
+    this.$behaviour = this.$defaultBehaviour;
 
 };
 oop.inherits(Mode, TextMode);

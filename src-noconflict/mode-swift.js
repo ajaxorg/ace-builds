@@ -367,6 +367,7 @@ var Mode = function() {
     this.HighlightRules = HighlightRules;
     this.foldingRules = new FoldMode();
     this.$behaviour = new CstyleBehaviour();
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 

@@ -1390,6 +1390,9 @@ var Autocomplete = function() {
     };
 
     this.blurListener = function(e) {
+        if (e.relatedTarget && e.relatedTarget.nodeName == "A" && e.relatedTarget.href) {
+            window.open(e.relatedTarget.href, "_blank");
+        }
         var el = document.activeElement;
         var text = this.editor.textInput.getElement();
         var fromTooltip = e.relatedTarget && e.relatedTarget == this.tooltipNode;

@@ -368,6 +368,7 @@ var Mode = function() {
     this.HighlightRules = DotHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.foldingRules = new DotFoldMode();
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 

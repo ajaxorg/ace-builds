@@ -195,18 +195,18 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-define("ace/mode/latex",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/latex_highlight_rules","ace/mode/folding/latex","ace/range"], function(require, exports, module) {
+define("ace/mode/latex",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/latex_highlight_rules","ace/mode/folding/latex"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var LatexHighlightRules = require("./latex_highlight_rules").LatexHighlightRules;
 var LatexFoldMode = require("./folding/latex").FoldMode;
-var Range = require("../range").Range;
 
 var Mode = function() {
     this.HighlightRules = LatexHighlightRules;
     this.foldingRules = new LatexFoldMode();
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 

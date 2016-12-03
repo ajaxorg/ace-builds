@@ -73,6 +73,7 @@ define("ace/mode/gcode",["require","exports","module","ace/lib/oop","ace/mode/te
 
     var Mode = function() {
         this.HighlightRules = GcodeHighlightRules;
+        this.$behaviour = this.$defaultBehaviour;
     };
     oop.inherits(Mode, TextMode);
 

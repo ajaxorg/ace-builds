@@ -39,6 +39,7 @@ var GitignoreHighlightRules = require("./gitignore_highlight_rules").GitignoreHi
 
 var Mode = function() {
     this.HighlightRules = GitignoreHighlightRules;
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 

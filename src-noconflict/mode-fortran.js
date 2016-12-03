@@ -352,6 +352,7 @@ var Range = require("../range").Range;
 var Mode = function() {
     this.HighlightRules = FortranHighlightRules;
     this.foldingRules = new CStyleFoldMode();
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 
