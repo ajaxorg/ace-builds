@@ -1,5 +1,6 @@
 Ace (Ajax.org Cloud9 Editor)
 ============================
+[![CDNJS](https://img.shields.io/cdnjs/v/ace.svg)](https://cdnjs.com/libraries/ace)
 
 Ace is a code editor written in JavaScript.
 
