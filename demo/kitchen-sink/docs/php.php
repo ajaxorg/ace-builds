@@ -15,5 +15,3 @@ $num = trim(fgets(STDIN));
 // ===== PROCESS - Determing the factorial of the input number =====
 $output = "\n\nFactorial " . $num . " = " . nfact($num) . "\n\n";
 echo $output;
-
-?>
