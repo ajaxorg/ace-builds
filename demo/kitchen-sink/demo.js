@@ -867,8 +867,10 @@ define("ace/test/mockrenderer",["require","exports","module"], function(require,
 "use strict";
 
 var MockRenderer = exports.MockRenderer = function(visibleRowCount) {
-    this.container = document.createElement("div");
-    this.scroller = document.createElement("div");
+    if (typeof document == "object") {
+        this.container = document.createElement("div");
+        this.scroller = document.createElement("div");
+    }
     this.visibleRowCount = visibleRowCount || 20;
 
     this.layerConfig = {
@@ -1307,6 +1309,7 @@ var supportedModes = {
     Glsl:        ["glsl|frag|vert"],
     Gobstones:   ["gbs"],
     golang:      ["go"],
+    GraphQLSchema: ["gql"],
     Groovy:      ["groovy"],
     HAML:        ["haml"],
     Handlebars:  ["hbs|handlebars|tpl|mustache"],
@@ -1355,6 +1358,7 @@ var supportedModes = {
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
     PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
+    Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
     Prolog:      ["plg|prolog"],
@@ -2000,6 +2004,7 @@ var themeData = [
     ["Clouds Midnight"      ,"clouds_midnight"         ,  "dark"],
     ["Cobalt"               ,"cobalt"                  ,  "dark"],
     ["Gruvbox"              ,"gruvbox"                 ,  "dark"],
+    ["Green on Black"       ,"gob"                     ,  "dark"],
     ["idle Fingers"         ,"idle_fingers"            ,  "dark"],
     ["krTheme"              ,"kr_theme"                ,  "dark"],
     ["Merbivore"            ,"merbivore"               ,  "dark"],
@@ -5349,7 +5354,9 @@ dom.importCssString(".normal-mode .ace_cursor{\
           }
         }
         if (bestMatch.keys.slice(-11) == '<character>') {
-          inputState.selectedCharacter = lastChar(keys);
+          var character = lastChar(keys);
+          if (/<C-.>/.test(character)) return {type: 'none'};
+          inputState.selectedCharacter = character;
         }
         return {type: 'full', command: bestMatch};
       },
@@ -8607,6 +8614,8 @@ dom.importCssString(".normal-mode .ace_cursor{\
       cm.setCursor(cm.getCursor().line, cm.getCursor().ch-1);
       cm.setOption('keyMap', 'vim');
       cm.setOption('disableInput', true);
+      
+      lastChange.overwrite = cm.state.overwrite;
       cm.toggleOverwrite(false); // exit replace mode if we were in it.
       insertModeChangeRegister.setText(lastChange.changes.join(''));
       CodeMirror.signal(cm, "vim-mode-change", {mode: "normal"});
@@ -8817,7 +8826,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         if (macroModeState.lastInsertModeChanges.changes.length > 0) {
           repeat = !vim.lastEditActionCommand ? 1 : repeat;
           var changeObject = macroModeState.lastInsertModeChanges;
-          repeatInsertModeChanges(cm, changeObject.changes, repeat);
+          repeatInsertModeChanges(cm, changeObject.changes, repeat, changeObject.overwrite);
         }
       }
       vim.inputState = vim.lastEditInputState;
@@ -8839,7 +8848,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       macroModeState.isPlaying = false;
     }
 
-    function repeatInsertModeChanges(cm, changes, repeat) {
+    function repeatInsertModeChanges(cm, changes, repeat, overwrite) {
       function keyHandler(binding) {
         if (typeof binding == 'string') {
           CodeMirror.commands[binding](cm);
@@ -8868,7 +8877,11 @@ dom.importCssString(".normal-mode .ace_cursor{\
             CodeMirror.lookupKey(change.keyName, 'vim-insert', keyHandler);
           } else {
             var cur = cm.getCursor();
-            cm.replaceRange(change, cur, cur);
+            var end = cur;
+            if (overwrite && !/\n/.test(change)) {
+              end = offsetCursor(cur, 0, change.length);
+            }
+            cm.replaceRange(change, cur, end);
           }
         }
       }
@@ -10963,12 +10976,9 @@ var Autocomplete = function() {
     };
 
     this.blurListener = function(e) {
-        if (e.relatedTarget && e.relatedTarget.nodeName == "A" && e.relatedTarget.href) {
-            window.open(e.relatedTarget.href, "_blank");
-        }
         var el = document.activeElement;
         var text = this.editor.textInput.getElement();
-        var fromTooltip = e.relatedTarget && e.relatedTarget == this.tooltipNode;
+        var fromTooltip = e.relatedTarget && this.tooltipNode.contains(e.relatedTarget);
         var container = this.popup && this.popup.container;
         if (el != text && el.parentNode != container && !fromTooltip
             && el != this.tooltipNode && e.relatedTarget != text
@@ -11049,7 +11059,6 @@ var Autocomplete = function() {
         var session = editor.getSession();
         var pos = editor.getCursorPosition();
 
-        var line = session.getLine(pos.row);
         var prefix = util.getCompletionPrefix(editor);
 
         this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
@@ -11061,10 +11070,8 @@ var Autocomplete = function() {
             completer.getCompletions(editor, session, pos, prefix, function(err, results) {
                 if (!err && results)
                     matches = matches.concat(results);
-                var pos = editor.getCursorPosition();
-                var line = session.getLine(pos.row);
                 callback(null, {
-                    prefix: prefix,
+                    prefix: util.getCompletionPrefix(editor),
                     matches: matches,
                     finished: (--total === 0)
                 });
@@ -11177,6 +11184,7 @@ var Autocomplete = function() {
             this.tooltipNode.style.pointerEvents = "auto";
             this.tooltipNode.tabIndex = -1;
             this.tooltipNode.onblur = this.blurListener.bind(this);
+            this.tooltipNode.onclick = this.onTooltipClick.bind(this);
         }
 
         var tooltipNode = this.tooltipNode;
@@ -11213,6 +11221,18 @@ var Autocomplete = function() {
         if (el.parentNode)
             el.parentNode.removeChild(el);
     };
+    
+    this.onTooltipClick = function(e) {
+        var a = e.target;
+        while (a && a != this.tooltipNode) {
+            if (a.nodeName == "A" && a.href) {
+                a.rel = "noreferrer";
+                a.target = "_blank";
+                break;
+            }
+            a = a.parentNode;
+        }
+    }
 
 }).call(Autocomplete.prototype);
 
@@ -12100,6 +12120,7 @@ var showHScrollEl = document.getElementById("show_hscroll");
 var showVScrollEl = document.getElementById("show_vscroll");
 var animateScrollEl = document.getElementById("animate_scroll");
 var softTabEl = document.getElementById("soft_tab");
+var navigateWithinSoftTabEl = document.getElementById("navigate_within_soft_tab");
 var behavioursEl = document.getElementById("enable_behaviours");
 
 fillDropdown(docEl, doclist.all);
@@ -12169,6 +12190,7 @@ function updateUIEditorOptions() {
     saveOption(showHScrollEl, editor.renderer.getHScrollBarAlwaysVisible());
     saveOption(animateScrollEl, editor.getAnimatedScroll());
     saveOption(softTabEl, session.getUseSoftTabs());
+    saveOption(navigateWithinSoftTabEl, session.getNavigateWithinSoftTabs());
     saveOption(behavioursEl, editor.getBehavioursEnabled());
 }
 
@@ -12261,6 +12283,10 @@ bindCheckbox("animate_scroll", function(checked) {
 
 bindCheckbox("soft_tab", function(checked) {
     env.editor.session.setUseSoftTabs(checked);
+});
+
+bindCheckbox("navigate_within_soft_tab", function(checked) {
+    env.editor.session.setNavigateWithinSoftTabs(checked);
 });
 
 bindCheckbox("enable_behaviours", function(checked) {

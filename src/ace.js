@@ -1370,9 +1370,11 @@ exports.isAIR = ua.indexOf("AdobeAIR") >= 0;
 
 exports.isIPad = ua.indexOf("iPad") >= 0;
 
-exports.isTouchPad = ua.indexOf("TouchPad") >= 0;
-
 exports.isChromeOS = ua.indexOf(" CrOS ") >= 0;
+
+exports.isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
+if (exports.isIOS) exports.isMac = true;
 
 });
 
@@ -1909,19 +1911,22 @@ exports.delayedCall = function(fcn, defaultTimeout) {
 };
 });
 
-define("ace/keyboard/textinput",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang"], function(require, exports, module) {
+define("ace/keyboard/textinput_ios",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/lib/keys"], function(require, exports, module) {
 "use strict";
 
 var event = require("../lib/event");
 var useragent = require("../lib/useragent");
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
+var KEYS = require("../lib/keys");
+var MODS = KEYS.KEY_MODS;
 var BROKEN_SETDATA = useragent.isChrome < 18;
 var USE_IE_MIME_TYPE =  useragent.isIE;
 
 var TextInput = function(parentNode, host) {
+    var self = this;
     var text = dom.createElement("textarea");
-    text.className = "ace_text-input";
+    text.className = useragent.isIOS ? "ace_text-input ace_text-input-ios" : "ace_text-input";
 
     if (useragent.isTouchPad)
         text.setAttribute("x-palm-disable-auto-cap", true);
@@ -1932,10 +1937,480 @@ var TextInput = function(parentNode, host) {
     text.setAttribute("spellcheck", false);
 
     text.style.opacity = "0";
-    if (useragent.isOldIE) text.style.top = "-1000px";
     parentNode.insertBefore(text, parentNode.firstChild);
 
-    var PLACEHOLDER = "\x01\x01";
+    var PLACEHOLDER = "\n aaaa a\n";
+
+    var copied = false;
+    var cut = false;
+    var pasted = false;
+    var inComposition = false;
+    var tempStyle = '';
+    var isSelectionEmpty = true;
+    try { var isFocused = document.activeElement === text; } catch(e) {}
+    
+    event.addListener(text, "blur", function(e) {
+        host.onBlur(e);
+        isFocused = false;
+    });
+    event.addListener(text, "focus", function(e) {
+        isFocused = true;
+        host.onFocus(e);
+        resetSelection();
+    });
+    this.focus = function() {
+        if (tempStyle) return text.focus();
+        text.style.position = "fixed";
+        text.focus();
+    };
+    this.blur = function() {
+        text.blur();
+    };
+    this.isFocused = function() {
+        return isFocused;
+    };
+    var syncSelection = lang.delayedCall(function() {
+        isFocused && resetSelection(isSelectionEmpty);
+    });
+    var syncValue = lang.delayedCall(function() {
+         if (!inComposition) {
+            text.value = PLACEHOLDER;
+            isFocused && resetSelection();
+         }
+    });
+
+    function resetSelection(isEmpty) {
+        if (inComposition)
+            return;
+        inComposition = true;
+        
+        if (inputHandler) {
+            selectionStart = 0;
+            selectionEnd = isEmpty ? 0 : text.value.length - 1;
+        } else {
+            var selectionStart = 4;
+            var selectionEnd = 5;
+        }
+        try {
+            text.setSelectionRange(selectionStart, selectionEnd);
+        } catch(e) {}
+        
+        inComposition = false;
+    }
+
+    function resetValue() {
+        if (inComposition)
+            return;
+        text.value = PLACEHOLDER;
+        if (useragent.isWebKit)
+            syncValue.schedule();
+    }
+
+    useragent.isWebKit || host.addEventListener('changeSelection', function() {
+        if (host.selection.isEmpty() != isSelectionEmpty) {
+            isSelectionEmpty = !isSelectionEmpty;
+            syncSelection.schedule();
+        }
+    });
+
+    resetValue();
+    if (isFocused)
+        host.onFocus();
+
+
+    var isAllSelected = function(text) {
+        return text.selectionStart === 0 && text.selectionEnd === text.value.length;
+    };
+
+    var onSelect = function(e) {
+        if (isAllSelected(text)) {
+            host.selectAll();
+            resetSelection();
+        } else if (inputHandler) {
+            resetSelection(host.selection.isEmpty());
+        }
+    };
+
+    var inputHandler = null;
+    this.setInputHandler = function(cb) {inputHandler = cb};
+    this.getInputHandler = function() {return inputHandler};
+    var afterContextMenu = false;
+    
+    var sendText = function(data) {
+        if (text.selectionStart === 4 && text.selectionEnd === 5) {
+          return;
+        }
+        if (inputHandler) {
+            data = inputHandler(data);
+            inputHandler = null;
+        }
+        if (pasted) {
+            resetSelection();
+            if (data)
+                host.onPaste(data);
+            pasted = false;
+        } else if (data == PLACEHOLDER.substr(0) && text.selectionStart === 4) {
+            if (afterContextMenu)
+                host.execCommand("del", {source: "ace"});
+            else // some versions of android do not fire keydown when pressing backspace
+                host.execCommand("backspace", {source: "ace"});
+        } else if (!copied) {
+            if (data.substring(0, 9) == PLACEHOLDER && data.length > PLACEHOLDER.length)
+                data = data.substr(9);
+            else if (data.substr(0, 4) == PLACEHOLDER.substr(0, 4))
+                data = data.substr(4, data.length - PLACEHOLDER.length + 1);
+            else if (data.charAt(data.length - 1) == PLACEHOLDER.charAt(0))
+                data = data.slice(0, -1);
+            if (data == PLACEHOLDER.charAt(0)) {
+            } else if (data.charAt(data.length - 1) == PLACEHOLDER.charAt(0))
+                data = data.slice(0, -1);
+            
+            if (data)
+                host.onTextInput(data);
+        }
+        if (copied) {
+          copied = false;
+        }
+        if (afterContextMenu)
+            afterContextMenu = false;
+    };
+    var onInput = function(e) {
+        if (inComposition)
+            return;
+        var data = text.value;
+        sendText(data);
+        resetValue();
+    };
+    
+    var handleClipboardData = function(e, data, forceIEMime) {
+        var clipboardData = e.clipboardData || window.clipboardData;
+        if (!clipboardData || BROKEN_SETDATA)
+            return;
+        var mime = USE_IE_MIME_TYPE || forceIEMime ? "Text" : "text/plain";
+        try {
+            if (data) {
+                return clipboardData.setData(mime, data) !== false;
+            } else {
+                return clipboardData.getData(mime);
+            }
+        } catch(e) {
+            if (!forceIEMime)
+                return handleClipboardData(e, data, true);
+        }
+    };
+
+    var doCopy = function(e, isCut) {
+        var data = host.getCopyText();
+        if (!data)
+            return event.preventDefault(e);
+
+        if (handleClipboardData(e, data)) {
+            if (useragent.isIOS) {
+                cut = isCut;
+                text.value = "\n aa" + data + "a a\n";
+                text.setSelectionRange(4, 4 + data.length);
+                copied = {
+                    value: data
+                };
+            }
+            isCut ? host.onCut() : host.onCopy();
+            if (!useragent.isIOS) event.preventDefault(e);
+        } else {
+            copied = true;
+            text.value = data;
+            text.select();
+            setTimeout(function(){
+                copied = false;
+                resetValue();
+                resetSelection();
+                isCut ? host.onCut() : host.onCopy();
+            });
+        }
+    };
+    
+    var onCut = function(e) {
+        doCopy(e, true);
+    };
+    
+    var onCopy = function(e) {
+        doCopy(e, false);
+    };
+    
+    var onPaste = function(e) {
+        var data = handleClipboardData(e);
+        if (typeof data == "string") {
+            if (data)
+                host.onPaste(data, e);
+            if (useragent.isIE)
+                setTimeout(resetSelection);
+            event.preventDefault(e);
+        }
+        else {
+            text.value = "";
+            pasted = true;
+        }
+    };
+
+    event.addCommandKeyListener(text, host.onCommandKey.bind(host));
+
+    event.addListener(text, "select", onSelect);
+
+    event.addListener(text, "input", onInput);
+
+    event.addListener(text, "cut", onCut);
+    event.addListener(text, "copy", onCopy);
+    event.addListener(text, "paste", onPaste);
+    var onCompositionStart = function(e) {
+        if (inComposition || !host.onCompositionStart || host.$readOnly) 
+            return;
+        inComposition = {};
+        inComposition.canUndo = host.session.$undoManager;
+        host.onCompositionStart();
+        setTimeout(onCompositionUpdate, 0);
+        host.on("mousedown", onCompositionEnd);
+        if (inComposition.canUndo && !host.selection.isEmpty()) {
+            host.insert("");
+            host.session.markUndoGroup();
+            host.selection.clearSelection();
+        }
+        host.session.markUndoGroup();
+    };
+
+    var onCompositionUpdate = function() {
+        if (!inComposition || !host.onCompositionUpdate || host.$readOnly)
+            return;
+        var val = text.value.replace(/\x01/g, "");
+        if (inComposition.lastValue === val) return;
+        
+        host.onCompositionUpdate(val);
+        if (inComposition.lastValue)
+            host.undo();
+        if (inComposition.canUndo)
+            inComposition.lastValue = val;
+        if (inComposition.lastValue) {
+            var r = host.selection.getRange();
+            host.insert(inComposition.lastValue);
+            host.session.markUndoGroup();
+            inComposition.range = host.selection.getRange();
+            host.selection.setRange(r);
+            host.selection.clearSelection();
+        }
+    };
+
+    var onCompositionEnd = function(e) {
+        if (!host.onCompositionEnd || host.$readOnly) return;
+        var c = inComposition;
+        inComposition = false;
+        var timer = setTimeout(function() {
+            timer = null;
+            var str = text.value.replace(/\x01/g, "");
+            if (inComposition)
+                return;
+            else if (str == c.lastValue)
+                resetValue();
+            else if (!c.lastValue && str) {
+                resetValue();
+                sendText(str);
+            }
+        });
+        inputHandler = function compositionInputHandler(str) {
+            if (timer)
+                clearTimeout(timer);
+            str = str.replace(/\x01/g, "");
+            if (str == c.lastValue)
+                return "";
+            if (c.lastValue && timer)
+                host.undo();
+            return str;
+        };
+        host.onCompositionEnd();
+        host.removeListener("mousedown", onCompositionEnd);
+        if (e.type == "compositionend" && c.range) {
+            host.selection.setRange(c.range);
+        }
+        var needsOnInput =
+            (!!useragent.isChrome && useragent.isChrome >= 53) ||
+            (!!useragent.isWebKit && useragent.isWebKit >= 603);
+
+        if (needsOnInput) {
+          onInput();
+        }
+    };
+    
+    
+
+    var syncComposition = lang.delayedCall(onCompositionUpdate, 50);
+
+    event.addListener(text, "compositionstart", onCompositionStart);
+    if (useragent.isGecko) {
+        event.addListener(text, "text", function(){syncComposition.schedule()});
+    } else {
+        event.addListener(text, "keyup", function(){syncComposition.schedule()});
+        event.addListener(text, "keydown", function(){syncComposition.schedule()});
+    }
+    event.addListener(text, "compositionend", onCompositionEnd);
+
+    this.getElement = function() {
+        return text;
+    };
+
+    this.setReadOnly = function(readOnly) {
+       text.readOnly = readOnly;
+    };
+
+    this.onContextMenu = function(e) {
+        afterContextMenu = true;
+        resetSelection(host.selection.isEmpty());
+        host._emit("nativecontextmenu", {target: host, domEvent: e});
+        this.moveToMouse(e, true);
+    };
+    
+    this.moveToMouse = function(e, bringToFront) {
+        if (!tempStyle)
+            tempStyle = text.style.cssText;
+        text.style.cssText = (bringToFront ? "z-index:100000;" : "")
+            + "height:" + text.style.height + ";"
+            + (useragent.isIE ? "opacity:0.1;" : "");
+
+        var rect = host.container.getBoundingClientRect();
+        var style = dom.computedStyle(host.container);
+        var top = rect.top + (parseInt(style.borderTopWidth) || 0);
+        var left = rect.left + (parseInt(rect.borderLeftWidth) || 0);
+        var maxTop = rect.bottom - top - text.clientHeight -2;
+        var move = function(e) {
+            text.style.left = e.clientX - left - 2 + "px";
+            text.style.top = Math.min(e.clientY - top - 2, maxTop) + "px";
+        }; 
+        move(e);
+
+        if (e.type != "mousedown")
+            return;
+
+        if (host.renderer.$keepTextAreaAtCursor)
+            host.renderer.$keepTextAreaAtCursor = null;
+
+        clearTimeout(closeTimeout);
+        if (useragent.isWin)
+            event.capture(host.container, move, onContextMenuClose);
+    };
+
+    this.onContextMenuClose = onContextMenuClose;
+    var closeTimeout;
+    function onContextMenuClose() {
+        clearTimeout(closeTimeout);
+        closeTimeout = setTimeout(function () {
+            if (tempStyle) {
+                text.style.cssText = tempStyle;
+                tempStyle = '';
+            }
+            if (host.renderer.$keepTextAreaAtCursor == null) {
+                host.renderer.$keepTextAreaAtCursor = true;
+                host.renderer.$moveTextAreaToCursor();
+            }
+        }, 0);
+    }
+
+    var onContextMenu = function(e) {
+        host.textInput.onContextMenu(e);
+        onContextMenuClose();
+    };
+    event.addListener(text, "mouseup", onContextMenu);
+    event.addListener(text, "mousedown", function(e) {
+        e.preventDefault();
+        onContextMenuClose();
+    });
+    event.addListener(host.renderer.scroller, "contextmenu", onContextMenu);
+    event.addListener(text, "contextmenu", onContextMenu);
+    
+    if (useragent.isIOS) {
+        var typingResetTimeout = null;
+        var typing = false;
+
+        parentNode.addEventListener("keydown", function (e) {
+            if (typingResetTimeout) clearTimeout(typingResetTimeout);
+            typing = true;
+        });
+
+        parentNode.addEventListener("keyup", function (e) {
+            typingResetTimeout = setTimeout(function () {
+                typing = false;
+            }, 100);
+        });
+        var detectArrowKeys = function(e) {
+            if (document.activeElement !== text) return;
+            if (typing) return;
+          
+            if (cut) {
+                return setTimeout(function () {
+                    cut = false;
+                }, 100);
+            }
+            var selectionStart = text.selectionStart;
+            var selectionEnd = text.selectionEnd;
+            text.setSelectionRange(4, 5);
+            if (selectionStart == selectionEnd) {
+                switch (selectionStart) {
+                    case 0: host.onCommandKey(null, 0, KEYS.up); break;
+                    case 1: host.onCommandKey(null, 0, KEYS.home); break;
+                    case 2: host.onCommandKey(null, MODS.option, KEYS.left); break;
+                    case 4: host.onCommandKey(null, 0, KEYS.left); break;
+                    case 5: host.onCommandKey(null, 0, KEYS.right); break;
+                    case 7: host.onCommandKey(null, MODS.option, KEYS.right); break;
+                    case 8: host.onCommandKey(null, 0, KEYS.end); break;
+                    case 9: host.onCommandKey(null, 0, KEYS.down); break;
+                }
+            } else {
+                switch (selectionEnd) {
+                    case 6: host.onCommandKey(null, MODS.shift, KEYS.right); break;
+                    case 7: host.onCommandKey(null, MODS.shift | MODS.option, KEYS.right); break;
+                    case 8: host.onCommandKey(null, MODS.shift, KEYS.end); break;
+                    case 9: host.onCommandKey(null, MODS.shift, KEYS.down); break;
+                }
+                switch (selectionStart) {
+                    case 0: host.onCommandKey(null, MODS.shift, KEYS.up); break;
+                    case 1: host.onCommandKey(null, MODS.shift, KEYS.home); break;
+                    case 2: host.onCommandKey(null, MODS.shift | MODS.option, KEYS.left); break;
+                    case 3: host.onCommandKey(null, MODS.shift, KEYS.left); break;
+                }
+            }
+        }
+        document.addEventListener("selectionchange", detectArrowKeys);
+        host.on("destroy", function() {
+            document.removeEventListener("selectionchange", detectArrowKeys);
+        })
+    }
+};
+
+exports.TextInput = TextInput;
+});
+
+define("ace/keyboard/textinput",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/keyboard/textinput_ios"], function(require, exports, module) {
+"use strict";
+
+var event = require("../lib/event");
+var useragent = require("../lib/useragent");
+var dom = require("../lib/dom");
+var lang = require("../lib/lang");
+var BROKEN_SETDATA = useragent.isChrome < 18;
+var USE_IE_MIME_TYPE =  useragent.isIE;
+
+var TextInputIOS = require("./textinput_ios").TextInput
+var TextInput = function(parentNode, host) {
+    if (useragent.isIOS)
+        return TextInputIOS.call(this, parentNode, host);
+    
+    var text = dom.createElement("textarea");
+    text.className = "ace_text-input";
+
+    text.setAttribute("wrap", "off");
+    text.setAttribute("autocorrect", "off");
+    text.setAttribute("autocapitalize", "off");
+    text.setAttribute("spellcheck", false);
+
+    text.style.opacity = "0";
+    parentNode.insertBefore(text, parentNode.firstChild);
+
+    var PLACEHOLDER = "\u2028\u2028";
 
     var copied = false;
     var pasted = false;
@@ -2023,54 +2498,6 @@ var TextInput = function(parentNode, host) {
     var isAllSelected = function(text) {
         return text.selectionStart === 0 && text.selectionEnd === text.value.length;
     };
-    if (!text.setSelectionRange && text.createTextRange) {
-        text.setSelectionRange = function(selectionStart, selectionEnd) {
-            var range = this.createTextRange();
-            range.collapse(true);
-            range.moveStart('character', selectionStart);
-            range.moveEnd('character', selectionEnd);
-            range.select();
-        };
-        isAllSelected = function(text) {
-            try {
-                var range = text.ownerDocument.selection.createRange();
-            }catch(e) {}
-            if (!range || range.parentElement() != text) return false;
-                return range.text == text.value;
-        }
-    }
-    if (useragent.isOldIE) {
-        var inPropertyChange = false;
-        var onPropertyChange = function(e){
-            if (inPropertyChange)
-                return;
-            var data = text.value;
-            if (inComposition || !data || data == PLACEHOLDER)
-                return;
-            if (e && data == PLACEHOLDER[0])
-                return syncProperty.schedule();
-
-            sendText(data);
-            inPropertyChange = true;
-            resetValue();
-            inPropertyChange = false;
-        };
-        var syncProperty = lang.delayedCall(onPropertyChange);
-        event.addListener(text, "propertychange", onPropertyChange);
-
-        var keytable = { 13:1, 27:1 };
-        event.addListener(text, "keyup", function (e) {
-            if (inComposition && (!text.value || keytable[e.keyCode]))
-                setTimeout(onCompositionEnd, 0);
-            if ((text.value.charCodeAt(0)||0) < 129) {
-                return syncProperty.call();
-            }
-            inComposition ? onCompositionUpdate() : onCompositionStart();
-        });
-        event.addListener(text, "keydown", function (e) {
-            syncProperty.schedule(50);
-        });
-    }
 
     var onSelect = function(e) {
         if (copied) {
@@ -2197,7 +2624,7 @@ var TextInput = function(parentNode, host) {
     event.addListener(text, "cut", onCut);
     event.addListener(text, "copy", onCopy);
     event.addListener(text, "paste", onPaste);
-    if (!('oncut' in text) || !('oncopy' in text) || !('onpaste' in text)){
+    if (!('oncut' in text) || !('oncopy' in text) || !('onpaste' in text)) {
         event.addListener(parentNode, "keydown", function(e) {
             if ((useragent.isMac && !e.metaKey) || !e.ctrlKey)
                 return;
@@ -2234,7 +2661,7 @@ var TextInput = function(parentNode, host) {
     var onCompositionUpdate = function() {
         if (!inComposition || !host.onCompositionUpdate || host.$readOnly)
             return;
-        var val = text.value.replace(/\x01/g, "");
+        var val = text.value.replace(/\u2028/g, "");
         if (inComposition.lastValue === val) return;
         
         host.onCompositionUpdate(val);
@@ -2258,7 +2685,7 @@ var TextInput = function(parentNode, host) {
         inComposition = false;
         var timer = setTimeout(function() {
             timer = null;
-            var str = text.value.replace(/\x01/g, "");
+            var str = text.value.replace(/\u2028/g, "");
             if (inComposition)
                 return;
             else if (str == c.lastValue)
@@ -2271,7 +2698,7 @@ var TextInput = function(parentNode, host) {
         inputHandler = function compositionInputHandler(str) {
             if (timer)
                 clearTimeout(timer);
-            str = str.replace(/\x01/g, "");
+            str = str.replace(/\u2028/g, "");
             if (str == c.lastValue)
                 return "";
             if (c.lastValue && timer)
@@ -2283,7 +2710,11 @@ var TextInput = function(parentNode, host) {
         if (e.type == "compositionend" && c.range) {
             host.selection.setRange(c.range);
         }
-        if (useragent.isChrome && useragent.isChrome >= 53) {
+        var needsOnInput =
+            (!!useragent.isChrome && useragent.isChrome >= 53) ||
+            (!!useragent.isWebKit && useragent.isWebKit >= 603);
+
+        if (needsOnInput) {
           onInput();
         }
     };
@@ -2317,8 +2748,6 @@ var TextInput = function(parentNode, host) {
     };
     
     this.moveToMouse = function(e, bringToFront) {
-        if (!bringToFront && useragent.isOldIE)
-            return;
         if (!tempStyle)
             tempStyle = text.style.cssText;
         text.style.cssText = (bringToFront ? "z-index:100000;" : "")
@@ -2343,7 +2772,7 @@ var TextInput = function(parentNode, host) {
             host.renderer.$keepTextAreaAtCursor = null;
 
         clearTimeout(closeTimeout);
-        if (useragent.isWin && !useragent.isOldIE)
+        if (useragent.isWin)
             event.capture(host.container, move, onContextMenuClose);
     };
 
@@ -2360,7 +2789,7 @@ var TextInput = function(parentNode, host) {
                 host.renderer.$keepTextAreaAtCursor = true;
                 host.renderer.$moveTextAreaToCursor();
             }
-        }, useragent.isOldIE ? 200 : 0);
+        }, 0);
     }
 
     var onContextMenu = function(e) {
@@ -2426,9 +2855,12 @@ function DefaultHandlers(mouseHandler) {
             if (selectionEmpty || button == 1)
                 editor.selection.moveToPosition(pos);
             editor.$blockScrolling--;
-            if (button == 2)
+            if (button == 2) {
                 editor.textInput.onContextMenu(ev.domEvent);
-            return; // stopping event here breaks contextmenu on ff mac
+                if (!useragent.isMozilla)
+                    ev.preventDefault();
+            }
+            return;
         }
 
         this.mousedownEvent.time = Date.now();
@@ -2695,6 +3127,13 @@ function Tooltip (parentNode) {
     };
     this.getWidth = function() {
         return this.getElement().offsetWidth;
+    };
+    
+    this.destroy = function() {
+        this.isOpen = false;
+        if (this.$element && this.$element.parentNode) {
+            this.$element.parentNode.removeChild(this.$element);
+        }
     };
 
 }).call(Tooltip.prototype);
@@ -4588,6 +5027,16 @@ var Selection = function(session) {
     this.moveCursorDown = function() {
         this.moveCursorBy(1, 0);
     };
+    this.wouldMoveIntoSoftTab = function(cursor, tabSize, direction) {
+        var start = cursor.column;
+        var end = cursor.column + tabSize;
+
+        if (direction < 0) {
+            start = cursor.column - tabSize;
+            end = cursor.column;
+        }
+        return this.session.isTabStop(cursor) && this.doc.getLine(cursor.row).slice(start, end).split(" ").length-1 == tabSize
+    }
     this.moveCursorLeft = function() {
         var cursor = this.lead.getPosition(),
             fold;
@@ -4601,10 +5050,11 @@ var Selection = function(session) {
         }
         else {
             var tabSize = this.session.getTabSize();
-            if (this.session.isTabStop(cursor) && this.doc.getLine(cursor.row).slice(cursor.column-tabSize, cursor.column).split(" ").length-1 == tabSize)
+            if (this.wouldMoveIntoSoftTab(cursor, tabSize, -1) && !this.session.getNavigateWithinSoftTabs()) {
                 this.moveCursorBy(0, -tabSize);
-            else
+            } else {
                 this.moveCursorBy(0, -1);
+            }
         }
     };
     this.moveCursorRight = function() {
@@ -4621,10 +5071,11 @@ var Selection = function(session) {
         else {
             var tabSize = this.session.getTabSize();
             var cursor = this.lead;
-            if (this.session.isTabStop(cursor) && this.doc.getLine(cursor.row).slice(cursor.column, cursor.column+tabSize).split(" ").length-1 == tabSize)
+            if (this.wouldMoveIntoSoftTab(cursor, tabSize, 1) && !this.session.getNavigateWithinSoftTabs()) {
                 this.moveCursorBy(0, tabSize);
-            else
+            } else {
                 this.moveCursorBy(0, 1);
+            }
         }
     };
     this.moveCursorLineStart = function() {
@@ -5192,7 +5643,7 @@ var Tokenizer = function(rules) {
                 rule = state[mapping[i]];
 
                 if (rule.onMatch)
-                    type = rule.onMatch(value, currentState, stack);
+                    type = rule.onMatch(value, currentState, stack, line);
                 else
                     type = rule.token;
 
@@ -5214,6 +5665,8 @@ var Tokenizer = function(rules) {
                     re = this.regExps[currentState];
                     re.lastIndex = index;
                 }
+                if (rule.consumeLineEnd)
+                    lastIndex = index;
                 break;
             }
 
@@ -5427,13 +5880,12 @@ var TextHighlightRules = function() {
                         }
                     }
                 }
-                var includeName = typeof rule == "string"
-                    ? rule
-                    : typeof rule.include == "string"
-                    ? rule.include
-                    : "";
+                var includeName = typeof rule == "string" ? rule : rule.include;
                 if (includeName) {
-                    toInsert = rules[includeName];
+                    if (Array.isArray(includeName))
+                        toInsert = includeName.map(function(x) { return rules[x]; });
+                    else
+                        toInsert = rules[includeName];
                 }
 
                 if (toInsert) {
@@ -5636,6 +6088,8 @@ var SAFE_INSERT_BEFORE_TOKENS =
 
 var context;
 var contextCache = {};
+var defaultQuotes = {'"' : '"', "'" : "'"};
+
 var initContext = function(editor) {
     var id = -1;
     if (editor.multiSelect) {
@@ -5669,7 +6123,7 @@ var getWrapped = function(selection, selected, opening, closing) {
     };
 };
 
-var CstyleBehaviour = function() {
+var CstyleBehaviour = function(options) {
     this.add("braces", "insertion", function(state, action, editor, session, text) {
         var cursor = editor.getCursorPosition();
         var line = session.doc.getLine(cursor.row);
@@ -5680,7 +6134,7 @@ var CstyleBehaviour = function() {
             if (selected !== "" && selected !== "{" && editor.getWrapBehavioursEnabled()) {
                 return getWrapped(selection, selected, '{', '}');
             } else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode) {
+                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode || options && options.braces) {
                     CstyleBehaviour.recordAutoInsert(editor, session, "}");
                     return {
                         text: '{}',
@@ -5843,14 +6297,15 @@ var CstyleBehaviour = function() {
     });
 
     this.add("string_dquotes", "insertion", function(state, action, editor, session, text) {
-        if (text == '"' || text == "'") {
+        var quotes = session.$mode.$quotes || defaultQuotes;
+        if (text.length == 1 && quotes[text]) {
             if (this.lineCommentStart && this.lineCommentStart.indexOf(text) != -1) 
                 return;
             initContext(editor);
             var quote = text;
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
-            if (selected !== "" && selected !== "'" && selected != '"' && editor.getWrapBehavioursEnabled()) {
+            if (selected !== "" && (selected.length != 1 || !quotes[selected]) && editor.getWrapBehavioursEnabled()) {
                 return getWrapped(selection, selected, quote, quote);
             } else if (!selected) {
                 var cursor = editor.getCursorPosition();
@@ -6976,6 +7431,9 @@ var BackgroundTokenizer = function(tokenizer, editor) {
             }
         }
         self.currentLine = currentLine;
+        
+        if (endLine == -1)
+            endLine = currentLine;
         
         if (startLine <= endLine)
             self.fireUpdateEvent(startLine, endLine);
@@ -8151,9 +8609,13 @@ function Folding() {
     this.getCommentFoldRange = function(row, column, dir) {
         var iterator = new TokenIterator(this, row, column);
         var token = iterator.getCurrentToken();
-        if (token && /^comment|string/.test(token.type)) {
+        var type = token.type;
+        if (token && /^comment|string/.test(type)) {
+            type = type.match(/comment|string/)[0];
+            if (type == "comment")
+                type += "|doc-start";
+            var re = new RegExp(type);
             var range = new Range();
-            var re = new RegExp(token.type.replace(/\..*/, "\\."));
             if (dir != 1) {
                 do {
                     token = iterator.stepBackward();
@@ -8167,8 +8629,16 @@ function Folding() {
             iterator = new TokenIterator(this, row, column);
             
             if (dir != -1) {
+                var lastRow = -1;
                 do {
                     token = iterator.stepForward();
+                    if (lastRow == -1) {
+                        var state = this.getState(iterator.$row);
+                        if (!re.test(state))
+                            lastRow = iterator.$row;
+                    } else if (iterator.$row > lastRow) {
+                        break;
+                    }
                 } while (token && re.test(token.type));
                 token = iterator.stepBackward();
             } else
@@ -8618,6 +9088,8 @@ var EditSession = function(text, mode) {
 };
 
 
+EditSession.$uid = 0;
+
 (function() {
 
     oop.implement(this, EventEmitter);
@@ -8827,6 +9299,12 @@ var EditSession = function(text, mode) {
     this.isTabStop = function(position) {
         return this.$useSoftTabs && (position.column % this.$tabSize === 0);
     };
+    this.setNavigateWithinSoftTabs = function (navigateWithinSoftTabs) {
+        this.setOption("navigateWithinSoftTabs", navigateWithinSoftTabs)
+    }
+    this.getNavigateWithinSoftTabs = function() {
+        return this.$navigateWithinSoftTabs;
+    }
 
     this.$overwrite = false;
     this.setOverwrite = function(overwrite) {
@@ -10306,6 +10784,7 @@ config.defineOptions(EditSession.prototype, "session", {
         initialValue: 4,
         handlesSet: true
     },
+    navigateWithinSoftTabs: {initialValue: false},
     overwrite: {
         set: function(val) {this._signal("changeOverwrite");},
         initialValue: false
@@ -10353,18 +10832,15 @@ var Search = function() {
             return false;
 
         var firstRange = null;
-        iterator.forEach(function(range, row, offset) {
-            if (!range.start) {
-                var column = range.offset + (offset || 0);
-                firstRange = new Range(row, column, row, column + range.length);
-                if (!range.length && options.start && options.start.start
-                    && options.skipCurrent != false && firstRange.isEqual(options.start)
-                ) {
-                    firstRange = null;
-                    return false;
-                }
-            } else
-                firstRange = range;
+        iterator.forEach(function(sr, sc, er, ec) {
+            firstRange = new Range(sr, sc, er, ec);
+            if (sc == ec && options.start && options.start.start
+                && options.skipCurrent != false && firstRange.isEqual(options.start)
+            ) {
+                firstRange = null;
+                return false;
+            }
+            
             return true;
         });
 
@@ -10467,62 +10943,6 @@ var Search = function() {
         return replacement;
     };
 
-    this.$matchIterator = function(session, options) {
-        var re = this.$assembleRegExp(options);
-        if (!re)
-            return false;
-
-        var callback;
-        if (options.$isMultiLine) {
-            var len = re.length;
-            var matchIterator = function(line, row, offset) {
-                var startIndex = line.search(re[0]);
-                if (startIndex == -1)
-                    return;
-                for (var i = 1; i < len; i++) {
-                    line = session.getLine(row + i);
-                    if (line.search(re[i]) == -1)
-                        return;
-                }
-
-                var endIndex = line.match(re[len - 1])[0].length;
-
-                var range = new Range(row, startIndex, row + len - 1, endIndex);
-                if (re.offset == 1) {
-                    range.start.row--;
-                    range.start.column = Number.MAX_VALUE;
-                } else if (offset)
-                    range.start.column += offset;
-
-                if (callback(range))
-                    return true;
-            };
-        } else if (options.backwards) {
-            var matchIterator = function(line, row, startIndex) {
-                var matches = lang.getMatchOffsets(line, re);
-                for (var i = matches.length-1; i >= 0; i--)
-                    if (callback(matches[i], row, startIndex))
-                        return true;
-            };
-        } else {
-            var matchIterator = function(line, row, startIndex) {
-                var matches = lang.getMatchOffsets(line, re);
-                for (var i = 0; i < matches.length; i++)
-                    if (callback(matches[i], row, startIndex))
-                        return true;
-            };
-        }
-        
-        var lineIterator = this.$lineIterator(session, options);
-
-        return {
-            forEach: function(_callback) {
-                callback = _callback;
-                lineIterator.forEach(matchIterator);
-            }
-        };
-    };
-
     this.$assembleRegExp = function(options, $disableFakeMultiline) {
         if (options.needle instanceof RegExp)
             return options.re = options.needle;
@@ -10560,16 +10980,13 @@ var Search = function() {
         } catch(e) {
             return false;
         }
-        if (parts[0] == "") {
-            re.shift();
-            re.offset = 1;
-        } else {
-            re.offset = 0;
-        }
         return re;
     };
 
-    this.$lineIterator = function(session, options) {
+    this.$matchIterator = function(session, options) {
+        var re = this.$assembleRegExp(options);
+        if (!re)
+            return false;
         var backwards = options.backwards == true;
         var skipCurrent = options.skipCurrent != false;
 
@@ -10583,43 +11000,100 @@ var Search = function() {
 
         var firstRow = range ? range.start.row : 0;
         var lastRow = range ? range.end.row : session.getLength() - 1;
-
-        var forEach = backwards ? function(callback) {
+        
+        if (backwards) {
+            var forEach = function(callback) {
                 var row = start.row;
-
-                var line = session.getLine(row).substring(0, start.column);
-                if (callback(line, row))
+                if (forEachInLine(row, start.column, callback))
                     return;
-
                 for (row--; row >= firstRow; row--)
-                    if (callback(session.getLine(row), row))
+                    if (forEachInLine(row, Number.MAX_VALUE, callback))
                         return;
-
                 if (options.wrap == false)
                     return;
-
                 for (row = lastRow, firstRow = start.row; row >= firstRow; row--)
-                    if (callback(session.getLine(row), row))
-                        return;
-            } : function(callback) {
-                var row = start.row;
-
-                var line = session.getLine(row).substr(start.column);
-                if (callback(line, row, start.column))
-                    return;
-
-                for (row = row+1; row <= lastRow; row++)
-                    if (callback(session.getLine(row), row))
-                        return;
-
-                if (options.wrap == false)
-                    return;
-
-                for (row = firstRow, lastRow = start.row; row <= lastRow; row++)
-                    if (callback(session.getLine(row), row))
+                    if (forEachInLine(row, Number.MAX_VALUE, callback))
                         return;
             };
+        }
+        else {
+            var forEach = function(callback) {
+                var row = start.row;
+                if (forEachInLine(row, start.column, callback))
+                    return;
+                for (row = row + 1; row <= lastRow; row++)
+                    if (forEachInLine(row, 0, callback))
+                        return;
+                if (options.wrap == false)
+                    return;
+                for (row = firstRow, lastRow = start.row; row <= lastRow; row++)
+                    if (forEachInLine(row, 0, callback))
+                        return;
+            };
+        }
         
+        if (options.$isMultiLine) {
+            var len = re.length;
+            var forEachInLine = function(row, offset, callback) {
+                var startRow = backwards ? row - len + 1 : row;
+                if (startRow < 0) return;
+                var line = session.getLine(startRow);
+                var startIndex = line.search(re[0])
+                if (!backwards && startIndex < offset || startIndex === -1) return;
+                for (var i = 1; i < len; i++) {
+                    line = session.getLine(startRow + i);
+                    if (line.search(re[i]) == -1)
+                        return;
+                }
+                var endIndex = line.match(re[len - 1])[0].length;
+                if (backwards && endIndex > offset) return;
+                if (callback(startRow, startIndex, startRow + len - 1, endIndex))
+                    return true;
+            };
+        }
+        else if (backwards) {
+            var forEachInLine = function(row, endIndex, callback) {
+                var line = session.getLine(row);
+                var matches = [];
+                var m, last = 0;
+                re.lastIndex = 0;
+                while((m = re.exec(line))) {
+                    var length = m[0].length;
+                    last = m.index;
+                    if (!length) {
+                        if (last >= line.length) break;
+                        re.lastIndex = last += 1;
+                    }
+                    if (m.index + length > endIndex)
+                        break;
+                    matches.push(m.index, length)
+                }
+                for (var i = matches.length - 1; i >= 0; i -= 2) {
+                    var column = matches[i - 1];
+                    var length = matches[i];
+                    if (callback(row, column, row, column + length))
+                        return true;
+                }
+            };
+        }
+        else {
+            var forEachInLine = function(row, startIndex, callback) {
+                var line = session.getLine(row);
+                var m;
+                var last = startIndex;
+                re.lastIndex = startIndex;
+                while((m = re.exec(line))) {
+                    var length = m[0].length;
+                    last = m.index;
+                    if (callback(row, last, row,last + length))
+                        return true;
+                    if (!length) {
+                        re.lastIndex = last += 1;
+                        if (last >= line.length) return false;
+                    }
+                }
+            };
+        }
         return {forEach: forEach};
     };
 
@@ -10725,7 +11199,8 @@ MultiHashHandler.prototype = HashHandler.prototype;
     
     function getPosition(command) {
         return typeof command == "object" && command.bindKey
-            && command.bindKey.position || 0;
+            && command.bindKey.position 
+            || (command.isDefault ? -100 : 0);
     }
     this._addCommandToBinding = function(keyId, command, position) {
         var ckb = this.commandKeyBinding, i;
@@ -10739,13 +11214,11 @@ MultiHashHandler.prototype = HashHandler.prototype;
             } else if ((i = ckb[keyId].indexOf(command)) != -1) {
                 ckb[keyId].splice(i, 1);
             }
-
+            
             if (typeof position != "number") {
-                if (position || command.isDefault)
-                    position = -100;
-                else
-                   position = getPosition(command);
+                position = getPosition(command);
             }
+
             var commands = ckb[keyId];
             for (i = 0; i < commands.length; i++) {
                 var other = commands[i];
@@ -10887,7 +11360,7 @@ oop.inherits(CommandManager, MultiHashHandler);
             }
             return false;
         }
-        
+
         if (typeof command === "string")
             command = this.commands[command];
 
@@ -10895,6 +11368,9 @@ oop.inherits(CommandManager, MultiHashHandler);
             return false;
 
         if (editor && editor.$readOnly && !command.readOnly)
+            return false;
+
+        if (command.isAvailable && !command.isAvailable(editor))
             return false;
 
         var e = {editor: editor, command: command, args: args};
@@ -11552,7 +12028,7 @@ exports.commands = [{
     scrollIntoView: "cursor"
 }, {
     name: "transposeletters",
-    bindKey: bindKey("Ctrl-T", "Ctrl-T"),
+    bindKey: bindKey("Alt-Shift-X", "Ctrl-T"),
     exec: function(editor) { editor.transposeLetters(); },
     multiSelectAction: function(editor) {editor.transposeSelections(1); },
     scrollIntoView: "cursor"
@@ -11684,13 +12160,17 @@ var Editor = function(renderer, session) {
     var container = renderer.getContainerElement();
     this.container = container;
     this.renderer = renderer;
+    this.id = "editor" + (++Editor.$uid);
 
     this.commands = new CommandManager(useragent.isMac ? "mac" : "win", defaultCommands);
-    this.textInput  = new TextInput(renderer.getTextAreaContainer(), this);
-    this.renderer.textarea = this.textInput.getElement();
+    if (typeof document == "object") {
+        this.textInput  = new TextInput(renderer.getTextAreaContainer(), this);
+        this.renderer.textarea = this.textInput.getElement();
+        this.$mouseHandler = new MouseHandler(this);
+        new FoldHandler(this);
+    }
+
     this.keyBinding = new KeyBinding(this);
-    this.$mouseHandler = new MouseHandler(this);
-    new FoldHandler(this);
 
     this.$blockScrolling = 0;
     this.$search = new Search().set({
@@ -11716,6 +12196,8 @@ var Editor = function(renderer, session) {
     config.resetOptions(this);
     config._signal("editor", this);
 };
+
+Editor.$uid = 0;
 
 (function(){
 
@@ -11963,6 +12445,9 @@ var Editor = function(renderer, session) {
         
         oldSession && oldSession._signal("changeEditor", {oldEditor: this});
         session && session._signal("changeEditor", {editor: this});
+        
+        if (session && session.bgTokenizer)
+            session.bgTokenizer.scheduleStart();
     };
     this.getSession = function() {
         return this.session;
@@ -12372,7 +12857,7 @@ var Editor = function(renderer, session) {
             cursor = this.session.remove(range);
             this.clearSelection();
         }
-        else if (this.session.getOverwrite()) {
+        else if (this.session.getOverwrite() && text.indexOf("\n") == -1) {
             var range = new Range.fromPoints(cursor, cursor);
             range.end.column += text.length;
             this.session.remove(range);
@@ -12631,6 +13116,7 @@ var Editor = function(renderer, session) {
             range = new Range(cursor.row, column-2, cursor.row, column);
         }
         this.session.replace(range, swap);
+        this.session.selection.moveToPosition(range.end);
     };
     this.toLowerCase = function() {
         var originalRange = this.getSelectionRange();
@@ -13786,7 +14272,7 @@ var Gutter = function(parentEl) {
             var text = lastLineNumber = gutterRenderer
                 ? gutterRenderer.getText(session, row)
                 : row + firstLineNumber;
-            if (text != cell.textNode.data)
+            if (text !== cell.textNode.data)
                 cell.textNode.data = text;
 
             row++;
@@ -15132,6 +15618,7 @@ overflow: hidden;\
 font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;\
 direction: ltr;\
 text-align: left;\
+-webkit-tap-highlight-color: rgba(0, 0, 0, 0);\
 }\
 .ace_scroller {\
 position: absolute;\
@@ -15305,6 +15792,9 @@ box-sizing: border-box;\
 border-left: 2px solid;\
 transform: translatez(0);\
 }\
+.ace_multiselect .ace_cursor {\
+border-left-width: 1px;\
+}\
 .ace_slim-cursors .ace_cursor {\
 border-left-width: 1px;\
 }\
@@ -15318,9 +15808,6 @@ opacity: 0.2;\
 .ace_smooth-blinking .ace_cursor {\
 -webkit-transition: opacity 0.18s;\
 transition: opacity 0.18s;\
-}\
-.ace_editor.ace_multiselect .ace_cursor {\
-border-left-width: 1px;\
 }\
 .ace_marker-layer .ace_step, .ace_marker-layer .ace_stack {\
 position: absolute;\
@@ -15499,6 +15986,11 @@ z-index: 8;\
 .ace_br13{border-top-left-radius    : 3px; border-bottom-right-radius: 3px; border-bottom-left-radius:  3px;}\
 .ace_br14{border-top-right-radius   : 3px; border-bottom-right-radius: 3px; border-bottom-left-radius:  3px;}\
 .ace_br15{border-top-left-radius    : 3px; border-top-right-radius:    3px; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px;}\
+.ace_text-input-ios {\
+position: absolute !important;\
+top: -100000px !important;\
+left: -100000px !important;\
+}\
 ";
 
 dom.importCssString(editorCss, "ace_editor.css");
@@ -16774,7 +17266,26 @@ var net = require("../lib/net");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var config = require("../config");
 
-var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
+function $workerBlob(workerUrl) {
+    var script = "importScripts('" + net.qualifyURL(workerUrl) + "');";
+    try {
+        return new Blob([script], {"type": "application/javascript"});
+    } catch (e) { // Backwards-compatibility
+        var BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
+        var blobBuilder = new BlobBuilder();
+        blobBuilder.append(script);
+        return blobBuilder.getBlob("application/javascript");
+    }
+}
+
+function createWorker(workerUrl) {
+    var blob = $workerBlob(workerUrl);
+    var URL = window.URL || window.webkitURL;
+    var blobURL = URL.createObjectURL(blob);
+    return new Worker(blobURL);
+}
+
+var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl, importScripts) {
     this.$sendDeltaQueue = this.$sendDeltaQueue.bind(this);
     this.changeListener = this.changeListener.bind(this);
     this.onMessage = this.onMessage.bind(this);
@@ -16793,19 +17304,9 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
         });
     }
 
-    try {
-        this.$worker = new Worker(workerUrl);
-    } catch(e) {
-        if (e instanceof window.DOMException) {
-            var blob = this.$workerBlob(workerUrl);
-            var URL = window.URL || window.webkitURL;
-            var blobURL = URL.createObjectURL(blob);
-
-            this.$worker = new Worker(blobURL);
-            URL.revokeObjectURL(blobURL);
-        } else {
-            throw e;
-        }
+    this.$worker = createWorker(workerUrl);
+    if (importScripts) {
+        this.send("importScripts", importScripts);
     }
     this.$worker.postMessage({
         init : true,
@@ -16826,7 +17327,7 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
 
     this.onMessage = function(e) {
         var msg = e.data;
-        switch(msg.type) {
+        switch (msg.type) {
             case "event":
                 this._signal(msg.name, {data: msg.data});
                 break;
@@ -16887,7 +17388,7 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
     };
 
     this.attachToDocument = function(doc) {
-        if(this.$doc)
+        if (this.$doc)
             this.terminate();
 
         this.$doc = doc;
@@ -16914,18 +17415,6 @@ var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl) {
             this.call("setValue", [this.$doc.getValue()]);
         } else
             this.emit("change", {data: q});
-    };
-
-    this.$workerBlob = function(workerUrl) {
-        var script = "importScripts('" + net.qualifyURL(workerUrl) + "');";
-        try {
-            return new Blob([script], {"type": "application/javascript"});
-        } catch (e) { // Backwards-compatibility
-            var BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
-            var blobBuilder = new BlobBuilder();
-            blobBuilder.append(script);
-            return blobBuilder.getBlob("application/javascript");
-        }
     };
 
 }).call(WorkerClient.prototype);
@@ -16985,6 +17474,8 @@ UIWorkerClient.prototype = WorkerClient.prototype;
 
 exports.UIWorkerClient = UIWorkerClient;
 exports.WorkerClient = WorkerClient;
+exports.createWorker = createWorker;
+
 
 });
 
@@ -19052,7 +19543,7 @@ exports.createEditSession = function(text, mode) {
 }
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
-exports.version = "1.2.6";
+exports.version = "1.2.7";
 });
             (function() {
                 window.require(["ace/ace"], function(a) {
