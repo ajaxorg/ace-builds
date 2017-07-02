@@ -14379,9 +14379,7 @@ var Marker = function(parentEl) {
     };
 
     this.update = function(config) {
-        var config = config || this.config;
-        if (!config)
-            return;
+        if (!config) return;
 
         this.config = config;
 
@@ -15320,6 +15318,7 @@ var VScrollBar = function(parent, renderer) {
     this.width = dom.scrollbarWidth(parent.ownerDocument);
     this.inner.style.width =
     this.element.style.width = (this.width || 15) + 5 + "px";
+    this.$minWidth = 0;
 };
 
 oop.inherits(VScrollBar, ScrollBar);
@@ -15339,7 +15338,7 @@ oop.inherits(VScrollBar, ScrollBar);
         this.skipEvent = false;
     };
     this.getWidth = function() {
-        return this.isVisible ? this.width : 0;
+        return Math.max(this.isVisible ? this.width : 0, this.$minWidth || 0);
     };
     this.setHeight = function(height) {
         this.element.style.height = height + "px";
@@ -16149,7 +16148,7 @@ var VirtualRenderer = function(container, theme) {
         
         this.$loop.schedule(this.CHANGE_FULL);
         this.session.$setFontMetrics(this.$fontMetrics);
-        this.scrollBarV.scrollLeft = this.scrollBarV.scrollTop = null;
+        this.scrollBarH.scrollLeft = this.scrollBarV.scrollTop = null;
         
         this.onChangeNewLineMode = this.onChangeNewLineMode.bind(this);
         this.onChangeNewLineMode()
@@ -16752,6 +16751,7 @@ var VirtualRenderer = function(container, theme) {
     };
 
     this.$updateLines = function() {
+        if (!this.$changedLines) return;
         var firstRow = this.$changedLines.firstRow;
         var lastRow = this.$changedLines.lastRow;
         this.$changedLines = null;
@@ -19543,7 +19543,7 @@ exports.createEditSession = function(text, mode) {
 }
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
-exports.version = "1.2.7";
+exports.version = "1.2.8";
 });
             (function() {
                 ace.require(["ace/ace"], function(a) {

@@ -545,6 +545,9 @@ var JavaScriptHighlightRules = function(options) {
                 regex : /[.](?![.])/,
                 next  : "property"
             }, {
+                token : "storage.type",
+                regex : /=>/
+            }, {
                 token : "keyword.operator",
                 regex : /--|\+\+|\.{3}|===|==|=|!=|!==|<+=?|>+=?|!|&&|\|\||\?:|[!$%&*+\-~\/^]=?/,
                 next  : "start"

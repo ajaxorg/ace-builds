@@ -180,6 +180,9 @@ var JavaScriptHighlightRules = function(options) {
                 regex : /[.](?![.])/,
                 next  : "property"
             }, {
+                token : "storage.type",
+                regex : /=>/
+            }, {
                 token : "keyword.operator",
                 regex : /--|\+\+|\.{3}|===|==|=|!=|!==|<+=?|>+=?|!|&&|\|\||\?:|[!$%&*+\-~\/^]=?/,
                 next  : "start"
@@ -2503,7 +2506,7 @@ var CSharpHighlightRules = function() {
                 next : "comment"
             }, {
                 token : "string", // character
-                regex : /'(?:.|\\(:?u[\da-fA-F]+|x[\da-fA-F]+|[tbrf'"n]))'/
+                regex : /'(?:.|\\(:?u[\da-fA-F]+|x[\da-fA-F]+|[tbrf'"n]))?'/
             }, {
                 token : "string", start : '"', end : '"|$', next: [
                     {token: "constant.language.escape", regex: /\\(:?u[\da-fA-F]+|x[\da-fA-F]+|[tbrf'"n])/},

@@ -1694,16 +1694,37 @@ exports.detectIndentation = function(session) {
         session.setTabSize(indent.length);
     return indent;
 };
-
-exports.trimTrailingSpace = function(session, trimEmpty) {
+exports.trimTrailingSpace = function(session, options) {
     var doc = session.getDocument();
     var lines = doc.getAllLines();
     
-    var min = trimEmpty ? -1 : 0;
+    var min = options && options.trimEmpty ? -1 : 0;
+    var cursors = [], ci = -1;
+    if (options && options.keepCursorPosition) {
+        if (session.selection.rangeCount) {
+            session.selection.rangeList.ranges.forEach(function(x, i, ranges) {
+               var next = ranges[i + 1];
+               if (next && next.cursor.row == x.cursor.row)
+                  return;
+              cursors.push(x.cursor);
+            });
+        } else {
+            cursors.push(session.selection.getCursor());
+        }
+        ci = 0;
+    }
+    var cursorRow = cursors[ci] && cursors[ci].row;
 
     for (var i = 0, l=lines.length; i < l; i++) {
         var line = lines[i];
         var index = line.search(/\s+$/);
+
+        if (i == cursorRow) {
+            if (index < cursors[ci].column && index > min)
+               index = cursors[ci].column;
+            ci++;
+            cursorRow = cursors[ci] ? cursors[ci].row : -1;
+        }
 
         if (index > min)
             doc.removeInLine(i, index, line.length);
@@ -10677,6 +10698,7 @@ var AcePopup = function(parentNode) {
     popup.$blockScrolling = Infinity;
     popup.isOpen = false;
     popup.isTopdown = false;
+    popup.autoSelect = true;
 
     popup.data = [];
     popup.setData = function(list) {
@@ -10692,7 +10714,7 @@ var AcePopup = function(parentNode) {
         return selectionMarker.start.row;
     };
     popup.setRow = function(line) {
-        line = Math.max(0, Math.min(this.data.length, line));
+        line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length, line));
         if (selectionMarker.start.row != line) {
             popup.selection.clearSelection();
             selectionMarker.start.row = selectionMarker.end.row = line || 0;
@@ -10919,6 +10941,8 @@ var Autocomplete = function() {
         if (!this.popup)
             this.$init();
 
+	this.popup.autoSelect = this.autoSelect;
+
         this.popup.setData(this.completions.filtered);
 
         editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
@@ -10978,7 +11002,7 @@ var Autocomplete = function() {
     this.blurListener = function(e) {
         var el = document.activeElement;
         var text = this.editor.textInput.getElement();
-        var fromTooltip = e.relatedTarget && this.tooltipNode.contains(e.relatedTarget);
+        var fromTooltip = e.relatedTarget && this.tooltipNode && this.tooltipNode.contains(e.relatedTarget);
         var container = this.popup && this.popup.container;
         if (el != text && el.parentNode != container && !fromTooltip
             && el != this.tooltipNode && e.relatedTarget != text
