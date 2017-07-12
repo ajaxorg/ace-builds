@@ -1,5 +1,6 @@
 {
     "name": "ace-builds",
+    "main": "./src/ace.js",
     "version": "1.2.8",
     "description": "Ace (Ajax.org Cloud9 Editor)",
     "scripts": {
