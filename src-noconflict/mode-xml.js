@@ -179,7 +179,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],
@@ -423,7 +423,7 @@ function is(token, type) {
         if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
             return "start";
         return "";
-    }
+    };
     this._getFirstTagInLine = function(session, row) {
         var tokens = session.getTokens(row);
         var tag = new Tag();

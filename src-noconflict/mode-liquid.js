@@ -217,7 +217,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -894,7 +894,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],

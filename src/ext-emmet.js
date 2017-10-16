@@ -272,14 +272,14 @@ var SnippetManager = function() {
                 return;
 
             var value = tokens.slice(i + 1, i1);
-            var isNested = value.some(function(t) {return typeof t === "object"});          
+            var isNested = value.some(function(t) {return typeof t === "object";});          
             if (isNested && !ts.value) {
                 ts.value = value;
             } else if (value.length && (!ts.value || typeof ts.value !== "string")) {
                 ts.value = value.join("");
             }
         });
-        tabstops.forEach(function(ts) {ts.length = 0});
+        tabstops.forEach(function(ts) {ts.length = 0;});
         var expanding = {};
         function copyValue(val) {
             var copy = [];
@@ -1176,7 +1176,7 @@ exports.isAvailable = function(editor, command) {
         } catch(e) {}
     }
     return isSupported;
-}
+};
 
 var onChangeMode = function(e, target) {
     var editor = target;

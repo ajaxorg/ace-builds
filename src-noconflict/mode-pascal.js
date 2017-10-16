@@ -71,7 +71,7 @@ var PascalHighlightRules = function() {
                 next: 'pop' },
               { defaultToken: 'string.quoted.single.pascal' } ] },
           { token: 'keyword.operator',
-           regex: '[+\\-;,/*%]|:=|=' } ] }
+           regex: '[+\\-;,/*%]|:=|=' } ] };
     
     this.normalizeRules();
 };

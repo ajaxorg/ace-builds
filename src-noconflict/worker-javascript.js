@@ -1,5 +1,5 @@
 "no use strict";
-;(function(window) {
+!(function(window) {
 if (typeof window.window != "undefined" && window.document)
     return;
 if (window.require && window.define)
@@ -450,9 +450,9 @@ var Range = function(startRow, startColumn, endRow, endColumn) {
     };
     this.collapseRows = function() {
         if (this.end.column == 0)
-            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0)
+            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0);
         else
-            return new Range(this.start.row, 0, this.end.row, 0)
+            return new Range(this.start.row, 0, this.end.row, 0);
     };
     this.toScreenRange = function(session) {
         var screenPosStart = session.documentToScreenPosition(this.start);
@@ -546,7 +546,7 @@ exports.applyDelta = function(docLines, delta, doNotValidate) {
             }
             break;
     }
-}
+};
 });
 
 ace.define("ace/lib/event_emitter",["require","exports","module"], function(require, exports, module) {
@@ -607,7 +607,7 @@ EventEmitter.once = function(eventName, callback) {
 
 
 EventEmitter.setDefaultHandler = function(eventName, callback) {
-    var handlers = this._defaultHandlers
+    var handlers = this._defaultHandlers;
     if (!handlers)
         handlers = this._defaultHandlers = {_disabled_: {}};
     
@@ -624,7 +624,7 @@ EventEmitter.setDefaultHandler = function(eventName, callback) {
     handlers[eventName] = callback;
 };
 EventEmitter.removeDefaultHandler = function(eventName, callback) {
-    var handlers = this._defaultHandlers
+    var handlers = this._defaultHandlers;
     if (!handlers)
         return;
     var disabled = handlers._disabled_[eventName];
@@ -11762,7 +11762,7 @@ oop.inherits(JavaScriptWorker, Mirror);
             if (e === 0)
                 return true;
         }
-        return false
+        return false;
     };
 
     this.onUpdate = function() {
@@ -11776,7 +11776,7 @@ oop.inherits(JavaScriptWorker, Mirror);
         lint(value, this.options, this.options.globals);
         var results = lint.errors;
 
-        var errorAdded = false
+        var errorAdded = false;
         for (var i = 0; i < results.length; i++) {
             var error = results[i];
             if (!error)
@@ -11798,7 +11798,7 @@ oop.inherits(JavaScriptWorker, Mirror);
                 continue;
             }
             else if (infoRe.test(raw)) {
-                type = "info"
+                type = "info";
             }
             else if (errorsRe.test(raw)) {
                 errorAdded  = true;

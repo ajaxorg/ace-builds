@@ -179,7 +179,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],
@@ -423,7 +423,7 @@ function is(token, type) {
         if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
             return "start";
         return "";
-    }
+    };
     this._getFirstTagInLine = function(session, row) {
         var tokens = session.getTokens(row);
         var tag = new Tag();
@@ -690,7 +690,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -1247,8 +1247,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;

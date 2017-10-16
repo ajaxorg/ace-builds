@@ -145,7 +145,7 @@ var BroHighlightRules = function() {
             token: "invalid.illegal.placeholder.bro",
             regex: /%/
         }]
-    }
+    };
     
     this.normalizeRules();
 };
@@ -157,7 +157,7 @@ BroHighlightRules.metaData = {
     keyEquivalent: "@B",
     name: "Bro",
     scopeName: "source.bro"
-}
+};
 
 
 oop.inherits(BroHighlightRules, TextHighlightRules);
@@ -186,8 +186,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
@@ -320,7 +320,7 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
-    this.$id = "ace/mode/bro"
+    this.$id = "ace/mode/bro";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

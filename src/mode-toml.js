@@ -62,7 +62,7 @@ var TomlHighlightRules = function() {
             defaultToken: "string"
         }
     ]
-    }
+    };
 
 };
 

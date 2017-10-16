@@ -25,7 +25,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -133,7 +133,7 @@ var SwiftHighlightRules = function() {
                 return val == open ? "paren.lparen" : "paren.rparen";
             },
             nextState: interpStart
-        } 
+        }; 
         return [counter, mainRule];
     }
     
@@ -235,8 +235,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
@@ -375,7 +375,7 @@ oop.inherits(Mode, TextMode);
     this.lineCommentStart = "//";
     this.blockComment = {start: "/*", end: "*/", nestable: true};
     
-    this.$id = "ace/mode/swift"
+    this.$id = "ace/mode/swift";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

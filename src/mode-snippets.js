@@ -171,7 +171,7 @@ var SnippetGroupHighlightRules = function() {
 			stack.splice(stack.length);
 			return this.tokenName;
 		}, tokenName: "text", regex: "^(?!\t)", next: "start"}
-	])
+	]);
 	
 };
 

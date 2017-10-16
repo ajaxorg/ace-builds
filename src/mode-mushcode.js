@@ -587,7 +587,7 @@ oop.inherits(FoldMode, BaseFoldMode);
                 return this.indentationBlock(session, row, match.index + match[2].length);
             return this.indentationBlock(session, row);
         }
-    }
+    };
 
 }).call(FoldMode.prototype);
 

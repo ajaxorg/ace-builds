@@ -115,7 +115,7 @@ module.exports.getEditorKeybordShortcuts = function(editor) {
                 commands = [commands];
             commands.forEach(function(command) {
                 if (typeof command != "string")
-                    command  = command.name
+                    command  = command.name;
                 if (commandMap[command]) {
                     commandMap[command].key += "|" + key;
                 } else {

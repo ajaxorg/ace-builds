@@ -75,7 +75,7 @@ var SchemeHighlightRules = function() {
             "merge" : true
         }
     ]
-}
+};
 
 };
 

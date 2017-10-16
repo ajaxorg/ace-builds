@@ -25,7 +25,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -272,7 +272,7 @@ var DroolsHighlightRules = function() {
                 defaultToken : "comment.block"
             }
         ];
-      }
+      };
 
       var basicPostRules = function() {
         return [{
@@ -425,7 +425,7 @@ oop.inherits(FoldMode, BaseFoldMode);
             }
 
         }
-    }
+    };
 
 }).call(FoldMode.prototype);
 

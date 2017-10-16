@@ -9,7 +9,7 @@ var PythonHighlightRules = function() {
     var keywords = (
         "and|as|assert|break|class|continue|def|del|elif|else|except|exec|" +
         "finally|for|from|global|if|import|in|is|lambda|not|or|pass|print|" +
-        "raise|return|try|while|with|yield"
+        "raise|return|try|while|with|yield|async|await"
     );
 
     var builtinConstants = (
@@ -177,7 +177,7 @@ oop.inherits(FoldMode, BaseFoldMode);
                 return this.indentationBlock(session, row, match.index + match[2].length);
             return this.indentationBlock(session, row);
         }
-    }
+    };
 
 }).call(FoldMode.prototype);
 

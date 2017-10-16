@@ -83,7 +83,7 @@ var CirruHighlightRules = function() {
             regex: /"/,
             next: 'string'
         }]
-    }
+    };
 
 };
 

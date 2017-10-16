@@ -28,7 +28,7 @@ exports.contextMenuHandler = function(e){
     });
 
     host.textInput.setInputHandler(function(newVal) {
-        console.log(newVal , value, text.selectionStart, text.selectionEnd)
+        console.log(newVal , value, text.selectionStart, text.selectionEnd);
         if (newVal == value)
             return '';
         if (newVal.lastIndexOf(value, 0) === 0)
@@ -1028,14 +1028,14 @@ MockRenderer.prototype.textToScreenCoordinates = function() {
     return {
         pageX: 0,
         pageY: 0
-    }
+    };
 };
 
 MockRenderer.prototype.screenToTextCoordinates = function() {
     return {
         row: 0,
         column: 0
-    }
+    };
 };
 
 MockRenderer.prototype.adjustWrapLimit = function () {
@@ -1285,6 +1285,9 @@ var supportedModes = {
     coffee:      ["coffee|cf|cson|^Cakefile"],
     ColdFusion:  ["cfm"],
     CSharp:      ["cs"],
+    Csound_Document: ["csd"],
+    Csound_Orchestra: ["orc"],
+    Csound_Score: ["sco"],
     CSS:         ["css"],
     Curly:       ["curly"],
     D:           ["d|di"],
@@ -1317,7 +1320,7 @@ var supportedModes = {
     Haskell_Cabal:     ["cabal"],
     haXe:        ["hx"],
     Hjson:       ["hjson"],
-    HTML:        ["html|htm|xhtml"],
+    HTML:        ["html|htm|xhtml|vue|we|wpy"],
     HTML_Elixir: ["eex|html.eex"],
     HTML_Ruby:   ["erb|rhtml|html.erb"],
     INI:         ["ini|conf|cfg|prefs"],
@@ -1329,6 +1332,7 @@ var supportedModes = {
     JSON:        ["json"],
     JSONiq:      ["jq"],
     JSP:         ["jsp"],
+    JSSM:        ["jssm|jssm_state"],
     JSX:         ["jsx"],
     Julia:       ["jl"],
     Kotlin:      ["kt|kts"],
@@ -1368,6 +1372,7 @@ var supportedModes = {
     R:           ["r"],
     Razor:       ["cshtml|asp"],
     RDoc:        ["Rd"],
+    Red:         ["red|reds"],
     RHTML:       ["Rhtml"],
     RST:         ["rst"],
     Ruby:        ["rb|ru|gemspec|rake|^Guardfile|^Rakefile|^Gemfile"],
@@ -1413,6 +1418,9 @@ var nameOverrides = {
     CSharp: "C#",
     golang: "Go",
     C_Cpp: "C and C++",
+    Csound_Document: "Csound Document",
+    Csound_Orchestra: "Csound",
+    Csound_Score: "Csound Score",
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
     HTML_Elixir: "HTML (Elixir)",
@@ -1650,7 +1658,7 @@ exports.$detectIndentation = function(lines, fallback) {
         return score;
     }
 
-    var changesTotal = changes.reduce(function(a,b){return a+b}, 0);
+    var changesTotal = changes.reduce(function(a,b){return a+b;}, 0);
 
     var first = {score: 0, length: 0};
     var spaceIndents = 0;
@@ -2821,7 +2829,7 @@ oop.inherits(Occur, Search);
         var translatedPos = this.originalToOccurPosition(editor.session, pos);
         editor.moveCursorToPosition(translatedPos);
         return true;
-    }
+    };
     this.exit = function(editor, options) {
         var pos = options.translatePosition && editor.getCursorPosition();
         var translatedPos = pos && this.occurToOriginalPosition(editor.session, pos);
@@ -2829,14 +2837,14 @@ oop.inherits(Occur, Search);
         if (translatedPos)
             editor.moveCursorToPosition(translatedPos);
         return true;
-    }
+    };
 
     this.highlight = function(sess, regexp) {
         var hl = sess.$occurHighlight = sess.$occurHighlight || sess.addDynamicMarker(
                 new SearchHighlight(null, "ace_occur-highlight", "text"));
         hl.setRegexp(regexp);
         sess._emit("changeBackMarker"); // force highlight layer redraw
-    }
+    };
 
     this.displayOccurContent = function(editor, options) {
         this.$originalSession = editor.session;
@@ -2850,12 +2858,12 @@ oop.inherits(Occur, Search);
         occurSession.$useEmacsStyleLineStart = this.$useEmacsStyleLineStart;
         this.highlight(occurSession, options.re);
         occurSession._emit('changeBackMarker');
-    }
+    };
 
     this.displayOriginalContent = function(editor) {
         editor.setSession(this.$originalSession);
         this.$originalSession.$useEmacsStyleLineStart = this.$useEmacsStyleLineStart;
-    }
+    };
     this.originalToOccurPosition = function(session, pos) {
         var lines = session.$occurMatchingLines;
         var nullPos = {row: 0, column: 0};
@@ -2865,13 +2873,13 @@ oop.inherits(Occur, Search);
                 return {row: i, column: pos.column};
         }
         return nullPos;
-    }
+    };
     this.occurToOriginalPosition = function(session, pos) {
         var lines = session.$occurMatchingLines;
         if (!lines || !lines[pos.row])
             return pos;
         return {row: lines[pos.row].row, column: pos.column};
-    }
+    };
 
     this.matchingLines = function(session, options) {
         options = oop.mixin({}, options);
@@ -2885,7 +2893,7 @@ oop.inherits(Occur, Search);
                 lines :
                 lines.concat({row: row, content: session.getLine(row)});
         }, []);
-    }
+    };
 
 }).call(Occur.prototype);
 
@@ -2961,13 +2969,13 @@ oop.inherits(OccurKeyboardHandler, HashHandler);
     this.attach = function(editor) {
         HashHandler.call(this, occurCommands, editor.commands.platform);
         this.$editor = editor;
-    }
+    };
 
     var handleKeyboard$super = this.handleKeyboard;
     this.handleKeyboard = function(data, hashId, key, keyCode) {
         var cmd = handleKeyboard$super.call(this, data, hashId, key, keyCode);
         return (cmd && cmd.command) ? cmd : undefined;
-    }
+    };
 
 }).call(OccurKeyboardHandler.prototype);
 
@@ -2975,14 +2983,14 @@ OccurKeyboardHandler.installIn = function(editor) {
     var handler = new this();
     editor.keyBinding.addKeyboardHandler(handler);
     editor.commands.addCommands(occurCommands);
-}
+};
 
 OccurKeyboardHandler.uninstallFrom = function(editor) {
     editor.commands.removeCommands(occurCommands);
     var handler = editor.getKeyboardHandler();
     if (handler.isOccurHandler)
         editor.keyBinding.removeKeyboardHandler(handler);
-}
+};
 
 exports.occurStartCommand = occurStartCommand;
 
@@ -3196,7 +3204,7 @@ function regExpToObject(re) {
     return {
         expression: string.slice(start+1, flagStart),
         flags: string.slice(flagStart+1)
-    }
+    };
 }
 
 function stringToRegExp(string, flags) {
@@ -9255,7 +9263,7 @@ var StatusBar = function(editor, parentNode) {
     parentNode.appendChild(this.element);
 
     var statusUpdate = lang.delayedCall(function(){
-        this.updateStatus(editor)
+        this.updateStatus(editor);
     }.bind(this)).schedule.bind(null, 100);
     
     editor.on("changeStatus", statusUpdate);
@@ -9567,14 +9575,14 @@ var SnippetManager = function() {
                 return;
 
             var value = tokens.slice(i + 1, i1);
-            var isNested = value.some(function(t) {return typeof t === "object"});          
+            var isNested = value.some(function(t) {return typeof t === "object";});          
             if (isNested && !ts.value) {
                 ts.value = value;
             } else if (value.length && (!ts.value || typeof ts.value !== "string")) {
                 ts.value = value.join("");
             }
         });
-        tabstops.forEach(function(ts) {ts.length = 0});
+        tabstops.forEach(function(ts) {ts.length = 0;});
         var expanding = {};
         function copyValue(val) {
             var copy = [];
@@ -10471,7 +10479,7 @@ exports.isAvailable = function(editor, command) {
         } catch(e) {}
     }
     return isSupported;
-}
+};
 
 var onChangeMode = function(e, target) {
     var editor = target;
@@ -10627,7 +10635,7 @@ var AcePopup = function(parentNode) {
         if (selected)
             dom.addCssClass(selected, "ace_selected");
     });
-    var hideHoverMarker = function() { setHoverMarker(-1) };
+    var hideHoverMarker = function() { setHoverMarker(-1); };
     var setHoverMarker = function(row, suppressRedraw) {
         if (row !== hoverMarker.start.row) {
             hoverMarker.start.row = hoverMarker.end.row = row;
@@ -10682,7 +10690,7 @@ var AcePopup = function(parentNode) {
             var maxW = popup.renderer.$size.scrollerWidth / popup.renderer.layerConfig.characterWidth;
             var metaData = data.meta;
             if (metaData.length + data.caption.length > maxW - 2) {
-                metaData = metaData.substr(0, maxW - data.caption.length - 3) + "\u2026"
+                metaData = metaData.substr(0, maxW - data.caption.length - 3) + "\u2026";
             }
             tokens.push({type: "rightAlignedText", value: metaData});
         }
@@ -11256,7 +11264,7 @@ var Autocomplete = function() {
             }
             a = a.parentNode;
         }
-    }
+    };
 
 }).call(Autocomplete.prototype);
 
@@ -11885,7 +11893,7 @@ exports.commands = [{
         exports.beautify(editor.session);
     },
     bindKey: "Ctrl-Shift-B"
-}]
+}];
 
 });
 

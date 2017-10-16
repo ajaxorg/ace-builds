@@ -325,7 +325,7 @@ exports.commands = [{
         exports.beautify(editor.session);
     },
     bindKey: "Ctrl-Shift-B"
-}]
+}];
 
 });
                 (function() {

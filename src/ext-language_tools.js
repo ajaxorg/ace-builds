@@ -272,14 +272,14 @@ var SnippetManager = function() {
                 return;
 
             var value = tokens.slice(i + 1, i1);
-            var isNested = value.some(function(t) {return typeof t === "object"});          
+            var isNested = value.some(function(t) {return typeof t === "object";});          
             if (isNested && !ts.value) {
                 ts.value = value;
             } else if (value.length && (!ts.value || typeof ts.value !== "string")) {
                 ts.value = value.join("");
             }
         });
-        tabstops.forEach(function(ts) {ts.length = 0});
+        tabstops.forEach(function(ts) {ts.length = 0;});
         var expanding = {};
         function copyValue(val) {
             var copy = [];
@@ -1020,7 +1020,7 @@ var AcePopup = function(parentNode) {
         if (selected)
             dom.addCssClass(selected, "ace_selected");
     });
-    var hideHoverMarker = function() { setHoverMarker(-1) };
+    var hideHoverMarker = function() { setHoverMarker(-1); };
     var setHoverMarker = function(row, suppressRedraw) {
         if (row !== hoverMarker.start.row) {
             hoverMarker.start.row = hoverMarker.end.row = row;
@@ -1075,7 +1075,7 @@ var AcePopup = function(parentNode) {
             var maxW = popup.renderer.$size.scrollerWidth / popup.renderer.layerConfig.characterWidth;
             var metaData = data.meta;
             if (metaData.length + data.caption.length > maxW - 2) {
-                metaData = metaData.substr(0, maxW - data.caption.length - 3) + "\u2026"
+                metaData = metaData.substr(0, maxW - data.caption.length - 3) + "\u2026";
             }
             tokens.push({type: "rightAlignedText", value: metaData});
         }
@@ -1649,7 +1649,7 @@ var Autocomplete = function() {
             }
             a = a.parentNode;
         }
-    }
+    };
 
 }).call(Autocomplete.prototype);
 

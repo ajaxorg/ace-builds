@@ -65,7 +65,7 @@ var IoHighlightRules = function() {
            regex: '\\b(?:0(?:x|X)[0-9a-fA-F]*|(?:[0-9]+\\.?[0-9]*|\\.[0-9]+)(?:(?:e|E)(?:\\+|-)?[0-9]+)?)(?:L|l|UL|ul|u|U|F|f)?\\b' },
          { token: 'variable.other.global.io', regex: 'Lobby\\b' },
          { token: 'constant.language.io',
-           regex: '\\b(?:TRUE|true|FALSE|false|NULL|null|Null|Nil|nil|YES|NO)\\b' } ] }
+           regex: '\\b(?:TRUE|true|FALSE|false|NULL|null|Null|Nil|nil|YES|NO)\\b' } ] };
     
     this.normalizeRules();
 };
@@ -73,7 +73,7 @@ var IoHighlightRules = function() {
 IoHighlightRules.metaData = { fileTypes: [ 'io' ],
       keyEquivalent: '^~I',
       name: 'Io',
-      scopeName: 'source.io' }
+      scopeName: 'source.io' };
 
 
 oop.inherits(IoHighlightRules, TextHighlightRules);
@@ -102,8 +102,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;

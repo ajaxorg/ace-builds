@@ -131,7 +131,7 @@ var ScssHighlightRules = function() {
     
     var keywords = lang.arrayToMap(
         ("@mixin|@extend|@include|@import|@media|@debug|@warn|@if|@for|@each|@while|@else|@font-face|@-webkit-keyframes|if|and|!default|module|def|end|declare").split("|")
-    )
+    );
     
     var tags = lang.arrayToMap(
         ("a|abbr|acronym|address|applet|area|article|aside|audio|b|base|basefont|bdo|" + 
@@ -340,13 +340,13 @@ var CssBehaviour = function () {
                     return {
                        text: '',
                        selection: [1, 1]
-                    }
+                    };
                 }
                 if (!line.substring(cursor.column).match(/^\s*;/)) {
                     return {
                        text: ':;',
                        selection: [1, 1]
-                    }
+                    };
                 }
             }
         }
@@ -381,12 +381,12 @@ var CssBehaviour = function () {
                 return {
                    text: '',
                    selection: [1, 1]
-                }
+                };
             }
         }
     });
 
-}
+};
 oop.inherits(CssBehaviour, CstyleBehaviour);
 
 exports.CssBehaviour = CssBehaviour;
@@ -413,8 +413,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;

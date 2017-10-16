@@ -150,7 +150,7 @@ var LuaHighlightRules = function() {
     };
     
     this.normalizeRules();
-}
+};
 
 oop.inherits(LuaHighlightRules, TextHighlightRules);
 

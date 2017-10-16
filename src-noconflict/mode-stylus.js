@@ -340,7 +340,7 @@ var StylusHighlightRules = function() {
             next  : "start"
         }
     ]
-}
+};
 
 };
 

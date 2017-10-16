@@ -25,7 +25,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -582,8 +582,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
@@ -1092,7 +1092,7 @@ var CssCompletions = function() {
         }
 
         this.completionsDefined = true;
-    }
+    };
 
     this.getCompletions = function(state, session, pos, prefix) {
         if (!this.completionsDefined) {
@@ -1122,7 +1122,7 @@ var CssCompletions = function() {
         return properties.map(function(property){
             return {
                 caption: property,
-                snippet: property + ': $0',
+                snippet: property + ': $0;',
                 meta: "property",
                 score: Number.MAX_VALUE
             };
@@ -1181,13 +1181,13 @@ var CssBehaviour = function () {
                     return {
                        text: '',
                        selection: [1, 1]
-                    }
+                    };
                 }
                 if (!line.substring(cursor.column).match(/^\s*;/)) {
                     return {
                        text: ':;',
                        selection: [1, 1]
-                    }
+                    };
                 }
             }
         }
@@ -1222,12 +1222,12 @@ var CssBehaviour = function () {
                 return {
                    text: '',
                    selection: [1, 1]
-                }
+                };
             }
         }
     });
 
-}
+};
 oop.inherits(CssBehaviour, CstyleBehaviour);
 
 exports.CssBehaviour = CssBehaviour;
@@ -1489,7 +1489,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],
@@ -1869,7 +1869,7 @@ function is(token, type) {
         if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
             return "start";
         return "";
-    }
+    };
     this._getFirstTagInLine = function(session, row) {
         var tokens = session.getTokens(row);
         var tag = new Tag();
@@ -2489,7 +2489,7 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var CSharpHighlightRules = function() {
     var keywordMapper = this.createKeywordMapper({
         "variable.language": "this",
-        "keyword": "abstract|event|new|struct|as|explicit|null|switch|base|extern|object|this|bool|false|operator|throw|break|finally|out|true|byte|fixed|override|try|case|float|params|typeof|catch|for|private|uint|char|foreach|protected|ulong|checked|goto|public|unchecked|class|if|readonly|unsafe|const|implicit|ref|ushort|continue|in|return|using|decimal|int|sbyte|virtual|default|interface|sealed|volatile|delegate|internal|short|void|do|is|sizeof|while|double|lock|stackalloc|else|long|static|enum|namespace|string|var|dynamic",
+        "keyword": "abstract|event|new|struct|as|explicit|null|switch|base|extern|object|this|bool|false|operator|throw|break|finally|out|true|byte|fixed|override|try|case|float|params|typeof|catch|for|private|uint|char|foreach|protected|ulong|checked|goto|public|unchecked|class|if|readonly|unsafe|const|implicit|ref|ushort|continue|in|return|using|decimal|int|sbyte|virtual|default|interface|sealed|volatile|delegate|internal|partial|short|void|do|is|sizeof|while|double|lock|stackalloc|else|long|static|enum|namespace|string|var|dynamic",
         "constant.language": "null|true|false"
     }, "identifier");
 

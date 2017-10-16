@@ -25,7 +25,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -702,7 +702,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],
@@ -1011,7 +1011,7 @@ var CssHighlightRules = require("./css_highlight_rules").CssHighlightRules;
 
 var escaped = function(ch) {
     return "(?:[^" + lang.escapeRegExp(ch) + "\\\\]|\\\\.)*";
-}
+};
 
 function github_embed(tag, prefix) {
     return { // Github style block
@@ -1326,7 +1326,7 @@ var ScssHighlightRules = function() {
     
     var keywords = lang.arrayToMap(
         ("@mixin|@extend|@include|@import|@media|@debug|@warn|@if|@for|@each|@while|@else|@font-face|@-webkit-keyframes|if|and|!default|module|def|end|declare").split("|")
-    )
+    );
     
     var tags = lang.arrayToMap(
         ("a|abbr|acronym|address|applet|area|article|aside|audio|b|base|basefont|bdo|" + 

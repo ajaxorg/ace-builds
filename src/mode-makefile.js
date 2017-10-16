@@ -39,7 +39,7 @@ var ShHighlightRules = function() {
     var fileDescriptor = "(?:&" + intPart + ")";
 
     var variableName = "[a-zA-Z_][a-zA-Z0-9_]*";
-    var variable = "(?:" + variableName + "=)";
+    var variable = "(?:" + variableName + "(?==))";
 
     var builtinVariable = "(?:\\$(?:SHLVL|\\$|\\!|\\?))";
 
@@ -281,7 +281,7 @@ var MakefileHighlightRules = function() {
             next  : "start"
         }
     ]
-}
+};
 
 };
 

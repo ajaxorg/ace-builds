@@ -25,7 +25,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -894,7 +894,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],
@@ -11297,8 +11297,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
@@ -11615,7 +11615,7 @@ var CssCompletions = function() {
         }
 
         this.completionsDefined = true;
-    }
+    };
 
     this.getCompletions = function(state, session, pos, prefix) {
         if (!this.completionsDefined) {
@@ -11645,7 +11645,7 @@ var CssCompletions = function() {
         return properties.map(function(property){
             return {
                 caption: property,
-                snippet: property + ': $0',
+                snippet: property + ': $0;',
                 meta: "property",
                 score: Number.MAX_VALUE
             };
@@ -11704,13 +11704,13 @@ var CssBehaviour = function () {
                     return {
                        text: '',
                        selection: [1, 1]
-                    }
+                    };
                 }
                 if (!line.substring(cursor.column).match(/^\s*;/)) {
                     return {
                        text: ':;',
                        selection: [1, 1]
-                    }
+                    };
                 }
             }
         }
@@ -11745,12 +11745,12 @@ var CssBehaviour = function () {
                 return {
                    text: '',
                    selection: [1, 1]
-                }
+                };
             }
         }
     });
 
-}
+};
 oop.inherits(CssBehaviour, CstyleBehaviour);
 
 exports.CssBehaviour = CssBehaviour;
@@ -12107,7 +12107,7 @@ function is(token, type) {
         if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
             return "start";
         return "";
-    }
+    };
     this._getFirstTagInLine = function(session, row) {
         var tokens = session.getTokens(row);
         var tag = new Tag();

@@ -166,7 +166,7 @@ var VBScriptHighlightRules = function() {
             defaultToken: "string.quoted.double.asp"
         }
     ]
-}
+};
 
 };
 

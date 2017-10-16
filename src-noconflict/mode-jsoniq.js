@@ -2296,7 +2296,7 @@ function hasType(token, type) {
             }
             var previous = iterator.stepBackward();
             if (!token || !hasType(token, 'meta.tag') || (previous !== null && previous.value.match('/'))) {
-                return
+                return;
             }
             var tag = token.value.substring(1);
             if (atCursor){
@@ -2306,11 +2306,11 @@ function hasType(token, type) {
             return {
                text: '>' + '</' + tag + '>',
                selection: [1, 1]
-            }
+            };
         }
     });
 
-  }
+  };
   oop.inherits(XQueryBehaviour, Behaviour);
 
   exports.XQueryBehaviour = XQueryBehaviour;
@@ -2337,8 +2337,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;

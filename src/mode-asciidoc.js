@@ -210,7 +210,7 @@ oop.inherits(FoldMode, BaseFoldMode);
     this.getFoldWidget = function(session, foldStyle, row) {
         var line = session.getLine(row);
         if (!this.foldingStartMarker.test(line))
-            return ""
+            return "";
 
         if (line[0] == "=") {
             if (this.singleLineHeadingRe.test(line))

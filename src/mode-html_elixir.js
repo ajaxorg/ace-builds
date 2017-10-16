@@ -217,7 +217,7 @@ DocCommentHighlightRules.getTagRule = function(start) {
         token : "comment.doc.tag.storage.type",
         regex : "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
-}
+};
 
 DocCommentHighlightRules.getStartRule = function(start) {
     return {
@@ -894,7 +894,7 @@ var XmlHighlightRules = function(normalize) {
                     stack.splice(0);
                     return this.token;
             }}
-        ]
+        ];
 
         this.embedRules(HighlightRules, prefix, [{
             token: ["meta.tag.punctuation.end-tag-open.xml", "meta.tag." + tag + ".tag-name.xml"],
@@ -1363,7 +1363,7 @@ var ElixirHighlightRules = function() {
               'comment.line.number-sign.elixir' ],
            regex: '(?:^|\\s)(#)(\\s[[a-zA-Z0-9,. \\t?!-][^\\x00-\\x7F]]*$)',
            originalRegex: '(?<=^|\\s)(#)\\s[[a-zA-Z0-9,. \\t?!-][^\\x{00}-\\x{7F}]]*$',
-           comment: 'We are restrictive in what we allow to go after the comment character to avoid false positives, since the availability of comments depend on regexp flags.' } ] }
+           comment: 'We are restrictive in what we allow to go after the comment character to avoid false positives, since the availability of comments depend on regexp flags.' } ] };
     
     this.normalizeRules();
 };
@@ -1375,7 +1375,7 @@ ElixirHighlightRules.metaData = { comment: 'Textmate bundle for Elixir Programmi
       foldingStopMarker: '^\\s*((\\}|\\]|after|else|catch|rescue)\\s*$|end\\b)',
       keyEquivalent: '^~E',
       name: 'Elixir',
-      scopeName: 'source.elixir' }
+      scopeName: 'source.elixir' };
 
 
 oop.inherits(ElixirHighlightRules, TextHighlightRules);
@@ -1499,8 +1499,8 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 (function() {
     
-    this.foldingStartMarker = /(\{|\[)[^\}\]]*$|^\s*(\/\*)/;
-    this.foldingStopMarker = /^[^\[\{]*(\}|\])|^[\s\*]*(\*\/)/;
+    this.foldingStartMarker = /([\{\[\(])[^\}\]\)]*$|^\s*(\/\*)/;
+    this.foldingStopMarker = /^[^\[\{\(]*([\}\]\)])|^[\s\*]*(\*\/)/;
     this.singleLineBlockCommentRe= /^\s*(\/\*).*\*\/\s*$/;
     this.tripleStarBlockCommentRe = /^\s*(\/\*\*\*).*\*\/\s*$/;
     this.startRegionRe = /^\s*(\/\*|\/\/)#?region\b/;
@@ -1817,7 +1817,7 @@ var CssCompletions = function() {
         }
 
         this.completionsDefined = true;
-    }
+    };
 
     this.getCompletions = function(state, session, pos, prefix) {
         if (!this.completionsDefined) {
@@ -1847,7 +1847,7 @@ var CssCompletions = function() {
         return properties.map(function(property){
             return {
                 caption: property,
-                snippet: property + ': $0',
+                snippet: property + ': $0;',
                 meta: "property",
                 score: Number.MAX_VALUE
             };
@@ -1906,13 +1906,13 @@ var CssBehaviour = function () {
                     return {
                        text: '',
                        selection: [1, 1]
-                    }
+                    };
                 }
                 if (!line.substring(cursor.column).match(/^\s*;/)) {
                     return {
                        text: ':;',
                        selection: [1, 1]
-                    }
+                    };
                 }
             }
         }
@@ -1947,12 +1947,12 @@ var CssBehaviour = function () {
                 return {
                    text: '',
                    selection: [1, 1]
-                }
+                };
             }
         }
     });
 
-}
+};
 oop.inherits(CssBehaviour, CstyleBehaviour);
 
 exports.CssBehaviour = CssBehaviour;
@@ -2309,7 +2309,7 @@ function is(token, type) {
         if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
             return "start";
         return "";
-    }
+    };
     this._getFirstTagInLine = function(session, row) {
         var tokens = session.getTokens(row);
         var tag = new Tag();
@@ -3023,7 +3023,7 @@ oop.inherits(Mode, TextMode);
 
 (function() {
     this.lineCommentStart = "#";
-    this.$id = "ace/mode/elixir"
+    this.$id = "ace/mode/elixir";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

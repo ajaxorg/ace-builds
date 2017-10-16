@@ -62,7 +62,7 @@ var LogiQLHighlightRules = function() {
             },
          { token: 'variable.parameter',
            regex: '([a-zA-Z][a-zA-Z_0-9]*|_)\\s*(?=(,|\\.|<-|->|\\)|\\]|=))'
-            } ] }
+            } ] };
     
     this.normalizeRules();
 };
@@ -272,7 +272,7 @@ oop.inherits(Mode, TextMode);
 
     this.getMatching = function(session, row, column) {
         if (row == undefined)
-            row = session.selection.lead
+            row = session.selection.lead;
         if (typeof row == "object") {
             column = row.column;
             row = row.row;

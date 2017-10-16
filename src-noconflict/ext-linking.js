@@ -15,7 +15,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         },
         value: false
     }
-})
+});
 
 exports.previousLinkingHover = false;
 
