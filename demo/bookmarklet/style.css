@@ -119,7 +119,6 @@ PRE{
 
 #wrapper .content .column2 {
     position:relative;
-    overflow:hidden;
     float:left;
     width:600px;
     padding-top:47px;
@@ -131,7 +130,6 @@ PRE{
     background:url(images/fork_on_github.png) no-repeat 0 0;
     position:relative;
     overflow:hidden;
-    margin-top:49px;
     cursor:pointer;
 }
 
