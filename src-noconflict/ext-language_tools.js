@@ -509,10 +509,10 @@ var SnippetManager = function() {
                 return;
             
             s.startRe = guardedRegexp(s.trigger, s.guard, true);
-            s.triggerRe = new RegExp(s.trigger, "", true);
+            s.triggerRe = new RegExp(s.trigger);
 
             s.endRe = guardedRegexp(s.endTrigger, s.endGuard, true);
-            s.endTriggerRe = new RegExp(s.endTrigger, "", true);
+            s.endTriggerRe = new RegExp(s.endTrigger);
         }
 
         if (snippets && snippets.content)
@@ -1087,8 +1087,6 @@ var AcePopup = function(parentNode) {
     popup.session.$computeWidth = function() {
         return this.screenWidth = 0;
     };
-
-    popup.$blockScrolling = Infinity;
     popup.isOpen = false;
     popup.isTopdown = false;
     popup.autoSelect = true;
@@ -1709,21 +1707,28 @@ var FilteredList = function(array, filterText) {
             if (this.exactMatch) {
                 if (needle !== caption.substr(0, needle.length))
                     continue loop;
-            }else{
-                for (var j = 0; j < needle.length; j++) {
-                    var i1 = caption.indexOf(lower[j], lastIndex + 1);
-                    var i2 = caption.indexOf(upper[j], lastIndex + 1);
-                    index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;
-                    if (index < 0)
-                        continue loop;
-                    distance = index - lastIndex - 1;
-                    if (distance > 0) {
-                        if (lastIndex === -1)
-                            penalty += 10;
-                        penalty += distance;
+            } else {
+                var a;
+                if ((a = caption.toLowerCase().indexOf(lower)) > -1) {
+                    for (var k = a; k < a + lower.length; k++) {
+                        matchMask = matchMask | (1 << k);
                     }
-                    matchMask = matchMask | (1 << index);
-                    lastIndex = index;
+                } else {
+                    for (var j = 0; j < needle.length; j++) {
+                        var i1 = caption.indexOf(lower[j], lastIndex + 1);
+                        var i2 = caption.indexOf(upper[j], lastIndex + 1);
+                        index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;
+                        if (index < 0)
+                            continue loop;
+                        distance = index - lastIndex - 1;
+                        if (distance > 0) {
+                            if (lastIndex === -1)
+                                penalty += 10;
+                            penalty += distance;
+                        }
+                        matchMask = matchMask | (1 << index);
+                        lastIndex = index;
+                    }
                 }
             }
             item.matchMask = matchMask;
@@ -1771,7 +1776,7 @@ ace.define("ace/autocomplete/text_completer",["require","exports","module","ace/
     }
 
     exports.getCompletions = function(editor, session, pos, prefix, callback) {
-        var wordScore = wordDistance(session, pos, prefix);
+        var wordScore = wordDistance(session, pos);
         var wordList = Object.keys(wordScore);
         callback(null, wordList.map(function(word) {
             return {

@@ -3,13 +3,13 @@ ace.define("ace/theme/dracula",["require","exports","module","ace/lib/dom"], fun
 exports.isDark = true;
 exports.cssClass = "ace-dracula";
 exports.cssText = "\
-ace-dracula .ace_gutter {\
+.ace-dracula .ace_gutter {\
 background: #282a36;\
 color: rgb(144,145,148)\
 }\
 .ace-dracula .ace_print-margin {\
 width: 1px;\
-background: #e8e8e8\
+background: #44475a\
 }\
 .ace-dracula {\
 background-color: #282a36;\
@@ -30,7 +30,7 @@ background: rgb(198, 219, 174)\
 }\
 .ace-dracula .ace_marker-layer .ace_bracket {\
 margin: -1px 0 0 -1px;\
-border: 1px solid #3B3A32\
+border: 1px solid #a29709\
 }\
 .ace-dracula .ace_marker-layer .ace_active-line {\
 background: #44475a\
@@ -39,7 +39,8 @@ background: #44475a\
 background-color: #44475a\
 }\
 .ace-dracula .ace_marker-layer .ace_selected-word {\
-border: 1px solid #44475a\
+box-shadow: 0px 0px 0px 1px #a29709;\
+border-radius: 3px;\
 }\
 .ace-dracula .ace_fold {\
 background-color: #50fa7b;\
@@ -114,7 +115,13 @@ color: #50fa7b\
 .ace-dracula .ace_entity.ace_name.ace_tag {\
 color: #ff79c6\
 }\
-";
+.ace-dracula .ace_invisible {\
+color: #626680;\
+}\
+.ace-dracula .ace_indent-guide {\
+background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAEklEQVQImWNgYGBgYHB3d/8PAAOIAdULw8qMAAAAAElFTkSuQmCC) right repeat-y\
+}";
+exports.$selectionColorConflict = true;
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);

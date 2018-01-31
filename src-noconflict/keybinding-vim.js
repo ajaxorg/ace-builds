@@ -280,7 +280,7 @@ ace.define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib
           if (point.bias == 1) {
             cmp = 1;
           } else {
-            point.bias == -1;
+            point.bias = -1;
             continue;
           }
         }
@@ -1001,7 +1001,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         CodeMirror.rmClass(cm.getWrapperElement(), "cm-fat-cursor");
 
       if (!next || next.attach != attachVimMap)
-        leaveVimMode(cm, false);
+        leaveVimMode(cm);
     }
     function attachVimMap(cm, prev) {
       if (this == CodeMirror.keyMap.vim)
@@ -1346,8 +1346,8 @@ dom.importCssString(".normal-mode .ace_cursor{\
         macroModeState: new MacroModeState,
         lastChararacterSearch: {increment:0, forward:true, selectedCharacter:''},
         registerController: new RegisterController({}),
-        searchHistoryController: new HistoryController({}),
-        exCommandHistoryController : new HistoryController({})
+        searchHistoryController: new HistoryController(),
+        exCommandHistoryController : new HistoryController()
       };
       for (var optionName in options) {
         var option = options[optionName];
@@ -3994,8 +3994,17 @@ dom.importCssString(".normal-mode .ace_cursor{\
         onClose(prompt(shortText, ''));
       }
     }
+    
     function splitBySlash(argString) {
-      var slashes = findUnescapedSlashes(argString) || [];
+      return splitBySeparator(argString, '/');
+    }
+  
+    function findUnescapedSlashes(argString) {
+      return findUnescapedSeparators(argString, '/');
+    }
+
+    function splitBySeparator(argString, separator) {
+      var slashes = findUnescapedSeparators(argString, separator) || [];
       if (!slashes.length) return [];
       var tokens = [];
       if (slashes[0] !== 0) return;
@@ -4006,12 +4015,15 @@ dom.importCssString(".normal-mode .ace_cursor{\
       return tokens;
     }
 
-    function findUnescapedSlashes(str) {
+    function findUnescapedSeparators(str, separator) {
+      if (!separator)
+        separator = '/';
+
       var escapeNextChar = false;
       var slashes = [];
       for (var i = 0; i < str.length; i++) {
         var c = str.charAt(i);
-        if (!escapeNextChar && c == '/') {
+        if (!escapeNextChar && c == separator) {
           slashes.push(i);
         }
         escapeNextChar = !escapeNextChar && (c == '\\');
@@ -4368,7 +4380,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
         } else {
           result.line = this.parseLineSpec_(cm, inputStream);
           if (result.line !== undefined && inputStream.eat(',')) {
-            result.lineEnd = this.parseLineSpec_(cm, inputStream);
+            result.lineEnd = this.parseLineSpec_(cm, inputStream, result.line);
           }
         }
         var commandMatch = inputStream.match(/^(\w+)/);
@@ -4380,7 +4392,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
 
         return result;
       },
-      parseLineSpec_: function(cm, inputStream) {
+      parseLineSpec_: function(cm, inputStream, prevLine) {
         var numberMatch = inputStream.match(/^(\d+)/);
         if (numberMatch) {
           return parseInt(numberMatch[1], 10) - 1;
@@ -4396,6 +4408,14 @@ dom.importCssString(".normal-mode .ace_cursor{\
               return mark.find().line;
             }
             throw new Error('Mark not set');
+          case '+':
+            if (prevLine) { 
+              var match = inputStream.match(/^\d+/);
+              if (match) {
+                return prevLine + parseInt(match[0], 10);
+              }
+            }
+            throw new Error('Require prevLine');
           default:
             inputStream.backUp(1);
             return undefined;
@@ -4734,7 +4754,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
               'any other getSearchCursor implementation.');
         }
         var argString = params.argString;
-        var tokens = argString ? splitBySlash(argString) : [];
+        var tokens = argString ? splitBySeparator(argString, argString[0]) : [];
         var regexPart, replacePart = '', trailing, flagsPart, count;
         var confirm = false; // Whether to confirm each replace.
         var global = false; // True to replace all instances on a line, false to replace only 1.

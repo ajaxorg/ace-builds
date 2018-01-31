@@ -176,7 +176,7 @@ var html = '<div class="ace_search right">\
         <span action="replaceAll" class="ace_searchbtn">All</span>\
     </div>\
     <div class="ace_search_options">\
-        <span action="toggleReplace" class="ace_button" title="Toggel Replace mode"\
+        <span action="toggleReplace" class="ace_button" title="Toggle Replace mode"\
             style="float:left;margin-top:-2px;padding:0 5px;">+</span>\
         <span class="ace_search_counter"></span>\
         <span action="toggleRegexpMode" class="ace_button" title="RegExp Search">.*</span>\
