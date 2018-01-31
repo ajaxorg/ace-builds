@@ -64,7 +64,7 @@ var C9SearchHighlightRules = function() {
                     if (parts.length < 3)
                         return "text";
 
-                    var options, search, replace;
+                    var options, search;
                     
                     var i = 0;
                     var tokens = [{
@@ -78,7 +78,6 @@ var C9SearchHighlightRules = function() {
                         type: "text"
                     }];
                     if (parts[2] !== " in") {
-                        replace = parts[i];
                         tokens.push({
                             value: "'" + parts[i++] + "'",
                             type: "text"

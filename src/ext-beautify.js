@@ -149,7 +149,6 @@ exports.transform = function(iterator, maxPos, context) {
     var value = '';
 
     while (token!==null) {
-        console.log(token);
 
         if( !token ){
             token = iterator.stepForward();

@@ -2061,7 +2061,7 @@ function _removeNamedNode(el,list,attr){
 			}
 		}
 	}else{
-		throw DOMException(NOT_FOUND_ERR,new Error())
+		throw new DOMException(NOT_FOUND_ERR,new Error())
 	}
 }
 NamedNodeMap.prototype = {
@@ -2733,7 +2733,7 @@ function serializeToString(node,buf){
 		var isHTML = htmlns === node.namespaceURI
 		buf.push('<',nodeName);
 		for(var i=0;i<len;i++){
-			serializeToString(attrs.item(i),buf,isHTML);
+			serializeToString(attrs.item(i),buf);
 		}
 		if(child || isHTML && !/^(?:meta|link|img|br|hr|input|button)$/i.test(nodeName)){
 			buf.push('>');

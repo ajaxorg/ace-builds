@@ -1512,6 +1512,8 @@ define("ace/mode/json/json_parse",["require","exports","module"], function(requi
                         } else {
                             break;
                         }
+                    } else if (ch == "\n" || ch == "\r") {
+                        break;
                     } else {
                         string += ch;
                     }

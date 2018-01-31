@@ -275,9 +275,10 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-define("ace/mode/r",["require","exports","module","ace/range","ace/lib/oop","ace/mode/text","ace/mode/text_highlight_rules","ace/mode/r_highlight_rules","ace/mode/matching_brace_outdent"], function(require, exports, module) {
+define("ace/mode/r",["require","exports","module","ace/unicode","ace/range","ace/lib/oop","ace/mode/text","ace/mode/text_highlight_rules","ace/mode/r_highlight_rules","ace/mode/matching_brace_outdent"], function(require, exports, module) {
    "use strict";
 
+   var unicode = require("../unicode");
    var Range = require("../range").Range;
    var oop = require("../lib/oop");
    var TextMode = require("./text").Mode;
@@ -292,9 +293,11 @@ define("ace/mode/r",["require","exports","module","ace/range","ace/lib/oop","ace
    };
    oop.inherits(Mode, TextMode);
 
-   (function()
-   {
+   (function() {
       this.lineCommentStart = "#";
+      this.tokenRe = new RegExp("^[" + unicode.wordChars + "._]+", "g");
+
+      this.nonTokenRe = new RegExp("^(?:[^" + unicode.wordChars + "._]|\s])+", "g");
        this.$id = "ace/mode/r";
    }).call(Mode.prototype);
    exports.Mode = Mode;
