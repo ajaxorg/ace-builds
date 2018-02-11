@@ -1768,6 +1768,245 @@ else
     };
 });
 
+ace.define("ace/range",["require","exports","module"], function(require, exports, module) {
+"use strict";
+var comparePoints = function(p1, p2) {
+    return p1.row - p2.row || p1.column - p2.column;
+};
+var Range = function(startRow, startColumn, endRow, endColumn) {
+    this.start = {
+        row: startRow,
+        column: startColumn
+    };
+
+    this.end = {
+        row: endRow,
+        column: endColumn
+    };
+};
+
+(function() {
+    this.isEqual = function(range) {
+        return this.start.row === range.start.row &&
+            this.end.row === range.end.row &&
+            this.start.column === range.start.column &&
+            this.end.column === range.end.column;
+    };
+    this.toString = function() {
+        return ("Range: [" + this.start.row + "/" + this.start.column +
+            "] -> [" + this.end.row + "/" + this.end.column + "]");
+    };
+
+    this.contains = function(row, column) {
+        return this.compare(row, column) == 0;
+    };
+    this.compareRange = function(range) {
+        var cmp,
+            end = range.end,
+            start = range.start;
+
+        cmp = this.compare(end.row, end.column);
+        if (cmp == 1) {
+            cmp = this.compare(start.row, start.column);
+            if (cmp == 1) {
+                return 2;
+            } else if (cmp == 0) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } else if (cmp == -1) {
+            return -2;
+        } else {
+            cmp = this.compare(start.row, start.column);
+            if (cmp == -1) {
+                return -1;
+            } else if (cmp == 1) {
+                return 42;
+            } else {
+                return 0;
+            }
+        }
+    };
+    this.comparePoint = function(p) {
+        return this.compare(p.row, p.column);
+    };
+    this.containsRange = function(range) {
+        return this.comparePoint(range.start) == 0 && this.comparePoint(range.end) == 0;
+    };
+    this.intersects = function(range) {
+        var cmp = this.compareRange(range);
+        return (cmp == -1 || cmp == 0 || cmp == 1);
+    };
+    this.isEnd = function(row, column) {
+        return this.end.row == row && this.end.column == column;
+    };
+    this.isStart = function(row, column) {
+        return this.start.row == row && this.start.column == column;
+    };
+    this.setStart = function(row, column) {
+        if (typeof row == "object") {
+            this.start.column = row.column;
+            this.start.row = row.row;
+        } else {
+            this.start.row = row;
+            this.start.column = column;
+        }
+    };
+    this.setEnd = function(row, column) {
+        if (typeof row == "object") {
+            this.end.column = row.column;
+            this.end.row = row.row;
+        } else {
+            this.end.row = row;
+            this.end.column = column;
+        }
+    };
+    this.inside = function(row, column) {
+        if (this.compare(row, column) == 0) {
+            if (this.isEnd(row, column) || this.isStart(row, column)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    };
+    this.insideStart = function(row, column) {
+        if (this.compare(row, column) == 0) {
+            if (this.isEnd(row, column)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    };
+    this.insideEnd = function(row, column) {
+        if (this.compare(row, column) == 0) {
+            if (this.isStart(row, column)) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        return false;
+    };
+    this.compare = function(row, column) {
+        if (!this.isMultiLine()) {
+            if (row === this.start.row) {
+                return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
+            }
+        }
+
+        if (row < this.start.row)
+            return -1;
+
+        if (row > this.end.row)
+            return 1;
+
+        if (this.start.row === row)
+            return column >= this.start.column ? 0 : -1;
+
+        if (this.end.row === row)
+            return column <= this.end.column ? 0 : 1;
+
+        return 0;
+    };
+    this.compareStart = function(row, column) {
+        if (this.start.row == row && this.start.column == column) {
+            return -1;
+        } else {
+            return this.compare(row, column);
+        }
+    };
+    this.compareEnd = function(row, column) {
+        if (this.end.row == row && this.end.column == column) {
+            return 1;
+        } else {
+            return this.compare(row, column);
+        }
+    };
+    this.compareInside = function(row, column) {
+        if (this.end.row == row && this.end.column == column) {
+            return 1;
+        } else if (this.start.row == row && this.start.column == column) {
+            return -1;
+        } else {
+            return this.compare(row, column);
+        }
+    };
+    this.clipRows = function(firstRow, lastRow) {
+        if (this.end.row > lastRow)
+            var end = {row: lastRow + 1, column: 0};
+        else if (this.end.row < firstRow)
+            var end = {row: firstRow, column: 0};
+
+        if (this.start.row > lastRow)
+            var start = {row: lastRow + 1, column: 0};
+        else if (this.start.row < firstRow)
+            var start = {row: firstRow, column: 0};
+
+        return Range.fromPoints(start || this.start, end || this.end);
+    };
+    this.extend = function(row, column) {
+        var cmp = this.compare(row, column);
+
+        if (cmp == 0)
+            return this;
+        else if (cmp == -1)
+            var start = {row: row, column: column};
+        else
+            var end = {row: row, column: column};
+
+        return Range.fromPoints(start || this.start, end || this.end);
+    };
+
+    this.isEmpty = function() {
+        return (this.start.row === this.end.row && this.start.column === this.end.column);
+    };
+    this.isMultiLine = function() {
+        return (this.start.row !== this.end.row);
+    };
+    this.clone = function() {
+        return Range.fromPoints(this.start, this.end);
+    };
+    this.collapseRows = function() {
+        if (this.end.column == 0)
+            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0);
+        else
+            return new Range(this.start.row, 0, this.end.row, 0);
+    };
+    this.toScreenRange = function(session) {
+        var screenPosStart = session.documentToScreenPosition(this.start);
+        var screenPosEnd = session.documentToScreenPosition(this.end);
+
+        return new Range(
+            screenPosStart.row, screenPosStart.column,
+            screenPosEnd.row, screenPosEnd.column
+        );
+    };
+    this.moveBy = function(row, column) {
+        this.start.row += row;
+        this.start.column += column;
+        this.end.row += row;
+        this.end.column += column;
+    };
+
+}).call(Range.prototype);
+Range.fromPoints = function(start, end) {
+    return new Range(start.row, start.column, end.row, end.column);
+};
+Range.comparePoints = comparePoints;
+
+Range.comparePoints = function(p1, p2) {
+    return p1.row - p2.row || p1.column - p2.column;
+};
+
+
+exports.Range = Range;
+});
+
 ace.define("ace/lib/lang",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
@@ -2461,6 +2700,8 @@ var TextInput = function(parentNode, host) {
     var tempStyle = '';
     var isSelectionEmpty = true;
     var copyWithEmptySelection = false;
+
+    var commandMode = false;
     try { var isFocused = document.activeElement === text; } catch(e) {}
     
     event.addListener(text, "blur", function(e) {
@@ -2795,8 +3036,14 @@ var TextInput = function(parentNode, host) {
         return text;
     };
 
+    this.setCommandMode = function(value) {
+       commandMode = value;
+       text.readOnly = false;
+    };
+    
     this.setReadOnly = function(readOnly) {
-       text.readOnly = readOnly;
+        if (!commandMode)
+            text.readOnly = readOnly;
     };
 
     this.setCopyWithEmptySelection = function(value) {
@@ -5236,245 +5483,6 @@ var BidiHandler = function(session) {
 exports.BidiHandler = BidiHandler;
 });
 
-ace.define("ace/range",["require","exports","module"], function(require, exports, module) {
-"use strict";
-var comparePoints = function(p1, p2) {
-    return p1.row - p2.row || p1.column - p2.column;
-};
-var Range = function(startRow, startColumn, endRow, endColumn) {
-    this.start = {
-        row: startRow,
-        column: startColumn
-    };
-
-    this.end = {
-        row: endRow,
-        column: endColumn
-    };
-};
-
-(function() {
-    this.isEqual = function(range) {
-        return this.start.row === range.start.row &&
-            this.end.row === range.end.row &&
-            this.start.column === range.start.column &&
-            this.end.column === range.end.column;
-    };
-    this.toString = function() {
-        return ("Range: [" + this.start.row + "/" + this.start.column +
-            "] -> [" + this.end.row + "/" + this.end.column + "]");
-    };
-
-    this.contains = function(row, column) {
-        return this.compare(row, column) == 0;
-    };
-    this.compareRange = function(range) {
-        var cmp,
-            end = range.end,
-            start = range.start;
-
-        cmp = this.compare(end.row, end.column);
-        if (cmp == 1) {
-            cmp = this.compare(start.row, start.column);
-            if (cmp == 1) {
-                return 2;
-            } else if (cmp == 0) {
-                return 1;
-            } else {
-                return 0;
-            }
-        } else if (cmp == -1) {
-            return -2;
-        } else {
-            cmp = this.compare(start.row, start.column);
-            if (cmp == -1) {
-                return -1;
-            } else if (cmp == 1) {
-                return 42;
-            } else {
-                return 0;
-            }
-        }
-    };
-    this.comparePoint = function(p) {
-        return this.compare(p.row, p.column);
-    };
-    this.containsRange = function(range) {
-        return this.comparePoint(range.start) == 0 && this.comparePoint(range.end) == 0;
-    };
-    this.intersects = function(range) {
-        var cmp = this.compareRange(range);
-        return (cmp == -1 || cmp == 0 || cmp == 1);
-    };
-    this.isEnd = function(row, column) {
-        return this.end.row == row && this.end.column == column;
-    };
-    this.isStart = function(row, column) {
-        return this.start.row == row && this.start.column == column;
-    };
-    this.setStart = function(row, column) {
-        if (typeof row == "object") {
-            this.start.column = row.column;
-            this.start.row = row.row;
-        } else {
-            this.start.row = row;
-            this.start.column = column;
-        }
-    };
-    this.setEnd = function(row, column) {
-        if (typeof row == "object") {
-            this.end.column = row.column;
-            this.end.row = row.row;
-        } else {
-            this.end.row = row;
-            this.end.column = column;
-        }
-    };
-    this.inside = function(row, column) {
-        if (this.compare(row, column) == 0) {
-            if (this.isEnd(row, column) || this.isStart(row, column)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.insideStart = function(row, column) {
-        if (this.compare(row, column) == 0) {
-            if (this.isEnd(row, column)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.insideEnd = function(row, column) {
-        if (this.compare(row, column) == 0) {
-            if (this.isStart(row, column)) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-        return false;
-    };
-    this.compare = function(row, column) {
-        if (!this.isMultiLine()) {
-            if (row === this.start.row) {
-                return column < this.start.column ? -1 : (column > this.end.column ? 1 : 0);
-            }
-        }
-
-        if (row < this.start.row)
-            return -1;
-
-        if (row > this.end.row)
-            return 1;
-
-        if (this.start.row === row)
-            return column >= this.start.column ? 0 : -1;
-
-        if (this.end.row === row)
-            return column <= this.end.column ? 0 : 1;
-
-        return 0;
-    };
-    this.compareStart = function(row, column) {
-        if (this.start.row == row && this.start.column == column) {
-            return -1;
-        } else {
-            return this.compare(row, column);
-        }
-    };
-    this.compareEnd = function(row, column) {
-        if (this.end.row == row && this.end.column == column) {
-            return 1;
-        } else {
-            return this.compare(row, column);
-        }
-    };
-    this.compareInside = function(row, column) {
-        if (this.end.row == row && this.end.column == column) {
-            return 1;
-        } else if (this.start.row == row && this.start.column == column) {
-            return -1;
-        } else {
-            return this.compare(row, column);
-        }
-    };
-    this.clipRows = function(firstRow, lastRow) {
-        if (this.end.row > lastRow)
-            var end = {row: lastRow + 1, column: 0};
-        else if (this.end.row < firstRow)
-            var end = {row: firstRow, column: 0};
-
-        if (this.start.row > lastRow)
-            var start = {row: lastRow + 1, column: 0};
-        else if (this.start.row < firstRow)
-            var start = {row: firstRow, column: 0};
-
-        return Range.fromPoints(start || this.start, end || this.end);
-    };
-    this.extend = function(row, column) {
-        var cmp = this.compare(row, column);
-
-        if (cmp == 0)
-            return this;
-        else if (cmp == -1)
-            var start = {row: row, column: column};
-        else
-            var end = {row: row, column: column};
-
-        return Range.fromPoints(start || this.start, end || this.end);
-    };
-
-    this.isEmpty = function() {
-        return (this.start.row === this.end.row && this.start.column === this.end.column);
-    };
-    this.isMultiLine = function() {
-        return (this.start.row !== this.end.row);
-    };
-    this.clone = function() {
-        return Range.fromPoints(this.start, this.end);
-    };
-    this.collapseRows = function() {
-        if (this.end.column == 0)
-            return new Range(this.start.row, 0, Math.max(this.start.row, this.end.row-1), 0);
-        else
-            return new Range(this.start.row, 0, this.end.row, 0);
-    };
-    this.toScreenRange = function(session) {
-        var screenPosStart = session.documentToScreenPosition(this.start);
-        var screenPosEnd = session.documentToScreenPosition(this.end);
-
-        return new Range(
-            screenPosStart.row, screenPosStart.column,
-            screenPosEnd.row, screenPosEnd.column
-        );
-    };
-    this.moveBy = function(row, column) {
-        this.start.row += row;
-        this.start.column += column;
-        this.end.row += row;
-        this.end.column += column;
-    };
-
-}).call(Range.prototype);
-Range.fromPoints = function(start, end) {
-    return new Range(start.row, start.column, end.row, end.column);
-};
-Range.comparePoints = comparePoints;
-
-Range.comparePoints = function(p1, p2) {
-    return p1.row - p2.row || p1.column - p2.column;
-};
-
-
-exports.Range = Range;
-});
-
 ace.define("ace/selection",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/lib/event_emitter","ace/range"], function(require, exports, module) {
 "use strict";
 
@@ -5489,18 +5497,22 @@ var Selection = function(session) {
     this.clearSelection();
     this.cursor = this.lead = this.doc.createAnchor(0, 0);
     this.anchor = this.doc.createAnchor(0, 0);
+    this.$silent = false;
 
     var self = this;
     this.cursor.on("change", function(e) {
-        self._emit("changeCursor");
-        if (!self.$isEmpty)
+        self.$cursorChanged = true;
+        if (!self.$silent)
+            self._emit("changeCursor");
+        if (!self.$isEmpty && !self.$silent)
             self._emit("changeSelection");
         if (!self.$keepDesiredColumnOnChange && e.old.column != e.value.column)
             self.$desiredColumn = null;
     });
 
     this.anchor.on("change", function() {
-        if (!self.$isEmpty)
+        self.$anchorChanged = true;
+        if (!self.$isEmpty && !self.$silent)
             self._emit("changeSelection");
     });
 };
@@ -5534,26 +5546,6 @@ var Selection = function(session) {
     this.getSelectionLead = function() {
         return this.lead.getPosition();
     };
-    this.shiftSelection = function(columns) {
-        if (this.$isEmpty) {
-            this.moveCursorTo(this.lead.row, this.lead.column + columns);
-            return;
-        }
-
-        var anchor = this.getSelectionAnchor();
-        var lead = this.getSelectionLead();
-
-        var isBackwards = this.isBackwards();
-
-        if (!isBackwards || anchor.column !== 0)
-            this.setSelectionAnchor(anchor.row, anchor.column + columns);
-
-        if (isBackwards || lead.column !== 0) {
-            this.$moveSelection(function() {
-                this.moveCursorTo(lead.row, lead.column + columns);
-            });
-        }
-    };
     this.isBackwards = function() {
         var anchor = this.anchor;
         var lead = this.lead;
@@ -5577,18 +5569,27 @@ var Selection = function(session) {
         }
     };
     this.selectAll = function() {
-        this.$isEmpty = false;
-        this.anchor.setPosition(0, 0);
-        this.cursor.setPosition(Number.MAX_VALUE, Number.MAX_VALUE);
+        this.$setSelection(0, 0, Number.MAX_VALUE, Number.MAX_VALUE);
     };
     this.setRange =
     this.setSelectionRange = function(range, reverse) {
         var start = reverse ? range.end : range.start;
         var end = reverse ? range.start : range.end;
-        this.$isEmpty = !Range.comparePoints(start, end);
-        this.anchor.setPosition(start.row, start.column);
-        this.cursor.setPosition(end.row, end.column);
+        this.$setSelection(start.row, start.column, end.row, end.column);
+    };
+
+    this.$setSelection = function(anchorRow, anchorColumn, cursorRow, cursorColumn) {
+        var wasEmpty = this.$isEmpty;
+        this.$silent = true;
+        this.$cursorChanged = this.$anchorChanged = false;
+        this.anchor.setPosition(anchorRow, anchorColumn);
+        this.cursor.setPosition(cursorRow, cursorColumn);
         this.$isEmpty = !Range.comparePoints(this.anchor, this.cursor);
+        this.$silent = false;
+        if (this.$cursorChanged)
+            this._emit("changeCursor");
+        if (this.$cursorChanged || this.$anchorChanged)
+            this._emit("changeSelection");
     };
 
     this.$moveSelection = function(mover) {
@@ -12075,7 +12076,7 @@ exports.commands = [{
     name: "goToNextError",
     bindKey: bindKey("Alt-E", "F4"),
     exec: function(editor) {
-        config.loadModule("ace/ext/error_marker", function(module) {
+        config.loadModule("./ext/error_marker", function(module) {
             module.showErrorMarker(editor, 1);
         });
     },
@@ -12085,7 +12086,7 @@ exports.commands = [{
     name: "goToPreviousError",
     bindKey: bindKey("Alt-Shift-E", "Shift-F4"),
     exec: function(editor) {
-        config.loadModule("ace/ext/error_marker", function(module) {
+        config.loadModule("./ext/error_marker", function(module) {
             module.showErrorMarker(editor, -1);
         });
     },
@@ -13311,7 +13312,7 @@ Editor.$uid = 0;
         if (this.$highlightActiveLine) {
             if (this.$selectionStyle != "line" || !this.selection.isMultiLine())
                 highlight = this.getCursorPosition();
-            if (this.renderer.$theme && this.renderer.theme.$selectionColorConflict && !this.selection.isEmpty())
+            if (this.renderer.theme && this.renderer.theme.$selectionColorConflict && !this.selection.isEmpty())
                 highlight = false;
             if (this.renderer.$maxLines && this.session.getLength() === 1 && !(this.renderer.$minLines > 1))
                 highlight = false;
@@ -14567,6 +14568,7 @@ config.defineOptions(Editor.prototype, "editor", {
     },
     readOnly: {
         set: function(readOnly) {
+            this.textInput.setReadOnly(readOnly);
             this.$resetCursorStyle(); 
         },
         initialValue: false
@@ -17078,7 +17080,6 @@ var VirtualRenderer = function(container, theme) {
     var _self = this;
 
     this.container = container || dom.createElement("div");
-    this.$keepTextAreaAtCursor = !useragent.isOldIE;
 
     dom.addCssClass(this.container, "ace_editor");
 
@@ -17492,14 +17493,16 @@ var VirtualRenderer = function(container, theme) {
         return this.container;
     };
     this.$moveTextAreaToCursor = function() {
-        if (!this.$keepTextAreaAtCursor)
+        var style = this.textarea.style;
+        if (!this.$keepTextAreaAtCursor) {
+            style.left = -100 + "px";
             return;
+        }
         var config = this.layerConfig;
         var posTop = this.$cursorLayer.$pixelPos.top;
         var posLeft = this.$cursorLayer.$pixelPos.left;
         posTop -= config.offset;
 
-        var style = this.textarea.style;
         var h = this.lineHeight;
         if (posTop < 0 || posTop > config.height - h) {
             style.top = style.left = "0";
@@ -18374,6 +18377,8 @@ function $workerBlob(workerUrl) {
 }
 
 function createWorker(workerUrl) {
+    if (typeof Worker == "undefined")
+        return { postMessage: function() {}, terminate: function() {} };
     var blob = $workerBlob(workerUrl);
     var URL = window.URL || window.webkitURL;
     var blobURL = URL.createObjectURL(blob);
@@ -20557,7 +20562,7 @@ dom.importCssString("\
 
 });
 
-ace.define("ace/ace",["require","exports","module","ace/lib/fixoldbrowsers","ace/lib/dom","ace/lib/event","ace/editor","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/worker/worker_client","ace/keyboard/hash_handler","ace/placeholder","ace/multi_select","ace/mode/folding/fold_mode","ace/theme/textmate","ace/ext/error_marker","ace/config"], function(require, exports, module) {
+ace.define("ace/ace",["require","exports","module","ace/lib/fixoldbrowsers","ace/lib/dom","ace/lib/event","ace/range","ace/editor","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/worker/worker_client","ace/keyboard/hash_handler","ace/placeholder","ace/multi_select","ace/mode/folding/fold_mode","ace/theme/textmate","ace/ext/error_marker","ace/config"], function(require, exports, module) {
 "use strict";
 
 require("./lib/fixoldbrowsers");
@@ -20565,6 +20570,7 @@ require("./lib/fixoldbrowsers");
 var dom = require("./lib/dom");
 var event = require("./lib/event");
 
+var Range = require("./range").Range;
 var Editor = require("./editor").Editor;
 var EditSession = require("./edit_session").EditSession;
 var UndoManager = require("./undomanager").UndoManager;
@@ -20600,7 +20606,7 @@ exports.edit = function(el, options) {
         el = dom.createElement("pre");
         oldNode.parentNode.replaceChild(el, oldNode);
     } else if (el) {
-        value = dom.getInnerText(el);
+        value = el.textContent;
         el.innerHTML = "";
     }
 
@@ -20627,9 +20633,11 @@ exports.createEditSession = function(text, mode) {
     doc.setUndoManager(new UndoManager());
     return doc;
 };
+exports.Range = Range;
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
-exports.version = "1.3.0";
+exports.VirtualRenderer = Renderer;
+exports.version = "1.3.1";
 });
             (function() {
                 ace.require(["ace/ace"], function(a) {

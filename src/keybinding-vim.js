@@ -5404,18 +5404,38 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var cm = editor.state.cm;
       var vim = getVim(cm);
       if (keyCode == -1) return;
-      
+      if (!vim.insertMode) {
+        if (hashId == -1) {
+          if (key.charCodeAt(0) > 0xFF) {
+            if (data.inputKey) {
+              key = data.inputKey;
+              if (key && data.inputHash == 4)
+                key = key.toUpperCase();
+            }
+          }
+          data.inputChar = key;
+        }
+        else if (hashId == 4 || hashId == 0) {
+          if (data.inputKey == key && data.inputHash == hashId && data.inputChar) {
+            key = data.inputChar;
+            hashId = -1
+          }
+          else {
+            data.inputChar = null;
+            data.inputKey = key;
+            data.inputHash = hashId;
+          }
+        }
+        else {
+          data.inputChar = data.inputKey = null;
+        }
+      }
       if (key == "c" && hashId == 1) { // key == "ctrl-c"
         if (!useragent.isMac && editor.getCopyText()) {
           editor.once("copy", function() {
             editor.selection.clearSelection();
           });
           return {command: "null", passEvent: true};
-        }
-      } else if (!vim.insertMode) {
-        if (useragent.isMac && this.handleMacRepeat(data, hashId, key)) {
-          hashId = -1;
-          key = data.inputChar;
         }
       }
       
@@ -5455,10 +5475,16 @@ dom.importCssString(".normal-mode .ace_cursor{\
       });
       cm.on("vim-mode-change", function() {
         if (cm.virtualSelectionMode()) return;
-        cm.ace.renderer.setStyle("normal-mode", !getVim(cm).insertMode);
+        updateInputMode();
         cm._signal("changeStatus");
       });
-      cm.ace.renderer.setStyle("normal-mode", !getVim(cm).insertMode);
+      function updateInputMode() {
+        var isIntsert = getVim(cm).insertMode;
+        cm.ace.renderer.setStyle("normal-mode", !isIntsert);
+        editor.textInput.setCommandMode(!isIntsert);
+        editor.renderer.$keepTextAreaAtCursor = isIntsert;
+      }
+      updateInputMode();
       editor.renderer.$cursorLayer.drawCursor = this.drawCursor.bind(cm);
       this.updateMacCompositionHandlers(editor, true);
     },
@@ -5470,6 +5496,8 @@ dom.importCssString(".normal-mode .ace_cursor{\
       editor.$vimModeHandler = null;
       editor.renderer.$cursorLayer.drawCursor = null;
       editor.renderer.setStyle("normal-mode", false);
+      editor.textInput.setCommandMode(false);
+      editor.renderer.$keepTextAreaAtCursor = true;
       this.updateMacCompositionHandlers(editor, false);
     },
     getStatusText: function(editor) {
@@ -5489,22 +5517,6 @@ dom.importCssString(".normal-mode .ace_cursor{\
         status += (status ? " " : "") + vim.status;
       return status;
     },
-    handleMacRepeat: function(data, hashId, key) {
-      if (hashId == -1) {
-        data.inputChar = key;
-        data.lastEvent = "input";
-      } else if (data.inputChar && data.$lastHash == hashId && data.$lastKey == key) {
-        if (data.lastEvent == "input") {
-          data.lastEvent = "input1";
-        } else if (data.lastEvent == "input1") {
-          return true;
-        }
-      } else {
-        data.$lastHash = hashId;
-        data.$lastKey = key;
-        data.lastEvent = "keypress";
-      }
-    },
     updateMacCompositionHandlers: function(editor, enable) {
       var onCompositionUpdateOverride = function(text) {
         var cm = editor.state.cm;
@@ -5521,7 +5533,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var onCompositionStartOverride = function(text) {
         var cm = editor.state.cm;
         var vim = getVim(cm);
-        if (!vim.insertMode) {
+        if (vim.insertMode) {
           this.onCompositionStartOrig(text);
         }
       };
