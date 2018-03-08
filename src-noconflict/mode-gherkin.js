@@ -9,7 +9,8 @@ var GherkinHighlightRules = function() {
         name: "en",
         labels: "Feature|Background|Scenario(?: Outline)?|Examples",
         keywords: "Given|When|Then|And|But"
-    }];
+    }
+];
     
     var labels = languages.map(function(l) {
         return l.labels;

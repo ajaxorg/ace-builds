@@ -5,7 +5,6 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var NSISHighlightRules = function() {
-
     this.$rules = {
         start: [{
             token: "keyword.compiler.nsis",

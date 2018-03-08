@@ -155,7 +155,6 @@ var AsciidocHighlightRules = function() {
         var prefix = /\w/.test(ch) ? "\\b" : "(?:\\B|^)";
         return prefix + ch + "[^" + ch + "].*?" + ch + "(?![\\w*])";
     }
-
     var tokenMap = {
         macro: "constant.character",
         tableBlock: "doc.comment",

@@ -144,9 +144,7 @@ var ScssHighlightRules = function() {
          "small|source|span|strike|strong|style|sub|summary|sup|table|tbody|td|" + 
          "textarea|tfoot|th|thead|time|title|tr|tt|u|ul|var|video|wbr|xmp").split("|")
     );
-
     var numRe = "\\-?(?:(?:[0-9]+)|(?:[0-9]*\\.[0-9]+))";
-
     this.$rules = {
         "start" : [
             {
@@ -303,7 +301,8 @@ var SassHighlightRules = function() {
             {regex: /^\s*/, onMatch: function(value, currentState, stack) {
                 if (stack[1] === -1)
                     stack[1] = Math.max(stack[2], value.length - 1);
-                if (value.length <= stack[1]) {stack.shift();stack.shift();stack.shift();
+                if (value.length <= stack[1]) {
+stack.shift();stack.shift();stack.shift();
                     this.next = stack.shift();
                     return "text";
                 } else {

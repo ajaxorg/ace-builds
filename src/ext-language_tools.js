@@ -125,7 +125,7 @@ var SnippetManager = function() {
         var s = editor.session;
         switch(name) {
             case "CURRENT_WORD":
-                var r = s.getWordRange();
+                var r = s.getWordRange(); 
             case "SELECTION":
             case "SELECTED_TEXT":
                 return s.getTextRange(r);

@@ -5,7 +5,6 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var JuliaHighlightRules = function() {
-
     this.$rules = { start: 
        [ { include: '#function_decl' },
          { include: '#function_call' },

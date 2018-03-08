@@ -4,8 +4,7 @@ define("ace/ext/searchbox",["require","exports","module","ace/lib/dom","ace/lib/
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
 var event = require("../lib/event");
-var searchboxCss = "\
-.ace_search {\
+var searchboxCss = ".ace_search {\
 background-color: #ddd;\
 color: #666;\
 border: 1px solid #cbcbcb;\

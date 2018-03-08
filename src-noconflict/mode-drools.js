@@ -106,7 +106,6 @@ var JavaHighlightRules = function() {
         "constant.language": buildinConstants,
         "support.function": langClasses
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {
@@ -229,7 +228,6 @@ var DroolsHighlightRules = function() {
         "support.class" : langClasses,
         "support.function" : "retract|update|modify|insert"
     }, "identifier");
-
     var stringRules = function() {
       return [{
         token : "string", // single line

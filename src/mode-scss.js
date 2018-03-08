@@ -144,9 +144,7 @@ var ScssHighlightRules = function() {
          "small|source|span|strike|strong|style|sub|summary|sup|table|tbody|td|" + 
          "textarea|tfoot|th|thead|time|title|tr|tt|u|ul|var|video|wbr|xmp").split("|")
     );
-
     var numRe = "\\-?(?:(?:[0-9]+)|(?:[0-9]*\\.[0-9]+))";
-
     this.$rules = {
         "start" : [
             {
@@ -326,7 +324,7 @@ var CssBehaviour = function () {
     this.inherit(CstyleBehaviour);
 
     this.add("colon", "insertion", function (state, action, editor, session, text) {
-        if (text === ':') {
+        if (text === ':' && editor.selection.isEmpty()) {
             var cursor = editor.getCursorPosition();
             var iterator = new TokenIterator(session, cursor.row, cursor.column);
             var token = iterator.getCurrentToken();
@@ -342,7 +340,7 @@ var CssBehaviour = function () {
                        selection: [1, 1]
                     };
                 }
-                if (!line.substring(cursor.column).match(/^\s*;/)) {
+                if (/^(\s+[^;]|\s*$)/.test(line.substring(cursor.column))) {
                     return {
                        text: ':;',
                        selection: [1, 1]
@@ -373,7 +371,7 @@ var CssBehaviour = function () {
     });
 
     this.add("semicolon", "insertion", function (state, action, editor, session, text) {
-        if (text === ';') {
+        if (text === ';' && editor.selection.isEmpty()) {
             var cursor = editor.getCursorPosition();
             var line = session.doc.getLine(cursor.row);
             var rightChar = line.substring(cursor.column, cursor.column + 1);
@@ -381,6 +379,20 @@ var CssBehaviour = function () {
                 return {
                    text: '',
                    selection: [1, 1]
+                };
+            }
+        }
+    });
+
+    this.add("!important", "insertion", function (state, action, editor, session, text) {
+        if (text === '!' && editor.selection.isEmpty()) {
+            var cursor = editor.getCursorPosition();
+            var line = session.doc.getLine(cursor.row);
+
+            if (/^\s*(;|}|$)/.test(line.substring(cursor.column))) {
+                return {
+                    text: '!important',
+                    selection: [10, 10]
                 };
             }
         }

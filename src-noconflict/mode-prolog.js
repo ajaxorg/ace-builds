@@ -5,7 +5,6 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var PrologHighlightRules = function() {
-
     this.$rules = { start: 
        [ { include: '#comment' },
          { include: '#basic_fact' },

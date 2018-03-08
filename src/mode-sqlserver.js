@@ -58,7 +58,6 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var SqlServerHighlightRules = function() {
     var logicalOperators = "ALL|AND|ANY|BETWEEN|EXISTS|IN|LIKE|NOT|OR|SOME";
     logicalOperators += "|NULL|IS|APPLY|INNER|OUTER|LEFT|RIGHT|JOIN|CROSS"; //SSMS colors these gray too
-    
 
     var builtinFunctions = (
         "OPENDATASOURCE|OPENQUERY|OPENROWSET|OPENXML|" +

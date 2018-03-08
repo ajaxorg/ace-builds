@@ -116,7 +116,6 @@ var DHighlightRules = function() {
     }, "identifier");
     
     var identifierRe = "[a-zA-Z_\u00a1-\uffff][a-zA-Z\\d_\u00a1-\uffff]*\\b";
-
     this.$rules = {
         "start" : [
             {     //-------------------------------------------------------- COMMENTS

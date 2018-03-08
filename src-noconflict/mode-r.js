@@ -9,7 +9,6 @@ var TexHighlightRules = function(textClass) {
 
     if (!textClass)
         textClass = "text";
-
     this.$rules = {
         "start" : [
             {
@@ -97,7 +96,6 @@ ace.define("ace/mode/r_highlight_rules",["require","exports","module","ace/lib/o
             ("NULL|NA|TRUE|FALSE|T|F|Inf|NaN|NA_integer_|NA_real_|NA_character_|" +
              "NA_complex_").split("|")
             );
-
       this.$rules = {
          "start" : [
             {

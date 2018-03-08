@@ -9,7 +9,6 @@ var TexHighlightRules = function(textClass) {
 
     if (!textClass)
         textClass = "text";
-
     this.$rules = {
         "start" : [
             {

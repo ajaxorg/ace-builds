@@ -73,7 +73,6 @@ var CssHighlightRules = function() {
         "support.constant.color": supportConstantColor,
         "support.constant.fonts": supportConstantFonts
     }, "text", true);
-
     this.$rules = {
         "start" : [{
             include : ["strings", "url", "comments"]
@@ -284,7 +283,6 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),
@@ -1868,7 +1866,6 @@ var PhpLangHighlightRules = function() {
     );
 
     var futureReserved = lang.arrayToMap([]);
-
     this.$rules = {
         "start" : [
             {
@@ -1960,7 +1957,7 @@ var PhpLangHighlightRules = function() {
                 next: "heredoc"
             }, {
                 token : "keyword.operator",
-                regex : "::|!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|!=|!==|<=|>=|=>|<<=|>>=|>>>=|<>|<|>|=|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
+                regex : "::|!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|!=|!==|<=|>=|=>|<<=|>>=|>>>=|<>|<|>|\\.=|=|!|&&|\\|\\||\\?\\:|\\*=|/=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
             }, {
                 token : "paren.lparen",
                 regex : "[[({]"
@@ -3240,7 +3237,194 @@ var functionMap = {
     ],
     "debug_print_backtrace": [
         "void debug_print_backtrace(void) */",
-        "ZEND_FUNCTION(debug_print_backtrace) {  zend_execute_data *ptr, *skip;  int lineno;  char *function_name;  char *filename;  char *class_name = NULL;  char *call_type;  char *include_filename = NULL;  zval *arg_array = NULL;  int indent = 0;   if (zend_parse_parameters_none() == FAILURE) {   return;  }   ptr = EG(current_execute_data);",
+        "ZEND_FUNCTION(debug_print_backtrace) {  zend_execute_data *ptr, *skip;  int lineno;  char *function_name;  char *filename;  char *class_name = NULL;  char *call_type;  char *include_filename = NULL;  zval *arg_array = NULL;  int indent = 0;   if (zend_parse_parameters_none() == FAILURE) {   return;  }   ptr = EG(current_execute_data);   /* skip debug_backtrace()"
+    ],
+    "debug_zval_dump": [
+        "void debug_zval_dump(mixed var)",
+        "Dumps a string representation of an internal zend value to output."
+    ],
+    "decbin": [
+        "string decbin(int decimal_number)",
+        "Returns a string containing a binary representation of the number"
+    ],
+    "dechex": [
+        "string dechex(int decimal_number)",
+        "Returns a string containing a hexadecimal representation of the given number"
+    ],
+    "decoct": [
+        "string decoct(int decimal_number)",
+        "Returns a string containing an octal representation of the given number"
+    ],
+    "define": [
+        "bool define(string constant_name, mixed value, boolean case_insensitive=false)",
+        "Define a new constant"
+    ],
+    "define_syslog_variables": [
+        "void define_syslog_variables(void)",
+        "Initializes all syslog-related variables"
+    ],
+    "defined": [
+        "bool defined(string constant_name)",
+        "Check whether a constant exists"
+    ],
+    "deg2rad": [
+        "float deg2rad(float number)",
+        "Converts the number in degrees to the radian equivalent"
+    ],
+    "dgettext": [
+        "string dgettext(string domain_name, string msgid)",
+        "Return the translation of msgid for domain_name, or msgid unaltered if a translation does not exist"
+    ],
+    "die": [
+        "void die([mixed status])",
+        "Output a message and terminate the current script"
+    ],
+    "dir": [
+        "object dir(string directory[, resource context])",
+        "Directory class with properties, handle and class and methods read, rewind and close"
+    ],
+    "dirname": [
+        "string dirname(string path)",
+        "Returns the directory name component of the path"
+    ],
+    "disk_free_space": [
+        "float disk_free_space(string path)",
+        "Get free disk space for filesystem that path is on"
+    ],
+    "disk_total_space": [
+        "float disk_total_space(string path)",
+        "Get total disk space for filesystem that path is on"
+    ],
+    "display_disabled_function": [
+        "void display_disabled_function(void)",
+        "Dummy function which displays an error when a disabled function is called."
+    ],
+    "dl": [
+        "int dl(string extension_filename)",
+        "Load a PHP extension at runtime"
+    ],
+    "dngettext": [
+        "string dngettext (string domain, string msgid1, string msgid2, int count)",
+        "Plural version of dgettext()"
+    ],
+    "dns_check_record": [
+        "bool dns_check_record(string host [, string type])",
+        "Check DNS records corresponding to a given Internet host name or IP address"
+    ],
+    "dns_get_mx": [
+        "bool dns_get_mx(string hostname, array mxhosts [, array weight])",
+        "Get MX records corresponding to a given Internet host name"
+    ],
+    "dns_get_record": [
+        "array|false dns_get_record(string hostname [, int type[, array authns, array addtl]])",
+        "Get any Resource Record corresponding to a given Internet host name"
+    ],
+    "dom_attr_is_id": [
+        "boolean dom_attr_is_id();",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#Attr-isId Since: DOM Level 3"
+    ],
+    "dom_characterdata_append_data": [
+        "void dom_characterdata_append_data(string arg);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-32791A2F Since:"
+    ],
+    "dom_characterdata_delete_data": [
+        "void dom_characterdata_delete_data(int offset, int count);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-7C603781 Since:"
+    ],
+    "dom_characterdata_insert_data": [
+        "void dom_characterdata_insert_data(int offset, string arg);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-3EDB695F Since:"
+    ],
+    "dom_characterdata_replace_data": [
+        "void dom_characterdata_replace_data(int offset, int count, string arg);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-E5CBA7FB Since:"
+    ],
+    "dom_characterdata_substring_data": [
+        "string dom_characterdata_substring_data(int offset, int count);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-6531BCCF Since:"
+    ],
+    "dom_document_adopt_node": [
+        "DOMNode dom_document_adopt_node(DOMNode source);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-Document3-adoptNode Since: DOM Level 3"
+    ],
+    "dom_document_create_attribute": [
+        "DOMAttr dom_document_create_attribute(string name);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-1084891198 Since:"
+    ],
+    "dom_document_create_attribute_ns": [
+        "DOMAttr dom_document_create_attribute_ns(string namespaceURI, string qualifiedName);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-DocCrAttrNS Since: DOM Level 2"
+    ],
+    "dom_document_create_cdatasection": [
+        "DOMCdataSection dom_document_create_cdatasection(string data);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-D26C0AF8 Since:"
+    ],
+    "dom_document_create_comment": [
+        "DOMComment dom_document_create_comment(string data);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-1334481328 Since:"
+    ],
+    "dom_document_create_document_fragment": [
+        "DOMDocumentFragment dom_document_create_document_fragment();",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-35CB04B5 Since:"
+    ],
+    "dom_document_create_element": [
+        "DOMElement dom_document_create_element(string tagName [, string value]);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-2141741547 Since:"
+    ],
+    "dom_document_create_element_ns": [
+        "DOMElement dom_document_create_element_ns(string namespaceURI, string qualifiedName [,string value]);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-DocCrElNS Since: DOM Level 2"
+    ],
+    "dom_document_create_entity_reference": [
+        "DOMEntityReference dom_document_create_entity_reference(string name);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-392B75AE Since:"
+    ],
+    "dom_document_create_processing_instruction": [
+        "DOMProcessingInstruction dom_document_create_processing_instruction(string target, string data);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-135944439 Since:"
+    ],
+    "dom_document_create_text_node": [
+        "DOMText dom_document_create_text_node(string data);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-1975348127 Since:"
+    ],
+    "dom_document_get_element_by_id": [
+        "DOMElement dom_document_get_element_by_id(string elementId);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-getElBId Since: DOM Level 2"
+    ],
+    "dom_document_get_elements_by_tag_name": [
+        "DOMNodeList dom_document_get_elements_by_tag_name(string tagname);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-A6C9094 Since:"
+    ],
+    "dom_document_get_elements_by_tag_name_ns": [
+        "DOMNodeList dom_document_get_elements_by_tag_name_ns(string namespaceURI, string localName);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-ID-getElBTNNS Since: DOM Level 2"
+    ],
+    "dom_document_import_node": [
+        "DOMNode dom_document_import_node(DOMNode importedNode, boolean deep);",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#Core-Document-importNode Since: DOM Level 2"
+    ],
+    "dom_document_load": [
+        "DOMNode dom_document_load(string source [, int options]);",
+        "URL: http://www.w3.org/TR/DOM-Level-3-LS/load-save.html#LS-DocumentLS-load Since: DOM Level 3"
+    ],
+    "dom_document_load_html": [
+        "DOMNode dom_document_load_html(string source);",
+        "Since: DOM extended"
+    ],
+    "dom_document_load_html_file": [
+        "DOMNode dom_document_load_html_file(string source);",
+        "Since: DOM extended"
+    ],
+    "dom_document_loadxml": [
+        "DOMNode dom_document_loadxml(string source [, int options]);",
+        "URL: http://www.w3.org/TR/DOM-Level-3-LS/load-save.html#LS-DocumentLS-loadXML Since: DOM Level 3"
+    ],
+    "dom_document_normalize_document": [
+        "void dom_document_normalize_document();",
+        "URL: http://www.w3.org/TR/2003/WD-DOM-Level-3-Core-20030226/DOM3-Core.html#core-Document3-normalizeDocument Since: DOM Level 3"
+    ],
+    "dom_document_relaxNG_validate_file": [
+        "boolean dom_document_relaxNG_validate_file(string filename); */",
         "PHP_FUNCTION(dom_document_relaxNG_validate_file) {  _dom_document_relaxNG_validate(INTERNAL_FUNCTION_PARAM_PASSTHRU, DOM_LOAD_FILE); } /* }}} end dom_document_relaxNG_validate_file"
     ],
     "dom_document_relaxNG_validate_xml": [
@@ -11714,7 +11898,7 @@ var CssBehaviour = function () {
     this.inherit(CstyleBehaviour);
 
     this.add("colon", "insertion", function (state, action, editor, session, text) {
-        if (text === ':') {
+        if (text === ':' && editor.selection.isEmpty()) {
             var cursor = editor.getCursorPosition();
             var iterator = new TokenIterator(session, cursor.row, cursor.column);
             var token = iterator.getCurrentToken();
@@ -11730,7 +11914,7 @@ var CssBehaviour = function () {
                        selection: [1, 1]
                     };
                 }
-                if (!line.substring(cursor.column).match(/^\s*;/)) {
+                if (/^(\s+[^;]|\s*$)/.test(line.substring(cursor.column))) {
                     return {
                        text: ':;',
                        selection: [1, 1]
@@ -11761,7 +11945,7 @@ var CssBehaviour = function () {
     });
 
     this.add("semicolon", "insertion", function (state, action, editor, session, text) {
-        if (text === ';') {
+        if (text === ';' && editor.selection.isEmpty()) {
             var cursor = editor.getCursorPosition();
             var line = session.doc.getLine(cursor.row);
             var rightChar = line.substring(cursor.column, cursor.column + 1);
@@ -11769,6 +11953,20 @@ var CssBehaviour = function () {
                 return {
                    text: '',
                    selection: [1, 1]
+                };
+            }
+        }
+    });
+
+    this.add("!important", "insertion", function (state, action, editor, session, text) {
+        if (text === '!' && editor.selection.isEmpty()) {
+            var cursor = editor.getCursorPosition();
+            var line = session.doc.getLine(cursor.row);
+
+            if (/^\s*(;|}|$)/.test(line.substring(cursor.column))) {
+                return {
+                    text: '!important',
+                    selection: [10, 10]
                 };
             }
         }
@@ -11864,7 +12062,7 @@ var TokenIterator = require("../../token_iterator").TokenIterator;
 var lang = require("../../lib/lang");
 
 function is(token, type) {
-    return token.type.lastIndexOf(type + ".xml") > -1;
+    return token && token.type.lastIndexOf(type + ".xml") > -1;
 }
 
 var XmlBehaviour = function () {
@@ -11938,7 +12136,8 @@ var XmlBehaviour = function () {
                 if (position.column < tokenEndColumn)
                     return;
                 if (position.column == tokenEndColumn) {
-                    if (is(iterator.stepForward(), "attribute-value"))
+                    var nextToken = iterator.stepForward();
+                    if (nextToken && is(nextToken, "attribute-value"))
                         return;
                     iterator.stepBackward();
                 }
@@ -12438,120 +12637,120 @@ var eventAttributes = [
 var globalAttributes = commonAttributes.concat(eventAttributes);
 
 var attributeMap = {
-    "html": {"manifest": 1},
-    "head": {},
-    "title": {},
-    "base": {"href": 1, "target": 1},
-    "link": {"href": 1, "hreflang": 1, "rel": {"stylesheet": 1, "icon": 1}, "media": {"all": 1, "screen": 1, "print": 1}, "type": {"text/css": 1, "image/png": 1, "image/jpeg": 1, "image/gif": 1}, "sizes": 1},
-    "meta": {"http-equiv": {"content-type": 1}, "name": {"description": 1, "keywords": 1}, "content": {"text/html; charset=UTF-8": 1}, "charset": 1},
-    "style": {"type": 1, "media": {"all": 1, "screen": 1, "print": 1}, "scoped": 1},
-    "script": {"charset": 1, "type": {"text/javascript": 1}, "src": 1, "defer": 1, "async": 1},
-    "noscript": {"href": 1},
-    "body": {"onafterprint": 1, "onbeforeprint": 1, "onbeforeunload": 1, "onhashchange": 1, "onmessage": 1, "onoffline": 1, "onpopstate": 1, "onredo": 1, "onresize": 1, "onstorage": 1, "onundo": 1, "onunload": 1},
-    "section": {},
-    "nav": {},
+    "a": {"href": 1, "target": {"_blank": 1, "top": 1}, "ping": 1, "rel": {"nofollow": 1, "alternate": 1, "author": 1, "bookmark": 1, "help": 1, "license": 1, "next": 1, "noreferrer": 1, "prefetch": 1, "prev": 1, "search": 1, "tag": 1}, "media": 1, "hreflang": 1, "type": 1},
+    "abbr": {},
+    "address": {},
+    "area": {"shape": 1, "coords": 1, "href": 1, "hreflang": 1, "alt": 1, "target": 1, "media": 1, "rel": 1, "ping": 1, "type": 1},
     "article": {"pubdate": 1},
     "aside": {},
+    "audio": {"src": 1, "autobuffer": 1, "autoplay": {"autoplay": 1}, "loop": {"loop": 1}, "controls": {"controls": 1}, "muted": {"muted": 1}, "preload": {"auto": 1, "metadata": 1, "none": 1 }},
+    "b": {},
+    "base": {"href": 1, "target": 1},
+    "bdi": {},
+    "bdo": {},
+    "blockquote": {"cite": 1},
+    "body": {"onafterprint": 1, "onbeforeprint": 1, "onbeforeunload": 1, "onhashchange": 1, "onmessage": 1, "onoffline": 1, "onpopstate": 1, "onredo": 1, "onresize": 1, "onstorage": 1, "onundo": 1, "onunload": 1},
+    "br": {},
+    "button": {"autofocus": 1, "disabled": {"disabled": 1}, "form": 1, "formaction": 1, "formenctype": 1, "formmethod": 1, "formnovalidate": 1, "formtarget": 1, "name": 1, "value": 1, "type": {"button": 1, "submit": 1}},
+    "canvas": {"width": 1, "height": 1},
+    "caption": {},
+    "cite": {},
+    "code": {},
+    "col": {"span": 1},
+    "colgroup": {"span": 1},
+    "command": {"type": 1, "label": 1, "icon": 1, "disabled": 1, "checked": 1, "radiogroup": 1, "command": 1},
+    "data": {},
+    "datalist": {},
+    "dd": {},
+    "del": {"cite": 1, "datetime": 1},
+    "details": {"open": 1},
+    "dfn": {},
+    "dialog": {"open": 1},
+    "div": {},
+    "dl": {},
+    "dt": {},
+    "em": {},
+    "embed": {"src": 1, "height": 1, "width": 1, "type": 1},
+    "fieldset": {"disabled": 1, "form": 1, "name": 1},
+    "figcaption": {},
+    "figure": {},
+    "footer": {},
+    "form": {"accept-charset": 1, "action": 1, "autocomplete": 1, "enctype": {"multipart/form-data": 1, "application/x-www-form-urlencoded": 1}, "method": {"get": 1, "post": 1}, "name": 1, "novalidate": 1, "target": {"_blank": 1, "top": 1}},
     "h1": {},
     "h2": {},
     "h3": {},
     "h4": {},
     "h5": {},
     "h6": {},
+    "head": {},
     "header": {},
-    "footer": {},
-    "address": {},
-    "main": {},
-    "p": {},
     "hr": {},
-    "pre": {},
-    "blockquote": {"cite": 1},
-    "ol": {"start": 1, "reversed": 1},
-    "ul": {},
-    "li": {"value": 1},
-    "dl": {},
-    "dt": {},
-    "dd": {},
-    "figure": {},
-    "figcaption": {},
-    "div": {},
-    "a": {"href": 1, "target": {"_blank": 1, "top": 1}, "ping": 1, "rel": {"nofollow": 1, "alternate": 1, "author": 1, "bookmark": 1, "help": 1, "license": 1, "next": 1, "noreferrer": 1, "prefetch": 1, "prev": 1, "search": 1, "tag": 1}, "media": 1, "hreflang": 1, "type": 1},
-    "em": {},
-    "strong": {},
-    "small": {},
-    "s": {},
-    "cite": {},
-    "q": {"cite": 1},
-    "dfn": {},
-    "abbr": {},
-    "data": {},
-    "time": {"datetime": 1},
-    "code": {},
-    "var": {},
-    "samp": {},
-    "kbd": {},
-    "sub": {},
-    "sup": {},
+    "html": {"manifest": 1},
     "i": {},
-    "b": {},
-    "u": {},
-    "mark": {},
-    "ruby": {},
-    "rt": {},
-    "rp": {},
-    "bdi": {},
-    "bdo": {},
-    "span": {},
-    "br": {},
-    "wbr": {},
-    "ins": {"cite": 1, "datetime": 1},
-    "del": {"cite": 1, "datetime": 1},
-    "img": {"alt": 1, "src": 1, "height": 1, "width": 1, "usemap": 1, "ismap": 1},
     "iframe": {"name": 1, "src": 1, "height": 1, "width": 1, "sandbox": {"allow-same-origin": 1, "allow-top-navigation": 1, "allow-forms": 1, "allow-scripts": 1}, "seamless": {"seamless": 1}},
-    "embed": {"src": 1, "height": 1, "width": 1, "type": 1},
-    "object": {"param": 1, "data": 1, "type": 1, "height" : 1, "width": 1, "usemap": 1, "name": 1, "form": 1, "classid": 1},
-    "param": {"name": 1, "value": 1},
-    "video": {"src": 1, "autobuffer": 1, "autoplay": {"autoplay": 1}, "loop": {"loop": 1}, "controls": {"controls": 1}, "width": 1, "height": 1, "poster": 1, "muted": {"muted": 1}, "preload": {"auto": 1, "metadata": 1, "none": 1}},
-    "audio": {"src": 1, "autobuffer": 1, "autoplay": {"autoplay": 1}, "loop": {"loop": 1}, "controls": {"controls": 1}, "muted": {"muted": 1}, "preload": {"auto": 1, "metadata": 1, "none": 1 }},
-    "source": {"src": 1, "type": 1, "media": 1},
-    "track": {"kind": 1, "src": 1, "srclang": 1, "label": 1, "default": 1},
-    "canvas": {"width": 1, "height": 1},
-    "map": {"name": 1},
-    "area": {"shape": 1, "coords": 1, "href": 1, "hreflang": 1, "alt": 1, "target": 1, "media": 1, "rel": 1, "ping": 1, "type": 1},
-    "svg": {},
-    "math": {},
-    "table": {"summary": 1},
-    "caption": {},
-    "colgroup": {"span": 1},
-    "col": {"span": 1},
-    "tbody": {},
-    "thead": {},
-    "tfoot": {},
-    "tr": {},
-    "td": {"headers": 1, "rowspan": 1, "colspan": 1},
-    "th": {"headers": 1, "rowspan": 1, "colspan": 1, "scope": 1},
-    "form": {"accept-charset": 1, "action": 1, "autocomplete": 1, "enctype": {"multipart/form-data": 1, "application/x-www-form-urlencoded": 1}, "method": {"get": 1, "post": 1}, "name": 1, "novalidate": 1, "target": {"_blank": 1, "top": 1}},
-    "fieldset": {"disabled": 1, "form": 1, "name": 1},
-    "legend": {},
-    "label": {"form": 1, "for": 1},
+    "img": {"alt": 1, "src": 1, "height": 1, "width": 1, "usemap": 1, "ismap": 1},
     "input": {
         "type": {"text": 1, "password": 1, "hidden": 1, "checkbox": 1, "submit": 1, "radio": 1, "file": 1, "button": 1, "reset": 1, "image": 31, "color": 1, "date": 1, "datetime": 1, "datetime-local": 1, "email": 1, "month": 1, "number": 1, "range": 1, "search": 1, "tel": 1, "time": 1, "url": 1, "week": 1},
         "accept": 1, "alt": 1, "autocomplete": {"on": 1, "off": 1}, "autofocus": {"autofocus": 1}, "checked": {"checked": 1}, "disabled": {"disabled": 1}, "form": 1, "formaction": 1, "formenctype": {"application/x-www-form-urlencoded": 1, "multipart/form-data": 1, "text/plain": 1}, "formmethod": {"get": 1, "post": 1}, "formnovalidate": {"formnovalidate": 1}, "formtarget": {"_blank": 1, "_self": 1, "_parent": 1, "_top": 1}, "height": 1, "list": 1, "max": 1, "maxlength": 1, "min": 1, "multiple": {"multiple": 1}, "name": 1, "pattern": 1, "placeholder": 1, "readonly": {"readonly": 1}, "required": {"required": 1}, "size": 1, "src": 1, "step": 1, "width": 1, "files": 1, "value": 1},
-    "button": {"autofocus": 1, "disabled": {"disabled": 1}, "form": 1, "formaction": 1, "formenctype": 1, "formmethod": 1, "formnovalidate": 1, "formtarget": 1, "name": 1, "value": 1, "type": {"button": 1, "submit": 1}},
-    "select": {"autofocus": 1, "disabled": 1, "form": 1, "multiple": {"multiple": 1}, "name": 1, "size": 1, "readonly":{"readonly": 1}},
-    "datalist": {},
+    "ins": {"cite": 1, "datetime": 1},
+    "kbd": {},
+    "keygen": {"autofocus": 1, "challenge": {"challenge": 1}, "disabled": {"disabled": 1}, "form": 1, "keytype": {"rsa": 1, "dsa": 1, "ec": 1}, "name": 1},
+    "label": {"form": 1, "for": 1},
+    "legend": {},
+    "li": {"value": 1},
+    "link": {"href": 1, "hreflang": 1, "rel": {"stylesheet": 1, "icon": 1}, "media": {"all": 1, "screen": 1, "print": 1}, "type": {"text/css": 1, "image/png": 1, "image/jpeg": 1, "image/gif": 1}, "sizes": 1},
+    "main": {},
+    "map": {"name": 1},
+    "mark": {},
+    "math": {},
+    "menu": {"type": 1, "label": 1},
+    "meta": {"http-equiv": {"content-type": 1}, "name": {"description": 1, "keywords": 1}, "content": {"text/html; charset=UTF-8": 1}, "charset": 1},
+    "meter": {"value": 1, "min": 1, "max": 1, "low": 1, "high": 1, "optimum": 1},
+    "nav": {},
+    "noscript": {"href": 1},
+    "object": {"param": 1, "data": 1, "type": 1, "height" : 1, "width": 1, "usemap": 1, "name": 1, "form": 1, "classid": 1},
+    "ol": {"start": 1, "reversed": 1},
     "optgroup": {"disabled": 1, "label": 1},
     "option": {"disabled": 1, "selected": 1, "label": 1, "value": 1},
-    "textarea": {"autofocus": {"autofocus": 1}, "disabled": {"disabled": 1}, "form": 1, "maxlength": 1, "name": 1, "placeholder": 1, "readonly": {"readonly": 1}, "required": {"required": 1}, "rows": 1, "cols": 1, "wrap": {"on": 1, "off": 1, "hard": 1, "soft": 1}},
-    "keygen": {"autofocus": 1, "challenge": {"challenge": 1}, "disabled": {"disabled": 1}, "form": 1, "keytype": {"rsa": 1, "dsa": 1, "ec": 1}, "name": 1},
     "output": {"for": 1, "form": 1, "name": 1},
+    "p": {},
+    "param": {"name": 1, "value": 1},
+    "pre": {},
     "progress": {"value": 1, "max": 1},
-    "meter": {"value": 1, "min": 1, "max": 1, "low": 1, "high": 1, "optimum": 1},
-    "details": {"open": 1},
+    "q": {"cite": 1},
+    "rp": {},
+    "rt": {},
+    "ruby": {},
+    "s": {},
+    "samp": {},
+    "script": {"charset": 1, "type": {"text/javascript": 1}, "src": 1, "defer": 1, "async": 1},
+    "select": {"autofocus": 1, "disabled": 1, "form": 1, "multiple": {"multiple": 1}, "name": 1, "size": 1, "readonly":{"readonly": 1}},
+    "small": {},
+    "source": {"src": 1, "type": 1, "media": 1},
+    "span": {},
+    "strong": {},
+    "style": {"type": 1, "media": {"all": 1, "screen": 1, "print": 1}, "scoped": 1},
+    "sub": {},
+    "sup": {},
+    "svg": {},
+    "table": {"summary": 1},
+    "tbody": {},
+    "td": {"headers": 1, "rowspan": 1, "colspan": 1},
+    "textarea": {"autofocus": {"autofocus": 1}, "disabled": {"disabled": 1}, "form": 1, "maxlength": 1, "name": 1, "placeholder": 1, "readonly": {"readonly": 1}, "required": {"required": 1}, "rows": 1, "cols": 1, "wrap": {"on": 1, "off": 1, "hard": 1, "soft": 1}},
+    "tfoot": {},
+    "th": {"headers": 1, "rowspan": 1, "colspan": 1, "scope": 1},
+    "thead": {},
+    "time": {"datetime": 1},
+    "title": {},
+    "tr": {},
+    "track": {"kind": 1, "src": 1, "srclang": 1, "label": 1, "default": 1},
+    "section": {},
     "summary": {},
-    "command": {"type": 1, "label": 1, "icon": 1, "disabled": 1, "checked": 1, "radiogroup": 1, "command": 1},
-    "menu": {"type": 1, "label": 1},
-    "dialog": {"open": 1}
+    "u": {},
+    "ul": {},
+    "var": {},
+    "video": {"src": 1, "autobuffer": 1, "autoplay": {"autoplay": 1}, "loop": {"loop": 1}, "controls": {"controls": 1}, "width": 1, "height": 1, "poster": 1, "muted": {"muted": 1}, "preload": {"auto": 1, "metadata": 1, "none": 1}},
+    "wbr": {}
 };
 
 var elements = Object.keys(attributeMap);

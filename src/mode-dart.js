@@ -76,7 +76,7 @@ var c_cppHighlightRules = function() {
     );
 
     var keywordOperators = (
-        "and|and_eq|bitand|bitor|compl|not|not_eq|or|or_eq|typeid|xor|xor_eq" +
+        "and|and_eq|bitand|bitor|compl|not|not_eq|or|or_eq|typeid|xor|xor_eq|" +
         "const_cast|dynamic_cast|reinterpret_cast|static_cast|sizeof|namespace"
     );
 
@@ -103,7 +103,6 @@ var c_cppHighlightRules = function() {
           + /(\.((-?\d+)|\*(-?\d+\$)?)?)?/.source // precision
           + /(hh|h|ll|l|j|t|z|q|L|vh|vl|v|hv|hl)?/.source // length modifier
           + /(\[[^"\]]+\]|[diouxXDOUeEfFgGaACcSspn%])/.source; // conversion type
-
     this.$rules = { 
         "start" : [
             {
@@ -522,7 +521,6 @@ var DartHighlightRules = function() {
     var stringfill = {
         defaultToken : "string"
     };
-
     this.$rules = 
         {
     "start": [

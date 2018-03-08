@@ -16,7 +16,6 @@ var LispHighlightRules = function() {
         "constant.language": constantLanguage,
         "support.function": supportFunctions
     }, "identifier", true);
-
     this.$rules = 
         {
     "start": [

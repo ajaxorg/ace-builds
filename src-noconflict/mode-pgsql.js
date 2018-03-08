@@ -93,7 +93,6 @@ var PerlHighlightRules = function() {
         "constant.language": buildinConstants,
         "support.function": builtinFunctions
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {
@@ -212,6 +211,7 @@ var PythonHighlightRules = function() {
     var keywordMapper = this.createKeywordMapper({
         "invalid.deprecated": "debugger",
         "support.function": builtinFunctions,
+        "variable.language": "self|cls",
         "constant.language": builtinConstants,
         "keyword": keywords
     }, "identifier");
@@ -457,7 +457,6 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),

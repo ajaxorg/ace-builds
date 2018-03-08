@@ -1,320 +1,170 @@
-define("ace/ext/beautify/php_rules",["require","exports","module","ace/token_iterator"], function(require, exports, module) {
+define("ace/ext/beautify",["require","exports","module","ace/token_iterator"], function(require, exports, module) {
 "use strict";
-var TokenIterator = require("ace/token_iterator").TokenIterator;
-exports.newLines = [{
-    type: 'support.php_tag',
-    value: '<?php'
-}, {
-    type: 'support.php_tag',
-    value: '<?'
-}, {
-    type: 'support.php_tag',
-    value: '?>'
-}, {
-    type: 'paren.lparen',
-    value: '{',
-    indent: true
-}, {
-    type: 'paren.rparen',
-    breakBefore: true,
-    value: '}',
-    indent: false
-}, {
-    type: 'paren.rparen',
-    breakBefore: true,
-    value: '})',
-    indent: false,
-    dontBreak: true
-}, {
-    type: 'comment'
-}, {
-    type: 'text',
-    value: ';'
-}, {
-    type: 'text',
-    value: ':',
-    context: 'php'
-}, {
-    type: 'keyword',
-    value: 'case',
-    indent: true,
-    dontBreak: true
-}, {
-    type: 'keyword',
-    value: 'default',
-    indent: true,
-    dontBreak: true
-}, {
-    type: 'keyword',
-    value: 'break',
-    indent: false,
-    dontBreak: true
-}, {
-    type: 'punctuation.doctype.end',
-    value: '>'
-}, {
-    type: 'meta.tag.punctuation.end',
-    value: '>'
-}, {
-    type: 'meta.tag.punctuation.begin',
-    value: '<',
-    blockTag: true,
-    indent: true,
-    dontBreak: true
-}, {
-    type: 'meta.tag.punctuation.begin',
-    value: '</',
-    indent: false,
-    breakBefore: true,
-    dontBreak: true
-}, {
-    type: 'punctuation.operator',
-    value: ';'
-}];
+var TokenIterator = require("../token_iterator").TokenIterator;
 
-exports.spaces = [{
-    type: 'xml-pe',
-    prepend: true
-},{
-    type: 'entity.other.attribute-name',
-    prepend: true
-}, {
-    type: 'storage.type',
-    value: 'var',
-    append: true
-}, {
-    type: 'storage.type',
-    value: 'function',
-    append: true
-}, {
-    type: 'keyword.operator',
-    value: '='
-}, {
-    type: 'keyword',
-    value: 'as',
-    prepend: true,
-    append: true
-}, {
-    type: 'keyword',
-    value: 'function',
-    append: true
-}, {
-    type: 'support.function',
-    next: /[^\(]/,
-    append: true
-}, {
-    type: 'keyword',
-    value: 'or',
-    append: true,
-    prepend: true
-}, {
-    type: 'keyword',
-    value: 'and',
-    append: true,
-    prepend: true
-}, {
-    type: 'keyword',
-    value: 'case',
-    append: true
-}, {
-    type: 'keyword.operator',
-    value: '||',
-    append: true,
-    prepend: true
-}, {
-    type: 'keyword.operator',
-    value: '&&',
-    append: true,
-    prepend: true
-}];
-exports.singleTags = ['!doctype','area','base','br','hr','input','img','link','meta'];
-
-exports.transform = function(iterator, maxPos, context) {
-    var token = iterator.getCurrentToken();
-    
-    var newLines = exports.newLines;
-    var spaces = exports.spaces;
-    var singleTags = exports.singleTags;
-
-    var code = '';
-    
-    var indentation = 0;
-    var dontBreak = false;
-    var tag;
-    var lastTag;
-    var lastToken = {};
-    var nextTag;
-    var nextToken = {};
-    var breakAdded = false;
-    var value = '';
-
-    while (token!==null) {
-
-        if( !token ){
-            token = iterator.stepForward();
-            continue;
-        }
-        if( token.type == 'support.php_tag' && token.value != '?>' ){
-            context = 'php';
-        }
-        else if( token.type == 'support.php_tag' && token.value == '?>' ){
-            context = 'html';
-        }
-        else if( token.type == 'meta.tag.name.style' && context != 'css' ){
-            context = 'css';
-        }
-        else if( token.type == 'meta.tag.name.style' && context == 'css' ){
-            context = 'html';
-        }
-        else if( token.type == 'meta.tag.name.script' && context != 'js' ){
-            context = 'js';
-        }
-        else if( token.type == 'meta.tag.name.script' && context == 'js' ){
-            context = 'html';
-        }
-
-        nextToken = iterator.stepForward();
-        if (nextToken && nextToken.type.indexOf('meta.tag.name') == 0) {
-            nextTag = nextToken.value;
-        }
-        if ( lastToken.type == 'support.php_tag' && lastToken.value == '<?=') {
-            dontBreak = true;
-        }
-        if (token.type == 'meta.tag.name') {
-            token.value = token.value.toLowerCase();
-        }
-        if (token.type == 'text') {
-            token.value = token.value.trim();
-        }
-        if (!token.value) {
-            token = nextToken;
-            continue;
-        }
-        value = token.value;
-        for (var i in spaces) {
-            if (
-                token.type == spaces[i].type &&
-                (!spaces[i].value || token.value == spaces[i].value) &&
-                (
-                    nextToken &&
-                    (!spaces[i].next || spaces[i].next.test(nextToken.value))
-                )
-            ) {
-                if (spaces[i].prepend) {
-                    value = ' ' + token.value;
-                }
-
-                if (spaces[i].append) {
-                    value += ' ';
-                }
-            }
-        }
-        if (token.type.indexOf('meta.tag.name') == 0) {
-            tag = token.value;
-        }
-        breakAdded = false;
-        for (i in newLines) {
-            if (
-                token.type == newLines[i].type &&
-                (
-                    !newLines[i].value ||
-                    token.value == newLines[i].value
-                ) &&
-                (
-                    !newLines[i].blockTag ||
-                    singleTags.indexOf(nextTag) === -1
-                ) &&
-                (
-                    !newLines[i].context ||
-                    newLines[i].context === context
-                )
-            ) {
-                if (newLines[i].indent === false) {
-                    indentation--;
-                }
-
-                if (
-                    newLines[i].breakBefore &&
-                    ( !newLines[i].prev || newLines[i].prev.test(lastToken.value) )
-                ) {
-                    code += "\n";
-                    breakAdded = true;
-                    for (i = 0; i < indentation; i++) {
-                        code += "\t";
-                    }
-                }
-
-                break;
-            }
-        }
-
-        if (dontBreak===false) {
-            for (i in newLines) {
-                if (
-                    lastToken.type == newLines[i].type &&
-                    (
-                        !newLines[i].value || lastToken.value == newLines[i].value
-                    ) &&
-                    (
-                        !newLines[i].blockTag ||
-                        singleTags.indexOf(tag) === -1
-                    ) &&
-                    (
-                        !newLines[i].context ||
-                        newLines[i].context === context
-                    )
-                ) {
-                    if (newLines[i].indent === true) {
-                        indentation++;
-                    }
-
-                    if (!newLines[i].dontBreak  && !breakAdded) {
-                        code += "\n";
-                        for (i = 0; i < indentation; i++) {
-                            code += "\t";
-                        }
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        code += value;
-        if ( lastToken.type == 'support.php_tag' && lastToken.value == '?>' ) {
-            dontBreak = false;
-        }
-        lastTag = tag;
-
-        lastToken = token;
-
-        token = nextToken;
-
-        if (token===null) {
-            break;
-        }
-    }
-    
-    return code;
-};
-
-
-
-});
-
-define("ace/ext/beautify",["require","exports","module","ace/token_iterator","ace/ext/beautify/php_rules"], function(require, exports, module) {
-"use strict";
-var TokenIterator = require("ace/token_iterator").TokenIterator;
-
-var phpTransform = require("./beautify/php_rules").transform;
+function is(token, type) {
+    return token.type.lastIndexOf(type + ".xml") > -1;
+}
+exports.singletonTags = ["area", "base", "br", "col", "command", "embed", "hr", "html", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"];
+exports.blockTags = ["article", "aside", "blockquote", "body", "div", "dl", "fieldset", "footer", "form", "head", "header", "html", "nav", "ol", "p", "script", "section", "style", "table", "tbody", "tfoot", "thead", "ul"];
 
 exports.beautify = function(session) {
     var iterator = new TokenIterator(session, 0, 0);
     var token = iterator.getCurrentToken();
+    var tabString = session.getTabString();
+    var singletonTags = exports.singletonTags;
+    var blockTags = exports.blockTags;
+    var nextToken;
+    var breakBefore = false;
+    var code = "";
+    var value = "";
+    var tagName = "";
+    var indent = 0;
+    var inBlock = false;
+    var inComment = false;
+    var inCase = false;
+    var onCaseLine = false;
+    var row;
+    var curRow = 0;
+    var rowsToAdd = 0;
+    var rowTokens = [];
+    var abort = false;
+    var i;
+    var indentNextLine = false;
 
-    var context = session.$modeId.split("/").pop();
+    while (token !== null) {
+        value = token.value;
+        curRow = iterator.getCurrentTokenRow();
+        rowTokens = iterator.$rowTokens;
+        nextToken = iterator.stepForward();
+        if (is(token, "tag-open") && value === "<" && nextToken)
+            inBlock = (blockTags.indexOf(nextToken.value) !== -1);
+        if (is(token, "comment.start")) {
+            inComment = true;
+            inBlock = true;
+        } else if (is(token, "comment.end")) {
+            inComment = false;
+            inBlock = false;
+        }
+        if (is(token, "tag-open") && value === "</") {
+            if (is(token, "tag-open") && value === "</" && inBlock && !breakBefore)
+                rowsToAdd++;
 
-    var code = phpTransform(iterator, context);
+            indent--;
+            inBlock = false;
+        }
+        onCaseLine = false;
+        if (token.type === "keyword" && value.match(/^(case|default)$/)) {
+            onCaseLine = true;
+            inCase = true;
+        } else if (token.type === "keyword" && value === "break")
+            inCase = false;
+        if (curRow != row) {
+            rowsToAdd = curRow;
+
+            if (row)
+                rowsToAdd -= row;
+        }
+
+        if (rowsToAdd) {
+            code = code.trimRight();
+            for (; rowsToAdd > 0; rowsToAdd--)
+                code += "\n";
+
+            breakBefore = true;
+            if (!inComment)
+               value = value.trimLeft();
+        }
+
+        if (value) {
+            if (token.type === "keyword" && value.match(/^(if|else|elseif|for|while|switch)$/)) {
+                value += " ";
+                nextToken.value = nextToken.value.trim();
+                if (!breakBefore && token.type === "keyword" && value.trim().match(/^(else|elseif)$/)) {
+                    code = code.trimRight();
+                    value = " "+value;
+                }
+            } else if (token.type === "paren.lparen") {
+                nextToken.value = nextToken.value.trim();
+                if (value.substr(-1) === "{") {
+                    code = code.replace(/ +$/, "");
+                    value = value + " ";
+                }
+                if (value.substr(0, 1) === "{" && !code.match(/\s$/))
+                    value = " " + value;
+            } else if (token.type === "paren.rparen") {
+                code = code.replace(/ +$/, "");
+                if (value.substr(0, 1) === "}" && !code.match(/\s$/))
+                    value = " " + value;
+            } else if ((token.type === "keyword.operator" || token.type === "keyword") && value.match(/^(=|==|===|!=|!==|&&|\|\||and|or|xor|\+=|.=|>|>=|<|<=)$/)) {
+                code = code.trimRight();
+                value = " " + value + " ";
+                nextToken.value = nextToken.value.trim();
+            } else if (token.type === "support.php_tag" && value === "?>" && !breakBefore) {
+                code = code.trimRight();
+                value = " " + value;
+            }
+            if (curRow != row && rowTokens) {
+                abort = false;
+                for (i = 0; i<rowTokens.length && !abort; i++) {
+                    if (rowTokens[i].type == "paren.rparen") {
+                        indent--;
+                        abort = true;
+                    } else if (rowTokens[i].type == "paren.lparen")
+                        abort = true;
+                }
+            }
+            if (breakBefore && !is(token, "comment")) {
+                var count = indent;
+                if (inCase && !onCaseLine)
+                    count++;
+
+                if (indentNextLine) {
+                    count++;
+                    indentNextLine = false;
+                }
+
+                for (i = 0; i < count; i++)
+                    code += tabString;
+            }
+            if (curRow != row && rowTokens) {
+                indentNextLine = null;
+                abort = false;
+                for (i = rowTokens.length-1; i>=0 && !abort; i--) {
+                    if (rowTokens[i].type == "paren.rparen") {
+                        abort = true;
+                    } else if (rowTokens[i].type == "paren.lparen") {
+                        indent++;
+                        indentNextLine = false;
+                        abort = true;
+                    }
+                }
+            }
+            if (indentNextLine !== false && token.type === "keyword" && value.trim().match(/^(if|else|elseif|for|while)$/))
+                indentNextLine = true;
+            code += value;
+            breakBefore = false;
+            if ((is(token, "tag-close") && (inBlock || blockTags.indexOf(tagName) !== -1)) || (is(token, "doctype") && value==">")) {
+                if (inBlock && nextToken && nextToken.value === "</")
+                    rowsToAdd--;
+                else
+                    rowsToAdd++;
+            }
+            if (is(token, "tag-open") && value === "<" && singletonTags.indexOf(nextToken.value) === -1)
+                indent++;
+            if (is(token, "tag-name"))
+                tagName = value;
+
+            if (is(token, "tag-close") && value === "/>" && singletonTags.indexOf(tagName) === -1)
+                indent--;
+
+            row = curRow;
+        }
+
+        token = nextToken;
+    }
+
+    code = code.trim();
     session.doc.setValue(code);
 };
 

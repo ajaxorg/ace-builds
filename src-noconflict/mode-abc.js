@@ -5,7 +5,6 @@ ace.define("ace/mode/abc_highlight_rules",["require","exports","module","ace/lib
     var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
     var ABCHighlightRules = function () {
-
         this.$rules = {
             start: [
                 {
@@ -82,7 +81,6 @@ ace.define("ace/mode/abc_highlight_rules",["require","exports","module","ace/lib
 
             ]
         };
-
         this.normalizeRules();
     };
 

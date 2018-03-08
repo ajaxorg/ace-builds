@@ -92,7 +92,6 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),
@@ -822,7 +821,6 @@ var GobstonesHighlightRules = function() {
         "support.function": langClasses,
         "support.type": supportType
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {

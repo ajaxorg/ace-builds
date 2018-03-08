@@ -71,7 +71,6 @@ var HaxeHighlightRules = function() {
         "keyword": keywords,
         "constant.language": buildinConstants
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {

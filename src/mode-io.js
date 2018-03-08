@@ -5,7 +5,6 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var IoHighlightRules = function() {
-
     this.$rules = { start: 
        [ { token: [ 'text', 'meta.empty-parenthesis.io' ],
            regex: '(\\()(\\))',

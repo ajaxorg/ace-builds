@@ -93,7 +93,6 @@ var PraatHighlightRules = function() {
         "TableOfReal|TextGrid|TextInterval|TextPoint|TextTier|Tier|"         +
         "Transition|VocalTract|Weight|WordList"
     );
-
     this.$rules = {
         "start" : [
             {

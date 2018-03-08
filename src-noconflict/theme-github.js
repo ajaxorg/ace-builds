@@ -2,8 +2,7 @@ ace.define("ace/theme/github",["require","exports","module","ace/lib/dom"], func
 
 exports.isDark = false;
 exports.cssClass = "ace-github";
-exports.cssText = "\
-.ace-github .ace_gutter {\
+exports.cssText = ".ace-github .ace_gutter {\
 background: #e8e8e8;\
 color: #AAA;\
 }\

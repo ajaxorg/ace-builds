@@ -96,7 +96,6 @@ var RubyHighlightRules = function() {
         "support.function": builtinFunctions,
         "invalid.deprecated": "debugger" // TODO is this a remnant from js mode?
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {
@@ -175,7 +174,6 @@ var RubyHighlightRules = function() {
                     defaultToken: "string"
                 }]
             }],
-
             {
                 token : "text", // namespaces aren't symbols
                 regex : "::"
