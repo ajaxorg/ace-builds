@@ -1,4 +1,4 @@
-ace.define("ace/snippets/markdown",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/markdown",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# Markdown\n\
@@ -93,3 +93,11 @@ snippet pullquote\n\
 exports.scope = "markdown";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/markdown"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

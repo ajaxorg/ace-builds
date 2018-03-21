@@ -1,4 +1,4 @@
-ace.define("ace/snippets/abc",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/abc",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "\n\
@@ -36,3 +36,11 @@ snippet zupfnoter.annotation\n\
 exports.scope = "abc";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/abc"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

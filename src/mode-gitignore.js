@@ -50,3 +50,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/gitignore"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

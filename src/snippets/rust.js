@@ -1,7 +1,15 @@
 define("ace/snippets/rust",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "rust";
 
 });
+                (function() {
+                    window.require(["ace/snippets/rust"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -5,3 +5,11 @@ exports.snippetText =undefined;
 exports.scope = "";
 
 });
+                (function() {
+                    window.require(["ace/snippets/kotlin"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

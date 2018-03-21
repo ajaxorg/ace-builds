@@ -74,3 +74,11 @@ snippet createfn\n\
 exports.scope = "sqlserver";
 
 });
+                (function() {
+                    window.require(["ace/snippets/sqlserver"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

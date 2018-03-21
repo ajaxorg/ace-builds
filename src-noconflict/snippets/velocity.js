@@ -1,4 +1,4 @@
-ace.define("ace/snippets/velocity",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/velocity",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# macro\n\
@@ -34,3 +34,11 @@ exports.scope = "velocity";
 exports.includeScopes = ["html", "javascript", "css"];
 
 });
+                (function() {
+                    ace.require(["ace/snippets/velocity"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -1,1 +1,9 @@
-ace.define("ace/snippets/tsx",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="tsx"})
+ace.define("ace/snippets/tsx",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="tsx"});
+                (function() {
+                    ace.require(["ace/snippets/tsx"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

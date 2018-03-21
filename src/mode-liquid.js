@@ -23,7 +23,6 @@ var CssHighlightRules = function() {
         "support.constant.color": supportConstantColor,
         "support.constant.fonts": supportConstantFonts
     }, "text", true);
-
     this.$rules = {
         "start" : [{
             include : ["strings", "url", "comments"]
@@ -59,7 +58,7 @@ var CssHighlightRules = function() {
         }, {
             caseInsensitive: true
         }],
-        
+
         "media": [{
             include : ["strings", "url", "comments"]
         }, {
@@ -97,6 +96,9 @@ var CssHighlightRules = function() {
             regex : "-(webkit|ms|moz|o)-",
             token : "text"
         }, {
+            token : "punctuation.operator",
+            regex : "[:;]"
+        }, {
             token : "paren.rparen",
             regex : "\\}",
             next : "start"
@@ -128,7 +130,7 @@ var CssHighlightRules = function() {
         }, {
             caseInsensitive: true
         }],
-        
+
         url: [{
             token : "support.function",
             regex : "(?:url(:?-prefix)?|domain|regexp)\\(",
@@ -140,7 +142,7 @@ var CssHighlightRules = function() {
                 defaultToken: "string"
             }]
         }],
-        
+
         strings: [{
             token : "string.start",
             regex : "'",
@@ -178,7 +180,7 @@ var CssHighlightRules = function() {
             token : "constant.language.escape",
             regex : /\\([a-fA-F\d]{1,6}|[^a-fA-F\d])/
         }]
-        
+
     };
 
     this.normalizeRules();
@@ -284,7 +286,6 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),
@@ -1020,7 +1021,6 @@ var LiquidHighlightRules = function() {
     );
 
     var builtinVariables = 'forloop|tablerowloop';
-
     var definitions = ("assign");
 
     var keywordMapper = this.createKeywordMapper({
@@ -1182,3 +1182,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/liquid"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

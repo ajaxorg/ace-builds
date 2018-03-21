@@ -270,3 +270,11 @@ function import$(obj, src){
   return obj;
 }
 });
+                (function() {
+                    window.require(["ace/mode/livescript"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

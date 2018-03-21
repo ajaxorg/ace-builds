@@ -5,7 +5,6 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var ForthHighlightRules = function() {
-
     this.$rules = { start: [ { include: '#forth' } ],
       '#comment':
        [ { token: 'comment.line.double-dash.forth',
@@ -288,3 +287,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/forth"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

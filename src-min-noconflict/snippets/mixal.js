@@ -1,1 +1,9 @@
-ace.define("ace/snippets/mixal",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="mixal"})
+ace.define("ace/snippets/mixal",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="mixal"});
+                (function() {
+                    ace.require(["ace/snippets/mixal"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

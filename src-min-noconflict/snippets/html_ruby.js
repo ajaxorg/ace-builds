@@ -1,1 +1,9 @@
-ace.define("ace/snippets/html_ruby",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="html_ruby"})
+ace.define("ace/snippets/html_ruby",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="html_ruby"});
+                (function() {
+                    ace.require(["ace/snippets/html_ruby"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

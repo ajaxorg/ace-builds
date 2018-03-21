@@ -1,4 +1,4 @@
-ace.define("ace/snippets/jsp",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/jsp",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet @page\n\
@@ -104,3 +104,11 @@ snippet trim\n\
 exports.scope = "jsp";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/jsp"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

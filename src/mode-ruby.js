@@ -96,7 +96,6 @@ var RubyHighlightRules = function() {
         "support.function": builtinFunctions,
         "invalid.deprecated": "debugger" // TODO is this a remnant from js mode?
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {
@@ -175,7 +174,6 @@ var RubyHighlightRules = function() {
                     defaultToken: "string"
                 }]
             }],
-
             {
                 token : "text", // namespaces aren't symbols
                 regex : "::"
@@ -489,3 +487,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/ruby"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

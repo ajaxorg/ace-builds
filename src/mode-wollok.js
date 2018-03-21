@@ -92,7 +92,6 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),
@@ -813,7 +812,6 @@ var WollokHighlightRules = function() {
         "constant.language": buildinConstants,
         "support.function": langClasses
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {
@@ -902,3 +900,11 @@ oop.inherits(Mode, JavaScriptMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/wollok"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

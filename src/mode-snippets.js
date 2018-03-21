@@ -197,3 +197,11 @@ exports.Mode = Mode;
 
 
 });
+                (function() {
+                    window.require(["ace/mode/snippets"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

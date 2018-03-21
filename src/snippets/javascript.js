@@ -200,3 +200,11 @@ guard ^\\s*\n\
 exports.scope = "javascript";
 
 });
+                (function() {
+                    window.require(["ace/snippets/javascript"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

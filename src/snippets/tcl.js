@@ -97,3 +97,11 @@ snippet nsc\n\
 exports.scope = "tcl";
 
 });
+                (function() {
+                    window.require(["ace/snippets/tcl"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

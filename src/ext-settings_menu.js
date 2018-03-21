@@ -157,6 +157,7 @@ var supportedModes = {
     ADA:         ["ada|adb"],
     Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
     AsciiDoc:    ["asciidoc|adoc"],
+    ASL:         ["dsl|asl"],
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
@@ -740,6 +741,10 @@ module.exports.init = function(editor) {
 };
 });
                 (function() {
-                    window.require(["ace/ext/settings_menu"], function() {});
+                    window.require(["ace/ext/settings_menu"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

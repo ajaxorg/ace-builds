@@ -1,1 +1,9 @@
-ace.define("ace/snippets/objectivec",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="objectivec"})
+ace.define("ace/snippets/objectivec",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="objectivec"});
+                (function() {
+                    ace.require(["ace/snippets/objectivec"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

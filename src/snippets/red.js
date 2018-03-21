@@ -5,3 +5,11 @@ exports.snippetText = " ";
 exports.scope = "red";
 
 });
+                (function() {
+                    window.require(["ace/snippets/red"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -154,3 +154,11 @@ var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 
 });
+                (function() {
+                    window.require(["ace/theme/chaos"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

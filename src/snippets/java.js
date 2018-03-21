@@ -245,3 +245,11 @@ snippet unless\n\
 exports.scope = "java";
 
 });
+                (function() {
+                    window.require(["ace/snippets/java"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -1,7 +1,15 @@
-ace.define("ace/snippets/prolog",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/prolog",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "prolog";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/prolog"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

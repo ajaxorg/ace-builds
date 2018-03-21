@@ -100,3 +100,11 @@ snippet exp\n\
 exports.scope = "coffee";
 
 });
+                (function() {
+                    window.require(["ace/snippets/coffee"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

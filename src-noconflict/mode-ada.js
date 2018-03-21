@@ -1,4 +1,4 @@
-ace.define("ace/mode/ada_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
+ace.define("ace/mode/ada_highlight_rules",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -62,7 +62,7 @@ oop.inherits(AdaHighlightRules, TextHighlightRules);
 exports.AdaHighlightRules = AdaHighlightRules;
 });
 
-ace.define("ace/mode/ada",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/ada_highlight_rules"], function(require, exports, module) {
+ace.define("ace/mode/ada",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -85,3 +85,11 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 
 });
+                (function() {
+                    ace.require(["ace/mode/ada"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -195,3 +195,11 @@ snippet sum\n\
 exports.scope = "tex";
 
 });
+                (function() {
+                    window.require(["ace/snippets/tex"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

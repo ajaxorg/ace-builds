@@ -34,3 +34,11 @@ exports.scope = "velocity";
 exports.includeScopes = ["html", "javascript", "css"];
 
 });
+                (function() {
+                    window.require(["ace/snippets/velocity"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -1,1 +1,9 @@
-ace.define("ace/snippets/rust",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="rust"})
+ace.define("ace/snippets/rust",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="rust"});
+                (function() {
+                    ace.require(["ace/snippets/rust"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

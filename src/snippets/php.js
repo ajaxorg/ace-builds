@@ -382,3 +382,11 @@ snippet retf\n\
 exports.scope = "php";
 
 });
+                (function() {
+                    window.require(["ace/snippets/php"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

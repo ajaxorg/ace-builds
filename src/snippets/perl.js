@@ -352,3 +352,11 @@ snippet debug_trace\n\
 exports.scope = "perl";
 
 });
+                (function() {
+                    window.require(["ace/snippets/perl"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

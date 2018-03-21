@@ -1,7 +1,15 @@
-ace.define("ace/snippets/mushcode",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/mushcode",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "mushcode";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/mushcode"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

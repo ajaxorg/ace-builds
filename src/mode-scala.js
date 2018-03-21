@@ -92,7 +92,6 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
-
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),
@@ -851,7 +850,6 @@ var ScalaHighlightRules = function() {
         "support.function": langClasses,
         "constant.language": buildinConstants
     }, "identifier");
-
     this.$rules = {
         "start" : [
             {
@@ -973,3 +971,11 @@ oop.inherits(Mode, JavaScriptMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/scala"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

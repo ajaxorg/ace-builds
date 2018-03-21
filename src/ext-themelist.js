@@ -58,6 +58,10 @@ exports.themes = themeData.map(function(data) {
 
 });
                 (function() {
-                    window.require(["ace/ext/themelist"], function() {});
+                    window.require(["ace/ext/themelist"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

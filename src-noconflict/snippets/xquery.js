@@ -1,4 +1,4 @@
-ace.define("ace/snippets/xquery",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/xquery",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet for\n\
@@ -66,3 +66,11 @@ snippet module\n\
 exports.scope = "xquery";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/xquery"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

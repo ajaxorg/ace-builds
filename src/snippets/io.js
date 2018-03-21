@@ -67,3 +67,11 @@ exports.snippets = [
 exports.scope = "io";
 
 });
+                (function() {
+                    window.require(["ace/snippets/io"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

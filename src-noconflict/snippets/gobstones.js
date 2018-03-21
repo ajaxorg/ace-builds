@@ -1,4 +1,4 @@
-ace.define("ace/snippets/gobstones",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/gobstones",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# Procedure\n\
@@ -39,3 +39,11 @@ snippet if\n\
 exports.scope = "gobstones";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/gobstones"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

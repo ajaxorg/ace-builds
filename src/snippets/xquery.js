@@ -66,3 +66,11 @@ snippet module\n\
 exports.scope = "xquery";
 
 });
+                (function() {
+                    window.require(["ace/snippets/xquery"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

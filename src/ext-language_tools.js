@@ -125,7 +125,7 @@ var SnippetManager = function() {
         var s = editor.session;
         switch(name) {
             case "CURRENT_WORD":
-                var r = s.getWordRange();
+                var r = s.getWordRange(); 
             case "SELECTION":
             case "SELECTED_TEXT":
                 return s.getTextRange(r);
@@ -1970,6 +1970,10 @@ require("../config").defineOptions(Editor.prototype, "editor", {
 });
 });
                 (function() {
-                    window.require(["ace/ext/language_tools"], function() {});
+                    window.require(["ace/ext/language_tools"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

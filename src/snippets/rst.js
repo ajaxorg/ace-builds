@@ -27,3 +27,11 @@ snippet cont:\n\
 exports.scope = "rst";
 
 });
+                (function() {
+                    window.require(["ace/snippets/rst"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

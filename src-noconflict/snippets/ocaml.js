@@ -1,7 +1,15 @@
-ace.define("ace/snippets/ocaml",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/ocaml",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "ocaml";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/ocaml"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

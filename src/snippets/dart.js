@@ -88,3 +88,11 @@ snippet tryf\n\
 exports.scope = "dart";
 
 });
+                (function() {
+                    window.require(["ace/snippets/dart"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

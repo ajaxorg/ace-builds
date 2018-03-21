@@ -175,7 +175,6 @@ exportAce(ACE_NAMESPACE);
 
 define("ace/lib/regexp",["require","exports","module"], function(require, exports, module) {
 "use strict";
-
     var real = {
             exec: RegExp.prototype.exec,
             test: RegExp.prototype.test,
@@ -225,7 +224,6 @@ define("ace/lib/regexp",["require","exports","module"], function(require, export
             return !!match;
         };
     }
-
     function getNativeFlags (regex) {
         return (regex.global     ? "g" : "") +
                (regex.ignoreCase ? "i" : "") +
@@ -248,6 +246,8 @@ define("ace/lib/regexp",["require","exports","module"], function(require, export
 
 define("ace/lib/es5-shim",["require","exports","module"], function(require, exports, module) {
 
+//
+//
 function Empty() {}
 
 if (!Function.prototype.bind) {
@@ -260,7 +260,6 @@ if (!Function.prototype.bind) {
         var bound = function () {
 
             if (this instanceof bound) {
-
                 var result = target.apply(
                     this,
                     args.concat(slice.call(arguments))
@@ -284,6 +283,7 @@ if (!Function.prototype.bind) {
             bound.prototype = new Empty();
             Empty.prototype = null;
         }
+        //
         return bound;
     };
 }
@@ -304,6 +304,9 @@ if ((supportsAccessors = owns(prototypeOfObject, "__defineGetter__"))) {
     lookupGetter = call.bind(prototypeOfObject.__lookupGetter__);
     lookupSetter = call.bind(prototypeOfObject.__lookupSetter__);
 }
+
+//
+//
 if ([1,2].splice(0).length != 2) {
     if(function() { // test IE < 9 to splice bug - see issue #138
         function makeArray(l) {
@@ -626,6 +629,9 @@ if (!Array.prototype.lastIndexOf || ([0, 1].lastIndexOf(0, -3) != -1)) {
         return -1;
     };
 }
+
+//
+//
 if (!Object.getPrototypeOf) {
     Object.getPrototypeOf = function getPrototypeOf(object) {
         return object.__proto__ || (
@@ -709,7 +715,6 @@ if (!Object.create) {
         return object;
     };
 }
-
 function doesDefinePropertyWork(object) {
     try {
         Object.defineProperty(object, "sentinel", {});
@@ -875,11 +880,18 @@ if (!Object.keys) {
     };
 
 }
+
+//
+//
 if (!Date.now) {
     Date.now = function now() {
         return new Date().getTime();
     };
 }
+
+
+//
+//
 var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u180E\u2000\u2001\u2002\u2003" +
     "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028" +
     "\u2029\uFEFF";
@@ -892,6 +904,8 @@ if (!String.prototype.trim || ws.trim()) {
     };
 }
 
+//
+//
 function toInteger(n) {
     n = +n;
     if (n !== n) { // isNaN
@@ -1061,69 +1075,33 @@ exports.setCssClass = function(node, className, include) {
 exports.hasCssString = function(id, doc) {
     var index = 0, sheets;
     doc = doc || document;
-
-    if (doc.createStyleSheet && (sheets = doc.styleSheets)) {
+    if ((sheets = doc.querySelectorAll("style"))) {
         while (index < sheets.length)
-            if (sheets[index++].owningElement.id === id) return true;
-    } else if ((sheets = doc.getElementsByTagName("style"))) {
-        while (index < sheets.length)
-            if (sheets[index++].id === id) return true;
+            if (sheets[index++].id === id)
+                return true;
     }
-
-    return false;
 };
 
-exports.importCssString = function importCssString(cssText, id, doc) {
-    doc = doc || document;
-    if (id && exports.hasCssString(id, doc))
-        return null;
+exports.importCssString = function importCssString(cssText, id, container) {
+    var root = container && container.getRootNode
+        ? container.getRootNode()
+        : container || document;
     
-    var style;
+    var doc = root.ownerDocument || root;
+    if (id && exports.hasCssString(id, root))
+        return null;
     
     if (id)
         cssText += "\n/*# sourceURL=ace/css/" + id + " */";
     
-    if (doc.createStyleSheet) {
-        style = doc.createStyleSheet();
-        style.cssText = cssText;
-        if (id)
-            style.owningElement.id = id;
-    } else {
-        style = exports.createElement("style");
-        style.appendChild(doc.createTextNode(cssText));
-        if (id)
-            style.id = id;
+    var style = exports.createElement("style");
+    style.appendChild(doc.createTextNode(cssText));
+    if (id)
+        style.id = id;
 
-        exports.getDocumentHead(doc).appendChild(style);
-    }
-};
-
-exports.importCssStylsheet = function(uri, doc) {
-    if (doc.createStyleSheet) {
-        doc.createStyleSheet(uri);
-    } else {
-        var link = exports.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = uri;
-
-        exports.getDocumentHead(doc).appendChild(link);
-    }
-};
-
-exports.getInnerWidth = function(element) {
-    return (
-        parseInt(exports.computedStyle(element, "paddingLeft"), 10) +
-        parseInt(exports.computedStyle(element, "paddingRight"), 10) + 
-        element.clientWidth
-    );
-};
-
-exports.getInnerHeight = function(element) {
-    return (
-        parseInt(exports.computedStyle(element, "paddingTop"), 10) +
-        parseInt(exports.computedStyle(element, "paddingBottom"), 10) +
-        element.clientHeight
-    );
+    if (root == doc)
+        root = exports.getDocumentHead(doc);
+    root.appendChild(style);
 };
 
 exports.scrollbarWidth = function(document) {
@@ -1165,68 +1143,10 @@ exports.scrollbarWidth = function(document) {
 
 if (typeof document == "undefined") {
     exports.importCssString = function() {};
-    return;
 }
 
-if (window.pageYOffset !== undefined) {
-    exports.getPageScrollTop = function() {
-        return window.pageYOffset;
-    };
-
-    exports.getPageScrollLeft = function() {
-        return window.pageXOffset;
-    };
-}
-else {
-    exports.getPageScrollTop = function() {
-        return document.body.scrollTop;
-    };
-
-    exports.getPageScrollLeft = function() {
-        return document.body.scrollLeft;
-    };
-}
-
-if (window.getComputedStyle)
-    exports.computedStyle = function(element, style) {
-        if (style)
-            return (window.getComputedStyle(element, "") || {})[style] || "";
-        return window.getComputedStyle(element, "") || {};
-    };
-else
-    exports.computedStyle = function(element, style) {
-        if (style)
-            return element.currentStyle[style];
-        return element.currentStyle;
-    };
-exports.setInnerHtml = function(el, innerHtml) {
-    var element = el.cloneNode(false);//document.createElement("div");
-    element.innerHTML = innerHtml;
-    el.parentNode.replaceChild(element, el);
-    return element;
-};
-
-if ("textContent" in document.documentElement) {
-    exports.setInnerText = function(el, innerText) {
-        el.textContent = innerText;
-    };
-
-    exports.getInnerText = function(el) {
-        return el.textContent;
-    };
-}
-else {
-    exports.setInnerText = function(el, innerText) {
-        el.innerText = innerText;
-    };
-
-    exports.getInnerText = function(el) {
-        return el.innerText;
-    };
-}
-
-exports.getParentWindow = function(document) {
-    return document.defaultView || document.parentWindow;
+exports.computedStyle = function(element, style) {
+    return window.getComputedStyle(element, "") || {};
 };
 
 });
@@ -2724,10 +2644,13 @@ var TextInput = function(parentNode, host) {
         var ancestors = [];
         if (isTransformed) {
             var t = text.parentElement;
-            while (t) {
+            while (t && t.nodeType == 1) {
                 ancestors.push(t);
                 t.setAttribute("ace_nocontext", true);
-                t = t.parentElement;
+                if (!t.parentElement && t.getRootNode)
+                    t = t.getRootNode().host;
+                else
+                    t = t.parentElement;
             }
         }
         text.focus({ preventScroll: true });
@@ -3422,7 +3345,7 @@ function Tooltip (parentNode) {
         return this.$element || this.$init();
     };
     this.setText = function(text) {
-        dom.setInnerText(this.getElement(), text);
+        this.getElement().textContent = text;
     };
     this.setHtml = function(html) {
         this.getElement().innerHTML = html;
@@ -4918,33 +4841,43 @@ var ArabicAlefBetIntervalsEnd = ['\u063A', '\u064a'];
 var dir = 0, hiLevel = 0;
 var lastArabic = false, hasUBAT_AL = false,  hasUBAT_B = false,  hasUBAT_S = false, hasBlockSep = false, hasSegSep = false;
 
-var impTab_LTR = [	[	0,		3,		0,		1,		0,		0,		0	],	[	0,		3,		0,		1,		2,		2,		0	],	[	0,		3,		0,		0x11,		2,		0,		1	],	[	0,		3,		5,		5,		4,		1,		0	],	[	0,		3,		0x15,		0x15,		4,		0,		1	],	[	0,		3,		5,		5,		4,		2,		0	]
+var impTab_LTR = [
+	[	0,		3,		0,		1,		0,		0,		0	],
+	[	0,		3,		0,		1,		2,		2,		0	],
+	[	0,		3,		0,		0x11,		2,		0,		1	],
+	[	0,		3,		5,		5,		4,		1,		0	],
+	[	0,		3,		0x15,		0x15,		4,		0,		1	],
+	[	0,		3,		5,		5,		4,		2,		0	]
 ];
 
-var impTab_RTL = [	[	2,		0,		1,		1,		0,		1,		0	],	[	2,		0,		1,		1,		0,		2,		0	],	[	2,		0,		2,		1,		3,		2,		0	],	[	2,		0,		2,		0x21,		3,		1,		1	]
+var impTab_RTL = [
+	[	2,		0,		1,		1,		0,		1,		0	],
+	[	2,		0,		1,		1,		0,		2,		0	],
+	[	2,		0,		2,		1,		3,		2,		0	],
+	[	2,		0,		2,		0x21,		3,		1,		1	]
 ];
 
 var LTR = 0, RTL = 1;
 
-var L = 0;
-var R = 1;
-var EN = 2;
-var AN = 3;
-var ON = 4;
-var B = 5;
-var S = 6;
-var AL = 7;
-var WS = 8;
-var CS = 9;
-var ES = 10;
-var ET = 11;
-var NSM = 12;
-var LRE = 13;
-var RLE = 14;
-var PDF = 15;
-var LRO = 16;
-var RLO = 17;
-var BN = 18;
+var L = 0; /* left to right */
+var R = 1; /* right to left */
+var EN = 2; /* European digit */
+var AN = 3; /* Arabic-Indic digit */
+var ON = 4; /* neutral */
+var B = 5; /* block separator */
+var S = 6; /* segment separator */
+var AL = 7; /* Arabic Letter */
+var WS = 8; /* white space */
+var CS = 9; /* common digit separator */
+var ES = 10; /* European digit separator */
+var ET = 11; /* European digit terminator */
+var NSM = 12; /* Non Spacing Mark */
+var LRE = 13; /* LRE */
+var RLE = 14; /* RLE */
+var PDF = 15; /* PDF */
+var LRO = 16; /* LRO */
+var RLO = 17; /* RLO */
+var BN = 18; /* Boundary Neutral */
 
 var UnicodeTBL00 = [
 BN,BN,BN,BN,BN,BN,BN,BN,BN,S,B,S,WS,B,BN,BN,
@@ -5219,7 +5152,7 @@ exports.doBidiReorder = function(text, textCharTypes, isRtl) {
 	}
 
 	return {'logicalFromVisual': logicalFromVisual, 'bidiLevels': bidiLevels};
-};
+};	
 exports.hasBidiCharacters = function(text, textCharTypes){
 	var ret = false;
 	for (var i = 0; i < text.length; i++){
@@ -5228,7 +5161,8 @@ exports.hasBidiCharacters = function(text, textCharTypes){
 			ret = true;
 	}
 	return ret;
-};	
+};
+	
 exports.getVisualFromLogicalIdx = function(logIdx, rowMap) {
 	for (var i = 0; i < rowMap.logicalFromVisual.length; i++) {
 		if (rowMap.logicalFromVisual[i] == logIdx)
@@ -6419,7 +6353,6 @@ define("ace/mode/text_highlight_rules",["require","exports","module","ace/lib/la
 var lang = require("../lib/lang");
 
 var TextHighlightRules = function() {
-
     this.$rules = {
         "start" : [{
             token : "empty_line",
@@ -6689,7 +6622,7 @@ var TokenIterator = function(session, initialRow, initialColumn) {
     this.$tokenIndex = token ? token.index : -1;
 };
 
-(function() { 
+(function() {
     this.stepBackward = function() {
         this.$tokenIndex -= 1;
         
@@ -6705,7 +6638,7 @@ var TokenIterator = function(session, initialRow, initialColumn) {
         }
             
         return this.$rowTokens[this.$tokenIndex];
-    };   
+    };
     this.stepForward = function() {
         this.$tokenIndex += 1;
         var rowCount;
@@ -6723,13 +6656,13 @@ var TokenIterator = function(session, initialRow, initialColumn) {
         }
             
         return this.$rowTokens[this.$tokenIndex];
-    };      
+    };
     this.getCurrentToken = function () {
         return this.$rowTokens[this.$tokenIndex];
-    };      
+    };
     this.getCurrentTokenRow = function () {
         return this.$row;
-    };     
+    };
     this.getCurrentTokenColumn = function() {
         var rowTokens = this.$rowTokens;
         var tokenIndex = this.$tokenIndex;
@@ -7514,7 +7447,6 @@ function validateDelta(docLines, delta) {
 }
 
 exports.applyDelta = function(docLines, delta, doNotValidate) {
-    
     var row = delta.start.row;
     var startColumn = delta.start.column;
     var line = docLines[row] || "";
@@ -7606,7 +7538,6 @@ var Anchor = exports.Anchor = function(doc, row, column) {
                 column: point.column + (point.row == deltaEnd.row ? deltaColShift : 0)
             };
         }
-        
         return {
             row: deltaStart.row,
             column: deltaStart.column
@@ -7855,7 +7786,7 @@ var Document = function(textOrLines) {
             column = this.$lines[row].length;
         }
         this.insertMergedLines({row: row, column: column}, lines);
-    };    
+    };
     this.insertMergedLines = function(position, lines) {
         var start = this.clippedPos(position.row, position.column);
         var end = {
@@ -7962,28 +7893,23 @@ var Document = function(textOrLines) {
             return;
         }
         
-        if (isInsert && delta.lines.length > 20000)
+        if (isInsert && delta.lines.length > 20000) {
             this.$splitAndapplyLargeDelta(delta, 20000);
-        applyDelta(this.$lines, delta, doNotValidate);
-        this._signal("change", delta);
+        }
+        else {
+            applyDelta(this.$lines, delta, doNotValidate);
+            this._signal("change", delta);
+        }
     };
     
     this.$splitAndapplyLargeDelta = function(delta, MAX) {
         var lines = delta.lines;
-        var l = lines.length;
+        var l = lines.length - MAX + 1;
         var row = delta.start.row; 
         var column = delta.start.column;
-        var from = 0, to = 0;
-        do {
-            from = to;
+        for (var from = 0, to = 0; from < l; from = to) {
             to += MAX - 1;
             var chunk = lines.slice(from, to);
-            if (to > l) {
-                delta.lines = chunk;
-                delta.start.row = row + from;
-                delta.start.column = column;
-                break;
-            }
             chunk.push("");
             this.applyDelta({
                 start: this.pos(row + from, column),
@@ -7991,7 +7917,11 @@ var Document = function(textOrLines) {
                 action: delta.action,
                 lines: chunk
             }, true);
-        } while(true);
+        }
+        delta.lines = lines.slice(from);
+        delta.start.row = row + from;
+        delta.start.column = column;
+        this.applyDelta(delta, true);
     };
     this.revertDelta = function(delta) {
         this.applyDelta({
@@ -8009,7 +7939,7 @@ var Document = function(textOrLines) {
             if (index < 0)
                 return {row: i, column: index + lines[i].length + newlineLength};
         }
-        return {row: l-1, column: lines[l-1].length};
+        return {row: l-1, column: index + lines[l-1].length + newlineLength};
     };
     this.positionToIndex = function(pos, startRow) {
         var lines = this.$lines || this.getAllLines();
@@ -9040,6 +8970,7 @@ function Folding() {
             foldLine.start.row = folds[0].start.row;
             foldLine.start.column = folds[0].start.column;
         } else
+        //
         if (fold.sameRow) {
             folds.splice(folds.indexOf(fold), 1);
         } else
@@ -11406,7 +11337,8 @@ config.defineOptions(EditSession.prototype, "session", {
     },
     mode: {
         set: function(val) { this.setMode(val); },
-        get: function() { return this.$modeId; }
+        get: function() { return this.$modeId; },
+        handlesSet: true
     }
 });
 
@@ -13128,7 +13060,7 @@ Editor.$uid = 0;
     };
     this.getFontSize = function () {
         return this.getOption("fontSize") ||
-           dom.computedStyle(this.container, "fontSize");
+           dom.computedStyle(this.container).fontSize;
     };
     this.setFontSize = function(size) {
         this.setOption("fontSize", size);
@@ -14631,6 +14563,8 @@ config.defineOptions(Editor.prototype, "editor", {
     scrollPastEnd: "renderer",
     fixedWidthGutter: "renderer",
     theme: "renderer",
+    hasCssTransforms: "renderer",
+    maxPixelHeight: "renderer",
 
     scrollSpeed: "$mouseHandler",
     dragDelay: "$mouseHandler",
@@ -14846,6 +14780,10 @@ var UndoManager = function() {
     this.isClean = this.isAtBookmark;
     this.markClean = this.bookmark;
     
+    this.$prettyPrint = function(delta) {
+        if (delta) return stringifyDelta(delta);
+        return stringifyDelta(this.$undoStack) + "\n---\n" + stringifyDelta(this.$redoStack);
+    };
 }).call(UndoManager.prototype);
 
 function rearrangeUndoStack(stack, pos) {
@@ -15097,19 +15035,22 @@ function moveDeltasByOne(redoStack, d) {
     d = cloneDelta(d);
     for (var j = redoStack.length; j--;) {
         var deltaSet = redoStack[j];
-        for (var i = deltaSet.length; i--> 0;) {
+        for (var i = 0; i < deltaSet.length; i++) {
             var x = deltaSet[i];
             var xformed = xform(x, d);
             d = xformed[0];
             if (xformed.length != 2) {
                 if (xformed[2]) {
-                    redoStack.splice(i + 1, 1, xformed[1], xformed[2]);
+                    deltaSet.splice(i + 1, 1, xformed[1], xformed[2]);
                     i++;
                 } else if (!xformed[1]) {
-                    redoStack.splice(i, 1);
+                    deltaSet.splice(i, 1);
                     i--;
                 }
             }
+        }
+        if (!deltaSet.length) {
+            redoStack.splice(j, 1); 
         }
     }
     return redoStack;
@@ -15835,6 +15776,7 @@ var Text = function(parentEl) {
 
             var html = [];
             this.$renderLine(html, row, false, row == foldStart ? foldLine : false);
+
             container.innerHTML = html.join("");
             if (this.$useLineGroups()) {
                 container.className = 'ace_line_group';
@@ -16544,6 +16486,7 @@ var EventEmitter = require("../lib/event_emitter").EventEmitter;
 
 var CHAR_COUNT = 256;
 var USE_OBSERVER = typeof ResizeObserver == "function";
+var L = 200;
 
 var FontMetrics = exports.FontMetrics = function(parentEl) {
     this.el = dom.createElement("div");
@@ -16666,6 +16609,64 @@ var FontMetrics = exports.FontMetrics = function(parentEl) {
             this.el.parentNode.removeChild(this.el);
     };
 
+    
+    this.$getZoom = function getZoom(element) {
+        if (!element) return 1;
+        return (window.getComputedStyle(element).zoom || 1) * getZoom(element.parentElement);
+    };
+    this.$initTransformMeasureNodes = function() {
+        var t = function(t, l) {
+            return ["div", {
+                style: "position: absolute;top:" + t + "px;left:" + l + "px;"
+            }];
+        };
+        this.els = dom.buildDom([t(0, 0), t(L, 0), t(0, L), t(L, L)], this.el);
+    };
+    this.transformCoordinates = function(clientPos, elPos) {
+        if (clientPos) {
+            var zoom = this.$getZoom(this.el);
+            clientPos = mul(1 / zoom, clientPos);
+        }
+        function solve(l1, l2, r) {
+            var det = l1[1] * l2[0] - l1[0] * l2[1];
+            return [
+                (-l2[1] * r[0] + l2[0] * r[1]) / det,
+                (+l1[1] * r[0] - l1[0] * r[1]) / det
+            ];
+        }
+        function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+        function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
+        function mul(a, b) { return [a * b[0], a * b[1]]; }
+
+        if (!this.els)
+            this.$initTransformMeasureNodes();
+        
+        function p(el) {
+            var r = el.getBoundingClientRect();
+            return [r.left, r.top];
+        }
+
+        var a = p(this.els[0]);
+        var b = p(this.els[1]);
+        var c = p(this.els[2]);
+        var d = p(this.els[3]);
+
+        var h = solve(sub(d, b), sub(d, c), sub(add(b, c), add(d, a)));
+
+        var m1 = mul(1 + h[0], sub(b, a));
+        var m2 = mul(1 + h[1], sub(c, a));
+        
+        if (elPos) {
+            var x = elPos;
+            var k = h[0] * x[0] / L + h[1] * x[1] / L + 1;
+            var ut = add(mul(x[0], m1), mul(x[1], m2));
+            return  add(mul(1 / k / L, ut), a);
+        }
+        var u = sub(clientPos, a);
+        var f = solve(sub(m1, mul(h[0], u)), sub(m2, mul(h[1], u)), u);
+        return mul(L, f);
+    };
+    
 }).call(FontMetrics.prototype);
 
 });
@@ -17197,7 +17198,6 @@ var VirtualRenderer = function(container, theme) {
     this.CHANGE_MARKER_FRONT = 256;
     this.CHANGE_FULL = 512;
     this.CHANGE_H_SCROLL = 1024;
-
     oop.implement(this, EventEmitter);
 
     this.updateCharacterSize = function() {
@@ -17363,7 +17363,6 @@ var VirtualRenderer = function(container, theme) {
             this.scrollBarH.element.style.right = 
             this.scroller.style.right = this.scrollBarV.getWidth() + "px";
             this.scroller.style.bottom = this.scrollBarH.getHeight() + "px";
-
             if (this.session && this.session.getUseWrapMode() && this.adjustWrapLimit() || force)
                 changes |= this.CHANGE_FULL;
         }
@@ -17622,7 +17621,6 @@ var VirtualRenderer = function(container, theme) {
         if (!this.lineHeight) {
             this.$textLayer.checkForSizeChanges();
         }
-        
         this._signal("beforeRender");
         
         if (this.session && this.session.$bidiHandler)
@@ -17836,7 +17834,6 @@ var VirtualRenderer = function(container, theme) {
             gutterOffset : lineHeight ? Math.max(0, Math.ceil((offset + size.height - size.scrollerHeight) / lineHeight)) : 0,
             height : this.$size.scrollerHeight
         };
-
         return changes;
     };
 
@@ -18071,21 +18068,38 @@ var VirtualRenderer = function(container, theme) {
     };
 
     this.pixelToScreenCoordinates = function(x, y) {
-        var canvasPos = this.scroller.getBoundingClientRect();
-
+        var canvasPos;
+        if (this.$hasCssTransforms) {
+            canvasPos = {top:0, left: 0};
+            var p = this.$fontMetrics.transformCoordinates([x, y]);
+            x = p[1] - this.gutterWidth;
+            y = p[0];
+        } else {
+            canvasPos = this.scroller.getBoundingClientRect();
+        }
+        
         var offsetX = x + this.scrollLeft - canvasPos.left - this.$padding;
         var offset = offsetX / this.characterWidth;
         var row = Math.floor((y + this.scrollTop - canvasPos.top) / this.lineHeight);
-        var col = Math.round(offset);
+        var col = this.$blockCursor ? Math.floor(offset) : Math.round(offset);
 
         return {row: row, column: col, side: offset - col > 0 ? 1 : -1, offsetX:  offsetX};
     };
 
     this.screenToTextCoordinates = function(x, y) {
-        var canvasPos = this.scroller.getBoundingClientRect();
+        var canvasPos;
+        if (this.$hasCssTransforms) {
+            canvasPos = {top:0, left: 0};
+            var p = this.$fontMetrics.transformCoordinates([x, y]);
+            x = p[1] - this.gutterWidth;
+            y = p[0];
+        } else {
+            canvasPos = this.scroller.getBoundingClientRect();
+        }
+
         var offsetX = x + this.scrollLeft - canvasPos.left - this.$padding;
-        
-        var col = Math.round(offsetX / this.characterWidth);
+        var offset = offsetX / this.characterWidth;
+        var col = this.$blockCursor ? Math.floor(offset) : Math.round(offset);
 
         var row = (y + this.scrollTop - canvasPos.top) / this.lineHeight;
 
@@ -18158,7 +18172,7 @@ var VirtualRenderer = function(container, theme) {
             dom.importCssString(
                 module.cssText,
                 module.cssClass,
-                _self.container.ownerDocument
+                _self.container
             );
 
             if (_self.theme)
@@ -18198,6 +18212,10 @@ var VirtualRenderer = function(container, theme) {
     };
     this.setMouseCursor = function(cursorStyle) {
         this.scroller.style.cursor = cursorStyle;
+    };
+    
+    this.attachToShadowRoot = function() {
+        dom.importCssString(editorCss, "ace_editor.css", this.container);
     };
     this.destroy = function() {
         this.$textLayer.destroy();
@@ -18350,6 +18368,8 @@ config.defineOptions(VirtualRenderer.prototype, "renderer", {
         get: function() { return this.$themeId || this.theme; },
         initialValue: "./theme/textmate",
         handlesSet: true
+    },
+    hasCssTransforms: {
     }
 });
 
@@ -18721,7 +18741,7 @@ var PlaceHolder = function(session, length, pos, others, mainClass, othersClass)
             this.hideOtherMarkers();
             this._emit("cursorLeave", event);
         }
-    };    
+    };
     this.detach = function() {
         this.session.removeMarker(this.pos && this.pos.markerId);
         this.hideOtherMarkers();
@@ -19354,7 +19374,7 @@ var Editor = require("./editor").Editor;
             result = command.multiSelectAction(editor, e.args || {});
         }
         return result;
-    }; 
+    };
     this.forEachSelection = function(cmd, args, options) {
         if (this.inVirtualSelectionMode)
             return;
@@ -20637,7 +20657,7 @@ exports.Range = Range;
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
 exports.VirtualRenderer = Renderer;
-exports.version = "1.3.1";
+exports.version = "1.3.2";
 });
             (function() {
                 window.require(["ace/ace"], function(a) {
@@ -20649,6 +20669,10 @@ exports.version = "1.3.1";
                         window.ace = a;
                     for (var key in a) if (a.hasOwnProperty(key))
                         window.ace[key] = a[key];
+                    window.ace["default"] = window.ace;
+                    if (typeof module == "object") {
+                        module.exports = window.ace;
+                    }
                 });
             })();
         

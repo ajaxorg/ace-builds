@@ -158,3 +158,11 @@ oop.inherits(Mode, TextMode);
 }).call(Mode.prototype);
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/space"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

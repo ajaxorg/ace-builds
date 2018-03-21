@@ -1,4 +1,4 @@
-ace.define("ace/mode/css_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules"], function(require, exports, module) {
+ace.define("ace/mode/css_highlight_rules",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -23,7 +23,6 @@ var CssHighlightRules = function() {
         "support.constant.color": supportConstantColor,
         "support.constant.fonts": supportConstantFonts
     }, "text", true);
-
     this.$rules = {
         "start" : [{
             include : ["strings", "url", "comments"]
@@ -59,7 +58,7 @@ var CssHighlightRules = function() {
         }, {
             caseInsensitive: true
         }],
-        
+
         "media": [{
             include : ["strings", "url", "comments"]
         }, {
@@ -97,6 +96,9 @@ var CssHighlightRules = function() {
             regex : "-(webkit|ms|moz|o)-",
             token : "text"
         }, {
+            token : "punctuation.operator",
+            regex : "[:;]"
+        }, {
             token : "paren.rparen",
             regex : "\\}",
             next : "start"
@@ -128,7 +130,7 @@ var CssHighlightRules = function() {
         }, {
             caseInsensitive: true
         }],
-        
+
         url: [{
             token : "support.function",
             regex : "(?:url(:?-prefix)?|domain|regexp)\\(",
@@ -140,7 +142,7 @@ var CssHighlightRules = function() {
                 defaultToken: "string"
             }]
         }],
-        
+
         strings: [{
             token : "string.start",
             regex : "'",
@@ -178,7 +180,7 @@ var CssHighlightRules = function() {
             token : "constant.language.escape",
             regex : /\\([a-fA-F\d]{1,6}|[^a-fA-F\d])/
         }]
-        
+
     };
 
     this.normalizeRules();
@@ -190,7 +192,7 @@ exports.CssHighlightRules = CssHighlightRules;
 
 });
 
-ace.define("ace/mode/stylus_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules","ace/mode/css_highlight_rules"], function(require, exports, module) {
+ace.define("ace/mode/stylus_highlight_rules",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -198,7 +200,6 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var CssHighlightRules = require("./css_highlight_rules");
 
 var StylusHighlightRules = function() {
-
     var keywordMapper = this.createKeywordMapper({
         "support.type": CssHighlightRules.supportType,
         "support.function": CssHighlightRules.supportFunction,
@@ -349,7 +350,7 @@ oop.inherits(StylusHighlightRules, TextHighlightRules);
 exports.StylusHighlightRules = StylusHighlightRules;
 });
 
-ace.define("ace/mode/folding/coffee",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode","ace/range"], function(require, exports, module) {
+ace.define("ace/mode/folding/coffee",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
@@ -436,7 +437,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/stylus",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/stylus_highlight_rules","ace/mode/folding/coffee"], function(require, exports, module) {
+ace.define("ace/mode/stylus",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -460,3 +461,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    ace.require(["ace/mode/stylus"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

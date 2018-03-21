@@ -24,3 +24,11 @@ snippet declare\n\
 exports.scope = "drools";
 
 });
+                (function() {
+                    window.require(["ace/snippets/drools"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

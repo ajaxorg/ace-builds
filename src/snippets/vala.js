@@ -191,3 +191,11 @@ exports.snippets = [
 exports.scope = "";
 
 });
+                (function() {
+                    window.require(["ace/snippets/vala"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

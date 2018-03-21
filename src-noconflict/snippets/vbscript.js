@@ -1,7 +1,15 @@
-ace.define("ace/snippets/vbscript",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/vbscript",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "vbscript";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/vbscript"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

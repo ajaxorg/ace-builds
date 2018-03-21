@@ -1,1 +1,9 @@
-ace.define("ace/snippets/verilog",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="verilog"})
+ace.define("ace/snippets/verilog",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="verilog"});
+                (function() {
+                    ace.require(["ace/snippets/verilog"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

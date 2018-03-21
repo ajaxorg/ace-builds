@@ -5,3 +5,11 @@ exports.snippetText = "";
 exports.scope = "protobuf";
 
 });
+                (function() {
+                    window.require(["ace/snippets/protobuf"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -66,3 +66,11 @@ snippet module\n\
 exports.scope = "jsoniq";
 
 });
+                (function() {
+                    window.require(["ace/snippets/jsoniq"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

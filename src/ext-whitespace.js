@@ -201,6 +201,10 @@ exports.commands = [{
 
 });
                 (function() {
-                    window.require(["ace/ext/whitespace"], function() {});
+                    window.require(["ace/ext/whitespace"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

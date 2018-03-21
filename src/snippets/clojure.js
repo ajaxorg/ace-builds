@@ -95,3 +95,11 @@ snippet when-let\n\
 exports.scope = "clojure";
 
 });
+                (function() {
+                    window.require(["ace/snippets/clojure"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

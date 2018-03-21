@@ -1,1 +1,9 @@
-define("ace/snippets/haxe",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope="haxe"})
+define("ace/snippets/haxe",["require","exports","module"],function(e,t,n){"use strict";t.snippetText="",t.scope="haxe"});
+                (function() {
+                    window.require(["ace/snippets/haxe"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

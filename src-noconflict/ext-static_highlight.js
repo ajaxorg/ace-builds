@@ -1,4 +1,4 @@
-ace.define("ace/ext/static_highlight",["require","exports","module","ace/edit_session","ace/layer/text","ace/config","ace/lib/dom"], function(require, exports, module) {
+ace.define("ace/ext/static_highlight",[], function(require, exports, module) {
 "use strict";
 
 var EditSession = require("../edit_session").EditSession;
@@ -156,6 +156,10 @@ module.exports = highlight;
 module.exports.highlight = highlight;
 });
                 (function() {
-                    ace.require(["ace/ext/static_highlight"], function() {});
+                    ace.require(["ace/ext/static_highlight"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

@@ -1,4 +1,4 @@
-ace.define("ace/snippets/makefile",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/makefile",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet ifeq\n\
@@ -9,3 +9,11 @@ exports.snippetText = "snippet ifeq\n\
 exports.scope = "makefile";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/makefile"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

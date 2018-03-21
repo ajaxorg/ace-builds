@@ -39,3 +39,11 @@ snippet if\n\
 exports.scope = "gobstones";
 
 });
+                (function() {
+                    window.require(["ace/snippets/gobstones"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

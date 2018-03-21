@@ -14,3 +14,11 @@ snippet v\n\
 exports.scope = "snippets";
 
 });
+                (function() {
+                    window.require(["ace/snippets/snippets"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

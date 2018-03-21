@@ -36,3 +36,11 @@ snippet zupfnoter.annotation\n\
 exports.scope = "abc";
 
 });
+                (function() {
+                    window.require(["ace/snippets/abc"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

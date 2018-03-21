@@ -50,3 +50,11 @@ define("ace/mode/csp",["require","exports","module","ace/mode/text","ace/mode/cs
 
     exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/csp"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -16,7 +16,6 @@ var SchemeHighlightRules = function() {
         "constant.language": constantLanguage,
         "support.function": supportFunctions
     }, "identifier", true);
-
     this.$rules = 
         {
     "start": [
@@ -223,3 +222,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/scheme"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

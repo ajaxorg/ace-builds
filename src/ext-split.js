@@ -199,6 +199,10 @@ module.exports = require("../split");
 
 });
                 (function() {
-                    window.require(["ace/ext/split"], function() {});
+                    window.require(["ace/ext/split"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

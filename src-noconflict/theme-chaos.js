@@ -1,4 +1,4 @@
-ace.define("ace/theme/chaos",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
+ace.define("ace/theme/chaos",[], function(require, exports, module) {
 
 exports.isDark = true;
 exports.cssClass = "ace-chaos";
@@ -154,3 +154,11 @@ var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 
 });
+                (function() {
+                    ace.require(["ace/theme/chaos"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -56,6 +56,10 @@ function onClick(e) {
 
 });
                 (function() {
-                    window.require(["ace/ext/linking"], function() {});
+                    window.require(["ace/ext/linking"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

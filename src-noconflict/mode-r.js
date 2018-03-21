@@ -1,4 +1,4 @@
-ace.define("ace/mode/tex_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules"], function(require, exports, module) {
+ace.define("ace/mode/tex_highlight_rules",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -9,7 +9,6 @@ var TexHighlightRules = function(textClass) {
 
     if (!textClass)
         textClass = "text";
-
     this.$rules = {
         "start" : [
             {
@@ -77,7 +76,7 @@ oop.inherits(TexHighlightRules, TextHighlightRules);
 exports.TexHighlightRules = TexHighlightRules;
 });
 
-ace.define("ace/mode/r_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules","ace/mode/tex_highlight_rules"], function(require, exports, module)
+ace.define("ace/mode/r_highlight_rules",[], function(require, exports, module)
 {
 
    var oop = require("../lib/oop");
@@ -97,7 +96,6 @@ ace.define("ace/mode/r_highlight_rules",["require","exports","module","ace/lib/o
             ("NULL|NA|TRUE|FALSE|T|F|Inf|NaN|NA_integer_|NA_real_|NA_character_|" +
              "NA_complex_").split("|")
             );
-
       this.$rules = {
          "start" : [
             {
@@ -235,7 +233,7 @@ ace.define("ace/mode/r_highlight_rules",["require","exports","module","ace/lib/o
    exports.RHighlightRules = RHighlightRules;
 });
 
-ace.define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module) {
+ace.define("ace/mode/matching_brace_outdent",[], function(require, exports, module) {
 "use strict";
 
 var Range = require("../range").Range;
@@ -275,7 +273,7 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-ace.define("ace/mode/r",["require","exports","module","ace/unicode","ace/range","ace/lib/oop","ace/mode/text","ace/mode/text_highlight_rules","ace/mode/r_highlight_rules","ace/mode/matching_brace_outdent"], function(require, exports, module) {
+ace.define("ace/mode/r",[], function(require, exports, module) {
    "use strict";
 
    var unicode = require("../unicode");
@@ -302,3 +300,11 @@ ace.define("ace/mode/r",["require","exports","module","ace/unicode","ace/range",
    }).call(Mode.prototype);
    exports.Mode = Mode;
 });
+                (function() {
+                    ace.require(["ace/mode/r"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -1,4 +1,4 @@
-ace.define("ace/occur",["require","exports","module","ace/lib/oop","ace/range","ace/search","ace/edit_session","ace/search_highlight","ace/lib/dom"], function(require, exports, module) {
+ace.define("ace/occur",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("./lib/oop");
@@ -104,7 +104,7 @@ exports.Occur = Occur;
 
 });
 
-ace.define("ace/commands/occur_commands",["require","exports","module","ace/config","ace/occur","ace/keyboard/hash_handler","ace/lib/oop"], function(require, exports, module) {
+ace.define("ace/commands/occur_commands",[], function(require, exports, module) {
 
 var config = require("../config"),
     Occur = require("../occur").Occur;
@@ -183,7 +183,7 @@ exports.occurStartCommand = occurStartCommand;
 
 });
 
-ace.define("ace/commands/incremental_search_commands",["require","exports","module","ace/config","ace/lib/oop","ace/keyboard/hash_handler","ace/commands/occur_commands"], function(require, exports, module) {
+ace.define("ace/commands/incremental_search_commands",[], function(require, exports, module) {
 
 var config = require("../config");
 var oop = require("../lib/oop");
@@ -364,7 +364,7 @@ exports.IncrementalSearchKeyboardHandler = IncrementalSearchKeyboardHandler;
 
 });
 
-ace.define("ace/incremental_search",["require","exports","module","ace/lib/oop","ace/range","ace/search","ace/search_highlight","ace/commands/incremental_search_commands","ace/lib/dom","ace/commands/command_manager","ace/editor","ace/config"], function(require, exports, module) {
+ace.define("ace/incremental_search",[], function(require, exports, module) {
 "use strict";
 
 var oop = require("./lib/oop");
@@ -379,7 +379,6 @@ function IncrementalSearch() {
 }
 
 oop.inherits(IncrementalSearch, Search);
-
 function isRegExp(obj) {
     return obj instanceof RegExp;
 }
@@ -403,7 +402,6 @@ function stringToRegExp(string, flags) {
 function objectToRegExp(obj) {
     return stringToRegExp(obj.expression, obj.flags);
 }
-
 (function() {
 
     this.activate = function(ed, backwards) {
@@ -600,26 +598,13 @@ require("./config").defineOptions(Editor.prototype, "editor", {
 
 });
 
-ace.define("ace/keyboard/emacs",["require","exports","module","ace/lib/dom","ace/incremental_search","ace/commands/incremental_search_commands","ace/keyboard/hash_handler","ace/lib/keys"], function(require, exports, module) {
+ace.define("ace/keyboard/emacs",[], function(require, exports, module) {
 "use strict";
 
 var dom = require("../lib/dom");
 require("../incremental_search");
 var iSearchCommandModule = require("../commands/incremental_search_commands");
 
-
-var screenToTextBlockCoordinates = function(x, y) {
-    var canvasPos = this.scroller.getBoundingClientRect();
-    var offsetX = x + this.scrollLeft - canvasPos.left - this.$padding;
-    
-    var col = Math.floor(offsetX / this.characterWidth);
-
-    var row = Math.floor(
-        (y + this.scrollTop - canvasPos.top) / this.lineHeight
-    );
-
-    return this.session.screenToDocumentPosition(row, col, offsetX);
-};
 
 var HashHandler = require("./hash_handler").HashHandler;
 exports.handler = new HashHandler();
@@ -710,7 +695,7 @@ exports.handler.attach = function(editor) {
 
     editor.on("click", $resetMarkMode);
     editor.on("changeSession", $kbSessionChange);
-    editor.renderer.screenToTextCoordinates = screenToTextBlockCoordinates;
+    editor.renderer.$blockCursor = true;
     editor.setStyle("emacs-mode");
     editor.commands.addCommands(commands);
     exports.handler.platform = editor.commands.platform;
@@ -720,7 +705,7 @@ exports.handler.attach = function(editor) {
 };
 
 exports.handler.detach = function(editor) {
-    delete editor.renderer.screenToTextCoordinates;
+    editor.renderer.$blockCursor = false;
     editor.session.$selectLongWords = $formerLongWords;
     editor.session.$useEmacsStyleLineStart = $formerLineStart;
     editor.removeEventListener("click", $resetMarkMode);
@@ -984,7 +969,6 @@ exports.handler.addCommands({
     },
     setMark:  {
         exec: function(editor, args) {
-
             if (args && args.count) {
                 if (editor.inMultiSelectMode) editor.forEachSelection(moveToMark);
                 else moveToMark();
@@ -1009,7 +993,6 @@ exports.handler.addCommands({
                 editor.setEmacsMark(rangePositions[rangePositions.length-1]);
                 return;
             }
-
             function moveToMark() {
                 var mark = editor.popEmacsMark();
                 mark && editor.moveCursorToPosition(mark);
@@ -1106,7 +1089,6 @@ exports.handler.addCommands({
     },
     killRingSave: {
         exec: function(editor) {
-
             editor.$handlesEmacsOnCopy = true;
             var marks = editor.session.$emacsMarkRing.slice(),
                 deselectedMarks = [];
@@ -1173,3 +1155,11 @@ exports.killRing = {
 };
 
 });
+                (function() {
+                    ace.require(["ace/keyboard/emacs"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

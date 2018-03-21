@@ -1,7 +1,15 @@
-ace.define("ace/snippets/dot",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/dot",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "dot";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/dot"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

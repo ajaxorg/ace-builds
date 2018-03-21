@@ -170,6 +170,7 @@ function setupContainer(element, getValue) {
 
     var parentNode = element.parentNode;
     var container = document.createElement('div');
+    //
     var resizeEvent = function() {
         var style = 'position:relative;';
         [
@@ -204,12 +205,15 @@ function setupContainer(element, getValue) {
 }
 
 exports.transformTextarea = function(element, options) {
+    var isFocused = element.autofocus || document.activeElement == element;
     var session;
     var container = setupContainer(element, function() {
         return session.getValue();
     });
     element.style.display = 'none';
     container.style.background = 'white';
+
+    //
     var editorDiv = document.createElement("div");
     applyStyles(editorDiv, {
         top: "0px",
@@ -261,7 +265,8 @@ exports.transformTextarea = function(element, options) {
     session = editor.getSession();
 
     session.setValue(element.value || element.innerHTML);
-    editor.focus();
+    if (isFocused)
+        editor.focus();
     container.appendChild(settingOpener);
     setupApi(editor, editorDiv, settingDiv, ace, options);
     setupSettingPanel(settingDiv, settingOpener, editor);
@@ -553,6 +558,10 @@ exports.defaultOptions = {
 
 });
                 (function() {
-                    window.require(["ace/ext/textarea"], function() {});
+                    window.require(["ace/ext/textarea"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

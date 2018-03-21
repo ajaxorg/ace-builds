@@ -1,4 +1,4 @@
-ace.define("ace/theme/ambiance",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
+ace.define("ace/theme/ambiance",[], function(require, exports, module) {
 
 exports.isDark = true;
 exports.cssClass = "ace-ambiance";
@@ -175,3 +175,11 @@ var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 
 });
+                (function() {
+                    ace.require(["ace/theme/ambiance"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

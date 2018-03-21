@@ -93,3 +93,11 @@ snippet pullquote\n\
 exports.scope = "markdown";
 
 });
+                (function() {
+                    window.require(["ace/snippets/markdown"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

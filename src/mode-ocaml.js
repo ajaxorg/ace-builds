@@ -412,3 +412,11 @@ var indenter = /(?:[({[=:]|[-=]>|\b(?:else|try|with))\s*$/;
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/ocaml"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

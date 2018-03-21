@@ -1,4 +1,4 @@
-ace.define("ace/snippets/io",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/io",[], function(require, exports, module) {
 "use strict";
 
 exports.snippets = [
@@ -67,3 +67,11 @@ exports.snippets = [
 exports.scope = "io";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/io"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

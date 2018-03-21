@@ -1,4 +1,4 @@
-ace.define("ace/snippets/r",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/r",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet #!\n\
@@ -126,3 +126,11 @@ snippet kvt \n\
 exports.scope = "r";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/r"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

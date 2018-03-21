@@ -26,3 +26,11 @@ snippet fori\n\
 exports.scope = "lua";
 
 });
+                (function() {
+                    window.require(["ace/snippets/lua"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

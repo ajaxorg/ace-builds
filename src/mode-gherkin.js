@@ -9,7 +9,8 @@ var GherkinHighlightRules = function() {
         name: "en",
         labels: "Feature|Background|Scenario(?: Outline)?|Examples",
         keywords: "Given|When|Then|And|But"
-    }];
+    }
+];
     
     var labels = languages.map(function(l) {
         return l.labels;
@@ -161,3 +162,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
+                (function() {
+                    window.require(["ace/mode/gherkin"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

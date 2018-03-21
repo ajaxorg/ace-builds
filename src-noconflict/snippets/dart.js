@@ -1,4 +1,4 @@
-ace.define("ace/snippets/dart",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/dart",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet lib\n\
@@ -88,3 +88,11 @@ snippet tryf\n\
 exports.scope = "dart";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/dart"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

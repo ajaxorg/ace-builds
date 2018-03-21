@@ -1,7 +1,15 @@
 define("ace/snippets/soy_template",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "soy_template";
 
 });
+                (function() {
+                    window.require(["ace/snippets/soy_template"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

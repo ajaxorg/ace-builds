@@ -1,7 +1,15 @@
-ace.define("ace/snippets/groovy",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/groovy",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "groovy";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/groovy"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -48,6 +48,10 @@ exports.StatusBar = StatusBar;
 
 });
                 (function() {
-                    window.require(["ace/ext/statusbar"], function() {});
+                    window.require(["ace/ext/statusbar"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
                 })();
             

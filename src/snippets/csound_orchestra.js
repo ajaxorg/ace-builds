@@ -52,3 +52,11 @@ snippet while\n\
 exports.scope = "csound_orchestra";
 
 });
+                (function() {
+                    window.require(["ace/snippets/csound_orchestra"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

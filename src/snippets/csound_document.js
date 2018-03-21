@@ -15,3 +15,11 @@ snippet synth\n\
 exports.scope = "csound_document";
 
 });
+                (function() {
+                    window.require(["ace/snippets/csound_document"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

@@ -16,3 +16,11 @@ snippet header DEP-3 style header\n\
 exports.scope = "diff";
 
 });
+                (function() {
+                    window.require(["ace/snippets/diff"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

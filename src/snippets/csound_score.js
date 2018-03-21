@@ -1,7 +1,15 @@
 define("ace/snippets/csound_score",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "csound_score";
 
 });
+                (function() {
+                    window.require(["ace/snippets/csound_score"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

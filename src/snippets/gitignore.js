@@ -1,7 +1,15 @@
 define("ace/snippets/gitignore",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "gitignore";
 
 });
+                (function() {
+                    window.require(["ace/snippets/gitignore"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

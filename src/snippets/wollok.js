@@ -89,3 +89,11 @@ snippet re\n\
 exports.scope = "wollok";
 
 });
+                (function() {
+                    window.require(["ace/snippets/wollok"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

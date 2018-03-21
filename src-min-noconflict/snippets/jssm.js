@@ -1,1 +1,9 @@
-ace.define("ace/snippets/jssm",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope=""})
+ace.define("ace/snippets/jssm",["require","exports","module"],function(e,t,n){"use strict";t.snippetText=undefined,t.scope=""});
+                (function() {
+                    ace.require(["ace/snippets/jssm"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

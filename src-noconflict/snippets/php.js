@@ -1,4 +1,4 @@
-ace.define("ace/snippets/php",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/php",[], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet <?\n\
@@ -382,3 +382,11 @@ snippet retf\n\
 exports.scope = "php";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/php"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

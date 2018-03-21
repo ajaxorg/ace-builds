@@ -104,3 +104,11 @@ snippet trim\n\
 exports.scope = "jsp";
 
 });
+                (function() {
+                    window.require(["ace/snippets/jsp"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

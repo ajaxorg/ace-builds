@@ -1,7 +1,15 @@
-ace.define("ace/snippets/forth",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/forth",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "forth";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/forth"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

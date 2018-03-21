@@ -1,4 +1,4 @@
-ace.define("ace/theme/gruvbox",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
+ace.define("ace/theme/gruvbox",[], function(require, exports, module) {
 
 exports.isDark = true;
 exports.cssClass = "ace-gruvbox";
@@ -80,3 +80,11 @@ var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 
 });
+                (function() {
+                    ace.require(["ace/theme/gruvbox"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

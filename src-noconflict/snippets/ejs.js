@@ -1,7 +1,15 @@
-ace.define("ace/snippets/ejs",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/snippets/ejs",[], function(require, exports, module) {
 "use strict";
 
-exports.snippetText =undefined;
+exports.snippetText = "";
 exports.scope = "ejs";
 
 });
+                (function() {
+                    ace.require(["ace/snippets/ejs"], function(m) {
+                        if (typeof module == "object") {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            
