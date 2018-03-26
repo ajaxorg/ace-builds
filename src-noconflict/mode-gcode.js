@@ -86,7 +86,7 @@ ace.define("ace/mode/gcode",[], function(require, exports, module) {
 });
                 (function() {
                     ace.require(["ace/mode/gcode"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

@@ -503,7 +503,7 @@ exports.Search = function(editor, isReplace) {
 });
                 (function() {
                     window.require(["ace/ext/searchbox"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

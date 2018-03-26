@@ -76,7 +76,7 @@ exports.scope = "sqlserver";
 });
                 (function() {
                     ace.require(["ace/snippets/sqlserver"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

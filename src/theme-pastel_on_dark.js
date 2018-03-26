@@ -108,7 +108,7 @@ dom.importCssString(exports.cssText, exports.cssClass);
 });
                 (function() {
                     window.require(["ace/theme/pastel_on_dark"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

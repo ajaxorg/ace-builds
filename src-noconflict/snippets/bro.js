@@ -7,7 +7,7 @@ exports.scope = "";
 });
                 (function() {
                     ace.require(["ace/snippets/bro"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

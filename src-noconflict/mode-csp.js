@@ -52,7 +52,7 @@ ace.define("ace/mode/csp",[], function(require, exports, module) {
 });
                 (function() {
                     ace.require(["ace/mode/csp"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

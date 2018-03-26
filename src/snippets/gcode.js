@@ -7,7 +7,7 @@ exports.scope = "gcode";
 });
                 (function() {
                     window.require(["ace/snippets/gcode"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

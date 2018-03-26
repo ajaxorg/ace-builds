@@ -247,7 +247,7 @@ snippet unless\n\
 });
                 (function() {
                     ace.require(["ace/snippets/edifact"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

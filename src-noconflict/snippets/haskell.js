@@ -89,7 +89,7 @@ exports.scope = "haskell";
 });
                 (function() {
                     ace.require(["ace/snippets/haskell"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

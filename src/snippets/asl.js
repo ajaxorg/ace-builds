@@ -6,7 +6,7 @@ define("ace/snippets/asl",["require","exports","module"], function (require, exp
 });
                 (function() {
                     window.require(["ace/snippets/asl"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

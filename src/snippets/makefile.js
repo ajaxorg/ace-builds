@@ -11,7 +11,7 @@ exports.scope = "makefile";
 });
                 (function() {
                     window.require(["ace/snippets/makefile"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

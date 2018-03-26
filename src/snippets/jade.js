@@ -7,7 +7,7 @@ exports.scope = "jade";
 });
                 (function() {
                     window.require(["ace/snippets/jade"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

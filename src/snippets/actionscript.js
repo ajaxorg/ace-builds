@@ -164,7 +164,7 @@ exports.scope = "actionscript";
 });
                 (function() {
                     window.require(["ace/snippets/actionscript"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

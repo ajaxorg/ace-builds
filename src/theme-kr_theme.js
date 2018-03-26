@@ -104,7 +104,7 @@ dom.importCssString(exports.cssText, exports.cssClass);
 });
                 (function() {
                     window.require(["ace/theme/kr_theme"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

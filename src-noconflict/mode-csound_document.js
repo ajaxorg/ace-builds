@@ -3732,7 +3732,7 @@ exports.Mode = Mode;
 });
                 (function() {
                     ace.require(["ace/mode/csound_document"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

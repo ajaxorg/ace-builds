@@ -259,7 +259,7 @@ define("ace/mode/abc",["require","exports","module","ace/lib/oop","ace/mode/text
 });
                 (function() {
                     window.require(["ace/mode/abc"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

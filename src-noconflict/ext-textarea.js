@@ -559,7 +559,7 @@ exports.defaultOptions = {
 });
                 (function() {
                     ace.require(["ace/ext/textarea"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

@@ -18,7 +18,7 @@ exports.scope = "diff";
 });
                 (function() {
                     ace.require(["ace/snippets/diff"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

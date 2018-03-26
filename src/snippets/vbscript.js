@@ -7,7 +7,7 @@ exports.scope = "vbscript";
 });
                 (function() {
                     window.require(["ace/snippets/vbscript"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

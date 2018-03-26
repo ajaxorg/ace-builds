@@ -214,7 +214,7 @@ module.exports = {
 });
                 (function() {
                     window.require(["ace/ext/modelist"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

@@ -7169,7 +7169,7 @@ function moveFocus() {
 });
                 (function() {
                     window.require(["kitchen-sink/demo"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

@@ -1614,7 +1614,7 @@ define("ace/mode/coffee_highlight_rules",["require","exports","module","ace/lib/
             "this|throw|then|try|typeof|super|switch|return|break|by|continue|" +
             "catch|class|in|instanceof|is|isnt|if|else|extends|for|own|" +
             "finally|function|while|when|new|no|not|delete|debugger|do|loop|of|off|" +
-            "or|on|unless|until|and|yes"
+            "or|on|unless|until|and|yes|yield|export|import|default"
         );
 
         var langConstant = (
@@ -1622,8 +1622,8 @@ define("ace/mode/coffee_highlight_rules",["require","exports","module","ace/lib/
         );
 
         var illegal = (
-            "case|const|default|function|var|void|with|enum|export|implements|" +
-            "interface|let|package|private|protected|public|static|yield"
+            "case|const|function|var|void|with|enum|implements|" +
+            "interface|let|package|private|protected|public|static"
         );
 
         var supportClass = (
@@ -2124,7 +2124,7 @@ exports.Mode = Mode;
 });
                 (function() {
                     window.require(["ace/mode/jade"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

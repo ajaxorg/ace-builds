@@ -95,7 +95,7 @@ exports.scope = "markdown";
 });
                 (function() {
                     window.require(["ace/snippets/markdown"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

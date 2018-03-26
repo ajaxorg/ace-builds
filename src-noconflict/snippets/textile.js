@@ -37,7 +37,7 @@ exports.scope = "textile";
 });
                 (function() {
                     ace.require(["ace/snippets/textile"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

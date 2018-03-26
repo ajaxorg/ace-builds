@@ -404,7 +404,7 @@ exports.Mode = Mode;
 });
                 (function() {
                     window.require(["ace/mode/jsx"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

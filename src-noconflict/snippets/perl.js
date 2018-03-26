@@ -354,7 +354,7 @@ exports.scope = "perl";
 });
                 (function() {
                     ace.require(["ace/snippets/perl"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

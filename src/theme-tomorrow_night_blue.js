@@ -106,7 +106,7 @@ dom.importCssString(exports.cssText, exports.cssClass);
 });
                 (function() {
                     window.require(["ace/theme/tomorrow_night_blue"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

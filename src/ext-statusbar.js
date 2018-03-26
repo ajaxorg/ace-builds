@@ -49,7 +49,7 @@ exports.StatusBar = StatusBar;
 });
                 (function() {
                     window.require(["ace/ext/statusbar"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

@@ -302,7 +302,7 @@ define("ace/mode/r",["require","exports","module","ace/unicode","ace/range","ace
 });
                 (function() {
                     window.require(["ace/mode/r"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

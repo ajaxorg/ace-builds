@@ -128,7 +128,7 @@ dom.importCssString(exports.cssText, exports.cssClass);
 });
                 (function() {
                     ace.require(["ace/theme/dracula"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

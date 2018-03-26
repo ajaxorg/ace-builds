@@ -259,7 +259,7 @@ ace.define("ace/mode/abc",[], function (require, exports, module) {
 });
                 (function() {
                     ace.require(["ace/mode/abc"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

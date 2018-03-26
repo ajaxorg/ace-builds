@@ -203,7 +203,7 @@ exports.Mode = Mode;
 });
                 (function() {
                     window.require(["ace/mode/cirru"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

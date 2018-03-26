@@ -5709,7 +5709,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
 });
                 (function() {
                     ace.require(["ace/keyboard/vim"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

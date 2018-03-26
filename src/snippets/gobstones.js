@@ -41,7 +41,7 @@ exports.scope = "gobstones";
 });
                 (function() {
                     window.require(["ace/snippets/gobstones"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });

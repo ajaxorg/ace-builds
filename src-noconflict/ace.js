@@ -1104,6 +1104,9 @@ exports.importCssString = function importCssString(cssText, id, container) {
     root.appendChild(style);
 };
 
+exports.importCssStylsheet = function(uri, doc) {
+    exports.buildDom("link", {rel: "stylesheet", href: uri}, exports.getDocumentHead(doc));
+};
 exports.scrollbarWidth = function(document) {
     var inner = exports.createElement("ace_inner");
     inner.style.width = "100%";
@@ -1148,6 +1151,14 @@ if (typeof document == "undefined") {
 exports.computedStyle = function(element, style) {
     return window.getComputedStyle(element, "") || {};
 };
+
+exports.HAS_CSS_ANIMATION = false;
+if (typeof document !== "undefined") {
+    var div = document.createElement("div");
+    if (typeof div.style.animationName !== "undefined") {
+        exports.HAS_CSS_ANIMATION = true; 
+    }
+}
 
 });
 
@@ -1673,6 +1684,27 @@ if (typeof window == "object" && window.postMessage && !useragent.isOldIE) {
     };
 }
 
+exports.$idleBlocked = false;
+exports.onIdle = function(cb, timeout) {
+    return setTimeout(function handler() {
+        if (!exports.$idleBlocked) {
+            cb();
+        } else {
+            setTimeout(handler, 100);
+        }
+    }, timeout);
+};
+
+exports.$idleBlockId = null;
+exports.blockIdle = function(delay) {
+    if (exports.$idleBlockId)
+        clearTimeout(exports.$idleBlockId);
+        
+    exports.$idleBlocked = true;
+    exports.$idleBlockId = setTimeout(function() {
+        exports.$idleBlocked = false;
+    }, delay || 100);
+};
 
 exports.nextFrame = typeof window == "object" && (window.requestAnimationFrame
     || window.mozRequestAnimationFrame
@@ -5514,6 +5546,7 @@ var Selection = function(session) {
 
     this.$setSelection = function(anchorRow, anchorColumn, cursorRow, cursorColumn) {
         var wasEmpty = this.$isEmpty;
+        var wasMultiselect = this.inMultiSelectMode;
         this.$silent = true;
         this.$cursorChanged = this.$anchorChanged = false;
         this.anchor.setPosition(anchorRow, anchorColumn);
@@ -5522,7 +5555,7 @@ var Selection = function(session) {
         this.$silent = false;
         if (this.$cursorChanged)
             this._emit("changeCursor");
-        if (this.$cursorChanged || this.$anchorChanged)
+        if (this.$cursorChanged || this.$anchorChanged || wasEmpty != this.$isEmpty || wasMultiselect)
             this._emit("changeSelection");
     };
 
@@ -8526,44 +8559,87 @@ var RangeList = function() {
     };
 
     this.$onChange = function(delta) {
-        if (delta.action == "insert"){
-            var start = delta.start;
-            var end = delta.end;
-        } else {
-            var end = delta.start;
-            var start = delta.end;
-        }
+        var start = delta.start;
+        var end = delta.end;
         var startRow = start.row;
         var endRow = end.row;
-        var lineDif = endRow - startRow;
-
-        var colDiff = -start.column + end.column;
         var ranges = this.ranges;
-
         for (var i = 0, n = ranges.length; i < n; i++) {
             var r = ranges[i];
-            if (r.end.row < startRow)
-                continue;
-            if (r.start.row > startRow)
+            if (r.end.row >= startRow)
                 break;
-
-            if (r.start.row == startRow && r.start.column >= start.column ) {
-                if (r.start.column == start.column && this.$insertRight) {
-                } else {
-                    r.start.column += colDiff;
-                    r.start.row += lineDif;
+        }
+        
+        if (delta.action == "insert") {
+            var lineDif = endRow - startRow;
+            var colDiff = -start.column + end.column;
+            for (; i < n; i++) {
+                var r = ranges[i];
+                if (r.start.row > startRow)
+                    break;
+    
+                if (r.start.row == startRow && r.start.column >= start.column) {
+                    if (r.start.column == start.column && this.$insertRight) {
+                    } else {
+                        r.start.column += colDiff;
+                        r.start.row += lineDif;
+                    }
+                }
+                if (r.end.row == startRow && r.end.column >= start.column) {
+                    if (r.end.column == start.column && this.$insertRight) {
+                        continue;
+                    }
+                    if (r.end.column == start.column && colDiff > 0 && i < n - 1) {
+                        if (r.end.column > r.start.column && r.end.column == ranges[i+1].start.column)
+                            r.end.column -= colDiff;
+                    }
+                    r.end.column += colDiff;
+                    r.end.row += lineDif;
                 }
             }
-            if (r.end.row == startRow && r.end.column >= start.column) {
-                if (r.end.column == start.column && this.$insertRight) {
-                    continue;
+        } else {
+            var lineDif = startRow - endRow;
+            var colDiff = start.column - end.column;
+            for (; i < n; i++) {
+                var r = ranges[i];
+                
+                if (r.start.row > endRow)
+                    break;
+                    
+                if (r.end.row < endRow) {
+                    r.end.row = startRow;
+                    r.end.column = start.column;
                 }
-                if (r.end.column == start.column && colDiff > 0 && i < n - 1) {                
-                    if (r.end.column > r.start.column && r.end.column == ranges[i+1].start.column)
-                        r.end.column -= colDiff;
+                   
+                if (r.start.row < endRow || r.start.row == endRow && r.start.column <= end.colum) {
+                    r.start.row = startRow;
+                    r.start.column = start.column;
                 }
-                r.end.column += colDiff;
-                r.end.row += lineDif;
+    
+                if (r.end.row == endRow) {
+                    if (r.end.column <= end.column) {
+                        if (lineDif || r.end.column > start.column) {
+                            r.end.column = start.column;
+                            r.end.row = start.row;
+                        }
+                    }
+                    else {
+                        r.end.column += colDiff;
+                        r.end.row += lineDif;
+                    }
+                }
+                if (r.start.row == endRow) {
+                    if (r.start.column <= end.column) {
+                        if (lineDif || r.start.column > start.column) {
+                            r.start.column = start.column;
+                            r.start.row = start.row;
+                        }
+                    }
+                    else {
+                        r.start.column += colDiff;
+                        r.start.row += lineDif;
+                    }
+                }
             }
         }
 
@@ -16130,6 +16206,19 @@ var Cursor = function(parentEl) {
             cursors[i].style.opacity = val ? "" : "0";
     };
     
+    this.$startCssAnimation = function() {
+        var cursors = this.cursors;
+        for (var i = cursors.length; i--; )
+            cursors[i].style.animationDuration = this.blinkInterval + "ms";
+
+        setTimeout(function() {
+            dom.addCssClass(this.element, "ace_animate-blinking");
+        }.bind(this));
+    };
+    
+    this.$stopCssAnimation = function() {
+        dom.removeCssClass(this.element, "ace_animate-blinking");
+    };
 
     this.$padding = 0;
     this.setPadding = function(padding) {
@@ -16196,6 +16285,8 @@ var Cursor = function(parentEl) {
         var update = this.$updateCursors;
         clearInterval(this.intervalId);
         clearTimeout(this.timeoutId);
+        this.$stopCssAnimation();
+        
         if (this.smoothBlinking) {
             dom.removeCssClass(this.element, "ace_smooth-blinking");
         }
@@ -16211,18 +16302,21 @@ var Cursor = function(parentEl) {
             }.bind(this));
         }
         
-        var blink = function(){
-            this.timeoutId = setTimeout(function() {
-                update(false);
-            }, 0.6 * this.blinkInterval);
-        }.bind(this);
-
-        this.intervalId = setInterval(function() {
-            update(true);
+        if (dom.HAS_CSS_ANIMATION) {
+            this.$startCssAnimation();
+        } else {
+            var blink = function(){
+                this.timeoutId = setTimeout(function() {
+                    update(false);
+                }, 0.6 * this.blinkInterval);
+            }.bind(this);
+    
+            this.intervalId = setInterval(function() {
+                update(true);
+                blink();
+            }, this.blinkInterval);
             blink();
-        }, this.blinkInterval);
-
-        blink();
+        }
     };
 
     this.getPixelPosition = function(position, onScreen) {
@@ -16457,17 +16551,21 @@ var RenderLoop = function(onRender, win) {
 
     this.schedule = function(change) {
         this.changes = this.changes | change;
-        if (!this.pending && this.changes) {
-            this.pending = true;
+        if (this.changes) {
             var _self = this;
-            event.nextFrame(function() {
-                _self.pending = false;
-                var changes;
-                while (changes = _self.changes) {
+            
+            event.nextFrame(function(ts) {
+                var changes = _self.changes;
+
+                if (changes) {
+                    event.blockIdle(100);
                     _self.changes = 0;
                     _self.onRender(changes);
                 }
-            }, this.window);
+                
+                if (_self.changes)
+                    _self.schedule();
+            });
         }
     };
 
@@ -16481,6 +16579,7 @@ ace.define("ace/layer/font_metrics",[], function(require, exports, module) {
 var oop = require("../lib/oop");
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
+var event = require("../lib/event");
 var useragent = require("../lib/useragent");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 
@@ -16565,8 +16664,10 @@ var FontMetrics = exports.FontMetrics = function(parentEl) {
         if (this.$pollSizeChangesTimer || this.$observer)
             return this.$pollSizeChangesTimer;
         var self = this;
-        return this.$pollSizeChangesTimer = setInterval(function() {
+        
+        return this.$pollSizeChangesTimer = event.onIdle(function cb() {
             self.checkForSizeChanges();
+            event.onIdle(cb, 500);
         }, 500);
     };
     
@@ -16887,6 +16988,27 @@ opacity: 0.2;\
 }\
 .ace_smooth-blinking .ace_cursor {\
 transition: opacity 0.18s;\
+}\
+.ace_animate-blinking .ace_cursor {\
+animation-duration: 1000ms;\
+animation-timing-function: step-end;\
+animation-name: blink-ace-animate;\
+animation-iteration-count: infinite;\
+}\
+.ace_animate-blinking.ace_smooth-blinking .ace_cursor {\
+animation-duration: 1000ms;\
+animation-timing-function: ease-in-out;\
+animation-name: blink-ace-animate-smooth;\
+}\
+@keyframes blink-ace-animate {\
+from, to { opacity: 1; }\
+60% { opacity: 0; }\
+}\
+@keyframes blink-ace-animate-smooth {\
+from, to { opacity: 1; }\
+45% { opacity: 1; }\
+60% { opacity: 0; }\
+85% { opacity: 0; }\
 }\
 .ace_marker-layer .ace_step, .ace_marker-layer .ace_stack {\
 position: absolute;\
@@ -17727,7 +17849,9 @@ var VirtualRenderer = function(container, theme) {
             desiredHeight += this.scrollBarH.getHeight();
         if (this.$maxPixelHeight && desiredHeight > this.$maxPixelHeight)
             desiredHeight = this.$maxPixelHeight;
-        var vScroll = height > maxHeight;
+        
+        var hideScrollbars = desiredHeight <= 2 * this.lineHeight;
+        var vScroll = !hideScrollbars && height > maxHeight;
         
         if (desiredHeight != this.desiredHeight ||
             this.$size.height != this.desiredHeight || vScroll != this.$vScroll) {
@@ -19457,6 +19581,8 @@ var Editor = require("./editor").Editor;
             if (pos.row != anchor.row 
                 || this.session.$clipPositionToDocument(pos.row, pos.column).column != anchor.column)
                 this.multiSelect.toSingleRange(this.multiSelect.toOrientedRange());
+            else
+                this.multiSelect.mergeOverlappingRanges();
         }
     };
     this.findAll = function(needle, options, additive) {
@@ -20657,7 +20783,7 @@ exports.Range = Range;
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
 exports.VirtualRenderer = Renderer;
-exports.version = "1.3.2";
+exports.version = "1.3.3";
 });
             (function() {
                 ace.require(["ace/ace"], function(a) {
@@ -20670,7 +20796,7 @@ exports.version = "1.3.2";
                     for (var key in a) if (a.hasOwnProperty(key))
                         window.ace[key] = a[key];
                     window.ace["default"] = window.ace;
-                    if (typeof module == "object") {
+                    if (typeof module == "object" && typeof exports == "object" && module) {
                         module.exports = window.ace;
                     }
                 });

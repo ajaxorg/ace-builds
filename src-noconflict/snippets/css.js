@@ -974,7 +974,7 @@ exports.scope = "css";
 });
                 (function() {
                     ace.require(["ace/snippets/css"], function(m) {
-                        if (typeof module == "object") {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
                         }
                     });
