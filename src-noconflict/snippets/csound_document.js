@@ -1,4 +1,4 @@
-ace.define("ace/snippets/csound_document",[], function(require, exports, module) {
+ace.define("ace/snippets/csound_document",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# <CsoundSynthesizer>\n\
@@ -14,8 +14,7 @@ snippet synth\n\
 ";
 exports.scope = "csound_document";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/csound_document"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -4,8 +4,7 @@ define("ace/snippets/mushcode",["require","exports","module"], function(require,
 exports.snippetText = "";
 exports.scope = "mushcode";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/mushcode"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

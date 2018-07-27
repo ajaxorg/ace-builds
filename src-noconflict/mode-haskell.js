@@ -1,4 +1,4 @@
-ace.define("ace/mode/haskell_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/haskell_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -206,7 +206,7 @@ oop.inherits(HaskellHighlightRules, TextHighlightRules);
 exports.HaskellHighlightRules = HaskellHighlightRules;
 });
 
-ace.define("ace/mode/folding/cstyle",[], function(require, exports, module) {
+ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
@@ -346,7 +346,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/haskell",[], function(require, exports, module) {
+ace.define("ace/mode/haskell",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/haskell_highlight_rules","ace/mode/folding/cstyle"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -368,8 +368,7 @@ oop.inherits(Mode, TextMode);
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/mode/haskell"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -1,4 +1,4 @@
-ace.define("ace/theme/dracula",[], function(require, exports, module) {
+ace.define("ace/theme/dracula",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 
 exports.isDark = true;
 exports.cssClass = "ace-dracula";
@@ -125,8 +125,7 @@ exports.$selectionColorConflict = true;
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/theme/dracula"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

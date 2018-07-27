@@ -4,8 +4,7 @@ define("ace/snippets/latex",["require","exports","module"], function(require, ex
 exports.snippetText = "";
 exports.scope = "latex";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/latex"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

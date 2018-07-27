@@ -1,4 +1,4 @@
-ace.define("ace/snippets",[], function(require, exports, module) {
+ace.define("ace/snippets",["require","exports","module","ace/lib/oop","ace/lib/event_emitter","ace/lib/lang","ace/range","ace/anchor","ace/keyboard/hash_handler","ace/tokenizer","ace/lib/dom","ace/editor"], function(require, exports, module) {
 "use strict";
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
@@ -906,7 +906,7 @@ var Editor = require("./editor").Editor;
 
 });
 
-ace.define("ace/autocomplete/popup",[], function(require, exports, module) {
+ace.define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
 var Renderer = require("../virtual_renderer").VirtualRenderer;
@@ -928,7 +928,7 @@ var $singleLineEditor = function(el) {
     editor.renderer.setShowGutter(false);
     editor.renderer.setHighlightGutterLine(false);
 
-    editor.$mouseHandler.$focusWaitTimout = 0;
+    editor.$mouseHandler.$focusTimeout = 0;
     editor.$highlightTagPending = true;
 
     return editor;
@@ -1218,7 +1218,7 @@ exports.AcePopup = AcePopup;
 
 });
 
-ace.define("ace/autocomplete/util",[], function(require, exports, module) {
+ace.define("ace/autocomplete/util",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.parForEach = function(array, fn, callback) {
@@ -1278,7 +1278,7 @@ exports.getCompletionPrefix = function (editor) {
 
 });
 
-ace.define("ace/autocomplete",[], function(require, exports, module) {
+ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/snippets"], function(require, exports, module) {
 "use strict";
 
 var HashHandler = require("./keyboard/hash_handler").HashHandler;
@@ -1332,7 +1332,7 @@ var Autocomplete = function() {
         if (!this.popup)
             this.$init();
 
-	this.popup.autoSelect = this.autoSelect;
+        this.popup.autoSelect = this.autoSelect;
 
         this.popup.setData(this.completions.filtered);
 
@@ -1711,7 +1711,7 @@ var FilteredList = function(array, filterText) {
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
-            var caption = item.value || item.caption || item.snippet;
+            var caption = item.caption || item.value || item.snippet;
             if (!caption) continue;
             var lastIndex = -1;
             var matchMask = 0;
@@ -1759,7 +1759,7 @@ exports.FilteredList = FilteredList;
 
 });
 
-ace.define("ace/autocomplete/text_completer",[], function(require, exports, module) {
+ace.define("ace/autocomplete/text_completer",["require","exports","module","ace/range"], function(require, exports, module) {
     var Range = require("../range").Range;
     
     var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
@@ -1803,7 +1803,7 @@ ace.define("ace/autocomplete/text_completer",[], function(require, exports, modu
     };
 });
 
-ace.define("ace/ext/language_tools",[], function(require, exports, module) {
+ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module) {
 "use strict";
 
 var snippetManager = require("../snippets").snippetManager;
@@ -1826,9 +1826,16 @@ var keyWordCompleter = {
 
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
+        var scopes = [];
+        var token = session.getTokenAt(pos.row, pos.column);
+        if (token && token.type.match(/(tag-name|tag-open|tag-whitespace|attribute-name|attribute-value)\.xml$/))
+            scopes.push('html-tag');
+        else
+            scopes = snippetManager.getActiveScopes(editor);
+
         var snippetMap = snippetManager.snippetMap;
         var completions = [];
-        snippetManager.getActiveScopes(editor).forEach(function(scope) {
+        scopes.forEach(function(scope) {
             var snippets = snippetMap[scope] || [];
             for (var i = snippets.length; i--;) {
                 var s = snippets[i];
@@ -1968,8 +1975,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/ext/language_tools"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

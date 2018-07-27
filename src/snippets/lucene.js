@@ -4,8 +4,7 @@ define("ace/snippets/lucene",["require","exports","module"], function(require, e
 exports.snippetText = "";
 exports.scope = "lucene";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/lucene"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

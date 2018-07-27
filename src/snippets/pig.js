@@ -4,8 +4,7 @@ define("ace/snippets/pig",["require","exports","module"], function(require, expo
 exports.snippetText = "";
 exports.scope = "pig";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/pig"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

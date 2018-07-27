@@ -1,4 +1,4 @@
-ace.define("ace/snippets/wollok",[], function(require, exports, module) {
+ace.define("ace/snippets/wollok",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "##\n\
@@ -88,8 +88,7 @@ snippet re\n\
 	return";
 exports.scope = "wollok";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/wollok"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -1,4 +1,4 @@
-ace.define("ace/ext/themelist",[], function(require, exports, module) {
+ace.define("ace/ext/themelist",["require","exports","module","ace/lib/fixoldbrowsers"], function(require, exports, module) {
 "use strict";
 require("ace/lib/fixoldbrowsers");
 
@@ -56,8 +56,7 @@ exports.themes = themeData.map(function(data) {
     return theme;
 });
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/ext/themelist"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

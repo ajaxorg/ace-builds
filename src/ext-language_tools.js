@@ -928,7 +928,7 @@ var $singleLineEditor = function(el) {
     editor.renderer.setShowGutter(false);
     editor.renderer.setHighlightGutterLine(false);
 
-    editor.$mouseHandler.$focusWaitTimout = 0;
+    editor.$mouseHandler.$focusTimeout = 0;
     editor.$highlightTagPending = true;
 
     return editor;
@@ -1332,7 +1332,7 @@ var Autocomplete = function() {
         if (!this.popup)
             this.$init();
 
-	this.popup.autoSelect = this.autoSelect;
+        this.popup.autoSelect = this.autoSelect;
 
         this.popup.setData(this.completions.filtered);
 
@@ -1711,7 +1711,7 @@ var FilteredList = function(array, filterText) {
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
-            var caption = item.value || item.caption || item.snippet;
+            var caption = item.caption || item.value || item.snippet;
             if (!caption) continue;
             var lastIndex = -1;
             var matchMask = 0;
@@ -1826,9 +1826,16 @@ var keyWordCompleter = {
 
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
+        var scopes = [];
+        var token = session.getTokenAt(pos.row, pos.column);
+        if (token && token.type.match(/(tag-name|tag-open|tag-whitespace|attribute-name|attribute-value)\.xml$/))
+            scopes.push('html-tag');
+        else
+            scopes = snippetManager.getActiveScopes(editor);
+
         var snippetMap = snippetManager.snippetMap;
         var completions = [];
-        snippetManager.getActiveScopes(editor).forEach(function(scope) {
+        scopes.forEach(function(scope) {
             var snippets = snippetMap[scope] || [];
             for (var i = snippets.length; i--;) {
                 var s = snippets[i];
@@ -1968,8 +1975,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
-});
-                (function() {
+});                (function() {
                     window.require(["ace/ext/language_tools"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

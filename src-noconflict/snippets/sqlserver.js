@@ -1,4 +1,4 @@
-ace.define("ace/snippets/sqlserver",[], function(require, exports, module) {
+ace.define("ace/snippets/sqlserver",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# ISNULL\n\
@@ -73,8 +73,7 @@ snippet createfn\n\
 	GO";
 exports.scope = "sqlserver";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/sqlserver"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -4,8 +4,7 @@ define("ace/snippets/html_elixir",["require","exports","module"], function(requi
 exports.snippetText = "";
 exports.scope = "html_elixir";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/html_elixir"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

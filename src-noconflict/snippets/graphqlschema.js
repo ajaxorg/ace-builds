@@ -1,4 +1,4 @@
-ace.define("ace/snippets/graphqlschema",[], function(require, exports, module) {
+ace.define("ace/snippets/graphqlschema",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# Type Snippet\n\
@@ -36,8 +36,7 @@ snippet enum\n\
 ";
 exports.scope = "graphqlschema";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/graphqlschema"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -1,4 +1,4 @@
-ace.define("ace/snippets/c_cpp",[], function(require, exports, module) {
+ace.define("ace/snippets/c_cpp",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "## STL Collections\n\
@@ -135,8 +135,7 @@ snippet lld\n\
 ";
 exports.scope = "c_cpp";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/c_cpp"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

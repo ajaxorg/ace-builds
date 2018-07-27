@@ -1,4 +1,4 @@
-ace.define("ace/theme/vibrant_ink",[], function(require, exports, module) {
+ace.define("ace/theme/vibrant_ink",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 
 exports.isDark = true;
 exports.cssClass = "ace-vibrant-ink";
@@ -91,8 +91,7 @@ background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgb
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/theme/vibrant_ink"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

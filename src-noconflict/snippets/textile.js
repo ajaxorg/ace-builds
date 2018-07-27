@@ -1,4 +1,4 @@
-ace.define("ace/snippets/textile",[], function(require, exports, module) {
+ace.define("ace/snippets/textile",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "# Jekyll post header\n\
@@ -34,8 +34,7 @@ snippet fn\n\
 ";
 exports.scope = "textile";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/textile"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -4,8 +4,7 @@ define("ace/snippets/jack",["require","exports","module"], function(require, exp
 exports.snippetText = "";
 exports.scope = "jack";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/jack"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

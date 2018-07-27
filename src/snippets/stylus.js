@@ -4,8 +4,7 @@ define("ace/snippets/stylus",["require","exports","module"], function(require, e
 exports.snippetText = "";
 exports.scope = "stylus";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/stylus"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

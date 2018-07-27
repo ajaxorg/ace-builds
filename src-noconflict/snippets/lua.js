@@ -1,4 +1,4 @@
-ace.define("ace/snippets/lua",[], function(require, exports, module) {
+ace.define("ace/snippets/lua",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet #!\n\
@@ -25,8 +25,7 @@ snippet fori\n\
 ";
 exports.scope = "lua";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/lua"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

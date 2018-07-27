@@ -181,8 +181,8 @@ exports.commands = [{
     }
 }, {
     name: "trimTrailingSpace",
-    exec: function(editor) {
-        exports.trimTrailingSpace(editor.session);
+    exec: function(editor, args) {
+        exports.trimTrailingSpace(editor.session, args);
     }
 }, {
     name: "convertIndentation",
@@ -199,8 +199,7 @@ exports.commands = [{
     }
 }];
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/ext/whitespace"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

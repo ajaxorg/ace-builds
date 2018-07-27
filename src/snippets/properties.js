@@ -4,8 +4,7 @@ define("ace/snippets/properties",["require","exports","module"], function(requir
 exports.snippetText = "";
 exports.scope = "properties";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/properties"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

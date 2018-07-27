@@ -1,4 +1,4 @@
-ace.define("ace/mode/gcode_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/gcode_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
     "use strict";
 
     var oop = require("../lib/oop");
@@ -63,7 +63,7 @@ ace.define("ace/mode/gcode_highlight_rules",[], function(require, exports, modul
     exports.GcodeHighlightRules = GcodeHighlightRules;
 });
 
-ace.define("ace/mode/gcode",[], function(require, exports, module) {
+ace.define("ace/mode/gcode",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/gcode_highlight_rules","ace/range"], function(require, exports, module) {
     "use strict";
 
     var oop = require("../lib/oop");
@@ -83,8 +83,7 @@ ace.define("ace/mode/gcode",[], function(require, exports, module) {
 
     exports.Mode = Mode;
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/mode/gcode"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

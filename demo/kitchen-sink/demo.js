@@ -1,68 +1,103 @@
-define("ace/ext/spellcheck",["require","exports","module","ace/lib/event","ace/editor","ace/config"], function(require, exports, module) {
+define("ace/ext/rtl",["require","exports","module","ace/lib/dom","ace/lib/lang","ace/editor","ace/config"], function(require, exports, module) {
 "use strict";
-var event = require("../lib/event");
+var dom = require("ace/lib/dom");
+var lang = require("ace/lib/lang");
 
-exports.contextMenuHandler = function(e){
-    var host = e.target;
-    var text = host.textInput.getElement();
-    if (!host.selection.isEmpty())
-        return;
-    var c = host.getCursorPosition();
-    var r = host.session.getWordRange(c.row, c.column);
-    var w = host.session.getTextRange(r);
+var commands = [{
+    name: "leftToRight",
+    bindKey: { win: "Ctrl-Alt-Shift-L", mac: "Command-Alt-Shift-L" },
+    exec: function(editor) {
+        editor.session.$bidiHandler.setRtlDirection(editor, false);
+    },
+    readOnly: true
+}, {
+    name: "rightToLeft",
+    bindKey: { win: "Ctrl-Alt-Shift-R",  mac: "Command-Alt-Shift-R" },
+    exec: function(editor) {
+        editor.session.$bidiHandler.setRtlDirection(editor, true);
+    },
+    readOnly: true
+}];
 
-    host.session.tokenRe.lastIndex = 0;
-    if (!host.session.tokenRe.test(w))
-        return;
-    var PLACEHOLDER = "\x01\x01";
-    var value = w + " " + PLACEHOLDER;
-    text.value = value;
-    text.setSelectionRange(w.length, w.length + 1);
-    text.setSelectionRange(0, 0);
-    text.setSelectionRange(0, w.length);
-
-    var afterKeydown = false;
-    event.addListener(text, "keydown", function onKeydown() {
-        event.removeListener(text, "keydown", onKeydown);
-        afterKeydown = true;
-    });
-
-    host.textInput.setInputHandler(function(newVal) {
-        console.log(newVal , value, text.selectionStart, text.selectionEnd);
-        if (newVal == value)
-            return '';
-        if (newVal.lastIndexOf(value, 0) === 0)
-            return newVal.slice(value.length);
-        if (newVal.substr(text.selectionEnd) == value)
-            return newVal.slice(0, -value.length);
-        if (newVal.slice(-2) == PLACEHOLDER) {
-            var val = newVal.slice(0, -2);
-            if (val.slice(-1) == " ") {
-                if (afterKeydown)
-                    return val.substring(0, text.selectionEnd);
-                val = val.slice(0, -1);
-                host.session.replace(r, val);
-                return "";
-            }
-        }
-
-        return newVal;
-    });
-};
 var Editor = require("../editor").Editor;
 require("../config").defineOptions(Editor.prototype, "editor", {
-    spellcheck: {
+    rtlText: {
         set: function(val) {
-            var text = this.textInput.getElement();
-            text.spellcheck = !!val;
-            if (!val)
-                this.removeListener("nativecontextmenu", exports.contextMenuHandler);
-            else
-                this.on("nativecontextmenu", exports.contextMenuHandler);
-        },
-        value: true
+            if (val) {
+                this.on("session", onChange);
+                this.on("changeSelection", onChangeSelection);
+                this.renderer.on("afterRender", updateLineDirection);
+                this.commands.on("exec", onCommandEmitted);
+                this.commands.addCommands(commands);
+            } else {
+                this.off("session", onChange);
+                this.off("changeSelection", onChangeSelection);
+                this.renderer.off("afterRender", updateLineDirection);
+                this.commands.off("exec", onCommandEmitted);
+                this.commands.removeCommands(commands);
+                clearTextLayer(this.renderer);
+            }
+            this.renderer.updateFull();
+        }
     }
 });
+function onChangeSelection(e, editor) {
+    var lead = editor.getSelection().lead;
+    if (editor.session.$bidiHandler.isRtlLine(lead.row)) {
+        if (lead.column === 0) {
+            if (editor.session.$bidiHandler.isMoveLeftOperation && lead.row > 0) {
+                editor.getSelection().moveCursorTo(lead.row - 1, editor.session.getLine(lead.row - 1).length);
+            } else {
+                if (editor.getSelection().isEmpty())
+                    lead.column += 1;
+                else
+                    lead.setPosition(lead.row, lead.column + 1);
+            }
+        }
+    }
+}
+
+function onCommandEmitted(commadEvent) {
+    commadEvent.editor.session.$bidiHandler.isMoveLeftOperation = /gotoleft|selectleft|backspace|removewordleft/.test(commadEvent.command.name);
+}
+function onChange(delta, session) {
+    session.$bidiHandler.currentRow = null;
+    if (session.$bidiHandler.isRtlLine(delta.start.row) && delta.action === 'insert' && delta.lines.length > 1) {
+        for (var row = delta.start.row; row < delta.end.row; row++) {
+            if (session.getLine(row + 1).charAt(0) !== session.$bidiHandler.RLE)
+                session.getDocument().$lines[row + 1] = session.$bidiHandler.RLE + session.getLine(row + 1);
+        }
+    }
+}
+
+function updateLineDirection(e, renderer) {
+    var session = renderer.session;
+    var $bidiHandler = session.$bidiHandler;
+    var cells = renderer.$textLayer.$lines.cells;
+    var width = renderer.layerConfig.width - renderer.layerConfig.padding + "px";
+    cells.forEach(function(cell) {
+        var style = cell.element.style;
+        if ($bidiHandler && $bidiHandler.isRtlLine(cell.row)) {
+            style.direction = "rtl";
+            style.textAlign = "right";
+            style.width = width;
+        } else {
+            style.direction = "";
+            style.textAlign = "";
+            style.width = "";
+        }
+    });
+}
+
+function clearTextLayer(renderer) {
+    var lines = renderer.$textLayer.$lines;
+    lines.cells.forEach(clear);
+    lines.cellCache.forEach(clear);
+    function clear(cell) {
+        var style = cell.element.style;
+        style.direction = style.textAlign = style.width = "";
+    }
+}
 
 });
 
@@ -1037,9 +1072,12 @@ MockRenderer.prototype.adjustWrapLimit = function () {
 
 });
 
-define("kitchen-sink/dev_util",["require","exports","module","ace/lib/dom","ace/range","ace/lib/oop","ace/lib/dom","ace/range","ace/editor","ace/test/asyncjs/assert","ace/test/asyncjs/async","ace/undomanager","ace/edit_session","ace/test/mockrenderer","ace/lib/event_emitter"], function(require, exports, module) {
+define("kitchen-sink/dev_util",["require","exports","module","ace/lib/dom","ace/lib/event","ace/range","ace/edit_session","ace/undomanager","ace/lib/oop","ace/lib/dom","ace/range","ace/editor","ace/test/asyncjs/assert","ace/test/asyncjs/async","ace/undomanager","ace/edit_session","ace/test/mockrenderer","ace/lib/event_emitter"], function(require, exports, module) {
 var dom = require("ace/lib/dom");
+var event = require("ace/lib/event");
 var Range = require("ace/range").Range;
+var EditSession = require("ace/edit_session").EditSession;
+var UndoManager = require("ace/undomanager").UndoManager;
 function warn() {
     var s = (new Error()).stack || "";
     s = s.split("\n");
@@ -1066,8 +1104,8 @@ function def(o, key, get) {
     }
 }
 def(window, "ace", function(){ warn(); return window.env.editor });
-def(window, "editor", function(){ warn(); return window.env.editor });
-def(window, "session", function(){ warn(); return window.env.editor.session });
+def(window, "editor", function(){ warn(); return window.env.editor == logEditor ? editor : window.env.editor });
+def(window, "session", function(){ return window.editor.session });
 def(window, "split", function(){ warn(); return window.env.split });
 
 
@@ -1105,6 +1143,8 @@ exports.addGlobals = function() {
     window.getSelection = getSelection;
     window.setSelection = setSelection;
     window.testSelection = testSelection;
+    window.setValue = setValue;
+    window.testValue = testValue;
 };
 
 function getSelection(editor) {
@@ -1146,80 +1186,289 @@ function setSelection(editor, data) {
 function testSelection(editor, data) {
     assert.equal(getSelection(editor) + "", data + "");
 }
+function setValue(editor, value) {
+    editor.setValue(value, 1);
+}
+function testValue(editor, value) {
+    assert.equal(editor.getValue(), value);
+}
 
-exports.recordTestCase = function() {
+ 
+var editor;
+var logEditor;
+var logSession
+exports.openLogView = function() {
     exports.addGlobals();
-    var editor = window.editor;
-    var testcase = window.testcase = [];
-    var assert;
+    var sp = window.env.split;
+    sp.setSplits(1);
+    sp.setSplits(2);
+    sp.setOrientation(sp.BESIDE);
+    editor = sp.$editors[0];
+    logEditor = sp.$editors[1];
+    
+    if (!logSession) {
+        logSession = new EditSession(localStorage.lastTestCase || "", "ace/mode/javascript");
+        logSession.setUndoManager(new UndoManager)
+    }
+    logEditor.setSession(logSession);
+    logEditor.session.foldAll();
+    logEditor.on("input", save);
+}
+exports.record = function() {
+    exports.addGlobals();
+    exports.openLogView();
+    
+    logEditor.setValue("var Range = require(\"ace/range\").Range;\n"
+        + getSelection + "\n"
+        + testSelection + "\n"
+        + setSelection + "\n"
+        + testValue + "\n"
+        + setValue + "\n"
+        + "\n//-------------------------------------\n", 1);
+    logEditor.session.foldAll();
 
-    testcase.push({
+    addAction({
         type: "setValue",
         data: editor.getValue()
-    }, {
+    });
+    addAction({
         type: "setSelection",
         data: getSelection(editor)
     });
-    editor.commands.on("afterExec", function(e) {
-        testcase.push({
-            type: "exec",
-            data: e
-        });
-        testcase.push({
-            type: "value",
-            data: editor.getValue()
-        });
-        testcase.push({
-            type: "selection",
-            data: getSelection(editor)
-        });
+    editor.commands.on("afterExec", onAfterExec);
+    editor.on("mouseup", onMouseUp);
+    editor.selection.on("beforeEndOperation", onBeforeEndOperation);
+    editor.session.on("change", reportChange);
+    editor.selection.on("changeCursor", reportCursorChange);
+    editor.selection.on("changeSelection", reportSelectionChange);
+}
+
+exports.stop = function() {
+    save();
+    editor.commands.off("afterExec", onAfterExec);
+    editor.off("mouseup", onMouseUp);
+    editor.off("beforeEndOperation", onBeforeEndOperation);
+    editor.session.off("change", reportChange);
+    editor.selection.off("changeCursor", reportCursorChange);
+    editor.selection.off("changeSelection", reportSelectionChange);
+    logEditor.off("input", save);
+}
+exports.closeLogView = function() {
+    exports.stop(); 
+    var sp = window.env.split;
+    sp.setSplits(1);
+}
+
+exports.play = function() {
+    exports.openLogView();
+    exports.stop();
+    var code = logEditor ? logEditor.getValue() : localStorage.lastTestCase;
+    var fn = new Function("editor", "debugger;\n" + code);
+    fn(editor);
+}
+var reportChange = reportEvent.bind(null, "change");
+var reportCursorChange = reportEvent.bind(null, "CursorChange");
+var reportSelectionChange = reportEvent.bind(null, "SelectionChange");
+
+function save() {
+    localStorage.lastTestCase = logEditor.getValue();
+}
+
+function reportEvent(name) {
+    addAction({
+        type: "event",
+        source: name
     });
-    editor.on("mouseup", function() {
-        testcase.push({
-            type: "setSelection",
-            data: getSelection(editor)
-        });
+} 
+function onSelection() {
+    addAction({
+        type: "event",
+        data: "change",
+        source: "operationEnd"
     });
-    
-    testcase.toString = function() {
-        var lastValue = "";
-        var str = this.map(function(x) {
-            var data = x.data;
-            switch (x.type) {
-                case "exec": 
-                    return 'editor.execCommand("' 
-                        + data.command.name
-                        + (data.args ? '", ' + JSON.stringify(data.args) : '"')
-                    + ')';
-                case "setSelection":
-                    return 'setSelection(editor, ' + JSON.stringify(data)  + ')';
-                case "setValue":
-                    if (lastValue != data) {
-                        lastValue = data;
-                        return 'editor.setValue(' + JSON.stringify(data) + ', -1)';
-                    }
-                    return;
-                case "selection":
-                    return 'testSelection(editor, ' + JSON.stringify(data) + ')';
-                case "value":
-                    if (lastValue != data) {
-                        lastValue = data;
-                        return 'assert.equal('
-                            + 'editor.getValue(),'
-                            + JSON.stringify(data)
-                        + ')';
-                    }
-                    return;
+} 
+function onBeforeEndOperation() {
+    addAction({
+        type: "setSelection",
+        data: getSelection(editor),
+        source: "operationEnd"
+    });
+} 
+function onMouseUp() {
+    addAction({
+        type: "setSelection",
+        data: getSelection(editor),
+        source: "mouseup"
+    });
+}
+function onAfterExec(e) {
+    addAction({
+        type: "exec",
+        data: e
+    });
+    addAction({
+        type: "value",
+        data: editor.getValue()
+    });
+    addAction({
+        type: "selection",
+        data: getSelection(editor)
+    });
+}
+
+function addAction(a) {
+    var str = toString(a);
+    if (str) {
+        logEditor.insert(str + "\n");
+        logEditor.renderer.scrollCursorIntoView();
+    }
+}
+
+var lastValue = "";
+function toString(x) {
+    var str = "";
+    var data = x.data;
+    switch (x.type) {
+        case "exec": 
+            str = 'editor.execCommand("' 
+                + data.command.name
+                + (data.args ? '", ' + JSON.stringify(data.args) : '"')
+            + ')';
+            break;
+        case "setSelection":
+            str = 'setSelection(editor, ' + JSON.stringify(data)  + ')';
+            break;
+        case "setValue":
+            if (lastValue != data) {
+                lastValue = data;
+                str = 'editor.setValue(' + JSON.stringify(data) + ', -1)';
             }
-        }).filter(Boolean).join("\n");
-        
-        return getSelection + "\n"
-            + testSelection + "\n"
-            + setSelection + "\n"
-            + "\n" + str + "\n";
-    };
+            else {
+                return;
+            }
+            break;
+        case "selection":
+            str = 'testSelection(editor, ' + JSON.stringify(data) + ')';
+            break;
+        case "value":
+            if (lastValue != data) {
+                lastValue = data;
+                str = 'testValue(editor, ' + JSON.stringify(data) + ')';
+            }
+            else  {
+                return;
+            }
+            break;
+    }
+    return str + (x.source ? " // " + x.source : "");
+}
+
+exports.getUI = function(container) {
+    return ["div", {},
+        " Test ", 
+        ["button", {onclick: exports.openLogView}, "O"],
+        ["button", {onclick: exports.record}, "Record"],
+        ["button", {onclick: exports.stop}, "Stop"],
+        ["button", {onclick: exports.play}, "Play"],
+        ["button", {onclick: exports.closeLogView}, "X"],
+    ];
 };
 
+
+exports.textInputDebugger = {
+    position: 2000,
+    onchange: function(value) {
+        var sp = env.split;
+        if (sp.getSplits() == 2) {
+            sp.setSplits(1);
+        }
+        if (env.textarea) {
+            if (env.textarea.detach)
+                env.textarea.detach();
+            env.textarea.oldParent.appendChild(env.textarea);
+            env.textarea.className = env.textarea.oldClassName;
+            env.textarea = null;
+        }
+        if (value) {
+            this.showConsole();
+        }
+    },
+    showConsole: function() {
+        var sp = env.split;
+        sp.setSplits(2);
+        sp.setOrientation(sp.BELOW);
+        
+        var editor = sp.$editors[0];
+        var text = editor.textInput.getElement();
+        text.oldParent = text.parentNode;
+        text.oldClassName = text.className;
+        text.className = "text-input-debug";
+        document.body.appendChild(text);
+        env.textarea = text;
+        
+        var addToLog = function(e) {
+            if (ignoreEvents) return;
+            var data = {
+                _: e.type, 
+                range: [text.selectionStart, text.selectionEnd], 
+                value: text.value, 
+                key: e.key && {
+                    code: e.code,
+                    key: e.key, 
+                    keyCode: e.keyCode
+                },
+                modifier: event.getModifierString(e) || undefined                
+            };
+            log.navigateFileEnd();
+            var str = JSON.stringify(data).replace(/"(\w+)":/g, " $1: ");
+            log.insert(str + ",\n");
+            log.renderer.scrollCursorIntoView();
+        };
+        var events = ["select", "input", "keypress", "keydown", "keyup", 
+            "compositionstart", "compositionupdate", "compositionend", "cut", "copy", "paste"
+        ];
+        events.forEach(function(name) {
+            text.addEventListener(name, addToLog, true);
+        });
+        function onMousedown(ev) {
+            if (ev.domEvent.target == text)
+                ev.$pos = editor.getCursorPosition();
+        }
+        text.detach = function() {
+            delete text.value;
+            delete text.setSelectionRange;
+            
+            events.forEach(function(name) {
+                text.removeEventListener(name, addToLog, true);
+            });
+            editor.off("mousedown", onMousedown);
+        };
+        editor.on("mousedown", onMousedown);
+        
+        text.__defineSetter__("value", function(v) {
+            this.__proto__.__lookupSetter__("value").call(this, v); 
+            console.log(v);
+        });
+        text.__defineGetter__("value", function(v) {
+            var v = this.__proto__.__lookupGetter__("value").call(this); 
+            return v;
+        });
+        text.setSelectionRange = function(start, end) {
+            ignoreEvents = true;
+            this.__proto__.setSelectionRange.call(this, start, end)
+            ignoreEvents = false;
+        }
+        
+        var log = sp.$editors[1];
+        if (!this.session)
+            this.session = new EditSession("");
+        log.setSession(this.session);
+        editor.focus();
+    },
+    getValue: function() {
+        return !!env.textarea;
+    }
+}
 
 });
 
@@ -1298,6 +1547,7 @@ var supportedModes = {
     Erlang:      ["erl|hrl"],
     Forth:       ["frt|fs|ldr|fth|4th"],
     Fortran:     ["f|f90"],
+    FSharp:      ["fsi|fs|ml|mli|fsx|fsscript"],
     FTL:         ["ftl"],
     Gcode:       ["gcode"],
     Gherkin:     ["feature"],
@@ -1355,7 +1605,9 @@ var supportedModes = {
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
+    PHP_Laravel_blade: ["blade.php"],
     PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
+    Puppet:      ["epp|pp"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
@@ -1378,6 +1630,7 @@ var supportedModes = {
     SCSS:        ["scss"],
     SH:          ["sh|bash|^.bashrc"],
     SJS:         ["sjs"],
+    Slim:        ["slim|skim"],
     Smarty:      ["smarty|tpl"],
     snippets:    ["snippets"],
     Soy_Template:["soy"],
@@ -1388,6 +1641,7 @@ var supportedModes = {
     SVG:         ["svg"],
     Swift:       ["swift"],
     Tcl:         ["tcl"],
+    Terraform:   ["tf", "tfvars", "terragrunt"],
     Tex:         ["tex"],
     Text:        ["txt"],
     Textile:     ["textile"],
@@ -1418,7 +1672,8 @@ var nameOverrides = {
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
     HTML_Elixir: "HTML (Elixir)",
-    FTL: "FreeMarker"
+    FTL: "FreeMarker",
+    PHP_Laravel_blade: "PHP (Blade Template)"
 };
 var modesByName = {};
 for (var name in supportedModes) {
@@ -1796,8 +2051,8 @@ exports.commands = [{
     }
 }, {
     name: "trimTrailingSpace",
-    exec: function(editor) {
-        exports.trimTrailingSpace(editor.session);
+    exec: function(editor, args) {
+        exports.trimTrailingSpace(editor.session, args);
     }
 }, {
     name: "convertIndentation",
@@ -3778,8 +4033,8 @@ var optionGroups = {
             path: "wrap",
             items: [
                { caption : "Off",  value : "off" },
-               { caption : "Free", value : "free" },
-               { caption : "80",   value : "80" },
+               { caption : "View", value : "free" },
+               { caption : "margin", value : "printMargin" },
                { caption : "40",   value : "40" }
             ]
         },
@@ -3850,17 +4105,32 @@ var optionGroups = {
         "Show Gutter": {
             path: "showGutter"
         },
+        "Show Line Numbers": {
+            path: "showLineNumbers"
+        },
+        "Relative Line Numbers": {
+            path: "relativeLineNumbers"
+        },
+        "Fixed Gutter Width": {
+            path: "fixedWidthGutter"
+        },
         "Show Print Margin": [{
             path: "showPrintMargin"
         }, {
             type: "number",
             path: "printMarginColumn"
         }],
+        "Indented Soft Wrap": {
+            path: "indentedSoftWrap"
+        },
         "Highlight selected word": {
             path: "highlightSelectedWord"
         },
         "Fade Fold Widgets": {
             path: "fadeFoldWidgets"
+        },
+        "Use textarea for IME": {
+            path: "useTextareaForIME"
         },
         "Merge Undo Deltas": {
             path: "mergeUndoDeltas",
@@ -4034,7 +4304,7 @@ var OptionPanel = function(editor, element) {
             value = parseFloat(value);
         if (option.onchange)
             option.onchange(value);
-        else
+        else if (option.path)
             this.editor.setOption(option.path, value);
         this._signal("setOption", {name: option.path, value: value});
     };
@@ -5230,7 +5500,7 @@ exports.runEmmetCommand = function runEmmetCommand(editor) {
         var result = actions.run(this.action, editorProxy);
     } catch(e) {
         if (!emmet) {
-            load(runEmmetCommand.bind(this, editor));
+            exports.load(runEmmetCommand.bind(this, editor));
             return true;
         }
         editor._signal("changeStatus", typeof e == "string" ? e : e.message);
@@ -5288,11 +5558,11 @@ var onChangeMode = function(e, target) {
     if (e.enableEmmet === false)
         enabled = false;
     if (enabled)
-        load();
+        exports.load();
     exports.updateCommands(editor, enabled);
 };
 
-var load = function(cb) {
+exports.load = function(cb) {
     if (typeof emmetPath == "string") {
         require("ace/config").loadModule(emmetPath, function() {
             emmetPath = null;
@@ -5342,7 +5612,7 @@ var $singleLineEditor = function(el) {
     editor.renderer.setShowGutter(false);
     editor.renderer.setHighlightGutterLine(false);
 
-    editor.$mouseHandler.$focusWaitTimout = 0;
+    editor.$mouseHandler.$focusTimeout = 0;
     editor.$highlightTagPending = true;
 
     return editor;
@@ -5746,7 +6016,7 @@ var Autocomplete = function() {
         if (!this.popup)
             this.$init();
 
-	this.popup.autoSelect = this.autoSelect;
+        this.popup.autoSelect = this.autoSelect;
 
         this.popup.setData(this.completions.filtered);
 
@@ -6125,7 +6395,7 @@ var FilteredList = function(array, filterText) {
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
-            var caption = item.value || item.caption || item.snippet;
+            var caption = item.caption || item.value || item.snippet;
             if (!caption) continue;
             var lastIndex = -1;
             var matchMask = 0;
@@ -6240,9 +6510,16 @@ var keyWordCompleter = {
 
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
+        var scopes = [];
+        var token = session.getTokenAt(pos.row, pos.column);
+        if (token && token.type.match(/(tag-name|tag-open|tag-whitespace|attribute-name|attribute-value)\.xml$/))
+            scopes.push('html-tag');
+        else
+            scopes = snippetManager.getActiveScopes(editor);
+
         var snippetMap = snippetManager.snippetMap;
         var completions = [];
-        snippetManager.getActiveScopes(editor).forEach(function(scope) {
+        scopes.forEach(function(scope) {
             var snippets = snippetMap[scope] || [];
             for (var i = snippets.length; i--;) {
                 var s = snippets[i];
@@ -6695,15 +6972,16 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/demo",["require","exports","module","ace/lib/fixoldbrowsers","ace/multi_select","ace/ext/spellcheck","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/useragent","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {
+define("kitchen-sink/demo",["require","exports","module","ace/lib/fixoldbrowsers","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/useragent","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {
 "use strict";
 
 require("ace/lib/fixoldbrowsers");
 
+require("ace/ext/rtl");
+
 require("ace/multi_select");
-require("ace/ext/spellcheck");
 require("./inline_editor");
-require("./dev_util");
+var devUtil = require("./dev_util");
 require("./file_drop");
 
 var config = require("ace/config");
@@ -7021,10 +7299,15 @@ optionsPanel.add({
         }
     },
     More: {
+        "Rtl Text": {
+            path: "rtlText",
+            position: 900
+        },
         "Show token info": {
             path: "showTokenInfo",
-            position: 1000
-        }
+            position: 2000
+        },
+        "Text Input Debugger": devUtil.textInputDebugger
     }
 });
 
@@ -7106,15 +7389,25 @@ env.editSnippets = function() {
 };
 
 optionsPanelContainer.insertBefore(
-    dom.buildDom(["div", {style: "text-align:right;margin-right: 60px"}, 
-        ["button", {onclick: env.editSnippets}, "Edit Snippets"]]),
+    dom.buildDom(["div", {style: "text-align:right;margin-right: 60px"},
+        ["div", {}, 
+            ["button", {onclick: env.editSnippets}, "Edit Snippets"]],
+        ["div", {}, 
+            ["button", {onclick: function() {
+                var info = navigator.platform + "\n" + navigator.userAgent;
+                if (env.editor.getValue() == info)
+                    return env.editor.undo();
+                env.editor.setValue(info, -1);
+                env.editor.setOption("wrap", 80);
+            }}, "Show Browser Info"]],
+        devUtil.getUI()
+    ]),
     optionsPanelContainer.children[1]
 );
 
 require("ace/ext/language_tools");
 env.editor.setOptions({
     enableBasicAutocompletion: true,
-    enableLiveAutocompletion: false,
     enableSnippets: true
 });
 
@@ -7166,8 +7459,7 @@ function moveFocus() {
         env.editor.focus();
 }
 
-});
-                (function() {
+});                (function() {
                     window.require(["kitchen-sink/demo"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

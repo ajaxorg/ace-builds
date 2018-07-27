@@ -4,8 +4,7 @@ define("ace/snippets/xml",["require","exports","module"], function(require, expo
 exports.snippetText = "";
 exports.scope = "xml";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/xml"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

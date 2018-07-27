@@ -4,8 +4,7 @@ define("ace/snippets/vbscript",["require","exports","module"], function(require,
 exports.snippetText = "";
 exports.scope = "vbscript";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/vbscript"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

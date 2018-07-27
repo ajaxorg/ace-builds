@@ -4,8 +4,7 @@ define("ace/snippets/elm",["require","exports","module"], function(require, expo
 exports.snippetText = "";
 exports.scope = "elm";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/elm"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

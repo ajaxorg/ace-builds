@@ -4,8 +4,7 @@ define("ace/snippets/dot",["require","exports","module"], function(require, expo
 exports.snippetText = "";
 exports.scope = "dot";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/dot"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

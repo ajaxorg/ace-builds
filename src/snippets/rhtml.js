@@ -4,8 +4,7 @@ define("ace/snippets/rhtml",["require","exports","module"], function(require, ex
 exports.snippetText = "";
 exports.scope = "rhtml";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/rhtml"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

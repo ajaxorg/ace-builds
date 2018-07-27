@@ -1,4 +1,4 @@
-ace.define("ace/theme/kuroir",[], function(require, exports, module) {
+ace.define("ace/theme/kuroir",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 
 exports.isDark = false;
 exports.cssClass = "ace-kuroir";
@@ -58,8 +58,7 @@ background-color:rgba(191, 97, 51, 0.051);}.ace-kuroir .ace_markup.ace_list{colo
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/theme/kuroir"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

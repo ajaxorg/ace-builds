@@ -4,8 +4,7 @@ define("ace/snippets/glsl",["require","exports","module"], function(require, exp
 exports.snippetText = "";
 exports.scope = "glsl";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/glsl"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

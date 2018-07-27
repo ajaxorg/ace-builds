@@ -1,4 +1,4 @@
-ace.define("ace/snippets/clojure",[], function(require, exports, module) {
+ace.define("ace/snippets/clojure",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "snippet comm\n\
@@ -94,8 +94,7 @@ snippet when-let\n\
 ";
 exports.scope = "clojure";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/clojure"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

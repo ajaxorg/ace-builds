@@ -1,11 +1,10 @@
-ace.define("ace/snippets/apache_conf",[], function(require, exports, module) {
+ace.define("ace/snippets/apache_conf",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";
 exports.scope = "apache_conf";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/apache_conf"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

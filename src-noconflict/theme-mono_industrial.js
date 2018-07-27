@@ -1,4 +1,4 @@
-ace.define("ace/theme/mono_industrial",[], function(require, exports, module) {
+ace.define("ace/theme/mono_industrial",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 
 exports.isDark = true;
 exports.cssClass = "ace-mono-industrial";
@@ -104,8 +104,7 @@ background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgb
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/theme/mono_industrial"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

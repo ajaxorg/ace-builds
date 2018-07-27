@@ -49,8 +49,7 @@ define("ace/mode/csp",["require","exports","module","ace/mode/text","ace/mode/cs
     }).call(Mode.prototype);
 
     exports.Mode = Mode;
-});
-                (function() {
+});                (function() {
                     window.require(["ace/mode/csp"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

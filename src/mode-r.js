@@ -299,8 +299,7 @@ define("ace/mode/r",["require","exports","module","ace/unicode","ace/range","ace
        this.$id = "ace/mode/r";
    }).call(Mode.prototype);
    exports.Mode = Mode;
-});
-                (function() {
+});                (function() {
                     window.require(["ace/mode/r"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

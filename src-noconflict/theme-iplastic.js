@@ -1,4 +1,4 @@
-ace.define("ace/theme/iplastic",[], function(require, exports, module) {
+ace.define("ace/theme/iplastic",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 
 exports.isDark = false;
 exports.cssClass = "ace-iplastic";
@@ -118,8 +118,7 @@ background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgb
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/theme/iplastic"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
