@@ -1,4 +1,4 @@
-ace.define("ace/snippets/toml",[], function(require, exports, module) {
+ace.define("ace/snippets/toml",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";

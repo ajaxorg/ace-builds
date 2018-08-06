@@ -1,4 +1,4 @@
-ace.define("ace/snippets/haskell_cabal",[], function(require, exports, module) {
+ace.define("ace/snippets/haskell_cabal",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";

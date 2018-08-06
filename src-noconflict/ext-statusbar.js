@@ -1,4 +1,4 @@
-ace.define("ace/ext/statusbar",[], function(require, exports, module) {
+ace.define("ace/ext/statusbar",["require","exports","module","ace/lib/dom","ace/lib/lang"], function(require, exports, module) {
 "use strict";
 var dom = require("ace/lib/dom");
 var lang = require("ace/lib/lang");

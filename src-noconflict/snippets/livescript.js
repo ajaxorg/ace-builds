@@ -1,4 +1,4 @@
-ace.define("ace/snippets/livescript",[], function(require, exports, module) {
+ace.define("ace/snippets/livescript",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";

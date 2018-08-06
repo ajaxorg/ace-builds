@@ -1,4 +1,4 @@
-ace.define("ace/mode/doc_comment_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -48,7 +48,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
 });
 
-ace.define("ace/mode/javascript_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -180,7 +180,8 @@ var JavaScriptHighlightRules = function(options) {
                 next  : "property"
             }, {
                 token : "storage.type",
-                regex : /=>/
+                regex : /=>/,
+                next  : "start"
             }, {
                 token : "keyword.operator",
                 regex : /--|\+\+|\.{3}|===|==|=|!=|!==|<+=?|>+=?|!|&&|\|\||\?:|[!$%&*+\-~\/^]=?/,
@@ -520,7 +521,7 @@ function comments(next) {
 exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
 });
 
-ace.define("ace/mode/css_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/css_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -714,7 +715,7 @@ exports.CssHighlightRules = CssHighlightRules;
 
 });
 
-ace.define("ace/mode/xml_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/xml_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -917,7 +918,7 @@ oop.inherits(XmlHighlightRules, TextHighlightRules);
 exports.XmlHighlightRules = XmlHighlightRules;
 });
 
-ace.define("ace/mode/html_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/html_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/css_highlight_rules","ace/mode/javascript_highlight_rules","ace/mode/xml_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -999,31 +1000,63 @@ oop.inherits(HtmlHighlightRules, XmlHighlightRules);
 exports.HtmlHighlightRules = HtmlHighlightRules;
 });
 
-ace.define("ace/mode/markdown_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/markdown_highlight_rules",["require","exports","module","ace/config","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules","ace/mode/html_highlight_rules"], function(require, exports, module) {
 "use strict";
+
+var modes = require("../config").$modes;
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
-var XmlHighlightRules = require("./xml_highlight_rules").XmlHighlightRules;
 var HtmlHighlightRules = require("./html_highlight_rules").HtmlHighlightRules;
-var CssHighlightRules = require("./css_highlight_rules").CssHighlightRules;
 
 var escaped = function(ch) {
     return "(?:[^" + lang.escapeRegExp(ch) + "\\\\]|\\\\.)*";
 };
 
-function github_embed(tag, prefix) {
-    return { // Github style block
-        token : "support.function",
-        regex : "^\\s*```" + tag + "\\s*$",
-        push  : prefix + "start"
-    };
-}
-
 var MarkdownHighlightRules = function() {
     HtmlHighlightRules.call(this);
+    var codeBlockStartRule = {
+        token : "support.function",
+        regex : /^\s*(```+[^`]*|~~~+[^~]*)$/,
+        onMatch: function(value, state, stack, line) {
+            var m = value.match(/^(\s*)([`~]+)(.*)/);
+            var language = /[\w-]+|$/.exec(m[3])[0];
+            if (!modes[language])
+                language = "";
+            stack.unshift("githubblock", [], [m[1], m[2], language], state);
+            return this.token;
+        },
+        next  : "githubblock"
+    };
+    var codeBlockRules = [{
+        token : "support.function",
+        regex : ".*",
+        onMatch: function(value, state, stack, line) {
+            var embedState = stack[1];
+            var indent = stack[2][0];
+            var endMarker = stack[2][1];
+            var language = stack[2][2];
+            
+            var m = /^(\s*)(`+|~+)\s*$/.exec(value);
+            if (
+                m && m[1].length < indent.length + 3
+                && m[2].length >= endMarker.length && m[2][0] == endMarker[0]
+            ) {
+                stack.splice(0, 3);
+                this.next = stack.shift();
+                return this.token;
+            }
+            this.next = "";
+            if (language && modes[language]) {
+                var data = modes[language].getTokenizer().getLineTokens(value, embedState.slice(0));
+                stack[1] = data.state;
+                return data.tokens;
+            }
+            return this.token;
+        }
+    }];
+
     this.$rules["start"].unshift({
         token : "empty_line",
         regex : '^$',
@@ -1041,15 +1074,8 @@ var MarkdownHighlightRules = function() {
         regex : /^#{1,6}(?=\s|$)/,
         next : "header"
     },
-       github_embed("(?:javascript|js)", "jscode-"),
-       github_embed("xml", "xmlcode-"),
-       github_embed("html", "htmlcode-"),
-       github_embed("css", "csscode-"),
-    { // Github style block
-        token : "support.function",
-        regex : "^\\s*```\\s*\\S*(?:{.*?\\})?\\s*$",
-        next  : "githubblock"
-    }, { // block quote
+    codeBlockStartRule,
+    { // block quote
         token : "string.blockquote",
         regex : "^\\s*>\\s*(?:[*+-]|\\d+\\.)?\\s+",
         next  : "blockquote"
@@ -1080,10 +1106,10 @@ var MarkdownHighlightRules = function() {
             regex : "(\\[)(" + escaped("]") + ")(\\]\\s*\\[)("+ escaped("]") + ")(\\])"
         }, { // link by url
             token : ["text", "string", "text", "markup.underline", "string", "text"],
-            regex : "(\\[)(" +                                        // [
-                    escaped("]") +                                    // link text
+            regex : "(\\!?\\[)(" +                                        // [
+                    escaped("]") +                                    // link text or alt text
                     ")(\\]\\()"+                                      // ](
-                    '((?:[^\\)\\s\\\\]|\\\\.|\\s(?=[^"]))*)' +        // href
+                    '((?:[^\\)\\s\\\\]|\\\\.|\\s(?=[^"]))*)' +        // href or image
                     '(\\s*"' +  escaped('"') + '"\\s*)?' +            // "title"
                     "(\\))"                                           // )
         }, { // strong ** __
@@ -1131,11 +1157,9 @@ var MarkdownHighlightRules = function() {
             next  : "listblock-start"
         }, {
             include : "basic", noEscape: true
-        }, { // Github style block
-            token : "support.function",
-            regex : "^\\s*```\\s*[a-zA-Z]*(?:{.*?\\})?\\s*$",
-            next  : "githubblock"
-        }, {
+        },
+        codeBlockStartRule,
+        {
             defaultToken : "list" //do not use markup.list to allow stling leading `*` differntly
         } ],
 
@@ -1153,38 +1177,8 @@ var MarkdownHighlightRules = function() {
             defaultToken : "string.blockquote"
         } ],
 
-        "githubblock" : [ {
-            token : "support.function",
-            regex : "^\\s*```",
-            next  : "start"
-        }, {
-            defaultToken : "support.function"
-        } ]
+        "githubblock" : codeBlockRules
     });
-
-    this.embedRules(JavaScriptHighlightRules, "jscode-", [{
-       token : "support.function",
-       regex : "^\\s*```",
-       next  : "pop"
-    }]);
-
-    this.embedRules(HtmlHighlightRules, "htmlcode-", [{
-       token : "support.function",
-       regex : "^\\s*```",
-       next  : "pop"
-    }]);
-
-    this.embedRules(CssHighlightRules, "csscode-", [{
-       token : "support.function",
-       regex : "^\\s*```",
-       next  : "pop"
-    }]);
-
-    this.embedRules(XmlHighlightRules, "xmlcode-", [{
-       token : "support.function",
-       regex : "^\\s*```",
-       next  : "pop"
-    }]);
 
     this.normalizeRules();
 };
@@ -1193,7 +1187,7 @@ oop.inherits(MarkdownHighlightRules, TextHighlightRules);
 exports.MarkdownHighlightRules = MarkdownHighlightRules;
 });
 
-ace.define("ace/mode/mask_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/mask_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules","ace/mode/javascript_highlight_rules","ace/mode/css_highlight_rules","ace/mode/markdown_highlight_rules","ace/mode/html_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 exports.MaskHighlightRules = MaskHighlightRules;
@@ -1473,7 +1467,7 @@ function Token(token, rgx, mix) {
 
 });
 
-ace.define("ace/mode/matching_brace_outdent",[], function(require, exports, module) {
+ace.define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module) {
 "use strict";
 
 var Range = require("../range").Range;
@@ -1513,7 +1507,7 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-ace.define("ace/mode/behaviour/css",[], function(require, exports, module) {
+ace.define("ace/mode/behaviour/css",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/mode/behaviour/cstyle","ace/token_iterator"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
@@ -1606,7 +1600,7 @@ oop.inherits(CssBehaviour, CstyleBehaviour);
 exports.CssBehaviour = CssBehaviour;
 });
 
-ace.define("ace/mode/folding/cstyle",[], function(require, exports, module) {
+ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
@@ -1746,7 +1740,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/mask",[], function(require, exports, module) {
+ace.define("ace/mode/mask",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/mask_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/behaviour/css","ace/mode/folding/cstyle"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");

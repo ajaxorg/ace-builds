@@ -1,4 +1,4 @@
-ace.define("ace/snippets/redshift",[], function(require, exports, module) {
+ace.define("ace/snippets/redshift",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";

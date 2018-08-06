@@ -1,4 +1,4 @@
-ace.define("ace/theme/crimson_editor",[], function(require, exports, module) {
+ace.define("ace/theme/crimson_editor",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 exports.isDark = false;
 exports.cssText = ".ace-crimson-editor .ace_gutter {\
 background: #ebebeb;\

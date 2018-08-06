@@ -1,4 +1,4 @@
-ace.define("ace/snippets/csound_score",[], function(require, exports, module) {
+ace.define("ace/snippets/csound_score",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";

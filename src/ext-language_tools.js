@@ -928,7 +928,7 @@ var $singleLineEditor = function(el) {
     editor.renderer.setShowGutter(false);
     editor.renderer.setHighlightGutterLine(false);
 
-    editor.$mouseHandler.$focusWaitTimout = 0;
+    editor.$mouseHandler.$focusTimeout = 0;
     editor.$highlightTagPending = true;
 
     return editor;
@@ -1055,29 +1055,39 @@ var AcePopup = function(parentNode) {
             return tokens;
         if (typeof data == "string")
             data = {value: data};
-        if (!data.caption)
-            data.caption = data.value || data.name;
+        var caption = data.caption || data.value || data.name;
 
-        var last = -1;
-        var flag, c;
-        for (var i = 0; i < data.caption.length; i++) {
-            c = data.caption[i];
-            flag = data.matchMask & (1 << i) ? 1 : 0;
-            if (last !== flag) {
-                tokens.push({type: data.className || "" + ( flag ? "completion-highlight" : ""), value: c});
-                last = flag;
-            } else {
-                tokens[tokens.length - 1].value += c;
+        function addToken(value, className) {
+            value && tokens.push({
+                type: (data.className || "") + (className || ""), 
+                value: value
+            });
+        }
+        
+        var lower = caption.toLowerCase();
+        var filterText = (popup.filterText || "").toLowerCase();
+        var lastIndex = 0;
+        var lastI = 0;
+        for (var i = 0; i <= filterText.length; i++) {
+            if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {
+                var sub = filterText.slice(lastI, i);
+                lastI = i;
+                var index = lower.indexOf(sub);
+                if (index == -1) continue;
+                addToken(caption.slice(lastIndex, index), "");
+                lastIndex = index + sub.length;
+                addToken(caption.slice(index, lastIndex), "completion-highlight");
             }
         }
-
+        addToken(caption.slice(lastIndex, caption.length), "");
+        
         if (data.meta) {
             var maxW = popup.renderer.$size.scrollerWidth / popup.renderer.layerConfig.characterWidth;
             var metaData = data.meta;
             if (metaData.length + data.caption.length > maxW - 2) {
                 metaData = metaData.substr(0, maxW - data.caption.length - 3) + "\u2026";
             }
-            tokens.push({type: "rightAlignedText", value: metaData});
+            tokens.push({type: "completion-meta", value: metaData});
         }
         return tokens;
     };
@@ -1090,9 +1100,11 @@ var AcePopup = function(parentNode) {
     popup.isOpen = false;
     popup.isTopdown = false;
     popup.autoSelect = true;
+    popup.filterText = "";
 
     popup.data = [];
-    popup.setData = function(list) {
+    popup.setData = function(list, filterText) {
+        popup.filterText = filterText || "";
         popup.setValue(lang.stringRepeat("\n", list.length), -1);
         popup.data = list || [];
         popup.setRow(0);
@@ -1177,42 +1189,47 @@ dom.importCssString("\
     background-color: #CAD6FA;\
     z-index: 1;\
 }\
+.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\
+    background-color: #3a674e;\
+}\
 .ace_editor.ace_autocomplete .ace_line-hover {\
     border: 1px solid #abbffe;\
     margin-top: -1px;\
     background: rgba(233,233,253,0.4);\
-}\
-.ace_editor.ace_autocomplete .ace_line-hover {\
     position: absolute;\
     z-index: 2;\
 }\
-.ace_editor.ace_autocomplete .ace_scroller {\
-   background: none;\
-   border: none;\
-   box-shadow: none;\
+.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\
+    border: 1px solid rgba(109, 150, 13, 0.8);\
+    background: rgba(58, 103, 78, 0.62);\
 }\
-.ace_rightAlignedText {\
-    color: gray;\
-    display: inline-block;\
-    position: absolute;\
-    right: 4px;\
-    text-align: right;\
-    z-index: -1;\
+.ace_completion-meta {\
+    opacity: 0.5;\
+    margin: 0.9em;\
 }\
 .ace_editor.ace_autocomplete .ace_completion-highlight{\
-    color: #000;\
-    text-shadow: 0 0 0.01em;\
+    color: #2d69c7;\
+}\
+.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\
+    color: #93ca12;\
 }\
 .ace_editor.ace_autocomplete {\
-    width: 280px;\
+    width: 300px;\
     z-index: 200000;\
-    background: #fbfbfb;\
-    color: #444;\
     border: 1px lightgray solid;\
     position: fixed;\
     box-shadow: 2px 3px 5px rgba(0,0,0,.2);\
     line-height: 1.4;\
-}");
+    background: #fefefe;\
+    color: #111;\
+}\
+.ace_dark.ace_editor.ace_autocomplete {\
+    border: 1px #484747 solid;\
+    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\
+    line-height: 1.4;\
+    background: #25282c;\
+    color: #c1c1c1;\
+}", "autocompletion.css");
 
 exports.AcePopup = AcePopup;
 
@@ -1332,9 +1349,9 @@ var Autocomplete = function() {
         if (!this.popup)
             this.$init();
 
-	this.popup.autoSelect = this.autoSelect;
+        this.popup.autoSelect = this.autoSelect;
 
-        this.popup.setData(this.completions.filtered);
+        this.popup.setData(this.completions.filtered, this.completions.filterText);
 
         editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
         
@@ -1694,7 +1711,8 @@ var FilteredList = function(array, filterText) {
         this.filterText = str;
         matches = this.filterCompletions(matches, this.filterText);
         matches = matches.sort(function(a, b) {
-            return b.exactMatch - a.exactMatch || b.score - a.score;
+            return b.exactMatch - a.exactMatch || b.$score - a.$score 
+                || (a.caption || a.value) < (b.caption || b.value);
         });
         var prev = null;
         matches = matches.filter(function(item){
@@ -1711,7 +1729,7 @@ var FilteredList = function(array, filterText) {
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
-            var caption = item.value || item.caption || item.snippet;
+            var caption = item.caption || item.value || item.snippet;
             if (!caption) continue;
             var lastIndex = -1;
             var matchMask = 0;
@@ -1722,11 +1740,9 @@ var FilteredList = function(array, filterText) {
                 if (needle !== caption.substr(0, needle.length))
                     continue loop;
             } else {
-                var a;
-                if ((a = caption.toLowerCase().indexOf(lower)) > -1) {
-                    for (var k = a; k < a + lower.length; k++) {
-                        matchMask = matchMask | (1 << k);
-                    }
+                var fullMatchIndex = caption.toLowerCase().indexOf(lower);
+                if (fullMatchIndex > -1) {
+                    penalty = fullMatchIndex;
                 } else {
                     for (var j = 0; j < needle.length; j++) {
                         var i1 = caption.indexOf(lower[j], lastIndex + 1);
@@ -1739,15 +1755,15 @@ var FilteredList = function(array, filterText) {
                             if (lastIndex === -1)
                                 penalty += 10;
                             penalty += distance;
+                            matchMask = matchMask | (1 << j);
                         }
-                        matchMask = matchMask | (1 << index);
                         lastIndex = index;
                     }
                 }
             }
             item.matchMask = matchMask;
             item.exactMatch = penalty ? 0 : 1;
-            item.score = (item.score || 0) - penalty;
+            item.$score = (item.score || 0) - penalty;
             results.push(item);
         }
         return results;
@@ -1826,9 +1842,16 @@ var keyWordCompleter = {
 
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
+        var scopes = [];
+        var token = session.getTokenAt(pos.row, pos.column);
+        if (token && token.type.match(/(tag-name|tag-open|tag-whitespace|attribute-name|attribute-value)\.xml$/))
+            scopes.push('html-tag');
+        else
+            scopes = snippetManager.getActiveScopes(editor);
+
         var snippetMap = snippetManager.snippetMap;
         var completions = [];
-        snippetManager.getActiveScopes(editor).forEach(function(scope) {
+        scopes.forEach(function(scope) {
             var snippets = snippetMap[scope] || [];
             for (var i = snippets.length; i--;) {
                 var s = snippets[i];

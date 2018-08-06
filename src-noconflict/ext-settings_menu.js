@@ -1,4 +1,4 @@
-ace.define("ace/ext/menu_tools/overlay_page",[], function(require, exports, module) {
+ace.define("ace/ext/menu_tools/overlay_page",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 'use strict';
 var dom = require("../../lib/dom");
 var cssText = "#ace_settingsmenu, #kbshortcutmenu {\
@@ -114,7 +114,7 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, top, r
 
 });
 
-ace.define("ace/ext/modelist",[], function(require, exports, module) {
+ace.define("ace/ext/modelist",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 var modes = [];
@@ -189,6 +189,7 @@ var supportedModes = {
     Erlang:      ["erl|hrl"],
     Forth:       ["frt|fs|ldr|fth|4th"],
     Fortran:     ["f|f90"],
+    FSharp:      ["fsi|fs|ml|mli|fsx|fsscript"],
     FTL:         ["ftl"],
     Gcode:       ["gcode"],
     Gherkin:     ["feature"],
@@ -246,7 +247,9 @@ var supportedModes = {
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
+    PHP_Laravel_blade: ["blade.php"],
     PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
+    Puppet:      ["epp|pp"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
@@ -269,6 +272,7 @@ var supportedModes = {
     SCSS:        ["scss"],
     SH:          ["sh|bash|^.bashrc"],
     SJS:         ["sjs"],
+    Slim:        ["slim|skim"],
     Smarty:      ["smarty|tpl"],
     snippets:    ["snippets"],
     Soy_Template:["soy"],
@@ -279,6 +283,7 @@ var supportedModes = {
     SVG:         ["svg"],
     Swift:       ["swift"],
     Tcl:         ["tcl"],
+    Terraform:   ["tf", "tfvars", "terragrunt"],
     Tex:         ["tex"],
     Text:        ["txt"],
     Textile:     ["textile"],
@@ -309,7 +314,8 @@ var nameOverrides = {
     coffee: "CoffeeScript",
     HTML_Ruby: "HTML (Ruby)",
     HTML_Elixir: "HTML (Elixir)",
-    FTL: "FreeMarker"
+    FTL: "FreeMarker",
+    PHP_Laravel_blade: "PHP (Blade Template)"
 };
 var modesByName = {};
 for (var name in supportedModes) {
@@ -329,7 +335,7 @@ module.exports = {
 
 });
 
-ace.define("ace/ext/themelist",[], function(require, exports, module) {
+ace.define("ace/ext/themelist",["require","exports","module","ace/lib/fixoldbrowsers"], function(require, exports, module) {
 "use strict";
 require("ace/lib/fixoldbrowsers");
 
@@ -389,7 +395,7 @@ exports.themes = themeData.map(function(data) {
 
 });
 
-ace.define("ace/ext/options",[], function(require, exports, module) {
+ace.define("ace/ext/options",["require","exports","module","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/lib/oop","ace/lib/event_emitter","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module) {
 "use strict";
 var overlayPage = require('./menu_tools/overlay_page').overlayPage;
 
@@ -447,8 +453,8 @@ var optionGroups = {
             path: "wrap",
             items: [
                { caption : "Off",  value : "off" },
-               { caption : "Free", value : "free" },
-               { caption : "80",   value : "80" },
+               { caption : "View", value : "free" },
+               { caption : "margin", value : "printMargin" },
                { caption : "40",   value : "40" }
             ]
         },
@@ -519,17 +525,32 @@ var optionGroups = {
         "Show Gutter": {
             path: "showGutter"
         },
+        "Show Line Numbers": {
+            path: "showLineNumbers"
+        },
+        "Relative Line Numbers": {
+            path: "relativeLineNumbers"
+        },
+        "Fixed Gutter Width": {
+            path: "fixedWidthGutter"
+        },
         "Show Print Margin": [{
             path: "showPrintMargin"
         }, {
             type: "number",
             path: "printMarginColumn"
         }],
+        "Indented Soft Wrap": {
+            path: "indentedSoftWrap"
+        },
         "Highlight selected word": {
             path: "highlightSelectedWord"
         },
         "Fade Fold Widgets": {
             path: "fadeFoldWidgets"
+        },
+        "Use textarea for IME": {
+            path: "useTextareaForIME"
         },
         "Merge Undo Deltas": {
             path: "mergeUndoDeltas",
@@ -703,7 +724,7 @@ var OptionPanel = function(editor, element) {
             value = parseFloat(value);
         if (option.onchange)
             option.onchange(value);
-        else
+        else if (option.path)
             this.editor.setOption(option.path, value);
         this._signal("setOption", {name: option.path, value: value});
     };
@@ -720,7 +741,7 @@ exports.OptionPanel = OptionPanel;
 
 });
 
-ace.define("ace/ext/settings_menu",[], function(require, exports, module) {
+ace.define("ace/ext/settings_menu",["require","exports","module","ace/ext/options","ace/ext/menu_tools/overlay_page","ace/editor"], function(require, exports, module) {
 "use strict";
 var OptionPanel = require("ace/ext/options").OptionPanel;
 var overlayPage = require('./menu_tools/overlay_page').overlayPage;

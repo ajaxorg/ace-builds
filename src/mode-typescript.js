@@ -180,7 +180,8 @@ var JavaScriptHighlightRules = function(options) {
                 next  : "property"
             }, {
                 token : "storage.type",
-                regex : /=>/
+                regex : /=>/,
+                next  : "start"
             }, {
                 token : "keyword.operator",
                 regex : /--|\+\+|\.{3}|===|==|=|!=|!==|<+=?|>+=?|!|&&|\|\||\?:|[!$%&*+\-~\/^]=?/,
@@ -787,52 +788,40 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 });
 
-define("ace/mode/typescript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/javascript_highlight_rules"], function(require, exports, module) {
+define("ace/mode/typescript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/javascript_highlight_rules"], function (require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
 var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
 
-var TypeScriptHighlightRules = function(options) {
+var TypeScriptHighlightRules = function (options) {
 
-    var tsRules =  [
+    var tsRules = [
         {
-            token: ["keyword.operator.ts", "text", "variable.parameter.function.ts", "text"],
-            regex: "\\b(module)(\\s*)([a-zA-Z0-9_?.$][\\w?.$]*)(\\s*\\{)"
-        }, 
-        {
-            token: ["storage.type.variable.ts", "text", "keyword.other.ts", "text"],
-            regex: "(super)(\\s*\\()([a-zA-Z0-9,_?.$\\s]+\\s*)(\\))"
-        },
-        {
-            token: ["entity.name.function.ts","paren.lparen", "paren.rparen"],
-            regex: "([a-zA-Z_?.$][\\w?.$]*)(\\()(\\))"
-        },
-        {
-            token: ["variable.parameter.function.ts", "text", "variable.parameter.function.ts"],
-            regex: "([a-zA-Z0-9_?.$][\\w?.$]*)(\\s*:\\s*)([a-zA-Z0-9_?.$][\\w?.$]*)"
-        },  
-        {
-            token: ["keyword.operator.ts"],
-            regex: "(?:\\b(constructor|declare|interface|as|AS|public|private|class|extends|export|super)\\b)"
-        }, 
-        {
-            token: ["storage.type.variable.ts"],
-            regex: "(?:\\b(this\\.|string\\b|bool\\b|number)\\b)"
-        }, 
-        {
-            token: ["keyword.operator.ts", "storage.type.variable.ts", "keyword.operator.ts", "storage.type.variable.ts"],
-            regex: "(class)(\\s+[a-zA-Z0-9_?.$][\\w?.$]*\\s+)(extends)(\\s+[a-zA-Z0-9_?.$][\\w?.$]*\\s+)?"
+            token: ["storage.type", "text", "entity.name.function.ts"],
+            regex: "(function)(\\s+)([a-zA-Z0-9\$_\u00a1-\uffff][a-zA-Z0-9\d\$_\u00a1-\uffff]*)"
         },
         {
             token: "keyword",
-            regex: "(?:super|export|class|extends|import)\\b"
+            regex: "(?:\\b(constructor|declare|interface|as|AS|public|private|extends|export|super|readonly|module|namespace|abstract|implements)\\b)"
+        },
+        {
+            token: ["keyword", "storage.type.variable.ts"],
+            regex: "(class|type)(\\s+[a-zA-Z0-9_?.$][\\w?.$]*)"
+         },
+        {
+            token: "keyword",
+            regex: "\\b(?:super|export|import|keyof|infer)\\b"
+        }, 
+        {
+            token: ["storage.type.variable.ts"],
+            regex: "(?:\\b(this\\.|string\\b|bool\\b|boolean\\b|number\\b|true\\b|false\\b|undefined\\b|any\\b|null\\b|(?:unique )?symbol\\b|object\\b|never\\b|enum\\b))"
         }
     ];
 
     var JSRules = new JavaScriptHighlightRules({jsx: (options && options.jsx) == true}).getRules();
     
-    JSRules.start = tsRules.concat(JSRules.start);
+    JSRules.no_regex = tsRules.concat(JSRules.no_regex);
     this.$rules = JSRules;
 };
 

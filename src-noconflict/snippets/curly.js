@@ -1,4 +1,4 @@
-ace.define("ace/snippets/curly",[], function(require, exports, module) {
+ace.define("ace/snippets/curly",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";

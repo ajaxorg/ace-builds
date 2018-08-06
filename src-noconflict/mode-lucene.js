@@ -1,4 +1,4 @@
-ace.define("ace/mode/lucene_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/lucene_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -9,35 +9,44 @@ var LuceneHighlightRules = function() {
     this.$rules = {
         "start" : [
             {
-                token : "constant.character.negation",
-                regex : "[\\-]"
+                token: "constant.language.escape",
+                regex: /\\[\+\-&\|!\(\)\{\}\[\]^"~\*\?:\\]/
             }, {
-                token : "constant.character.interro",
-                regex : "[\\?]"
+                token: "constant.character.negation",
+                regex: "\\-"
             }, {
-                token : "constant.character.asterisk",
-                regex : "[\\*]"
+                token: "constant.character.interro",
+                regex: "\\?"
+            }, {
+                token: "constant.character.required",
+                regex: "\\+"
+            }, {
+                token: "constant.character.asterisk",
+                regex: "\\*"
             }, {
                 token: 'constant.character.proximity',
-                regex: '~[0-9]+\\b'
+                regex: '~(?:0\\.[0-9]+|[0-9]+)?'
             }, {
-                token : 'keyword.operator',
-                regex: '(?:AND|OR|NOT)\\b'
+                token: 'keyword.operator',
+                regex: '(AND|OR|NOT|TO)\\b'
             }, {
-                token : "paren.lparen",
-                regex : "[\\(]"
+                token: "paren.lparen",
+                regex: "[\\(\\{\\[]"
             }, {
-                token : "paren.rparen",
-                regex : "[\\)]"
+                token: "paren.rparen",
+                regex: "[\\)\\}\\]]"
             }, {
-                token : "keyword",
-                regex : "[\\S]+:"
+                token: "keyword",
+                regex: "(?:[^\\s:]+|\\\\ )*[^\\\\]:"
             }, {
-                token : "string",           // " string
-                regex : '".*?"'
+                token: "string",           // " string
+                regex: '"(?:\\\\"|[^"])*"'
             }, {
-                token : "text",
-                regex : "\\s+"
+                token: "term",
+                regex: "\\w+"
+            }, {
+                token: "text",
+                regex: "\\s+"
             }
         ]
     };
@@ -48,7 +57,7 @@ oop.inherits(LuceneHighlightRules, TextHighlightRules);
 exports.LuceneHighlightRules = LuceneHighlightRules;
 });
 
-ace.define("ace/mode/lucene",[], function(require, exports, module) {
+ace.define("ace/mode/lucene",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/lucene_highlight_rules"], function(require, exports, module) {
 'use strict';
 
 var oop = require("../lib/oop");

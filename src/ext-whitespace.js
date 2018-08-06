@@ -181,8 +181,8 @@ exports.commands = [{
     }
 }, {
     name: "trimTrailingSpace",
-    exec: function(editor) {
-        exports.trimTrailingSpace(editor.session);
+    exec: function(editor, args) {
+        exports.trimTrailingSpace(editor.session, args);
     }
 }, {
     name: "convertIndentation",

@@ -1,4 +1,4 @@
-ace.define("ace/mode/folding/coffee",[], function(require, exports, module) {
+ace.define("ace/mode/folding/coffee",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode","ace/range"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
@@ -85,7 +85,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/snippets",[], function(require, exports, module) {
+ace.define("ace/mode/snippets",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/text_highlight_rules","ace/mode/folding/coffee"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -153,26 +153,26 @@ exports.SnippetHighlightRules = SnippetHighlightRules;
 var SnippetGroupHighlightRules = function() {
     this.$rules = {
         "start" : [
-			{token: "text", regex: "^\\t", next: "sn-start"},
-			{token:"invalid", regex: /^ \s*/},
+            {token: "text", regex: "^\\t", next: "sn-start"},
+            {token:"invalid", regex: /^ \s*/},
             {token:"comment", regex: /^#.*/},
             {token:"constant.language.escape", regex: "^regex ", next: "regex"},
             {token:"constant.language.escape", regex: "^(trigger|endTrigger|name|snippet|guard|endGuard|tabTrigger|key)\\b"}
         ],
-		"regex" : [
-			{token:"text", regex: "\\."},
-			{token:"keyword", regex: "/"},
-			{token:"empty", regex: "$", next: "start"}
-		]
+        "regex" : [
+            {token:"text", regex: "\\."},
+            {token:"keyword", regex: "/"},
+            {token:"empty", regex: "$", next: "start"}
+        ]
     };
-	this.embedRules(SnippetHighlightRules, "sn-", [
-		{token: "text", regex: "^\\t", next: "sn-start"},
-		{onMatch: function(value, state, stack) {
-			stack.splice(stack.length);
-			return this.tokenName;
-		}, tokenName: "text", regex: "^(?!\t)", next: "start"}
-	]);
-	
+    this.embedRules(SnippetHighlightRules, "sn-", [
+        {token: "text", regex: "^\\t", next: "sn-start"},
+        {onMatch: function(value, state, stack) {
+            stack.splice(stack.length);
+            return this.tokenName;
+        }, tokenName: "text", regex: "^(?!\t)", next: "start"}
+    ]);
+    
 };
 
 oop.inherits(SnippetGroupHighlightRules, TextHighlightRules);

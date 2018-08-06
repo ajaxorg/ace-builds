@@ -1,4 +1,4 @@
-ace.define("ace/theme/katzenmilch",[], function(require, exports, module) {
+ace.define("ace/theme/katzenmilch",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 
 exports.isDark = false;
 exports.cssClass = "ace-katzenmilch";

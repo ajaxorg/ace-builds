@@ -1,4 +1,4 @@
-ace.define("ace/theme/eclipse",[], function(require, exports, module) {
+ace.define("ace/theme/eclipse",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
 exports.isDark = false;

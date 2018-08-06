@@ -1,4 +1,4 @@
-ace.define("ace/mode/doc_comment_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -48,7 +48,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
 });
 
-ace.define("ace/mode/javascript_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -180,7 +180,8 @@ var JavaScriptHighlightRules = function(options) {
                 next  : "property"
             }, {
                 token : "storage.type",
-                regex : /=>/
+                regex : /=>/,
+                next  : "start"
             }, {
                 token : "keyword.operator",
                 regex : /--|\+\+|\.{3}|===|==|=|!=|!==|<+=?|>+=?|!|&&|\|\||\?:|[!$%&*+\-~\/^]=?/,
@@ -520,7 +521,7 @@ function comments(next) {
 exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
 });
 
-ace.define("ace/mode/matching_brace_outdent",[], function(require, exports, module) {
+ace.define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module) {
 "use strict";
 
 var Range = require("../range").Range;
@@ -560,7 +561,7 @@ var MatchingBraceOutdent = function() {};
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
 });
 
-ace.define("ace/mode/folding/cstyle",[], function(require, exports, module) {
+ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../../lib/oop");
@@ -700,7 +701,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/javascript",[], function(require, exports, module) {
+ace.define("ace/mode/javascript",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/javascript_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/behaviour/cstyle","ace/mode/folding/cstyle"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -787,52 +788,40 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 });
 
-ace.define("ace/mode/typescript_highlight_rules",[], function(require, exports, module) {
+ace.define("ace/mode/typescript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/javascript_highlight_rules"], function (require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
 var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
 
-var TypeScriptHighlightRules = function(options) {
+var TypeScriptHighlightRules = function (options) {
 
-    var tsRules =  [
+    var tsRules = [
         {
-            token: ["keyword.operator.ts", "text", "variable.parameter.function.ts", "text"],
-            regex: "\\b(module)(\\s*)([a-zA-Z0-9_?.$][\\w?.$]*)(\\s*\\{)"
-        }, 
-        {
-            token: ["storage.type.variable.ts", "text", "keyword.other.ts", "text"],
-            regex: "(super)(\\s*\\()([a-zA-Z0-9,_?.$\\s]+\\s*)(\\))"
-        },
-        {
-            token: ["entity.name.function.ts","paren.lparen", "paren.rparen"],
-            regex: "([a-zA-Z_?.$][\\w?.$]*)(\\()(\\))"
-        },
-        {
-            token: ["variable.parameter.function.ts", "text", "variable.parameter.function.ts"],
-            regex: "([a-zA-Z0-9_?.$][\\w?.$]*)(\\s*:\\s*)([a-zA-Z0-9_?.$][\\w?.$]*)"
-        },  
-        {
-            token: ["keyword.operator.ts"],
-            regex: "(?:\\b(constructor|declare|interface|as|AS|public|private|class|extends|export|super)\\b)"
-        }, 
-        {
-            token: ["storage.type.variable.ts"],
-            regex: "(?:\\b(this\\.|string\\b|bool\\b|number)\\b)"
-        }, 
-        {
-            token: ["keyword.operator.ts", "storage.type.variable.ts", "keyword.operator.ts", "storage.type.variable.ts"],
-            regex: "(class)(\\s+[a-zA-Z0-9_?.$][\\w?.$]*\\s+)(extends)(\\s+[a-zA-Z0-9_?.$][\\w?.$]*\\s+)?"
+            token: ["storage.type", "text", "entity.name.function.ts"],
+            regex: "(function)(\\s+)([a-zA-Z0-9\$_\u00a1-\uffff][a-zA-Z0-9\d\$_\u00a1-\uffff]*)"
         },
         {
             token: "keyword",
-            regex: "(?:super|export|class|extends|import)\\b"
+            regex: "(?:\\b(constructor|declare|interface|as|AS|public|private|extends|export|super|readonly|module|namespace|abstract|implements)\\b)"
+        },
+        {
+            token: ["keyword", "storage.type.variable.ts"],
+            regex: "(class|type)(\\s+[a-zA-Z0-9_?.$][\\w?.$]*)"
+         },
+        {
+            token: "keyword",
+            regex: "\\b(?:super|export|import|keyof|infer)\\b"
+        }, 
+        {
+            token: ["storage.type.variable.ts"],
+            regex: "(?:\\b(this\\.|string\\b|bool\\b|boolean\\b|number\\b|true\\b|false\\b|undefined\\b|any\\b|null\\b|(?:unique )?symbol\\b|object\\b|never\\b|enum\\b))"
         }
     ];
 
     var JSRules = new JavaScriptHighlightRules({jsx: (options && options.jsx) == true}).getRules();
     
-    JSRules.start = tsRules.concat(JSRules.start);
+    JSRules.no_regex = tsRules.concat(JSRules.no_regex);
     this.$rules = JSRules;
 };
 
@@ -841,7 +830,7 @@ oop.inherits(TypeScriptHighlightRules, JavaScriptHighlightRules);
 exports.TypeScriptHighlightRules = TypeScriptHighlightRules;
 });
 
-ace.define("ace/mode/typescript",[], function(require, exports, module) {
+ace.define("ace/mode/typescript",["require","exports","module","ace/lib/oop","ace/mode/javascript","ace/mode/typescript_highlight_rules","ace/mode/behaviour/cstyle","ace/mode/folding/cstyle","ace/mode/matching_brace_outdent"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -870,7 +859,7 @@ oop.inherits(Mode, jsMode);
 exports.Mode = Mode;
 });
 
-ace.define("ace/mode/tsx",[], function(require, exports, module) {
+ace.define("ace/mode/tsx",["require","exports","module","ace/lib/oop","ace/mode/typescript"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");

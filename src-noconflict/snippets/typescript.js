@@ -1,4 +1,4 @@
-ace.define("ace/snippets/typescript",[], function(require, exports, module) {
+ace.define("ace/snippets/typescript",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
 exports.snippetText = "";
