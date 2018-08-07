@@ -1163,7 +1163,7 @@ exports.hasCssString = function(id, doc) {
 exports.importCssString = function importCssString(cssText, id, container) {
     var root = container && container.getRootNode
         ? container.getRootNode()
-        : container || document;
+        : document;
     
     var doc = root.ownerDocument || root;
     if (id && exports.hasCssString(id, root))
@@ -2799,15 +2799,15 @@ var TextInput = function(parentNode, host) {
 
         if (range.start.row != row) {
             var prevLine = host.session.getLine(row - 1);
-            line = prevLine + "\n" + line;
             selectionStart = range.start.row < row - 1 ? 0 : selectionStart;
             selectionEnd += prevLine.length + 1;
+            line = prevLine + "\n" + line;
         }
         else if (range.end.row != row) {
             var nextLine = host.session.getLine(row + 1);
-            line = line + "\n" + nextLine;
             selectionEnd = range.end.row > row  + 1 ? nextLine.length : selectionEnd;
             selectionEnd += line.length + 1;
+            line = line + "\n" + nextLine;
         }
 
         if (line.length > MAX_LINE_LENGTH) {
@@ -2845,7 +2845,8 @@ var TextInput = function(parentNode, host) {
 
     var isAllSelected = function(text) {
         return text.selectionStart === 0 && text.selectionEnd >= lastValue.length
-            && text.value == lastValue && lastValue;
+            && text.value === lastValue && lastValue
+            && text.selectionEnd !== lastSelectionEnd;
     };
 
     var onSelect = function(e) {
@@ -3260,6 +3261,7 @@ function DefaultHandlers(mouseHandler) {
     this.startSelect = function(pos, waitForClickSelection) {
         pos = pos || this.editor.renderer.screenToTextCoordinates(this.x, this.y);
         var editor = this.editor;
+        if (!this.mousedownEvent) return;
         if (this.mousedownEvent.getShiftKey())
             editor.selection.selectToPosition(pos);
         else if (!waitForClickSelection)
@@ -19281,6 +19283,8 @@ config.defineOptions(VirtualRenderer.prototype, "renderer", {
     },
     minLines: {
         set: function(val) {
+            if (!(this.$minLines < 0x1ffffffffffff))
+                this.$minLines = 0;
             this.updateFull();
         }
     },
@@ -21610,7 +21614,7 @@ exports.Range = Range;
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
 exports.VirtualRenderer = Renderer;
-exports.version = "1.4.0";
+exports.version = "1.4.1";
 });
             (function() {
                 ace.require(["ace/ace"], function(a) {

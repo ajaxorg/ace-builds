@@ -4457,6 +4457,8 @@ var functionMap = {
         "int func_num_args(void)",
         "Get the number of arguments that were passed to the function"
     ],
+    "function ": ["", ""],
+    "foreach ": ["", ""],
     "function_exists": [
         "bool function_exists(string function_name)",
         "Checks if the function exists"

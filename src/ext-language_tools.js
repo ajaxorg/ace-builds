@@ -1081,14 +1081,9 @@ var AcePopup = function(parentNode) {
         }
         addToken(caption.slice(lastIndex, caption.length), "");
         
-        if (data.meta) {
-            var maxW = popup.renderer.$size.scrollerWidth / popup.renderer.layerConfig.characterWidth;
-            var metaData = data.meta;
-            if (metaData.length + data.caption.length > maxW - 2) {
-                metaData = metaData.substr(0, maxW - data.caption.length - 3) + "\u2026";
-            }
-            tokens.push({type: "completion-meta", value: metaData});
-        }
+        if (data.meta)
+            tokens.push({type: "completion-meta", value: data.meta});
+
         return tokens;
     };
     bgTokenizer.$updateOnChange = noop;
