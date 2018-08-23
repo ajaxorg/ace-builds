@@ -775,6 +775,17 @@ export namespace Ace {
     destroy(): void;
     setAutoScrollEditorIntoView(enable: boolean): void;
   }
+
+  export interface TokenIterator{
+    getCurrentToken():Token;
+    getCurrentTokenColumn():number;
+    getCurrentTokenRow():number;
+    getCurrentTokenPosition():Point;
+    getCurrentTokenRange():Range;
+    stepBackward():Token;
+    stepForward():Token;
+  }
+
 }
 
 export const version: string;
@@ -796,3 +807,6 @@ export const Range: {
   fromPoints(start: Ace.Point, end: Ace.Point): Ace.Range;
   comparePoints(p1: Ace.Point, p2: Ace.Point): number;
 };
+export const TokenIterator: {
+    new(session:Ace.EditSession, initialRow:number, initialColumn:number): Ace.TokenIterator;
+}
