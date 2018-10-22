@@ -19350,10 +19350,10 @@ function $workerBlob(workerUrl) {
 function createWorker(workerUrl) {
     if (typeof Worker == "undefined")
         return { postMessage: function() {}, terminate: function() {} };
-    var blob = $workerBlob(workerUrl);
+    /*var blob = $workerBlob(workerUrl);
     var URL = window.URL || window.webkitURL;
-    var blobURL = URL.createObjectURL(blob);
-    return new Worker(blobURL);
+    var blobURL = URL.createObjectURL(blob);*/
+    return new Worker(net.qualifyURL(workerUrl));
 }
 
 var WorkerClient = function(topLevelNamespaces, mod, classname, workerUrl, importScripts) {
