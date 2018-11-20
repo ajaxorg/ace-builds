@@ -23,6 +23,7 @@ var CssHighlightRules = function() {
         "support.constant.color": supportConstantColor,
         "support.constant.fonts": supportConstantFonts
     }, "text", true);
+
     this.$rules = {
         "start" : [{
             include : ["strings", "url", "comments"]
@@ -286,6 +287,7 @@ var JavaScriptHighlightRules = function(options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
+
     this.$rules = {
         "no_regex" : [
             DocCommentHighlightRules.getStartRule("doc-start"),
@@ -1007,6 +1009,7 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var ElixirHighlightRules = function() {
+
     this.$rules = { start: 
        [ { token: 
             [ 'meta.module.elixir',
@@ -3076,8 +3079,7 @@ oop.inherits(Mode, HtmlMode);
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
-});
-                (function() {
+});                (function() {
                     window.require(["ace/mode/html_elixir"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -103,8 +103,7 @@ snippet trim\n\
 ";
 exports.scope = "jsp";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/jsp"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -6,6 +6,7 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var stringEscape = /\\(?:[nrt0'"\\]|x[\da-fA-F]{2}|u\{[\da-fA-F]{6}\})/.source;
 var RustHighlightRules = function() {
+
     this.$rules = { start:
        [ { token: 'variable.other.source.rust',
            regex: '\'[a-zA-Z_][a-zA-Z0-9_]*(?![\\\'])' },
@@ -268,8 +269,7 @@ oop.inherits(Mode, TextMode);
 }).call(Mode.prototype);
 
 exports.Mode = Mode;
-});
-                (function() {
+});                (function() {
                     window.require(["ace/mode/rust"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

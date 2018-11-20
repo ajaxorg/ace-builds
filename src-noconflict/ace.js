@@ -175,6 +175,7 @@ exportAce(ACE_NAMESPACE);
 
 ace.define("ace/lib/regexp",["require","exports","module"], function(require, exports, module) {
 "use strict";
+
     var real = {
             exec: RegExp.prototype.exec,
             test: RegExp.prototype.test,
@@ -224,6 +225,7 @@ ace.define("ace/lib/regexp",["require","exports","module"], function(require, ex
             return !!match;
         };
     }
+
     function getNativeFlags (regex) {
         return (regex.global     ? "g" : "") +
                (regex.ignoreCase ? "i" : "") +
@@ -246,8 +248,6 @@ ace.define("ace/lib/regexp",["require","exports","module"], function(require, ex
 
 ace.define("ace/lib/es5-shim",["require","exports","module"], function(require, exports, module) {
 
-//
-//
 function Empty() {}
 
 if (!Function.prototype.bind) {
@@ -260,6 +260,7 @@ if (!Function.prototype.bind) {
         var bound = function () {
 
             if (this instanceof bound) {
+
                 var result = target.apply(
                     this,
                     args.concat(slice.call(arguments))
@@ -283,7 +284,6 @@ if (!Function.prototype.bind) {
             bound.prototype = new Empty();
             Empty.prototype = null;
         }
-        //
         return bound;
     };
 }
@@ -304,9 +304,6 @@ if ((supportsAccessors = owns(prototypeOfObject, "__defineGetter__"))) {
     lookupGetter = call.bind(prototypeOfObject.__lookupGetter__);
     lookupSetter = call.bind(prototypeOfObject.__lookupSetter__);
 }
-
-//
-//
 if ([1,2].splice(0).length != 2) {
     if(function() { // test IE < 9 to splice bug - see issue #138
         function makeArray(l) {
@@ -629,9 +626,6 @@ if (!Array.prototype.lastIndexOf || ([0, 1].lastIndexOf(0, -3) != -1)) {
         return -1;
     };
 }
-
-//
-//
 if (!Object.getPrototypeOf) {
     Object.getPrototypeOf = function getPrototypeOf(object) {
         return object.__proto__ || (
@@ -715,6 +709,7 @@ if (!Object.create) {
         return object;
     };
 }
+
 function doesDefinePropertyWork(object) {
     try {
         Object.defineProperty(object, "sentinel", {});
@@ -880,18 +875,11 @@ if (!Object.keys) {
     };
 
 }
-
-//
-//
 if (!Date.now) {
     Date.now = function now() {
         return new Date().getTime();
     };
 }
-
-
-//
-//
 var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u180E\u2000\u2001\u2002\u2003" +
     "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028" +
     "\u2029\uFEFF";
@@ -904,8 +892,6 @@ if (!String.prototype.trim || ws.trim()) {
     };
 }
 
-//
-//
 function toInteger(n) {
     n = +n;
     if (n !== n) { // isNaN
@@ -1160,13 +1146,18 @@ exports.hasCssString = function(id, doc) {
     }
 };
 
-exports.importCssString = function importCssString(cssText, id, container) {
-    var root = container && container.getRootNode
-        ? container.getRootNode()
-        : document;
+exports.importCssString = function importCssString(cssText, id, target) {
+    var container = target;
+    if (!target || !target.getRootNode) {
+        container = document;
+    } else {
+        container = target.getRootNode();
+        if (!container || container == target)
+            container = document;
+    }
     
-    var doc = root.ownerDocument || root;
-    if (id && exports.hasCssString(id, root))
+    var doc = container.ownerDocument || container;
+    if (id && exports.hasCssString(id, container))
         return null;
     
     if (id)
@@ -1177,9 +1168,9 @@ exports.importCssString = function importCssString(cssText, id, container) {
     if (id)
         style.id = id;
 
-    if (root == doc)
-        root = exports.getDocumentHead(doc);
-    root.insertBefore(style, root.firstChild);
+    if (container == doc)
+        container = exports.getDocumentHead(doc);
+    container.insertBefore(style, container.firstChild);
 };
 
 exports.importCssStylsheet = function(uri, doc) {
@@ -1292,10 +1283,8 @@ exports.implement = function(proto, mixin) {
 
 });
 
-ace.define("ace/lib/keys",["require","exports","module","ace/lib/fixoldbrowsers","ace/lib/oop"], function(require, exports, module) {
+ace.define("ace/lib/keys",["require","exports","module","ace/lib/oop"], function(require, exports, module) {
 "use strict";
-
-require("./fixoldbrowsers");
 
 var oop = require("./oop");
 var Keys = (function() {
@@ -2204,477 +2193,7 @@ exports.delayedCall = function(fcn, defaultTimeout) {
 };
 });
 
-ace.define("ace/keyboard/textinput_ios",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/lib/keys"], function(require, exports, module) {
-"use strict";
-
-var event = require("../lib/event");
-var useragent = require("../lib/useragent");
-var dom = require("../lib/dom");
-var lang = require("../lib/lang");
-var KEYS = require("../lib/keys");
-var MODS = KEYS.KEY_MODS;
-var BROKEN_SETDATA = useragent.isChrome < 18;
-var USE_IE_MIME_TYPE =  useragent.isIE;
-
-var TextInput = function(parentNode, host) {
-    var self = this;
-    var text = dom.createElement("textarea");
-    text.className = useragent.isIOS ? "ace_text-input ace_text-input-ios" : "ace_text-input";
-
-    if (useragent.isTouchPad)
-        text.setAttribute("x-palm-disable-auto-cap", true);
-
-    text.setAttribute("wrap", "off");
-    text.setAttribute("autocorrect", "off");
-    text.setAttribute("autocapitalize", "off");
-    text.setAttribute("spellcheck", false);
-
-    text.style.opacity = "0";
-    parentNode.insertBefore(text, parentNode.firstChild);
-
-    var PLACEHOLDER = "\n aaaa a\n";
-
-    var copied = false;
-    var cut = false;
-    var pasted = false;
-    var inComposition = false;
-    var tempStyle = '';
-    var isSelectionEmpty = true;
-    try { var isFocused = document.activeElement === text; } catch(e) {}
-    
-    event.addListener(text, "blur", function(e) {
-        host.onBlur(e);
-        isFocused = false;
-    });
-    event.addListener(text, "focus", function(e) {
-        isFocused = true;
-        host.onFocus(e);
-        resetSelection();
-    });
-    this.focus = function() {
-        if (tempStyle) return text.focus();
-        text.style.position = "fixed";
-        text.focus();
-    };
-    this.blur = function() {
-        text.blur();
-    };
-    this.isFocused = function() {
-        return isFocused;
-    };
-    var syncSelection = lang.delayedCall(function() {
-        isFocused && resetSelection(isSelectionEmpty);
-    });
-    var syncValue = lang.delayedCall(function() {
-         if (!inComposition) {
-            text.value = PLACEHOLDER;
-            isFocused && resetSelection();
-         }
-    });
-
-    function resetSelection(isEmpty) {
-        if (inComposition)
-            return;
-        inComposition = true;
-        
-        if (inputHandler) {
-            selectionStart = 0;
-            selectionEnd = isEmpty ? 0 : text.value.length - 1;
-        } else {
-            var selectionStart = 4;
-            var selectionEnd = 5;
-        }
-        try {
-            text.setSelectionRange(selectionStart, selectionEnd);
-        } catch(e) {}
-        
-        inComposition = false;
-    }
-
-    function resetValue() {
-        if (inComposition)
-            return;
-        text.value = PLACEHOLDER;
-        if (useragent.isWebKit)
-            syncValue.schedule();
-    }
-
-    useragent.isWebKit || host.addEventListener('changeSelection', function() {
-        if (host.selection.isEmpty() != isSelectionEmpty) {
-            isSelectionEmpty = !isSelectionEmpty;
-            syncSelection.schedule();
-        }
-    });
-
-    resetValue();
-    if (isFocused)
-        host.onFocus();
-
-
-    var isAllSelected = function(text) {
-        return text.selectionStart === 0 && text.selectionEnd === text.value.length;
-    };
-
-    var onSelect = function(e) {
-        if (isAllSelected(text)) {
-            host.selectAll();
-            resetSelection();
-        } else if (inputHandler) {
-            resetSelection(host.selection.isEmpty());
-        }
-    };
-
-    var inputHandler = null;
-    this.setInputHandler = function(cb) {inputHandler = cb;};
-    this.getInputHandler = function() {return inputHandler;};
-    var afterContextMenu = false;
-    
-    var sendText = function(data) {
-        if (text.selectionStart === 4 && text.selectionEnd === 5) {
-          return;
-        }
-        if (inputHandler) {
-            data = inputHandler(data);
-            inputHandler = null;
-        }
-        if (pasted) {
-            resetSelection();
-            if (data)
-                host.onPaste(data);
-            pasted = false;
-        } else if (data == PLACEHOLDER.substr(0) && text.selectionStart === 4) {
-            if (afterContextMenu)
-                host.execCommand("del", {source: "ace"});
-            else // some versions of android do not fire keydown when pressing backspace
-                host.execCommand("backspace", {source: "ace"});
-        } else if (!copied) {
-            if (data.substring(0, 9) == PLACEHOLDER && data.length > PLACEHOLDER.length)
-                data = data.substr(9);
-            else if (data.substr(0, 4) == PLACEHOLDER.substr(0, 4))
-                data = data.substr(4, data.length - PLACEHOLDER.length + 1);
-            else if (data.charAt(data.length - 1) == PLACEHOLDER.charAt(0))
-                data = data.slice(0, -1);
-            if (data == PLACEHOLDER.charAt(0)) {
-            } else if (data.charAt(data.length - 1) == PLACEHOLDER.charAt(0))
-                data = data.slice(0, -1);
-            
-            if (data)
-                host.onTextInput(data);
-        }
-        if (copied) {
-          copied = false;
-        }
-        if (afterContextMenu)
-            afterContextMenu = false;
-    };
-    var onInput = function(e) {
-        if (inComposition)
-            return;
-        var data = text.value;
-        sendText(data);
-        resetValue();
-    };
-    
-    var handleClipboardData = function(e, data, forceIEMime) {
-        var clipboardData = e.clipboardData || window.clipboardData;
-        if (!clipboardData || BROKEN_SETDATA)
-            return;
-        var mime = USE_IE_MIME_TYPE || forceIEMime ? "Text" : "text/plain";
-        try {
-            if (data) {
-                return clipboardData.setData(mime, data) !== false;
-            } else {
-                return clipboardData.getData(mime);
-            }
-        } catch(e) {
-            if (!forceIEMime)
-                return handleClipboardData(e, data, true);
-        }
-    };
-
-    var doCopy = function(e, isCut) {
-        var data = host.getCopyText();
-        if (!data)
-            return event.preventDefault(e);
-
-        if (handleClipboardData(e, data)) {
-            if (useragent.isIOS) {
-                cut = isCut;
-                text.value = "\n aa" + data + "a a\n";
-                text.setSelectionRange(4, 4 + data.length);
-                copied = {
-                    value: data
-                };
-            }
-            isCut ? host.onCut() : host.onCopy();
-            if (!useragent.isIOS) event.preventDefault(e);
-        } else {
-            copied = true;
-            text.value = data;
-            text.select();
-            setTimeout(function(){
-                copied = false;
-                resetValue();
-                resetSelection();
-                isCut ? host.onCut() : host.onCopy();
-            });
-        }
-    };
-    
-    var onCut = function(e) {
-        doCopy(e, true);
-    };
-    
-    var onCopy = function(e) {
-        doCopy(e, false);
-    };
-    
-    var onPaste = function(e) {
-        var data = handleClipboardData(e);
-        if (typeof data == "string") {
-            if (data)
-                host.onPaste(data, e);
-            if (useragent.isIE)
-                setTimeout(resetSelection);
-            event.preventDefault(e);
-        }
-        else {
-            text.value = "";
-            pasted = true;
-        }
-    };
-
-    event.addCommandKeyListener(text, host.onCommandKey.bind(host));
-
-    event.addListener(text, "select", onSelect);
-
-    event.addListener(text, "input", onInput);
-
-    event.addListener(text, "cut", onCut);
-    event.addListener(text, "copy", onCopy);
-    event.addListener(text, "paste", onPaste);
-    var onCompositionStart = function(e) {
-        if (inComposition || !host.onCompositionStart || host.$readOnly) 
-            return;
-        inComposition = {};
-        inComposition.canUndo = host.session.$undoManager;
-        host.onCompositionStart();
-        setTimeout(onCompositionUpdate, 0);
-        host.on("mousedown", onCompositionEnd);
-        if (inComposition.canUndo && !host.selection.isEmpty()) {
-            host.insert("");
-            host.session.markUndoGroup();
-            host.selection.clearSelection();
-        }
-        host.session.markUndoGroup();
-    };
-
-    var onCompositionUpdate = function() {
-        if (!inComposition || !host.onCompositionUpdate || host.$readOnly)
-            return;
-        var val = text.value.replace(/\x01/g, "");
-        if (inComposition.lastValue === val) return;
-        
-        host.onCompositionUpdate(val);
-        if (inComposition.lastValue)
-            host.undo();
-        if (inComposition.canUndo)
-            inComposition.lastValue = val;
-        if (inComposition.lastValue) {
-            var r = host.selection.getRange();
-            host.insert(inComposition.lastValue);
-            host.session.markUndoGroup();
-            inComposition.range = host.selection.getRange();
-            host.selection.setRange(r);
-            host.selection.clearSelection();
-        }
-    };
-
-    var onCompositionEnd = function(e) {
-        if (!host.onCompositionEnd || host.$readOnly) return;
-        var c = inComposition;
-        inComposition = false;
-        var timer = setTimeout(function() {
-            timer = null;
-            var str = text.value.replace(/\x01/g, "");
-            if (inComposition)
-                return;
-            else if (str == c.lastValue)
-                resetValue();
-            else if (!c.lastValue && str) {
-                resetValue();
-                sendText(str);
-            }
-        });
-        inputHandler = function compositionInputHandler(str) {
-            if (timer)
-                clearTimeout(timer);
-            str = str.replace(/\x01/g, "");
-            if (str == c.lastValue)
-                return "";
-            if (c.lastValue && timer)
-                host.undo();
-            return str;
-        };
-        host.onCompositionEnd();
-        host.removeListener("mousedown", onCompositionEnd);
-        if (e.type == "compositionend" && c.range) {
-            host.selection.setRange(c.range);
-        }
-        var needsOnInput =
-            (!!useragent.isChrome && useragent.isChrome >= 53) ||
-            (!!useragent.isWebKit && useragent.isWebKit >= 603);
-
-        if (needsOnInput) {
-          onInput();
-        }
-    };
-    
-    
-
-    var syncComposition = lang.delayedCall(onCompositionUpdate, 50);
-
-    event.addListener(text, "compositionstart", onCompositionStart);
-    event.addListener(text, "compositionupdate", function(){syncComposition.schedule();});
-    event.addListener(text, "keyup", function(){syncComposition.schedule();});
-    event.addListener(text, "keydown", function(){syncComposition.schedule();});
-    event.addListener(text, "compositionend", onCompositionEnd);
-
-    this.getElement = function() {
-        return text;
-    };
-
-    this.setReadOnly = function(readOnly) {
-       text.readOnly = readOnly;
-    };
-
-    this.onContextMenu = function(e) {
-        afterContextMenu = true;
-        resetSelection(host.selection.isEmpty());
-        host._emit("nativecontextmenu", {target: host, domEvent: e});
-        this.moveToMouse(e, true);
-    };
-    
-    this.moveToMouse = function(e, bringToFront) {
-        if (!tempStyle)
-            tempStyle = text.style.cssText;
-        text.style.cssText = (bringToFront ? "z-index:100000;" : "")
-            + "height:" + text.style.height + ";"
-            + (useragent.isIE ? "opacity:0.1;" : "");
-
-        var rect = host.container.getBoundingClientRect();
-        var style = dom.computedStyle(host.container);
-        var top = rect.top + (parseInt(style.borderTopWidth) || 0);
-        var left = rect.left + (parseInt(rect.borderLeftWidth) || 0);
-        var maxTop = rect.bottom - top - text.clientHeight -2;
-        var move = function(e) {
-            text.style.left = e.clientX - left - 2 + "px";
-            text.style.top = Math.min(e.clientY - top - 2, maxTop) + "px";
-        }; 
-        move(e);
-
-        if (e.type != "mousedown")
-            return;
-
-        if (host.renderer.$keepTextAreaAtCursor)
-            host.renderer.$keepTextAreaAtCursor = null;
-
-        clearTimeout(closeTimeout);
-        if (useragent.isWin)
-            event.capture(host.container, move, onContextMenuClose);
-    };
-
-    this.onContextMenuClose = onContextMenuClose;
-    var closeTimeout;
-    function onContextMenuClose() {
-        clearTimeout(closeTimeout);
-        closeTimeout = setTimeout(function () {
-            if (tempStyle) {
-                text.style.cssText = tempStyle;
-                tempStyle = '';
-            }
-            if (host.renderer.$keepTextAreaAtCursor == null) {
-                host.renderer.$keepTextAreaAtCursor = true;
-                host.renderer.$moveTextAreaToCursor();
-            }
-        }, 0);
-    }
-
-    var onContextMenu = function(e) {
-        host.textInput.onContextMenu(e);
-        onContextMenuClose();
-    };
-    event.addListener(text, "mouseup", onContextMenu);
-    event.addListener(text, "mousedown", function(e) {
-        e.preventDefault();
-        onContextMenuClose();
-    });
-    event.addListener(host.renderer.scroller, "contextmenu", onContextMenu);
-    event.addListener(text, "contextmenu", onContextMenu);
-    
-    if (useragent.isIOS) {
-        var typingResetTimeout = null;
-        var typing = false;
-
-        parentNode.addEventListener("keydown", function (e) {
-            if (typingResetTimeout) clearTimeout(typingResetTimeout);
-            typing = true;
-        });
-
-        parentNode.addEventListener("keyup", function (e) {
-            typingResetTimeout = setTimeout(function () {
-                typing = false;
-            }, 100);
-        });
-        var detectArrowKeys = function(e) {
-            if (document.activeElement !== text) return;
-            if (typing) return;
-          
-            if (cut) {
-                return setTimeout(function () {
-                    cut = false;
-                }, 100);
-            }
-            var selectionStart = text.selectionStart;
-            var selectionEnd = text.selectionEnd;
-            text.setSelectionRange(4, 5);
-            if (selectionStart == selectionEnd) {
-                switch (selectionStart) {
-                    case 0: host.onCommandKey(null, 0, KEYS.up); break;
-                    case 1: host.onCommandKey(null, 0, KEYS.home); break;
-                    case 2: host.onCommandKey(null, MODS.option, KEYS.left); break;
-                    case 4: host.onCommandKey(null, 0, KEYS.left); break;
-                    case 5: host.onCommandKey(null, 0, KEYS.right); break;
-                    case 7: host.onCommandKey(null, MODS.option, KEYS.right); break;
-                    case 8: host.onCommandKey(null, 0, KEYS.end); break;
-                    case 9: host.onCommandKey(null, 0, KEYS.down); break;
-                }
-            } else {
-                switch (selectionEnd) {
-                    case 6: host.onCommandKey(null, MODS.shift, KEYS.right); break;
-                    case 7: host.onCommandKey(null, MODS.shift | MODS.option, KEYS.right); break;
-                    case 8: host.onCommandKey(null, MODS.shift, KEYS.end); break;
-                    case 9: host.onCommandKey(null, MODS.shift, KEYS.down); break;
-                }
-                switch (selectionStart) {
-                    case 0: host.onCommandKey(null, MODS.shift, KEYS.up); break;
-                    case 1: host.onCommandKey(null, MODS.shift, KEYS.home); break;
-                    case 2: host.onCommandKey(null, MODS.shift | MODS.option, KEYS.left); break;
-                    case 3: host.onCommandKey(null, MODS.shift, KEYS.left); break;
-                }
-            }
-        };
-        document.addEventListener("selectionchange", detectArrowKeys);
-        host.on("destroy", function() {
-            document.removeEventListener("selectionchange", detectArrowKeys);
-        });
-    }
-};
-
-exports.TextInput = TextInput;
-});
-
-ace.define("ace/keyboard/textinput",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/keyboard/textinput_ios"], function(require, exports, module) {
+ace.define("ace/keyboard/textinput",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/lib/keys"], function(require, exports, module) {
 "use strict";
 
 var event = require("../lib/event");
@@ -2686,11 +2205,12 @@ var USE_IE_MIME_TYPE =  useragent.isIE;
 var HAS_FOCUS_ARGS = useragent.isChrome > 63;
 var MAX_LINE_LENGTH = 400;
 
-var TextInputIOS = require("./textinput_ios").TextInput;
+var KEYS = require("../lib/keys");
+var MODS = KEYS.KEY_MODS;
+var isIOS = useragent.isIOS;
+var valueResetRegex = isIOS ? /\s/ : /\n/;
+
 var TextInput = function(parentNode, host) {
-    if (useragent.isIOS)
-        return TextInputIOS.call(this, parentNode, host);
-    
     var text = dom.createElement("textarea");
     text.className = "ace_text-input";
 
@@ -2729,19 +2249,31 @@ var TextInput = function(parentNode, host) {
     event.addListener(text, "focus", function(e) {
         if (ignoreFocusEvents) return;
         isFocused = true;
+        if (useragent.isEdge) {
+            try {
+                if (!document.hasFocus())
+                    return;
+            } catch(e) {}
+        }
         host.onFocus(e);
-        resetSelection();
+        if (useragent.isEdge)
+            setTimeout(resetSelection);
+        else
+            resetSelection();
     });
     this.$focusScroll = false;
     this.focus = function() {
         if (tempStyle || HAS_FOCUS_ARGS || this.$focusScroll == "browser")
             return text.focus({ preventScroll: true });
-        if (!document.documentElement.contains(text))
-            return;
+
         var top = text.style.top;
         text.style.position = "fixed";
         text.style.top = "0px";
-        var isTransformed = text.getBoundingClientRect().top != 0;
+        try {
+            var isTransformed = text.getBoundingClientRect().top != 0;
+        } catch(e) {
+            return;
+        }
         var ancestors = [];
         if (isTransformed) {
             var t = text.parentElement;
@@ -2783,7 +2315,25 @@ var TextInput = function(parentNode, host) {
         resetSelection();
     });
     
-    function resetSelection() {
+    var resetSelection = isIOS
+    ? function(value) {
+        if (!isFocused || (copied && !value)) return;
+        if (!value) 
+            value = "";
+        var newValue = "\n ab" + value + "cde fg\n";
+        if (newValue != text.value)
+            text.value = lastValue = newValue;
+        
+        var selectionStart = 4;
+        var selectionEnd = 4 + (value.length || (host.selection.isEmpty() ? 0 : 1));
+
+        if (lastSelectionStart != selectionStart || lastSelectionEnd != selectionEnd) {
+            text.setSelectionRange(selectionStart, selectionEnd);
+        }
+        lastSelectionStart = selectionStart;
+        lastSelectionEnd = selectionEnd;
+    }
+    : function() {
         if (inComposition || sendingText)
             return;
         if (!isFocused && !afterContextMenu)
@@ -2829,7 +2379,11 @@ var TextInput = function(parentNode, host) {
             lastSelectionStart = text.selectionStart;
             lastSelectionEnd = text.selectionEnd;
         }
-        if (lastSelectionEnd != selectionEnd || lastSelectionStart != selectionStart) {
+        if (
+            lastSelectionEnd != selectionEnd 
+            || lastSelectionStart != selectionStart 
+            || text.selectionEnd != lastSelectionEnd // on ie edge selectionEnd changes silently after the initialization
+        ) {
             try {
                 text.setSelectionRange(selectionStart, selectionEnd);
                 lastSelectionStart = selectionStart;
@@ -2837,7 +2391,7 @@ var TextInput = function(parentNode, host) {
             } catch(e){}
         }
         inComposition = false;
-    }
+    };
 
     if (isFocused)
         host.onFocus();
@@ -2926,7 +2480,7 @@ var TextInput = function(parentNode, host) {
             return onCompositionUpdate();
         var data = text.value;
         var inserted = sendText(data, true);
-        if (data.length > MAX_LINE_LENGTH + 100 || /\n/.test(inserted))
+        if (data.length > MAX_LINE_LENGTH + 100 || valueResetRegex.test(inserted))
             resetSelection();
     };
     
@@ -2953,6 +2507,13 @@ var TextInput = function(parentNode, host) {
             return event.preventDefault(e);
 
         if (handleClipboardData(e, data)) {
+            if (isIOS) {
+                resetSelection(data);
+                copied = data;
+                setTimeout(function () {
+                    copied = false;
+                }, 10);
+            }
             isCut ? host.onCut() : host.onCopy();
             event.preventDefault(e);
         } else {
@@ -3186,6 +2747,87 @@ var TextInput = function(parentNode, host) {
     });
     event.addListener(host.renderer.scroller, "contextmenu", onContextMenu);
     event.addListener(text, "contextmenu", onContextMenu);
+    
+    if (isIOS)
+        addIosSelectionHandler(parentNode, host, text);
+
+    function addIosSelectionHandler(parentNode, host, text) {
+        var typingResetTimeout = null;
+        var typing = false;
+ 
+        text.addEventListener("keydown", function (e) {
+            if (typingResetTimeout) clearTimeout(typingResetTimeout);
+            typing = true;
+        }, true);
+
+        text.addEventListener("keyup", function (e) {
+            typingResetTimeout = setTimeout(function () {
+                typing = false;
+            }, 100);
+        }, true);
+        var detectArrowKeys = function(e) {
+            if (document.activeElement !== text) return;
+            if (typing || inComposition) return;
+
+            if (copied) {
+                return;
+            }
+            var selectionStart = text.selectionStart;
+            var selectionEnd = text.selectionEnd;
+            
+            var key = null;
+            var modifier = 0;
+            console.log(selectionStart, selectionEnd);
+            if (selectionStart == 0) {
+                key = KEYS.up;
+            } else if (selectionStart == 1) {
+                key = KEYS.home;
+            } else if (selectionEnd > lastSelectionEnd && lastValue[selectionEnd] == "\n") {
+                key = KEYS.end;
+            } else if (selectionStart < lastSelectionStart && lastValue[selectionStart - 1] == " ") {
+                key = KEYS.left;
+                modifier = MODS.option;
+            } else if (
+                selectionStart < lastSelectionStart
+                || (
+                    selectionStart == lastSelectionStart 
+                    && lastSelectionEnd != lastSelectionStart
+                    && selectionStart == selectionEnd
+                )
+            ) {
+                key = KEYS.left;
+            } else if (selectionEnd > lastSelectionEnd && lastValue.slice(0, selectionEnd).split("\n").length > 2) {
+                key = KEYS.down;
+            } else if (selectionEnd > lastSelectionEnd && lastValue[selectionEnd - 1] == " ") {
+                key = KEYS.right;
+                modifier = MODS.option;
+            } else if (
+                selectionEnd > lastSelectionEnd
+                || (
+                    selectionEnd == lastSelectionEnd 
+                    && lastSelectionEnd != lastSelectionStart
+                    && selectionStart == selectionEnd
+                )
+            ) {
+                key = KEYS.right;
+            }
+            
+            if (selectionStart !== selectionEnd)
+                modifier |= MODS.shift;
+
+            if (key) {
+                host.onCommandKey(null, modifier, key);
+                lastSelectionStart = selectionStart;
+                lastSelectionEnd = selectionEnd;
+                resetSelection("");
+            }
+        };
+        document.addEventListener("selectionchange", detectArrowKeys);
+        host.on("destroy", function() {
+            document.removeEventListener("selectionchange", detectArrowKeys);
+        });
+    }
+
 };
 
 exports.TextInput = TextInput;
@@ -3197,7 +2839,7 @@ ace.define("ace/mouse/default_handlers",["require","exports","module","ace/lib/u
 var useragent = require("../lib/useragent");
 
 var DRAG_OFFSET = 0; // pixels
-var SCROLL_COOLDOWN_T = 250; // milliseconds
+var SCROLL_COOLDOWN_T = 550; // milliseconds
 
 function DefaultHandlers(mouseHandler) {
     mouseHandler.$clickSelection = null;
@@ -3422,8 +3064,8 @@ function DefaultHandlers(mouseHandler) {
         if (canScroll) {
             prevScroll.allowed = t;
         } else if (t - prevScroll.allowed < SCROLL_COOLDOWN_T) {
-            var isSlower = Math.abs(vx) <= 1.1 * Math.abs(prevScroll.vx)
-                && Math.abs(vy) <= 1.1 * Math.abs(prevScroll.vy);
+            var isSlower = Math.abs(vx) <= 1.5 * Math.abs(prevScroll.vx)
+                && Math.abs(vy) <= 1.5 * Math.abs(prevScroll.vy);
             if (isSlower) {
                 canScroll = true;
                 prevScroll.allowed = t;
@@ -4236,10 +3878,15 @@ EventEmitter._signal = function(eventName, e) {
 
 EventEmitter.once = function(eventName, callback) {
     var _self = this;
-    callback && this.addEventListener(eventName, function newCallback() {
+    this.addEventListener(eventName, function newCallback() {
         _self.removeEventListener(eventName, newCallback);
         callback.apply(null, arguments);
     });
+    if (!callback) {
+        return new Promise(function(resolve) {
+            callback = resolve;
+        });
+    }
 };
 
 
@@ -5011,43 +4658,33 @@ var ArabicAlefBetIntervalsEnd = ['\u063A', '\u064a'];
 var dir = 0, hiLevel = 0;
 var lastArabic = false, hasUBAT_AL = false,  hasUBAT_B = false,  hasUBAT_S = false, hasBlockSep = false, hasSegSep = false;
 
-var impTab_LTR = [
-	[	0,		3,		0,		1,		0,		0,		0	],
-	[	0,		3,		0,		1,		2,		2,		0	],
-	[	0,		3,		0,		0x11,		2,		0,		1	],
-	[	0,		3,		5,		5,		4,		1,		0	],
-	[	0,		3,		0x15,		0x15,		4,		0,		1	],
-	[	0,		3,		5,		5,		4,		2,		0	]
+var impTab_LTR = [	[	0,		3,		0,		1,		0,		0,		0	],	[	0,		3,		0,		1,		2,		2,		0	],	[	0,		3,		0,		0x11,		2,		0,		1	],	[	0,		3,		5,		5,		4,		1,		0	],	[	0,		3,		0x15,		0x15,		4,		0,		1	],	[	0,		3,		5,		5,		4,		2,		0	]
 ];
 
-var impTab_RTL = [
-	[	2,		0,		1,		1,		0,		1,		0	],
-	[	2,		0,		1,		1,		0,		2,		0	],
-	[	2,		0,		2,		1,		3,		2,		0	],
-	[	2,		0,		2,		0x21,		3,		1,		1	]
+var impTab_RTL = [	[	2,		0,		1,		1,		0,		1,		0	],	[	2,		0,		1,		1,		0,		2,		0	],	[	2,		0,		2,		1,		3,		2,		0	],	[	2,		0,		2,		0x21,		3,		1,		1	]
 ];
 
 var LTR = 0, RTL = 1;
 
-var L = 0; /* left to right */
-var R = 1; /* right to left */
-var EN = 2; /* European digit */
-var AN = 3; /* Arabic-Indic digit */
-var ON = 4; /* neutral */
-var B = 5; /* block separator */
-var S = 6; /* segment separator */
-var AL = 7; /* Arabic Letter */
-var WS = 8; /* white space */
-var CS = 9; /* common digit separator */
-var ES = 10; /* European digit separator */
-var ET = 11; /* European digit terminator */
-var NSM = 12; /* Non Spacing Mark */
-var LRE = 13; /* LRE */
-var RLE = 14; /* RLE */
-var PDF = 15; /* PDF */
-var LRO = 16; /* LRO */
-var RLO = 17; /* RLO */
-var BN = 18; /* Boundary Neutral */
+var L = 0;
+var R = 1;
+var EN = 2;
+var AN = 3;
+var ON = 4;
+var B = 5;
+var S = 6;
+var AL = 7;
+var WS = 8;
+var CS = 9;
+var ES = 10;
+var ET = 11;
+var NSM = 12;
+var LRE = 13;
+var RLE = 14;
+var PDF = 15;
+var LRO = 16;
+var RLO = 17;
+var BN = 18;
 
 var UnicodeTBL00 = [
 BN,BN,BN,BN,BN,BN,BN,BN,BN,S,B,S,WS,B,BN,BN,
@@ -5326,7 +4963,7 @@ exports.doBidiReorder = function(text, textCharTypes, isRtl) {
 	}
 
 	return {'logicalFromVisual': logicalFromVisual, 'bidiLevels': bidiLevels};
-};	
+};
 exports.hasBidiCharacters = function(text, textCharTypes){
 	var ret = false;
 	for (var i = 0; i < text.length; i++){
@@ -5335,8 +4972,7 @@ exports.hasBidiCharacters = function(text, textCharTypes){
 			ret = true;
 	}
 	return ret;
-};
-	
+};	
 exports.getVisualFromLogicalIdx = function(logIdx, rowMap) {
 	for (var i = 0; i < rowMap.logicalFromVisual.length; i++) {
 		if (rowMap.logicalFromVisual[i] == logIdx)
@@ -6576,6 +6212,7 @@ ace.define("ace/mode/text_highlight_rules",["require","exports","module","ace/li
 var lang = require("../lib/lang");
 
 var TextHighlightRules = function() {
+
     this.$rules = {
         "start" : [{
             token : "empty_line",
@@ -6845,7 +6482,7 @@ var TokenIterator = function(session, initialRow, initialColumn) {
     this.$tokenIndex = token ? token.index : -1;
 };
 
-(function() {
+(function() { 
     this.stepBackward = function() {
         this.$tokenIndex -= 1;
         
@@ -6861,7 +6498,7 @@ var TokenIterator = function(session, initialRow, initialColumn) {
         }
             
         return this.$rowTokens[this.$tokenIndex];
-    };
+    };   
     this.stepForward = function() {
         this.$tokenIndex += 1;
         var rowCount;
@@ -6879,13 +6516,13 @@ var TokenIterator = function(session, initialRow, initialColumn) {
         }
             
         return this.$rowTokens[this.$tokenIndex];
-    };
+    };      
     this.getCurrentToken = function () {
         return this.$rowTokens[this.$tokenIndex];
-    };
+    };      
     this.getCurrentTokenRow = function () {
         return this.$row;
-    };
+    };     
     this.getCurrentTokenColumn = function() {
         var rowTokens = this.$rowTokens;
         var tokenIndex = this.$tokenIndex;
@@ -7688,6 +7325,7 @@ function validateDelta(docLines, delta) {
 }
 
 exports.applyDelta = function(docLines, delta, doNotValidate) {
+    
     var row = delta.start.row;
     var startColumn = delta.start.column;
     var line = docLines[row] || "";
@@ -7779,6 +7417,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
                 column: point.column + (point.row == deltaEnd.row ? deltaColShift : 0)
             };
         }
+        
         return {
             row: deltaStart.row,
             column: deltaStart.column
@@ -8027,7 +7666,7 @@ var Document = function(textOrLines) {
             column = this.$lines[row].length;
         }
         this.insertMergedLines({row: row, column: column}, lines);
-    };
+    };    
     this.insertMergedLines = function(position, lines) {
         var start = this.clippedPos(position.row, position.column);
         var end = {
@@ -8235,7 +7874,7 @@ var BackgroundTokenizer = function(tokenizer, editor) {
                 currentLine++;
             } while (self.lines[currentLine]);
             processedLines ++;
-            if ((processedLines % 5 === 0) && (new Date() - workerStart) > 20) {                
+            if ((processedLines % 5 === 0) && (new Date() - workerStart) > 20) {
                 self.running = setTimeout(self.$worker, 20);
                 break;
             }
@@ -8814,17 +8453,16 @@ var RangeList = function() {
                 if (r.start.row > endRow)
                     break;
                     
-                if (r.end.row < endRow) {
+                if (r.end.row < endRow
+                    && (
+                        startRow < r.end.row 
+                        || startRow == r.end.row && start.column < r.end.column
+                    )
+                ) {
                     r.end.row = startRow;
                     r.end.column = start.column;
                 }
-                   
-                if (r.start.row < endRow || r.start.row == endRow && r.start.column <= end.colum) {
-                    r.start.row = startRow;
-                    r.start.column = start.column;
-                }
-    
-                if (r.end.row == endRow) {
+                else if (r.end.row == endRow) {
                     if (r.end.column <= end.column) {
                         if (lineDif || r.end.column > start.column) {
                             r.end.column = start.column;
@@ -8836,7 +8474,20 @@ var RangeList = function() {
                         r.end.row += lineDif;
                     }
                 }
-                if (r.start.row == endRow) {
+                else if (r.end.row > endRow) {
+                    r.end.row += lineDif;
+                }
+                
+                if (r.start.row < endRow
+                    && (
+                        startRow < r.start.row 
+                        || startRow == r.start.row && start.column < r.start.column
+                    )
+                ) {
+                    r.start.row = startRow;
+                    r.start.column = start.column;
+                }
+                else if (r.start.row == endRow) {
                     if (r.start.column <= end.column) {
                         if (lineDif || r.start.column > start.column) {
                             r.start.column = start.column;
@@ -8847,6 +8498,9 @@ var RangeList = function() {
                         r.start.column += colDiff;
                         r.start.row += lineDif;
                     }
+                }
+                else if (r.start.row > endRow) {
+                    r.start.row += lineDif;
                 }
             }
         }
@@ -9254,7 +8908,6 @@ function Folding() {
             foldLine.start.row = folds[0].start.row;
             foldLine.start.column = folds[0].start.column;
         } else
-        //
         if (fold.sameRow) {
             folds.splice(folds.indexOf(fold), 1);
         } else
@@ -15786,7 +15439,7 @@ var Gutter = function(parentEl) {
         var lastLineText = this.$lines.last() ? this.$lines.last().text : "";
         
         if (this.$fixedWidth || session.$useWrapMode)
-            lastLineText = session.getLength() + firstLineNumber;
+            lastLineText = session.getLength() + firstLineNumber - 1;
 
         var gutterWidth = gutterRenderer 
             ? gutterRenderer.getWidth(session, lastLineText, config)
@@ -15997,7 +15650,7 @@ var Gutter = function(parentEl) {
     this.$renderer = "";
     this.setShowLineNumbers = function(show) {
         this.$renderer = !show && {
-            getWidth: function() {return "";},
+            getWidth: function() {return 0;},
             getText: function() {return "";}
         };
     };
@@ -17132,7 +16785,7 @@ var ScrollBar = function(parent) {
 
     this.setVisible(false);
     this.skipEvent = false;
-    
+
     event.addListener(this.element, "scroll", this.onScroll.bind(this));
     event.addListener(this.element, "mousedown", event.preventDefault);
 };
@@ -17259,9 +16912,11 @@ var RenderLoop = function(onRender, win) {
     this.onRender = onRender;
     this.pending = false;
     this.changes = 0;
+    this.$recursionLimit = 2;
     this.window = win || window;
     var _self = this;
     this._flush = function(ts) {
+        _self.pending = false;
         var changes = _self.changes;
 
         if (changes) {
@@ -17270,8 +16925,12 @@ var RenderLoop = function(onRender, win) {
             _self.onRender(changes);
         }
         
-        if (_self.changes)
+        if (_self.changes) {
+            if (_self.$recursionLimit-- < 0) return;
             _self.schedule();
+        } else {
+            _self.$recursionLimit = 2;
+        }
     };
 };
 
@@ -17279,9 +16938,16 @@ var RenderLoop = function(onRender, win) {
 
     this.schedule = function(change) {
         this.changes = this.changes | change;
-        if (this.changes) {
+        if (this.changes && !this.pending) {
             event.nextFrame(this._flush);
+            this.pending = true;
         }
+    };
+
+    this.clear = function(change) {
+        var changes = this.changes;
+        this.changes = 0;
+        return changes;
     };
 
 }).call(RenderLoop.prototype);
@@ -17504,7 +17170,8 @@ var VScrollBar = require("./scrollbar").VScrollBar;
 var RenderLoop = require("./renderloop").RenderLoop;
 var FontMetrics = require("./layer/font_metrics").FontMetrics;
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
-var editorCss = ".ace_br1 {border-top-left-radius    : 3px;}\
+var editorCss = "\
+.ace_br1 {border-top-left-radius    : 3px;}\
 .ace_br2 {border-top-right-radius   : 3px;}\
 .ace_br3 {border-top-left-radius    : 3px; border-top-right-radius:    3px;}\
 .ace_br4 {border-bottom-right-radius: 3px;}\
@@ -17943,11 +17610,6 @@ background-color: rgba(255, 255, 0,0.2);\
 position: absolute;\
 z-index: 8;\
 }\
-.ace_text-input-ios {\
-position: absolute !important;\
-top: -100000px !important;\
-left: -100000px !important;\
-}\
 ";
 
 var useragent = require("./lib/useragent");
@@ -18062,7 +17724,7 @@ var VirtualRenderer = function(container, theme) {
         h: 0
     };
     
-    this.$keepTextAreaAtCursor = true;
+    this.$keepTextAreaAtCursor = !useragent.isIOS;
 
     this.$loop = new RenderLoop(
         this.$renderChanges.bind(this),
@@ -18089,6 +17751,7 @@ var VirtualRenderer = function(container, theme) {
     this.CHANGE_MARKER_FRONT = 256;
     this.CHANGE_FULL = 512;
     this.CHANGE_H_SCROLL = 1024;
+
     oop.implement(this, EventEmitter);
 
     this.updateCharacterSize = function() {
@@ -18256,6 +17919,7 @@ var VirtualRenderer = function(container, theme) {
             dom.setStyle(this.scrollBarH.element.style, "right", right);
             dom.setStyle(this.scroller.style, "right", right);
             dom.setStyle(this.scroller.style, "bottom", this.scrollBarH.getHeight());
+
             if (this.session && this.session.getUseWrapMode() && this.adjustWrapLimit() || force) {
                 changes |= this.CHANGE_FULL;
             }
@@ -18529,6 +18193,7 @@ var VirtualRenderer = function(container, theme) {
         if (!this.lineHeight) {
             this.$textLayer.checkForSizeChanges();
         }
+        
         this._signal("beforeRender");
         
         if (this.session && this.session.$bidiHandler)
@@ -18542,13 +18207,13 @@ var VirtualRenderer = function(container, theme) {
             changes & this.CHANGE_SCROLL ||
             changes & this.CHANGE_H_SCROLL
         ) {
-            changes |= this.$computeLayerConfig();
+            changes |= this.$computeLayerConfig() | this.$loop.clear();
             if (config.firstRow != this.layerConfig.firstRow && config.firstRowScreen == this.layerConfig.firstRowScreen) {
                 var st = this.scrollTop + (config.firstRow - this.layerConfig.firstRow) * this.lineHeight;
                 if (st > 0) {
                     this.scrollTop = st;
                     changes = changes | this.CHANGE_SCROLL;
-                    changes |= this.$computeLayerConfig();
+                    changes |= this.$computeLayerConfig() | this.$loop.clear();
                 }
             }
             config = this.layerConfig;
@@ -18686,7 +18351,6 @@ var VirtualRenderer = function(container, theme) {
         if (this.$maxLines && this.lineHeight > 1)
             this.$autosize();
 
-        var offset = this.scrollTop % this.lineHeight;
         var minHeight = size.scrollerHeight + this.lineHeight;
         
         var scrollPastEnd = !this.$maxLines && this.$scrollPastEnd
@@ -18709,6 +18373,7 @@ var VirtualRenderer = function(container, theme) {
             this.scrollBarV.setVisible(vScroll);
         }
 
+        var offset = this.scrollTop % this.lineHeight;
         var lineCount = Math.ceil(minHeight / this.lineHeight) - 1;
         var firstRow = Math.max(0, Math.round((this.scrollTop - offset) / this.lineHeight));
         var lastRow = firstRow + lineCount;
@@ -18756,6 +18421,7 @@ var VirtualRenderer = function(container, theme) {
 
         if (this.session.$bidiHandler)
             this.session.$bidiHandler.setContentWidth(longestLine - this.$padding);
+
         return changes;
     };
 
@@ -18847,7 +18513,7 @@ var VirtualRenderer = function(container, theme) {
         } else if (scrollTop + this.$size.scrollerHeight - bottomMargin < top + this.lineHeight) {
             if (offset && scrollTop + this.$size.scrollerHeight - bottomMargin < top -  this.lineHeight)
                 top += offset * this.$size.scrollerHeight;
-            this.session.setScrollTop(top + this.lineHeight - this.$size.scrollerHeight);
+            this.session.setScrollTop(top + this.lineHeight + bottomMargin - this.$size.scrollerHeight);
         }
 
         var scrollLeft = this.scrollLeft;
@@ -19694,7 +19360,7 @@ var PlaceHolder = function(session, length, pos, others, mainClass, othersClass)
             this.hideOtherMarkers();
             this._emit("cursorLeave", event);
         }
-    };
+    };    
     this.detach = function() {
         this.session.removeMarker(this.pos && this.pos.markerId);
         this.hideOtherMarkers();
@@ -20326,7 +19992,7 @@ var Editor = require("./editor").Editor;
             result = command.multiSelectAction(editor, e.args || {});
         }
         return result;
-    };
+    }; 
     this.forEachSelection = function(cmd, args, options) {
         if (this.inVirtualSelectionMode)
             return;
@@ -21611,12 +21277,12 @@ exports.createEditSession = function(text, mode) {
     return doc;
 };
 exports.Range = Range;
+exports.Editor = Editor;
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
 exports.VirtualRenderer = Renderer;
-exports.version = "1.4.1";
-});
-            (function() {
+exports.version = "1.4.2";
+});            (function() {
                 ace.require(["ace/ace"], function(a) {
                     if (a) {
                         a.config.init(true);

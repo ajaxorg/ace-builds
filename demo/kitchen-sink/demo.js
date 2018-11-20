@@ -173,14 +173,11 @@ require("ace/commands/default_commands").commands.push({
 });
 
 define("ace/test/asyncjs/assert",["require","exports","module","ace/lib/oop"], function(require, exports, module) {
-//
-//
-//
-//
-//
 var oop = require("ace/lib/oop");
 var pSlice = Array.prototype.slice;
+
 var assert = exports;
+
 assert.AssertionError = function AssertionError(options) {
   this.name = 'AssertionError';
   this.message = options.message;
@@ -212,7 +209,9 @@ assert.AssertionError.prototype.toString = function() {
             toJSON(this.actual)].join(' ');
   }
 };
+
 assert.AssertionError.__proto__ = Error.prototype;
+
 function fail(actual, expected, message, operator, stackStartFunction) {
   throw new assert.AssertionError({
     message: message,
@@ -223,17 +222,21 @@ function fail(actual, expected, message, operator, stackStartFunction) {
   });
 }
 assert.fail = fail;
+
 assert.ok = function ok(value, message) {
   if (!!!value) fail(value, true, message, '==', assert.ok);
 };
+
 assert.equal = function equal(actual, expected, message) {
   if (actual != expected) fail(actual, expected, message, '==', assert.equal);
 };
+
 assert.notEqual = function notEqual(actual, expected, message) {
   if (actual == expected) {
     fail(actual, expected, message, '!=', assert.notEqual);
   }
 };
+
 assert.deepEqual = function deepEqual(actual, expected, message) {
   if (!_deepEqual(actual, expected)) {
     fail(actual, expected, message, 'deepEqual', assert.deepEqual);
@@ -302,16 +305,19 @@ function objEquiv(a, b) {
   }
   return true;
 }
+
 assert.notDeepEqual = function notDeepEqual(actual, expected, message) {
   if (_deepEqual(actual, expected)) {
     fail(actual, expected, message, 'notDeepEqual', assert.notDeepEqual);
   }
 };
+
 assert.strictEqual = function strictEqual(actual, expected, message) {
   if (actual !== expected) {
     fail(actual, expected, message, '===', assert.strictEqual);
   }
 };
+
 assert.notStrictEqual = function notStrictEqual(actual, expected, message) {
   if (actual === expected) {
     fail(actual, expected, message, '!==', assert.notStrictEqual);
@@ -364,6 +370,7 @@ function _throws(shouldThrow, block, expected, message) {
     throw actual;
   }
 }
+
 assert.throws = function(block, /*optional*/error, /*optional*/message) {
   _throws.apply(this, [true].concat(pSlice.call(arguments)));
 };
@@ -836,7 +843,7 @@ exports.keys = function(map, construct) {
         keys.push(key)
         
     return exports.list(keys, construct)
-}
+} 
 exports.range = function(start, stop, step, construct) {
     var construct = construct || exports.Generator
     start = start || 0
@@ -1519,6 +1526,7 @@ var supportedModes = {
     ASL:         ["dsl|asl"],
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
+    Apex:        ["apex|cls|trigger|tgr"],
     BatchFile:   ["bat|cmd"],
     Bro:         ["bro"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
@@ -1549,6 +1557,7 @@ var supportedModes = {
     Forth:       ["frt|fs|ldr|fth|4th"],
     Fortran:     ["f|f90"],
     FSharp:      ["fsi|fs|ml|mli|fsx|fsscript"],
+    FSL:         ["fsl"],
     FTL:         ["ftl"],
     Gcode:       ["gcode"],
     Gherkin:     ["feature"],
@@ -1605,9 +1614,10 @@ var supportedModes = {
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
+	Perl6:       ["p6|pl6|pm6"],
     pgSQL:       ["pgsql"],
     PHP_Laravel_blade: ["blade.php"],
-    PHP:         ["php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
+    PHP:         ["inc|php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     Puppet:      ["epp|pp"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
@@ -1648,13 +1658,14 @@ var supportedModes = {
     Textile:     ["textile"],
     Toml:        ["toml"],
     TSX:         ["tsx"],
-    Twig:        ["twig|swig"],
+    Twig:        ["latte|twig|swig"],
     Typescript:  ["ts|typescript|str"],
     Vala:        ["vala"],
     VBScript:    ["vbs|vb"],
     Velocity:    ["vm"],
     Verilog:     ["v|vh|sv|svh"],
     VHDL:        ["vhd|vhdl"],
+    Visualforce: ["vfp|component|page"],
     Wollok:      ["wlk|wpgm|wtest"],
     XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery:      ["xq"],
@@ -1674,7 +1685,8 @@ var nameOverrides = {
     HTML_Ruby: "HTML (Ruby)",
     HTML_Elixir: "HTML (Elixir)",
     FTL: "FreeMarker",
-    PHP_Laravel_blade: "PHP (Blade Template)"
+    PHP_Laravel_blade: "PHP (Blade Template)",
+    Perl6: "Perl 6"
 };
 var modesByName = {};
 for (var name in supportedModes) {
@@ -2689,6 +2701,7 @@ var ElasticTabstopsLite = function(editor) {
 
     this.$cellWidthsForRow = function(row) {
         var selectionColumns = this.$selectionColumnsForRow(row);
+
         var tabs = [-1].concat(this.$tabsForRow(row));
         var widths = tabs.map(function(el) { return 0; } ).slice(1);
         var line = this.$editor.session.getLine(row);
@@ -3259,6 +3272,7 @@ function IncrementalSearch() {
 }
 
 oop.inherits(IncrementalSearch, Search);
+
 function isRegExp(obj) {
     return obj instanceof RegExp;
 }
@@ -3282,6 +3296,7 @@ function stringToRegExp(string, flags) {
 function objectToRegExp(obj) {
     return stringToRegExp(obj.expression, obj.flags);
 }
+
 (function() {
 
     this.activate = function(ed, backwards) {
@@ -3916,9 +3931,8 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, top, r
 
 });
 
-define("ace/ext/themelist",["require","exports","module","ace/lib/fixoldbrowsers"], function(require, exports, module) {
+define("ace/ext/themelist",["require","exports","module"], function(require, exports, module) {
 "use strict";
-require("ace/lib/fixoldbrowsers");
 
 var themeData = [
     ["Chrome"         ],
@@ -4499,7 +4513,7 @@ var SnippetManager = function() {
         var s = editor.session;
         switch(name) {
             case "CURRENT_WORD":
-                var r = s.getWordRange(); 
+                var r = s.getWordRange();
             case "SELECTION":
             case "SELECTED_TEXT":
                 return s.getTextRange(r);
@@ -4646,7 +4660,7 @@ var SnippetManager = function() {
                 return;
 
             var value = tokens.slice(i + 1, i1);
-            var isNested = value.some(function(t) {return typeof t === "object";});          
+            var isNested = value.some(function(t) {return typeof t === "object";});
             if (isNested && !ts.value) {
                 ts.value = value;
             } else if (value.length && (!ts.value || typeof ts.value !== "string")) {
@@ -5349,6 +5363,7 @@ AceEmmetEditor.prototype = {
         editor.session.remove(range);
         
         range.end = range.start;
+        
         value = this.$updateTabstops(value);
         snippetManager.insertSnippet(editor, value);
     },
@@ -5697,9 +5712,7 @@ var AcePopup = function(parentNode) {
         var row = popup.getRow();
         var t = popup.renderer.$textLayer;
         var selected = t.element.childNodes[row - t.config.firstRow];
-        if (selected == t.selectedNode)
-            return;
-        if (t.selectedNode)
+        if (selected !== t.selectedNode && t.selectedNode)
             dom.removeCssClass(t.selectedNode, "ace_selected");
         t.selectedNode = selected;
         if (selected)
@@ -5757,7 +5770,7 @@ var AcePopup = function(parentNode) {
             if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {
                 var sub = filterText.slice(lastI, i);
                 lastI = i;
-                var index = lower.indexOf(sub);
+                var index = lower.indexOf(sub, lastIndex);
                 if (index == -1) continue;
                 addToken(caption.slice(lastIndex, index), "");
                 lastIndex = index + sub.length;
@@ -5841,7 +5854,6 @@ var AcePopup = function(parentNode) {
         }
 
         el.style.display = "";
-        this.renderer.$textLayer.checkForSizeChanges();
 
         var left = pos.left;
         if (left + el.offsetWidth > screenWidth)
@@ -7425,6 +7437,7 @@ env.editor.setOptions({
 
 var beautify = require("ace/ext/beautify");
 env.editor.commands.addCommands(beautify.commands);
+
 var KeyBinding = require("ace/keyboard/keybinding").KeyBinding;
 var CommandManager = require("ace/commands/command_manager").CommandManager;
 var commandManager = new CommandManager();
@@ -7471,8 +7484,7 @@ function moveFocus() {
         env.editor.focus();
 }
 
-});
-                (function() {
+});                (function() {
                     window.require(["kitchen-sink/demo"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

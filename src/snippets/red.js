@@ -4,8 +4,7 @@ define("ace/snippets/red",["require","exports","module"], function(require, expo
 exports.snippetText = " ";
 exports.scope = "red";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/red"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

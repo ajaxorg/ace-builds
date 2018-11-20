@@ -303,8 +303,7 @@ ace.define("ace/mode/fsharp",["require","exports","module","ace/lib/oop","ace/mo
     }).call(Mode.prototype);
 
     exports.Mode = Mode;
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/mode/fsharp"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

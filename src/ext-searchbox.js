@@ -4,7 +4,8 @@ define("ace/ext/searchbox",["require","exports","module","ace/lib/dom","ace/lib/
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
 var event = require("../lib/event");
-var searchboxCss = ".ace_search {\
+var searchboxCss = "\
+.ace_search {\
 background-color: #ddd;\
 color: #666;\
 border: 1px solid #cbcbcb;\
@@ -286,6 +287,8 @@ var SearchBox = function(editor, range, showReplaceForm) {
             sb.searchInput.focus();
         },
         "Ctrl-H|Command-Option-F": function(sb) {
+            if (sb.editor.getReadOnly())
+                return;
             sb.replaceOption.checked = true;
             sb.$syncOptions();
             sb.replaceInput.focus();
@@ -372,7 +375,9 @@ var SearchBox = function(editor, range, showReplaceForm) {
         dom.setCssClass(this.regExpOption, "checked", this.regExpOption.checked);
         dom.setCssClass(this.wholeWordOption, "checked", this.wholeWordOption.checked);
         dom.setCssClass(this.caseSensitiveOption, "checked", this.caseSensitiveOption.checked);
-        this.replaceBox.style.display = this.replaceOption.checked ? "" : "none";
+        var readOnly = this.editor.getReadOnly();
+        this.replaceOption.style.display = readOnly ? "none" : "";
+        this.replaceBox.style.display = this.replaceOption.checked && !readOnly ? "" : "none";
         this.find(false, false, preventScroll);
     };
 
@@ -501,8 +506,7 @@ exports.Search = function(editor, isReplace) {
     sb.show(editor.session.getTextRange(), isReplace);
 };
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/ext/searchbox"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

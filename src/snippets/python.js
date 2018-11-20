@@ -162,8 +162,7 @@ snippet getopt\n\
 ";
 exports.scope = "python";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/python"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

@@ -35,8 +35,7 @@ snippet zupfnoter.annotation\n\
 ";
 exports.scope = "abc";
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/snippets/abc"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

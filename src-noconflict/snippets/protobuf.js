@@ -4,8 +4,7 @@ ace.define("ace/snippets/protobuf",["require","exports","module"], function(requ
 exports.snippetText = "";
 exports.scope = "protobuf";
 
-});
-                (function() {
+});                (function() {
                     ace.require(["ace/snippets/protobuf"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;

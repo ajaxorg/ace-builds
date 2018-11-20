@@ -23,6 +23,7 @@ var CssHighlightRules = function() {
         "support.constant.color": supportConstantColor,
         "support.constant.fonts": supportConstantFonts
     }, "text", true);
+
     this.$rules = {
         "start" : [{
             include : ["strings", "url", "comments"]
@@ -216,7 +217,9 @@ var LessHighlightRules = function() {
         "support.constant.color": CssHighlightRules.supportConstantColor,
         "support.constant.fonts": CssHighlightRules.supportConstantFonts
     }, "identifier", true);   
+
     var numRe = "\\-?(?:(?:[0-9]+)|(?:[0-9]*\\.[0-9]+))";
+
     this.$rules = {
         "start" : [
             {
@@ -830,8 +833,7 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 
-});
-                (function() {
+});                (function() {
                     window.require(["ace/mode/less"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
                             module.exports = m;
