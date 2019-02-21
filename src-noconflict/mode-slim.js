@@ -1979,11 +1979,7 @@ var CssCompletions = function() {
             this.defineCompletions();
         }
 
-        var token = session.getTokenAt(pos.row, pos.column);
-
-        if (!token)
-            return [];
-        if (state==='ruleset'){
+        if (state==='ruleset' || session.$mode.$id == "ace/mode/scss") {
             var line = session.getLine(pos.row).substr(0, pos.column);
             if (/:[^;]+$/.test(line)) {
                 /([\w\-]+):[^:]*$/.test(line);
@@ -3006,7 +3002,7 @@ oop.inherits(FoldMode, BaseFoldMode);
             var ch = token.value[0];
             if (ch == "=") return 6;
             if (ch == "-") return 5;
-            return 7 - token.value.search(/[^#]/);
+            return 7 - token.value.search(/[^#]|$/);
         }
 
         if (isHeading(row)) {
@@ -3911,7 +3907,7 @@ exports.ScssHighlightRules = ScssHighlightRules;
 
 });
 
-ace.define("ace/mode/scss",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/scss_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/behaviour/css","ace/mode/folding/cstyle"], function(require, exports, module) {
+ace.define("ace/mode/scss",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/scss_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/behaviour/css","ace/mode/folding/cstyle","ace/mode/css_completions"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -3920,11 +3916,14 @@ var ScssHighlightRules = require("./scss_highlight_rules").ScssHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var CssBehaviour = require("./behaviour/css").CssBehaviour;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+var CssCompletions = require("./css_completions").CssCompletions;
+
 
 var Mode = function() {
     this.HighlightRules = ScssHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = new CssBehaviour();
+    this.$completer = new CssCompletions();
     this.foldingRules = new CStyleFoldMode();
 };
 oop.inherits(Mode, TextMode);
@@ -3956,6 +3955,11 @@ oop.inherits(Mode, TextMode);
     this.autoOutdent = function(state, doc, row) {
         this.$outdent.autoOutdent(doc, row);
     };
+    
+    this.getCompletions = function(state, session, pos, prefix) {
+        return this.$completer.getCompletions(state, session, pos, prefix);
+    };
+
 
     this.$id = "ace/mode/scss";
 }).call(Mode.prototype);

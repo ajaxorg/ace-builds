@@ -459,7 +459,7 @@ ace.define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib
     return this.ace.textInput.getElement();
   };
   this.getWrapperElement = function() {
-    return this.ace.containter;
+    return this.ace.container;
   };
   var optMap = {
     indentWithTabs: "useSoftTabs",
@@ -575,10 +575,11 @@ ace.define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib
   };
   this.scanForBracket = function(pos, dir, _, options) {
     var re = options.bracketRegex.source;
+    var tokenRe = /paren|text|operator|tag/;
     if (dir == 1) {
-      var m = this.ace.session.$findClosingBracket(re.slice(1, 2), toAcePos(pos), /paren|text/);
+      var m = this.ace.session.$findClosingBracket(re.slice(1, 2), toAcePos(pos), tokenRe);
     } else {
-      var m = this.ace.session.$findOpeningBracket(re.slice(-2, -1), {row: pos.line, column: pos.ch + 1}, /paren|text/);
+      var m = this.ace.session.$findOpeningBracket(re.slice(-2, -1), {row: pos.line, column: pos.ch + 1}, tokenRe);
     }
     return m && {pos: toCmPos(m)};
   };
@@ -2446,8 +2447,9 @@ dom.importCssString(".normal-mode .ace_cursor{\
       textObjectManipulation: function(cm, head, motionArgs, vim) {
         var mirroredPairs = {'(': ')', ')': '(',
                              '{': '}', '}': '{',
-                             '[': ']', ']': '['};
-        var selfPaired = {'\'': true, '"': true};
+                             '[': ']', ']': '[',
+                             '<': '>', '>': '<'};
+        var selfPaired = {'\'': true, '"': true, '`': true};
 
         var character = motionArgs.selectedCharacter;
         if (character == 'b') {
@@ -3918,11 +3920,13 @@ dom.importCssString(".normal-mode .ace_cursor{\
       var bracketRegexp = ({
         '(': /[()]/, ')': /[()]/,
         '[': /[[\]]/, ']': /[[\]]/,
-        '{': /[{}]/, '}': /[{}]/})[symb];
+        '{': /[{}]/, '}': /[{}]/,
+        '<': /[<>]/, '>': /[<>]/})[symb];
       var openSym = ({
         '(': '(', ')': '(',
         '[': '[', ']': '[',
-        '{': '{', '}': '{'})[symb];
+        '{': '{', '}': '{',
+        '<': '<', '>': '<'})[symb];
       var curChar = cm.getLine(cur.line).charAt(cur.ch);
       var offset = curChar === openSym ? 1 : 0;
 
@@ -4201,7 +4205,7 @@ dom.importCssString(".normal-mode .ace_cursor{\
     }
     function makePrompt(prefix, desc) {
       var raw = '<span style="font-family: monospace; white-space: pre">' +
-          (prefix || "") + '<input type="text"></span>';
+          (prefix || "") + '<input type="text" autocorrect="off" autocapitalize="none" autocomplete="off"></span>';
       if (desc)
         raw += ' <span style="color: #888">' + desc + '</span>';
       return raw;

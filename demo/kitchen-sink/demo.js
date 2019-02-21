@@ -24,17 +24,31 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     rtlText: {
         set: function(val) {
             if (val) {
-                this.on("session", onChange);
+                this.on("change", onChange);
                 this.on("changeSelection", onChangeSelection);
                 this.renderer.on("afterRender", updateLineDirection);
                 this.commands.on("exec", onCommandEmitted);
                 this.commands.addCommands(commands);
             } else {
-                this.off("session", onChange);
+                this.off("change", onChange);
                 this.off("changeSelection", onChangeSelection);
                 this.renderer.off("afterRender", updateLineDirection);
                 this.commands.off("exec", onCommandEmitted);
                 this.commands.removeCommands(commands);
+                clearTextLayer(this.renderer);
+            }
+            this.renderer.updateFull();
+        }
+    },
+    rtl: {
+        set: function(val) {
+            this.session.$bidiHandler.$isRtl = val;
+            if (val) {
+                this.setOption("rtlText", false);
+                this.renderer.on("afterRender", updateLineDirection);
+                this.session.$bidiHandler.seenBidi = true;
+            } else {
+                this.renderer.off("afterRender", updateLineDirection);
                 clearTextLayer(this.renderer);
             }
             this.renderer.updateFull();
@@ -60,12 +74,13 @@ function onChangeSelection(e, editor) {
 function onCommandEmitted(commadEvent) {
     commadEvent.editor.session.$bidiHandler.isMoveLeftOperation = /gotoleft|selectleft|backspace|removewordleft/.test(commadEvent.command.name);
 }
-function onChange(delta, session) {
+function onChange(delta, editor) {
+    var session = editor.session;
     session.$bidiHandler.currentRow = null;
     if (session.$bidiHandler.isRtlLine(delta.start.row) && delta.action === 'insert' && delta.lines.length > 1) {
         for (var row = delta.start.row; row < delta.end.row; row++) {
             if (session.getLine(row + 1).charAt(0) !== session.$bidiHandler.RLE)
-                session.getDocument().$lines[row + 1] = session.$bidiHandler.RLE + session.getLine(row + 1);
+                session.doc.$lines[row + 1] = session.$bidiHandler.RLE + session.getLine(row + 1);
         }
     }
 }
@@ -1570,7 +1585,7 @@ var supportedModes = {
     HAML:        ["haml"],
     Handlebars:  ["hbs|handlebars|tpl|mustache"],
     Haskell:     ["hs"],
-    Haskell_Cabal:     ["cabal"],
+    Haskell_Cabal: ["cabal"],
     haXe:        ["hx"],
     Hjson:       ["hjson"],
     HTML:        ["html|htm|xhtml|vue|we|wpy"],
@@ -1614,10 +1629,10 @@ var supportedModes = {
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
-	Perl6:       ["p6|pl6|pm6"],
+    Perl6:       ["p6|pl6|pm6"],
     pgSQL:       ["pgsql"],
     PHP_Laravel_blade: ["blade.php"],
-    PHP:         ["inc|php|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
+    PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     Puppet:      ["epp|pp"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
@@ -1686,7 +1701,8 @@ var nameOverrides = {
     HTML_Elixir: "HTML (Elixir)",
     FTL: "FreeMarker",
     PHP_Laravel_blade: "PHP (Blade Template)",
-    Perl6: "Perl 6"
+    Perl6: "Perl 6",
+    AutoHotKey: "AutoHotkey / AutoIt"
 };
 var modesByName = {};
 for (var name in supportedModes) {
@@ -4031,7 +4047,8 @@ var optionGroups = {
             items: [
                 { caption : "Ace", value : null },
                 { caption : "Vim", value : "ace/keyboard/vim" },
-                { caption : "Emacs", value : "ace/keyboard/emacs" }
+                { caption : "Emacs", value : "ace/keyboard/emacs" },
+                { caption : "Sublime", value : "ace/keyboard/sublime" }
             ]
         },
         "Font Size": {
@@ -6714,7 +6731,7 @@ exports.beautify = function(session) {
     var indent = 0;
     var unindent = 0;
     var roundDepth = 0;
-    var onCaseLine = false;
+    var curlyDepth = 0;
     var row;
     var curRow = 0;
     var rowsToAdd = 0;
@@ -6726,7 +6743,7 @@ exports.beautify = function(session) {
     var inCSS = false;
     var inBlock = false;
     var levels = {0: 0};
-    var parents = {};
+    var parents = [];
 
     var trimNext = function() {
         if (nextToken && nextToken.value && nextToken.type !== 'string.regexp')
@@ -6870,8 +6887,12 @@ exports.beautify = function(session) {
                 } else if (token.type === "punctuation.operator" && value.match(/^(:|,)$/)) {
                     trimCode();
                     trimNext();
-                    spaceAfter = true;
-                    breakBefore = false;
+                    if (value.match(/^(,)$/) && curlyDepth>0 && roundDepth===0) {
+                        rowsToAdd++;
+                    } else {
+                        spaceAfter = true;
+                        breakBefore = false;
+                    }
                 } else if (token.type === "support.php_tag" && value === "?>" && !breakBefore) {
                     trimCode();
                     spaceBefore = true;
@@ -6926,6 +6947,7 @@ exports.beautify = function(session) {
                 }
                 if (token.type === "paren.lparen") {
                     roundDepth += (value.match(/\(/g) || []).length;
+                    curlyDepth += (value.match(/\{/g) || []).length;
                     depth += value.length;
                 }
 
@@ -6937,6 +6959,7 @@ exports.beautify = function(session) {
 
                 if (token.type === "paren.rparen") {
                     roundDepth -= (value.match(/\)/g) || []).length;
+                    curlyDepth -= (value.match(/\}/g) || []).length;
 
                     for (i = 0; i < value.length; i++) {
                         depth--;
@@ -7323,7 +7346,11 @@ optionsPanel.add({
         }
     },
     More: {
-        "Rtl Text": {
+        "RTL": {
+            path: "rtl",
+            position: 900
+        },
+        "Line based RTL switching": {
             path: "rtlText",
             position: 900
         },

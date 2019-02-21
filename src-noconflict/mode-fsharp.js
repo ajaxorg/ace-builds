@@ -31,7 +31,7 @@ var FSharpHighlightRules = function () {
             },
             {
                 token: "comment.start",
-                regex: /\(\*/,
+                regex: /\(\*(?!\))/,
                 push: "blockComment"
             },
             {
@@ -105,7 +105,7 @@ var FSharpHighlightRules = function () {
             },
             {
                 token: "keyword.operator",
-                regex: "\\+\\.|\\-\\.|\\*\\.|\\/\\.|#|;;|\\+|\\-|\\*|\\*\\*\\/|\\/\\/|%|<<|>>|&|\\||\\^|~|<|>|<=|=>|==|!=|<>|<-|="
+                regex: "\\+\\.|\\-\\.|\\*\\.|\\/\\.|#|;;|\\+|\\-|\\*|\\*\\*\\/|\\/\\/|%|<<|>>|&|\\||\\^|~|<|>|<=|=>|==|!=|<>|<-|=|\\(\\*\\)"
             },
             {
                 token: "paren.lpar",
@@ -117,7 +117,10 @@ var FSharpHighlightRules = function () {
             }
         ],
         blockComment: [{
-            regex: /\(\*/,
+            regex: /\(\*\)/,
+            token: "comment"
+        }, {
+            regex: /\(\*(?!\))/,
             token: "comment.start",
             push: "blockComment"
         }, {
