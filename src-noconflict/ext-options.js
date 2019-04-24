@@ -62,19 +62,23 @@ margin: 0px;\
 background: #f0f0f0;\
 }";
 dom.importCssString(cssText);
-module.exports.overlayPage = function overlayPage(editor, contentElement, top, right, bottom, left) {
-    top = top ? 'top: ' + top + ';' : '';
-    bottom = bottom ? 'bottom: ' + bottom + ';' : '';
-    right = right ? 'right: ' + right + ';' : '';
-    left = left ? 'left: ' + left + ';' : '';
 
+module.exports.overlayPage = function overlayPage(editor, contentElement, callback) {
     var closer = document.createElement('div');
-    var contentContainer = document.createElement('div');
 
     function documentEscListener(e) {
         if (e.keyCode === 27) {
-            closer.click();
+            close();
         }
+    }
+
+    function close() {
+        if (!closer) return;
+        document.removeEventListener('keydown', documentEscListener);
+        closer.parentNode.removeChild(closer);
+        editor.focus();
+        closer = null;
+        callback && callback();
     }
 
     closer.style.cssText = 'margin: 0; padding: 0; ' +
@@ -82,34 +86,20 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, top, r
         'z-index: 9990; ' +
         'background-color: rgba(0, 0, 0, 0.3);';
     closer.addEventListener('click', function() {
-        document.removeEventListener('keydown', documentEscListener);
-        closer.parentNode.removeChild(closer);
-        editor.focus();
-        closer = null;
+        close();
     });
     document.addEventListener('keydown', documentEscListener);
 
-    contentContainer.style.cssText = top + right + bottom + left;
-    contentContainer.addEventListener('click', function(e) {
+    contentElement.addEventListener('click', function (e) {
         e.stopPropagation();
     });
 
-    var wrapper = dom.createElement("div");
-    wrapper.style.position = "relative";
-    
-    var closeButton = dom.createElement("div");
-    closeButton.className = "ace_closeButton";
-    closeButton.addEventListener('click', function() {
-        closer.click();
-    });
-    
-    wrapper.appendChild(closeButton);
-    contentContainer.appendChild(wrapper);
-    
-    contentContainer.appendChild(contentElement);
-    closer.appendChild(contentContainer);
+    closer.appendChild(contentElement);
     document.body.appendChild(closer);
     editor.blur();
+    return {
+        close: close
+    };
 };
 
 });
@@ -161,10 +151,12 @@ var supportedModes = {
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
     Apex:        ["apex|cls|trigger|tgr"],
+    AQL:         ["aql"],
     BatchFile:   ["bat|cmd"],
     Bro:         ["bro"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search:    ["c9search_results"],
+    Crystal:     ["cr"],
     Cirru:       ["cirru|cr"],
     Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
@@ -242,7 +234,9 @@ var supportedModes = {
     MIXAL:       ["mixal"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
+    Nginx:       ["nginx|conf"],
     Nix:         ["nix"],
+    Nim:         ["nim"],
     NSIS:        ["nsi|nsh"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
@@ -270,7 +264,7 @@ var supportedModes = {
     Rust:        ["rs"],
     SASS:        ["sass"],
     SCAD:        ["scad"],
-    Scala:       ["scala"],
+    Scala:       ["scala|sbt"],
     Scheme:      ["scm|sm|rkt|oak|scheme"],
     SCSS:        ["scss"],
     SH:          ["sh|bash|^.bashrc"],
