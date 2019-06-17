@@ -137,7 +137,7 @@ module.exports.getEditorKeybordShortcuts = function(editor) {
 
 ace.define("ace/ext/keybinding_menu",["require","exports","module","ace/editor","ace/ext/menu_tools/overlay_page","ace/ext/menu_tools/get_editor_keyboard_shortcuts"], function(require, exports, module) {
     "use strict";
-    var Editor = require("ace/editor").Editor;
+    var Editor = require("../editor").Editor;
     function showKeyboardShortcuts (editor) {
         if(!document.getElementById('kbshortcutmenu')) {
             var overlayPage = require('./menu_tools/overlay_page').overlayPage;

@@ -5,7 +5,9 @@ var oop = require("../lib/oop");
 
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
-var CsoundPreprocessorHighlightRules = function() {
+var CsoundPreprocessorHighlightRules = function(embeddedRulePrefix) {
+
+    this.embeddedRulePrefix = embeddedRulePrefix === undefined ? "" : embeddedRulePrefix;
 
     this.semicolonComments = {
         token : "comment.line.semicolon.csound",
@@ -84,6 +86,17 @@ var CsoundPreprocessorHighlightRules = function() {
         }, {
             token : "keyword.preprocessor.csound",
             regex : /#include/,
+            push  : [
+                this.comments,
+                {
+                    token : "string.csound",
+                    regex : /([^ \t])(?:.*?\1)/,
+                    next  : "pop"
+                }
+            ]
+        }, {
+            token : "keyword.preprocessor.csound",
+            regex : /#includestr/,
             push  : [
                 this.comments,
                 {
@@ -211,6 +224,12 @@ oop.inherits(CsoundPreprocessorHighlightRules, TextHighlightRules);
 (function() {
 
     this.pushRule = function(params) {
+        if (Array.isArray(params.next)) {
+            for (var i = 0; i < params.next.length; i++) {
+                params.next[i] = this.embeddedRulePrefix + params.next[i];
+            }
+        }
+
         return {
             regex : params.regex, onMatch: function(value, currentState, stack, line) {
                 if (stack.length === 0)
@@ -225,34 +244,23 @@ oop.inherits(CsoundPreprocessorHighlightRules, TextHighlightRules);
                 this.next = stack[stack.length - 1];
                 return params.token;
             },
+
             get next() { return Array.isArray(params.next) ? params.next[params.next.length - 1] : params.next; },
             set next(next) {
-                if (Array.isArray(params.next)) {
-                    var oldNext = params.next[params.next.length - 1];
-                    var oldNextIndex = oldNext.length - 1;
-                    var newNextIndex = next.length - 1;
-                    if (newNextIndex > oldNextIndex) {
-                        while (oldNextIndex >= 0 && newNextIndex >= 0) {
-                            if (oldNext.charAt(oldNextIndex) !== next.charAt(newNextIndex)) {
-                                var prefix = next.substr(0, newNextIndex);
-                                for (var i = 0; i < params.next.length; i++) {
-                                    params.next[i] = prefix + params.next[i];
-                                }
-                                break;
-                            }
-                            oldNextIndex--;
-                            newNextIndex--;
-                        }
-                    }
-                } else {
+                if (!Array.isArray(params.next)) {
                     params.next = next;
                 }
             },
+
             get token() { return params.token; }
         };
     };
 
     this.popRule = function(params) {
+        if (params.next) {
+            params.next = this.embeddedRulePrefix + params.next;
+        }
+
         return {
             regex : params.regex, onMatch: function(value, currentState, stack, line) {
                 stack.pop();
@@ -279,9 +287,9 @@ var oop = require("../lib/oop");
 
 var CsoundPreprocessorHighlightRules = require("./csound_preprocessor_highlight_rules").CsoundPreprocessorHighlightRules;
 
-var CsoundScoreHighlightRules = function() {
+var CsoundScoreHighlightRules = function(embeddedRulePrefix) {
 
-    CsoundPreprocessorHighlightRules.call(this);
+    CsoundPreprocessorHighlightRules.call(this, embeddedRulePrefix);
 
     this.quotedStringContents.push({
         token : "invalid.illegal.csound-score",
@@ -984,9 +992,9 @@ var CsoundScoreHighlightRules = require("./csound_score_highlight_rules").Csound
 var LuaHighlightRules = require("./lua_highlight_rules").LuaHighlightRules;
 var PythonHighlightRules = require("./python_highlight_rules").PythonHighlightRules;
 
-var CsoundOrchestraHighlightRules = function() {
+var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
 
-    CsoundPreprocessorHighlightRules.call(this);
+    CsoundPreprocessorHighlightRules.call(this, embeddedRulePrefix);
     var opcodes = [
         "ATSadd",
         "ATSaddnz",
@@ -2734,6 +2742,8 @@ var CsoundOrchestraHighlightRules = function() {
         next  : "macro parameter value braced string"
     });
 
+    var scoreHighlightRules = new CsoundScoreHighlightRules("csound-score-");
+
     this.addRules({
         "macro parameter value braced string": [
             {
@@ -2832,7 +2842,7 @@ var CsoundOrchestraHighlightRules = function() {
             {
                 token : "punctuation.definition.string.begin.csound",
                 regex : /{{/,
-                next  : "csound-score-start"
+                next  : scoreHighlightRules.embeddedRulePrefix + "start"
             }, this.popRule({
                 token : "empty",
                 regex : /$/
@@ -2882,7 +2892,7 @@ var CsoundOrchestraHighlightRules = function() {
             regex : /}}/
         })
     ];
-    this.embedRules(CsoundScoreHighlightRules, "csound-score-", rules);
+    this.embedRules(scoreHighlightRules.getRules(), scoreHighlightRules.embeddedRulePrefix, rules);
     this.embedRules(PythonHighlightRules, "python-", rules);
     this.embedRules(LuaHighlightRules, "lua-", rules);
 
@@ -3910,6 +3920,9 @@ var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var CsoundDocumentHighlightRules = function() {
 
+    var orchestraHighlightRules = new CsoundOrchestraHighlightRules("csound-");
+    var scoreHighlightRules = new CsoundScoreHighlightRules("csound-score-");
+
     this.$rules = {
         "start": [
             {
@@ -3928,11 +3941,11 @@ var CsoundDocumentHighlightRules = function() {
             }, {
                 token : ["meta.tag.punctuation.tag-open.csound-document", "entity.name.tag.begin.csound-document", "meta.tag.punctuation.tag-close.csound-document"],
                 regex : "(<)(CsInstruments)(>)",
-                next  : "csound-start"
+                next  : orchestraHighlightRules.embeddedRulePrefix + "start"
             }, {
                 token : ["meta.tag.punctuation.tag-open.csound-document", "entity.name.tag.begin.csound-document", "meta.tag.punctuation.tag-close.csound-document"],
                 regex : "(<)(CsScore)(>)",
-                next  : "csound-score-start"
+                next  : scoreHighlightRules.embeddedRulePrefix + "start"
             }, {
                 token : ["meta.tag.punctuation.tag-open.csound-document", "entity.name.tag.begin.csound-document", "meta.tag.punctuation.tag-close.csound-document"],
                 regex : "(<)([Hh][Tt][Mm][Ll])(>)",
@@ -3941,12 +3954,12 @@ var CsoundDocumentHighlightRules = function() {
         ]
     };
 
-    this.embedRules(CsoundOrchestraHighlightRules, "csound-", [{
+    this.embedRules(orchestraHighlightRules.getRules(), orchestraHighlightRules.embeddedRulePrefix, [{
         token : ["meta.tag.punctuation.end-tag-open.csound-document", "entity.name.tag.begin.csound-document", "meta.tag.punctuation.tag-close.csound-document"],
         regex : "(</)(CsInstruments)(>)",
         next  : "synthesizer"
     }]);
-    this.embedRules(CsoundScoreHighlightRules, "csound-score-", [{
+    this.embedRules(scoreHighlightRules.getRules(), scoreHighlightRules.embeddedRulePrefix, [{
         token : ["meta.tag.punctuation.end-tag-open.csound-document", "entity.name.tag.begin.csound-document", "meta.tag.punctuation.tag-close.csound-document"],
         regex : "(</)(CsScore)(>)",
         next  : "synthesizer"

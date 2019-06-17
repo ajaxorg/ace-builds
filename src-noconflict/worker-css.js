@@ -3919,8 +3919,13 @@ var Properties = {
     "grid-row"                      : 1,
     "grid-rows"                     : 1,
     "grid-row-align"                : "start | end | center | stretch",
+    "grid-row-gap"                  : 1,
     "grid-row-span"                 : "<integer>",
     "grid-row-sizing"               : 1,
+    "grid-template"                 : 1,
+    "grid-template-areas"           : 1,
+    "grid-template-columns"         : 1,
+    "grid-template-rows"            : 1,
     "hanging-punctuation"           : 1,
     "height"                        : "<margin-width> | <content-sizing> | inherit",
     "hyphenate-after"               : "<integer> | auto",
@@ -4168,6 +4173,7 @@ function PropertyValuePart(text, line, col){
             case "ch":
             case "vh":
             case "vw":
+            case "fr":
             case "vmax":
             case "vmin":
                 this.type = "length";

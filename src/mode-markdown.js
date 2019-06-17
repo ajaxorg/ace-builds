@@ -3160,6 +3160,7 @@ oop.inherits(Mode, TextMode);
 (function() {
     this.type = "text";
     this.blockComment = {start: "<!--", end: "-->"};
+    this.$quotes = {'"': '"', "`": "`"};
 
     this.getNextLineIndent = function(state, line, tab) {
         if (state == "listblock") {

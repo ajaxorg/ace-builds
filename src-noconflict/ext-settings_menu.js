@@ -153,7 +153,6 @@ var supportedModes = {
     Apex:        ["apex|cls|trigger|tgr"],
     AQL:         ["aql"],
     BatchFile:   ["bat|cmd"],
-    Bro:         ["bro"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search:    ["c9search_results"],
     Crystal:     ["cr"],
@@ -298,6 +297,7 @@ var supportedModes = {
     XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery:      ["xq"],
     YAML:        ["yaml|yml"],
+    Zeek:        ["zeek|bro"],
     Django:      ["html"]
 };
 
@@ -394,13 +394,14 @@ exports.themes = themeData.map(function(data) {
 
 });
 
-ace.define("ace/ext/options",["require","exports","module","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/lib/oop","ace/lib/event_emitter","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module) {
+ace.define("ace/ext/options",["require","exports","module","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/lib/oop","ace/config","ace/lib/event_emitter","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module) {
 "use strict";
 var overlayPage = require('./menu_tools/overlay_page').overlayPage;
 
  
 var dom = require("../lib/dom");
 var oop = require("../lib/oop");
+var config = require("../config");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var buildDom = dom.buildDom;
 
@@ -605,7 +606,8 @@ var OptionPanel = function(editor, element) {
                 ["table", {id: "more-controls"}, 
                     this.renderOptionGroup(optionGroups.More)
                 ]
-            ]]
+            ]],
+            ["tr", null, ["td", {colspan: 2}, "version " + config.version]]
         ], this.container);
     };
     
@@ -743,7 +745,7 @@ exports.OptionPanel = OptionPanel;
 
 ace.define("ace/ext/settings_menu",["require","exports","module","ace/ext/options","ace/ext/menu_tools/overlay_page","ace/editor"], function(require, exports, module) {
 "use strict";
-var OptionPanel = require("ace/ext/options").OptionPanel;
+var OptionPanel = require("./options").OptionPanel;
 var overlayPage = require('./menu_tools/overlay_page').overlayPage;
 function showSettingsMenu(editor) {
     if (!document.getElementById('ace_settingsmenu')) {
@@ -754,8 +756,8 @@ function showSettingsMenu(editor) {
         options.container.querySelector("select,input,button,checkbox").focus();
     }
 }
-module.exports.init = function(editor) {
-    var Editor = require("ace/editor").Editor;
+module.exports.init = function() {
+    var Editor = require("../editor").Editor;
     Editor.prototype.showSettingsMenu = function() {
         showSettingsMenu(this);
     };

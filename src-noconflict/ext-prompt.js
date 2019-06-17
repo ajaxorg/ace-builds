@@ -296,7 +296,7 @@ var AcePopup = function(parentNode) {
         var max = this.session.getLength() - 1;
 
         switch(where) {
-            case "up": row = row < 0 ? max : row - 1; break;
+            case "up": row = row <= 0 ? max : row - 1; break;
             case "down": row = row >= max ? -1 : row + 1; break;
             case "start": row = 0; break;
             case "end": row = max; break;
@@ -1338,7 +1338,7 @@ var Editor = require("./editor").Editor;
 
 });
 
-ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/snippets"], function(require, exports, module) {
+ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config"], function(require, exports, module) {
 "use strict";
 
 var HashHandler = require("./keyboard/hash_handler").HashHandler;
@@ -1348,6 +1348,7 @@ var event = require("./lib/event");
 var lang = require("./lib/lang");
 var dom = require("./lib/dom");
 var snippetManager = require("./snippets").snippetManager;
+var config = require("./config");
 
 var Autocomplete = function() {
     this.autoInsert = false;
@@ -1713,17 +1714,45 @@ var Autocomplete = function() {
         }
     };
 
+    this.destroy = function() {
+        this.detach();
+        this.popup && this.popup.destroy();
+        var el = this.popup.container;
+        if (el && el.parentNode)
+            el.parentNode.removeChild(el);
+        if (this.editor && this.editor.completer == this)
+            this.editor.completer == null;
+        this.popup = null;
+    };
+
 }).call(Autocomplete.prototype);
+
+
+Autocomplete.for = function(editor) {
+    if (editor.completer) {
+        return editor.completer;
+    }
+    if (config.get("sharedPopups")) {
+        if (!Autocomplete.$shared)
+            Autocomplete.$sharedInstance = new Autocomplete();
+        editor.completer = Autocomplete.$sharedInstance;
+    } else {
+        editor.completer = new Autocomplete();
+        editor.once("destroy", function(e, editor) {
+            editor.completer.destroy();
+        });
+    }
+    return editor.completer;
+};
 
 Autocomplete.startCommand = {
     name: "startAutocomplete",
     exec: function(editor) {
-        if (!editor.completer)
-            editor.completer = new Autocomplete();
-        editor.completer.autoInsert = false;
-        editor.completer.autoSelect = true;
-        editor.completer.showPopup(editor);
-        editor.completer.cancelContextMenu();
+        var completer = Autocomplete.for(editor);
+        completer.autoInsert = false;
+        completer.autoSelect = true;
+        completer.showPopup(editor);
+        completer.cancelContextMenu();
     },
     bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
 };
@@ -1963,7 +1992,6 @@ var supportedModes = {
     Apex:        ["apex|cls|trigger|tgr"],
     AQL:         ["aql"],
     BatchFile:   ["bat|cmd"],
-    Bro:         ["bro"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search:    ["c9search_results"],
     Crystal:     ["cr"],
@@ -2108,6 +2136,7 @@ var supportedModes = {
     XML:         ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery:      ["xq"],
     YAML:        ["yaml|yml"],
+    Zeek:        ["zeek|bro"],
     Django:      ["html"]
 };
 
@@ -2155,9 +2184,9 @@ var FilteredList= require("../autocomplete").FilteredList;
 var AcePopup = require('../autocomplete/popup').AcePopup;
 var $singleLineEditor = require('../autocomplete/popup').$singleLineEditor;
 var UndoManager = require("../undomanager").UndoManager;
-var Tokenizer = require("ace/tokenizer").Tokenizer;
-var overlayPage = require('./menu_tools/overlay_page').overlayPage;
-var modelist = require("ace/ext/modelist");
+var Tokenizer = require("../tokenizer").Tokenizer;
+var overlayPage = require("./menu_tools/overlay_page").overlayPage;
+var modelist = require("./modelist");
 var openPrompt;
 
 function prompt(editor, message, options, callback) {

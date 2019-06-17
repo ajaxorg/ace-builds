@@ -906,12 +906,13 @@ var Editor = require("./editor").Editor;
 
 });
 
-define("ace/ext/emmet",["require","exports","module","ace/keyboard/hash_handler","ace/editor","ace/snippets","ace/range","resources","resources","tabStops","resources","utils","actions","ace/config","ace/config"], function(require, exports, module) {
+define("ace/ext/emmet",["require","exports","module","ace/keyboard/hash_handler","ace/editor","ace/snippets","ace/range","ace/config","resources","resources","tabStops","resources","utils","actions"], function(require, exports, module) {
 "use strict";
-var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
-var Editor = require("ace/editor").Editor;
-var snippetManager = require("ace/snippets").snippetManager;
-var Range = require("ace/range").Range;
+var HashHandler = require("../keyboard/hash_handler").HashHandler;
+var Editor = require("../editor").Editor;
+var snippetManager = require("../snippets").snippetManager;
+var Range = require("../range").Range;
+var config = require("../config");
 var emmet, emmetPath;
 function AceEmmetEditor() {}
 
@@ -1019,7 +1020,7 @@ AceEmmetEditor.prototype = {
         }
     },
     prompt: function(title) {
-        return prompt(title);
+        return prompt(title); // eslint-disable-line no-alert
     },
     getSelection: function() {
         return this.ace.session.getTextRange();
@@ -1192,7 +1193,7 @@ var onChangeMode = function(e, target) {
 
 exports.load = function(cb) {
     if (typeof emmetPath == "string") {
-        require("ace/config").loadModule(emmetPath, function() {
+        config.loadModule(emmetPath, function() {
             emmetPath = null;
             cb && cb();
         });
@@ -1200,7 +1201,7 @@ exports.load = function(cb) {
 };
 
 exports.AceEmmetEditor = AceEmmetEditor;
-require("ace/config").defineOptions(Editor.prototype, "editor", {
+config.defineOptions(Editor.prototype, "editor", {
     enableEmmet: {
         set: function(val) {
             this[val ? "on" : "removeListener"]("changeMode", onChangeMode);
