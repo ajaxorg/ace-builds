@@ -187,6 +187,7 @@ ace.config.setModuleUrl('ace/mode/wollok', require('file-loader!./src-noconflict
 ace.config.setModuleUrl('ace/mode/xml', require('file-loader!./src-noconflict/mode-xml.js'))
 ace.config.setModuleUrl('ace/mode/xquery', require('file-loader!./src-noconflict/mode-xquery.js'))
 ace.config.setModuleUrl('ace/mode/yaml', require('file-loader!./src-noconflict/mode-yaml.js'))
+ace.config.setModuleUrl('ace/mode/zeek', require('file-loader!./src-noconflict/mode-zeek.js'))
 
 ace.config.setModuleUrl('ace/theme/ambiance', require('file-loader!./src-noconflict/theme-ambiance.js'))
 ace.config.setModuleUrl('ace/theme/chaos', require('file-loader!./src-noconflict/theme-chaos.js'))
@@ -399,3 +400,4 @@ ace.config.setModuleUrl('ace/snippets/wollok', require('file-loader!./src-noconf
 ace.config.setModuleUrl('ace/snippets/xml', require('file-loader!./src-noconflict/snippets/xml.js'))
 ace.config.setModuleUrl('ace/snippets/xquery', require('file-loader!./src-noconflict/snippets/xquery.js'))
 ace.config.setModuleUrl('ace/snippets/yaml', require('file-loader!./src-noconflict/snippets/yaml.js'))
+ace.config.setModuleUrl('ace/snippets/zeek', require('file-loader!./src-noconflict/snippets/zeek.js'))

@@ -1000,8 +1000,6 @@ exports.isEdge = parseFloat(ua.split(" Edge/")[1]) || undefined;
 
 exports.isAIR = ua.indexOf("AdobeAIR") >= 0;
 
-exports.isIPad = ua.indexOf("iPad") >= 0;
-
 exports.isAndroid = ua.indexOf("Android") >= 0;
 
 exports.isChromeOS = ua.indexOf(" CrOS ") >= 0;
@@ -1010,7 +1008,7 @@ exports.isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
 
 if (exports.isIOS) exports.isMac = true;
 
-exports.isMobile = exports.isIPad || exports.isAndroid;
+exports.isMobile = exports.isIOS || exports.isAndroid;
 
 });
 
@@ -1290,7 +1288,8 @@ var oop = require("./oop");
 var Keys = (function() {
     var ret = {
         MODIFIER_KEYS: {
-            16: 'Shift', 17: 'Ctrl', 18: 'Alt', 224: 'Meta'
+            16: 'Shift', 17: 'Ctrl', 18: 'Alt', 224: 'Meta',
+            91: 'MetaLeft', 92: 'MetaRight', 93: 'ContextMenu'
         },
 
         KEY_MODS: {
@@ -1616,9 +1615,6 @@ function normalizeCommandKeys(callback, e, keyCode) {
     }
     
     if (keyCode in keys.MODIFIER_KEYS) {
-        keyCode = -1;
-    }
-    if (hashId & 8 && (keyCode >= 91 && keyCode <= 93)) {
         keyCode = -1;
     }
     
@@ -2169,13 +2165,32 @@ exports.delayedCall = function(fcn, defaultTimeout) {
 };
 });
 
-define("ace/keyboard/textinput",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/lib/keys"], function(require, exports, module) {
+define("ace/clipboard",["require","exports","module"], function(require, exports, module) {
+"use strict";
+
+var $cancelT;
+module.exports = { 
+    lineMode: false,
+    pasteCancelled: function() {
+        if ($cancelT && $cancelT > Date.now() - 50)
+            return true;
+        return $cancelT = false;
+    },
+    cancel: function() {
+        $cancelT = Date.now();
+    }
+};
+
+});
+
+define("ace/keyboard/textinput",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/lib/dom","ace/lib/lang","ace/clipboard","ace/lib/keys"], function(require, exports, module) {
 "use strict";
 
 var event = require("../lib/event");
 var useragent = require("../lib/useragent");
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
+var clipboard = require("../clipboard");
 var BROKEN_SETDATA = useragent.isChrome < 18;
 var USE_IE_MIME_TYPE =  useragent.isIE;
 var HAS_FOCUS_ARGS = useragent.isChrome > 63;
@@ -2203,8 +2218,6 @@ var TextInput = function(parentNode, host) {
     var inComposition = false;
     var sendingText = false;
     var tempStyle = '';
-    var isSelectionEmpty = true;
-    var copyWithEmptySelection = false;
     
     if (!useragent.isMobile)
         text.style.fontSize = "1px";
@@ -2428,7 +2441,12 @@ var TextInput = function(parentNode, host) {
             }
             restoreStart -= i-1;
             restoreEnd -= i-1;
-            inserted = inserted.slice(0, inserted.length - i+1);
+            var endIndex = inserted.length - i + 1;
+            if (endIndex < 0) {
+                extendLeft = -endIndex;
+                endIndex = 0;
+            } 
+            inserted = inserted.slice(0, endIndex);
             if (!fromInput && restoreStart == inserted.length && !extendLeft && !extendRight && !restoreEnd)
                 return "";
             
@@ -2454,6 +2472,10 @@ var TextInput = function(parentNode, host) {
     var onInput = function(e) {
         if (inComposition)
             return onCompositionUpdate();
+        if (e && e.inputType) {
+            if (e.inputType == "historyUndo") return host.execCommand("undo");
+            if (e.inputType == "historyRedo") return host.execCommand("redo");
+        }
         var data = text.value;
         var inserted = sendText(data, true);
         if (data.length > MAX_LINE_LENGTH + 100 || valueResetRegex.test(inserted))
@@ -2514,6 +2536,8 @@ var TextInput = function(parentNode, host) {
     
     var onPaste = function(e) {
         var data = handleClipboardData(e);
+        if (clipboard.pasteCancelled())
+            return;
         if (typeof data == "string") {
             if (data)
                 host.onPaste(data, e);
@@ -2657,7 +2681,6 @@ var TextInput = function(parentNode, host) {
     };
 
     this.setCopyWithEmptySelection = function(value) {
-        copyWithEmptySelection = value;
     };
 
     this.onContextMenu = function(e) {
@@ -2750,7 +2773,6 @@ var TextInput = function(parentNode, host) {
             
             var key = null;
             var modifier = 0;
-            console.log(selectionStart, selectionEnd);
             if (selectionStart == 0) {
                 key = KEYS.up;
             } else if (selectionStart == 1) {
@@ -2789,7 +2811,13 @@ var TextInput = function(parentNode, host) {
                 modifier |= MODS.shift;
 
             if (key) {
-                host.onCommandKey(null, modifier, key);
+                var result = host.onCommandKey({}, modifier, key);
+                if (!result && host.commands) {
+                    key = KEYS.keyCodeToString(key);
+                    var command = host.commands.findKeyCommand(modifier, key);
+                    if (command)
+                        host.execCommand(command);
+                }
                 lastSelectionStart = selectionStart;
                 lastSelectionEnd = selectionEnd;
                 resetSelection("");
@@ -3758,10 +3786,11 @@ exports.DragdropHandler = DragdropHandler;
 
 });
 
-define("ace/mouse/touch_handler",["require","exports","module","ace/mouse/mouse_event"], function(require, exports, module) {
+define("ace/mouse/touch_handler",["require","exports","module","ace/mouse/mouse_event","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
 var MouseEvent = require("./mouse_event").MouseEvent;
+var dom = require("../lib/dom");
 
 exports.addTouchListeners = function(el, editor) {
     var mode = "scroll";
@@ -3777,12 +3806,101 @@ exports.addTouchListeners = function(el, editor) {
     var vX = 0;
     var vY = 0;
     var pressed;
+    var contextMenu;
+    
+    function createContextMenu() {
+        var clipboard = window.navigator && window.navigator.clipboard;
+        var isOpen = false;
+        var updateMenu = function() {
+            var selected = editor.getCopyText();
+            var hasUndo = editor.session.getUndoManager().hasUndo();
+            contextMenu.replaceChild(
+                dom.buildDom(isOpen ? ["span",
+                    !selected && ["span", { class: "ace_mobile-button", action: "selectall" }, "Select All"],
+                    selected && ["span", { class: "ace_mobile-button", action: "copy" }, "Copy"],
+                    selected && ["span", { class: "ace_mobile-button", action: "cut" }, "Cut"],
+                    clipboard && ["span", { class: "ace_mobile-button", action: "paste" }, "Paste"],
+                    hasUndo && ["span", { class: "ace_mobile-button", action: "undo" }, "Undo"],
+                    ["span", { class: "ace_mobile-button", action: "find" }, "Find"],
+                    ["span", { class: "ace_mobile-button", action: "openCommandPallete" }, "Pallete"]
+                ] : ["span"]),
+                contextMenu.firstChild
+            );
+        };
+        var handleClick = function(e) {
+            var action = e.target.getAttribute("action");
+
+            if (action == "more" || !isOpen) {
+                isOpen = !isOpen;
+                return updateMenu();
+            }
+            if (action == "paste") {
+                clipboard.readText().then(function (text) {
+                    editor.execCommand(action, text);
+                });
+            }
+            else if (action) {
+                if (action == "cut" || action == "copy") {
+                    if (clipboard)
+                        clipboard.writeText(editor.getCopyText());
+                    else
+                        document.execCommand("copy");
+                }
+                editor.execCommand(action);
+            }
+            contextMenu.firstChild.style.display = "none";
+            isOpen = false;
+            if (action != "openCommandPallete")
+                editor.focus();
+        };
+        contextMenu = dom.buildDom(["div",
+            {
+                class: "ace_mobile-menu",
+                ontouchstart: function(e) {
+                    mode = "menu";
+                    e.stopPropagation();
+                    e.preventDefault();
+                    editor.textInput.focus();
+                },
+                ontouchend: function(e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleClick(e);
+                },
+                onclick: handleClick
+            },
+            ["span"],
+            ["span", { class: "ace_mobile-button", action: "more" }, "..."]
+        ], editor.container);
+    }
+    function showContextMenu() {
+        if (!contextMenu) createContextMenu();
+        var cursor = editor.selection.cursor;
+        var pagePos = editor.renderer.textToScreenCoordinates(cursor.row, cursor.column);
+        var rect = editor.container.getBoundingClientRect();
+        contextMenu.style.top = pagePos.pageY - rect.top - 3 + "px";
+        contextMenu.style.right = "10px";
+        contextMenu.style.display = "";
+        contextMenu.firstChild.style.display = "none";
+        editor.on("input", hideContextMenu);
+    }
+    function hideContextMenu(e) {
+        if (contextMenu)
+            contextMenu.style.display = "none";
+        editor.off("input", hideContextMenu);
+    }
+
     function handleLongTap() {
         longTouchTimer = null;
         clearTimeout(longTouchTimer);
-        if (editor.selection.isEmpty())
+        var range = editor.selection.getRange();
+        var inSelection = range.contains(pos.row, pos.column);
+        if (range.isEmpty() || !inSelection) {
             editor.selection.moveToPosition(pos);
+            editor.selection.selectWord();
+        }
         mode = "wait";
+        showContextMenu();
     }
     function switchToSelectionMode() {
         longTouchTimer = null;
@@ -3808,21 +3926,25 @@ exports.addTouchListeners = function(el, editor) {
         if (longTouchTimer || touches.length > 1) {
             clearTimeout(longTouchTimer);
             longTouchTimer = null;
+            touchStartT = -1;
             mode = "zoom";
             return;
         }
         
         pressed = editor.$mouseHandler.isMousePressed = true;
-        var touchObj = touches[0];
-        startX = touchObj.clientX;
-        startY = touchObj.clientY;
-        vX = vY = 0;
-
-        e.clientX = touchObj.clientX;
-        e.clientY = touchObj.clientY;
-
+        var h = editor.renderer.layerConfig.lineHeight;
+        var w = editor.renderer.layerConfig.lineHeight;
         var t = e.timeStamp;
         lastT = t;
+        var touchObj = touches[0];
+        var x = touchObj.clientX;
+        var y = touchObj.clientY;
+        if (Math.abs(startX - x) + Math.abs(startY - y) > h)
+            touchStartT = -1;
+        
+        startX = e.clientX = x;
+        startY = e.clientY = y;
+        vX = vY = 0;
         
         var ev = new MouseEvent(e, editor);
         pos = ev.getDocumentPosition();
@@ -3834,20 +3956,22 @@ exports.addTouchListeners = function(el, editor) {
             switchToSelectionMode();
         } else {
             clickCount = 0;
-            longTouchTimer = setTimeout(handleLongTap, 450);
             var cursor = editor.selection.cursor;
             var anchor = editor.selection.isEmpty() ? cursor : editor.selection.anchor;
             
             var cursorPos = editor.renderer.$cursorLayer.getPixelPosition(cursor, true);
             var anchorPos = editor.renderer.$cursorLayer.getPixelPosition(anchor, true);
             var rect = editor.renderer.scroller.getBoundingClientRect();
-            var h = editor.renderer.layerConfig.lineHeight;
-            var w = editor.renderer.layerConfig.lineHeight;
             var weightedDistance = function(x, y) {
                 x = x / w;
                 y = y / h - 0.75;
                 return x * x + y * y;
             };
+            
+            if (e.clientX < rect.left) {
+                mode = "zoom";
+                return;
+            }
             
             var diff1 = weightedDistance(
                 e.clientX - rect.left - cursorPos.left,
@@ -3866,6 +3990,7 @@ exports.addTouchListeners = function(el, editor) {
                 mode = "cursor";
             else
                 mode = "scroll";
+            longTouchTimer = setTimeout(handleLongTap, 450);
         }
         touchStartT = t;
     });
@@ -3879,9 +4004,13 @@ exports.addTouchListeners = function(el, editor) {
         } else if (longTouchTimer) {
             editor.selection.moveToPosition(pos);
             animationSteps = 0;
+            showContextMenu();
         } else if (mode == "scroll") {
             animate();
             e.preventDefault();
+            hideContextMenu();
+        } else {
+            showContextMenu();
         }
         clearTimeout(longTouchTimer);
         longTouchTimer = null;
@@ -3954,7 +4083,10 @@ exports.addTouchListeners = function(el, editor) {
             if (Math.abs(vY) < 0.01) vY = 0;
             if (animationSteps < 20) vX = 0.9 * vX;
             if (animationSteps < 20) vY = 0.9 * vY;
+            var oldScrollTop = editor.session.getScrollTop();
             editor.renderer.scrollBy(10 * vX, 10 * vY);
+            if (oldScrollTop == editor.session.getScrollTop())
+                animationSteps = 0;
         }, 10);
     }
 };
@@ -4445,7 +4577,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.4.5";
+exports.version = "1.4.6";
 
 });
 
@@ -4810,11 +4942,11 @@ var KeyBinding = function(editor) {
 
     this.onCommandKey = function(e, hashId, keyCode) {
         var keyString = keyUtil.keyCodeToString(keyCode);
-        this.$callKeyboardHandlers(hashId, keyString, keyCode, e);
+        return this.$callKeyboardHandlers(hashId, keyString, keyCode, e);
     };
 
     this.onTextInput = function(text) {
-        this.$callKeyboardHandlers(-1, text);
+        return this.$callKeyboardHandlers(-1, text);
     };
 
 }).call(KeyBinding.prototype);
@@ -6735,9 +6867,9 @@ var TokenIterator = require("../../token_iterator").TokenIterator;
 var lang = require("../../lib/lang");
 
 var SAFE_INSERT_IN_TOKENS =
-    ["text", "paren.rparen", "punctuation.operator"];
+    ["text", "paren.rparen", "rparen", "paren", "punctuation.operator"];
 var SAFE_INSERT_BEFORE_TOKENS =
-    ["text", "paren.rparen", "punctuation.operator", "comment"];
+    ["text", "paren.rparen", "rparen", "paren", "punctuation.operator", "comment"];
 
 var context;
 var contextCache = {};
@@ -7028,6 +7160,8 @@ CstyleBehaviour.isSaneInsertion = function(editor, session) {
     var cursor = editor.getCursorPosition();
     var iterator = new TokenIterator(session, cursor.row, cursor.column);
     if (!this.$matchTokenType(iterator.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS)) {
+        if (/[)}\]]/.test(editor.session.getLine(cursor.row)[cursor.column]))
+            return true;
         var iterator2 = new TokenIterator(session, cursor.row, cursor.column + 1);
         if (!this.$matchTokenType(iterator2.getCurrentToken() || "text", SAFE_INSERT_IN_TOKENS))
             return false;
@@ -8439,6 +8573,7 @@ var comparePoints = Range.comparePoints;
 
 var RangeList = function() {
     this.ranges = [];
+    this.$bias = 1;
 };
 
 (function() {
@@ -8603,14 +8738,14 @@ var RangeList = function() {
                     break;
     
                 if (r.start.row == startRow && r.start.column >= start.column) {
-                    if (r.start.column == start.column && this.$insertRight) {
+                    if (r.start.column == start.column && this.$bias <= 0) {
                     } else {
                         r.start.column += colDiff;
                         r.start.row += lineDif;
                     }
                 }
                 if (r.end.row == startRow && r.end.column >= start.column) {
-                    if (r.end.column == start.column && this.$insertRight) {
+                    if (r.end.column == start.column && this.$bias < 0) {
                         continue;
                     }
                     if (r.end.column == start.column && colDiff > 0 && i < n - 1) {
@@ -9931,6 +10066,8 @@ EditSession.$uid = 0;
     this.$defaultUndoManager = {
         undo: function() {},
         redo: function() {},
+        hasUndo: function() {},
+        hasRedo: function() {},
         reset: function() {},
         add: function() {},
         addSelection: function() {},
@@ -12511,7 +12648,7 @@ exports.commands = [{
 }, {
     name: "jumptomatching",
     description: "Jump to matching",
-    bindKey: bindKey("Ctrl-P", "Ctrl-P"),
+    bindKey: bindKey("Ctrl-\\|Ctrl-P", "Command-\\"),
     exec: function(editor) { editor.jumpToMatching(); },
     multiSelectAction: "forEach",
     scrollIntoView: "animate",
@@ -12519,7 +12656,7 @@ exports.commands = [{
 }, {
     name: "selecttomatching",
     description: "Select to matching",
-    bindKey: bindKey("Ctrl-Shift-P", "Ctrl-Shift-P"),
+    bindKey: bindKey("Ctrl-Shift-\\|Ctrl-Shift-P", "Command-Shift-\\"),
     exec: function(editor) { editor.jumpToMatching(true); },
     multiSelectAction: "forEach",
     scrollIntoView: "animate",
@@ -12914,13 +13051,6 @@ exports.commands = [{
     },
     readOnly: true
 }];
-
-});
-
-define("ace/clipboard",["require","exports","module"], function(require, exports, module) {
-"use strict";
-
-module.exports = { lineMode: false };
 
 });
 
@@ -13629,7 +13759,8 @@ Editor.$uid = 0;
             var lines = text.split(/\r\n|\r|\n/);
             var ranges = this.selection.rangeList.ranges;
     
-            if (lines.length > ranges.length || lines.length < 2 || !lines[1])
+            var isFullLine = lines.length == 2 && (!lines[0] || !lines[1]);
+            if (lines.length != ranges.length || isFullLine)
                 return this.commands.exec("insertstring", this, text);
     
             for (var i = ranges.length; i--;) {
@@ -13690,7 +13821,7 @@ Editor.$uid = 0;
         var lineState = session.getState(cursor.row);
         var line = session.getLine(cursor.row);
         var shouldOutdent = mode.checkOutdent(lineState, line, text);
-        var end = session.insert(cursor, text);
+        session.insert(cursor, text);
 
         if (transform && transform.selection) {
             if (transform.selection.length == 2) { // Transform relative to the current column
@@ -13748,7 +13879,7 @@ Editor.$uid = 0;
     };
 
     this.onCommandKey = function(e, hashId, keyCode) {
-        this.keyBinding.onCommandKey(e, hashId, keyCode);
+        return this.keyBinding.onCommandKey(e, hashId, keyCode);
     };
     this.setOverwrite = function(overwrite) {
         this.session.setOverwrite(overwrite);
@@ -16407,6 +16538,10 @@ var Text = function(parentEl) {
                 this.$renderLine(
                     lineElement, row, row == foldStart ? foldLine : false
                 );
+
+                if (heightChanged)
+                    lineElement.style.top = this.$lines.computeLineTop(row, config, this.session) + "px";
+
                 var height = (config.lineHeight * this.session.getRowLength(row)) + "px";
                 if (lineElement.style.height != height) {
                     heightChanged = true;
@@ -16565,13 +16700,12 @@ var Text = function(parentEl) {
                 span.textContent = lang.stringRepeat(self.SPACE_CHAR, controlCharacter.length);
                 valueFragment.appendChild(span);
             } else if (cjkSpace) {
-                var space = self.showInvisibles ? self.SPACE_CHAR : "";
                 screenColumn += 1;
                 
                 var span = this.dom.createElement("span");
                 span.style.width = (self.config.characterWidth * 2) + "px";
                 span.className = self.showInvisibles ? "ace_cjk ace_invisible ace_invisible_space" : "ace_cjk";
-                span.textContent = self.showInvisibles ? self.SPACE_CHAR : "";
+                span.textContent = self.showInvisibles ? self.SPACE_CHAR : cjkSpace;
                 valueFragment.appendChild(span);
             } else if (cjk) {
                 screenColumn += 1;
@@ -17898,7 +18032,37 @@ background-color: rgba(255, 255, 0,0.2);\
 position: absolute;\
 z-index: 8;\
 }\
-";
+.ace_mobile-menu {\
+position: absolute;\
+line-height: 1.5;\
+border-radius: 4px;\
+-ms-user-select: none;\
+-moz-user-select: none;\
+-webkit-user-select: none;\
+user-select: none;\
+background: white;\
+box-shadow: 1px 3px 2px grey;\
+border: 1px solid #dcdcdc;\
+color: black;\
+}\
+.ace_dark > .ace_mobile-menu {\
+background: #333;\
+color: #ccc;\
+box-shadow: 1px 3px 2px grey;\
+border: 1px solid #444;\
+}\
+.ace_mobile-button {\
+padding: 2px;\
+cursor: pointer;\
+overflow: hidden;\
+}\
+.ace_mobile-button:hover {\
+background-color: #eee;\
+opacity:1;\
+}\
+.ace_mobile-button:active {\
+background-color: #ddd;\
+}";
 
 var useragent = require("./lib/useragent");
 var HIDE_TEXTAREA = useragent.isIE;
@@ -18053,6 +18217,7 @@ var VirtualRenderer = function(container, theme) {
         this.layerConfig.lineHeight =
         this.lineHeight = this.$textLayer.getLineHeight();
         this.$updatePrintMargin();
+        dom.setStyle(this.scroller.style, "line-height", this.lineHeight + "px");
     };
     this.setSession = function(session) {
         if (this.session)
@@ -18349,6 +18514,7 @@ var VirtualRenderer = function(container, theme) {
         }
 
         var w = 1;
+        var maxTop = this.$size.height - h;
         if (!composition) {
             posTop += this.lineHeight;
         }
@@ -18371,7 +18537,7 @@ var VirtualRenderer = function(container, theme) {
 
         dom.setStyle(style, "height", h + "px");
         dom.setStyle(style, "width", w + "px");
-        dom.translate(this.textarea, Math.min(posLeft, this.$size.scrollerWidth - w), Math.min(posTop, this.$size.height - h));
+        dom.translate(this.textarea, Math.min(posLeft, this.$size.scrollerWidth - w), Math.min(posTop, maxTop));
     };
     this.getFirstVisibleRow = function() {
         return this.layerConfig.firstRow;
@@ -18523,6 +18689,7 @@ var VirtualRenderer = function(container, theme) {
             this.scroller.className = this.scrollLeft <= 0 ? "ace_scroller" : "ace_scroller ace_scroll-left";
         }
         if (changes & this.CHANGE_FULL) {
+            this.$changedLines = null;
             this.$textLayer.update(config);
             if (this.$showGutter)
                 this.$gutterLayer.update(config);
@@ -18534,6 +18701,7 @@ var VirtualRenderer = function(container, theme) {
             return;
         }
         if (changes & this.CHANGE_SCROLL) {
+            this.$changedLines = null;
             if (changes & this.CHANGE_TEXT || changes & this.CHANGE_LINES)
                 this.$textLayer.update(config);
             else
@@ -18554,6 +18722,7 @@ var VirtualRenderer = function(container, theme) {
         }
 
         if (changes & this.CHANGE_TEXT) {
+            this.$changedLines = null;
             this.$textLayer.update(config);
             if (this.$showGutter)
                 this.$gutterLayer.update(config);
@@ -19129,6 +19298,7 @@ var VirtualRenderer = function(container, theme) {
         dom.importCssString(editorCss, "ace_editor.css", this.container);
     };
     this.destroy = function() {
+        this.freeze();
         this.$fontMetrics.destroy();
         this.$cursorLayer.destroy();
     };
@@ -20699,6 +20869,7 @@ function MultiSelect(editor) {
 }
 
 function addAltCursorListeners(editor){
+    if (!editor.textInput) return;
     var el = editor.textInput.getElement();
     var altCursor = false;
     event.addListener(el, "keydown", function(e) {
@@ -20796,8 +20967,11 @@ var FoldMode = exports.FoldMode = function() {};
             if (level == -1)
                 continue;
 
-            if (level <= startLevel)
-                break;
+            if (level <= startLevel) {
+                var token = session.getTokenAt(row, 0);
+                if (!token || token.type !== "string")
+                    break;
+            }
 
             endRow = row;
         }

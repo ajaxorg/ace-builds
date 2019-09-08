@@ -853,10 +853,14 @@ export namespace Ace {
     completers: Completer[];
   }
 
-  type CompleterCallback = (_, completions: Completion[]) => void;
+  type CompleterCallback = (error: any, completions: Completion[]) => void;
 
   interface Completer {
-    getCompletions(editor: Editor, session: EditSession, position: Point, prefix, callback: CompleterCallback): void;
+    getCompletions(editor: Editor,
+      session: EditSession,
+      position: Point,
+      prefix: string,
+      callback: CompleterCallback): void;
   }
 }
 
