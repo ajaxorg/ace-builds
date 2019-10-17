@@ -880,10 +880,10 @@ if (!Date.now) {
         return new Date().getTime();
     };
 }
-var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u180E\u2000\u2001\u2002\u2003" +
+var ws = "\x09\x0A\x0B\x0C\x0D\x20\xA0\u1680\u2000\u2001\u2002\u2003" +
     "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F\u205F\u3000\u2028" +
     "\u2029\uFEFF";
-if (!String.prototype.trim || ws.trim()) {
+if (!String.prototype.trim) {
     ws = "[" + ws + "]";
     var trimBeginRegexp = new RegExp("^" + ws + ws + "*"),
         trimEndRegexp = new RegExp(ws + ws + "*$");
@@ -2228,6 +2228,7 @@ var TextInput = function(parentNode, host) {
     var lastValue = "";
     var lastSelectionStart = 0;
     var lastSelectionEnd = 0;
+    var lastRestoreEnd = 0;
     try { var isFocused = document.activeElement === text; } catch(e) {}
     
     event.addListener(text, "blur", function(e) {
@@ -2447,9 +2448,8 @@ var TextInput = function(parentNode, host) {
                 endIndex = 0;
             } 
             inserted = inserted.slice(0, endIndex);
-            if (!fromInput && restoreStart == inserted.length && !extendLeft && !extendRight && !restoreEnd)
+            if (!fromInput && !inserted && !restoreStart && !extendLeft && !extendRight && !restoreEnd)
                 return "";
-            
             sendingText = true;
             if (inserted && !extendLeft && !extendRight && !restoreStart && !restoreEnd || commandMode) {
                 host.onTextInput(inserted);
@@ -2466,6 +2466,7 @@ var TextInput = function(parentNode, host) {
             lastValue = value;
             lastSelectionStart = selectionStart;
             lastSelectionEnd = selectionEnd;
+            lastRestoreEnd = restoreEnd;
             return inserted;
         }
     };
@@ -2628,7 +2629,7 @@ var TextInput = function(parentNode, host) {
                         = inComposition.context.compositionStartOffset;
                 }
                 inComposition.markerRange.end.column = inComposition.markerRange.start.column
-                    + lastSelectionEnd - inComposition.selectionStart;
+                    + lastSelectionEnd - inComposition.selectionStart + lastRestoreEnd;
             }
         }
     };
@@ -4577,7 +4578,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.4.6";
+exports.version = "1.4.7";
 
 });
 
@@ -14263,6 +14264,7 @@ Editor.$uid = 0;
         ["up", "down"],
         ["before", "after"],
         ["even", "odd"],
+        ["in", "out"],
         ["inside", "outside"],
         ["next", "previous"],
         ["increase", "decrease"],
@@ -15026,6 +15028,31 @@ config.defineOptions(Editor.prototype, "editor", {
                 relativeNumberRenderer.attach(this);
             else
                 relativeNumberRenderer.detach(this);
+        }
+    },
+    placeholder: {
+        set: function(message) {
+            if (!this.$updatePlaceholder) {
+                this.$updatePlaceholder = function() {
+                    var value = this.renderer.$composition || this.getValue();
+                    if (value && this.renderer.placeholderNode) {
+                        this.renderer.off("afterRender", this.$updatePlaceholder);
+                        dom.removeCssClass(this.container, "ace_hasPlaceholder");
+                        this.renderer.placeholderNode.remove();
+                        this.renderer.placeholderNode = null;
+                    } else if (!value && !this.renderer.placeholderNode) {
+                        this.renderer.on("afterRender", this.$updatePlaceholder);
+                        dom.addCssClass(this.container, "ace_hasPlaceholder");
+                        var el = dom.createElement("div");
+                        el.className = "ace_placeholder";
+                        el.textContent = this.$placeholder || "";
+                        this.renderer.placeholderNode = el;
+                        this.renderer.content.appendChild(this.renderer.placeholderNode);
+                    }
+                }.bind(this);
+                this.on("input", this.$updatePlaceholder);
+            }
+            this.$updatePlaceholder();
         }
     },
 
@@ -17843,6 +17870,9 @@ border-bottom: 1px solid;\
 .ace_hidden-cursors .ace_cursor {\
 opacity: 0.2;\
 }\
+.ace_hasPlaceholder .ace_hidden-cursors .ace_cursor {\
+opacity: 0;\
+}\
 .ace_smooth-blinking .ace_cursor {\
 transition: opacity 0.18s;\
 }\
@@ -18062,6 +18092,13 @@ opacity:1;\
 }\
 .ace_mobile-button:active {\
 background-color: #ddd;\
+}\
+.ace_placeholder {\
+font-family: arial;\
+transform: scale(0.9);\
+opacity: 0.7;\
+transform-origin: left;\
+text-indent: 10px;\
 }";
 
 var useragent = require("./lib/useragent");
@@ -18522,7 +18559,6 @@ var VirtualRenderer = function(container, theme) {
             if (composition.useTextareaForIME) {
                 var val = this.textarea.value;
                 w = this.characterWidth * (this.session.$getStringScreenWidth(val)[0]);
-                h += 2;
             }
             else {
                 posTop += this.lineHeight + 2;
@@ -19185,7 +19221,7 @@ var VirtualRenderer = function(container, theme) {
             this.$moveTextAreaToCursor();
             this.$cursorLayer.element.style.display = "none";
         }
-        else {            
+        else {
             composition.markerId = this.session.addMarker(composition.markerRange, "ace_composition_marker", "text");
         }
     };
