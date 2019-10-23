@@ -10,11 +10,11 @@ If you want to work on ace please go to https://github.com/ajaxorg/ace instead.
 
 
 here you can find pre-built files for convenience of embedding.
-it contains 4 versions
- * [src](https://github.com/ajaxorg/ace-builds/tree/master/src)              concatenated but not minified
- * [src-min](https://github.com/ajaxorg/ace-builds/tree/master/src-min)      concatenated and minified with uglify.js
- * [src-noconflict](https://github.com/ajaxorg/ace-builds/tree/master/src-noconflict)      uses ace.require instead of require
- * [src-min-noconflict](https://github.com/ajaxorg/ace-builds/tree/master/src-min-noconflict)      concatenated, minified with uglify.js, and uses ace.require instead of require
+it contains 4 versions..
+ 1 [src](https://github.com/ajaxorg/ace-builds/tree/master/src)              concatenated but not minified
+ 2 [src-min](https://github.com/ajaxorg/ace-builds/tree/master/src-min)      concatenated and minified with uglify.js
+ 3 [src-noconflict](https://github.com/ajaxorg/ace-builds/tree/master/src-noconflict)      uses ace.require instead of require
+ 4 [src-min-noconflict](https://github.com/ajaxorg/ace-builds/tree/master/src-min-noconflict)      concatenated, minified with uglify.js, and uses ace.require instead of require
 
 
 For a simple way of embedding ace into webpage see [editor.html](https://github.com/ajaxorg/ace-builds/blob/master/editor.html) or list of other [simple examples](https://github.com/ajaxorg/ace-builds/tree/master/demo)
