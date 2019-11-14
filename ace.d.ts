@@ -228,7 +228,7 @@ export namespace Ace {
     range: Range;
     preserveCase: boolean;
     regExp: RegExp;
-    wholeWord: string;
+    wholeWord: boolean;
     caseSensitive: boolean;
     wrap: boolean;
   }
@@ -844,7 +844,8 @@ export namespace Ace {
     replace(replacement: string, options?: Partial<SearchOptions>): number;
     replaceAll(replacement: string, options?: Partial<SearchOptions>): number;
     getLastSearchOptions(): Partial<SearchOptions>;
-    find(needle: string, options?: Partial<SearchOptions>, animate?: boolean): void;
+    find(needle: string | RegExp, options?: Partial<SearchOptions>, animate?: boolean): Ace.Range | undefined;
+    findAll(needle: string | RegExp, options?: Partial<SearchOptions>, additive?: boolean): number;
     findNext(options?: Partial<SearchOptions>, animate?: boolean): void;
     findPrevious(options?: Partial<SearchOptions>, animate?: boolean): void;
     undo(): void;
