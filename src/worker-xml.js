@@ -1824,10 +1824,15 @@ function parseDCC(source,start,domBuilder,errorHandler){//sure start with '<!'
 	default:
 		if(source.substr(start+3,6) == 'CDATA['){
 			var end = source.indexOf(']]>',start+9);
-			domBuilder.startCDATA();
-			domBuilder.characters(source,start+9,end-start-9);
-			domBuilder.endCDATA() 
-			return end+3;
+			if (end > start) {
+				domBuilder.startCDATA();
+				domBuilder.characters(source,start+9,end-start-9);
+				domBuilder.endCDATA() 
+				return end+3;
+			} else {
+				errorHandler.error("Unclosed CDATA");
+				return -1;
+			}
 		}
 		var matchs = split(source,start);
 		var len = matchs.length;

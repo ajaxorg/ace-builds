@@ -1404,26 +1404,30 @@ var useragent = require("./useragent");
 var pressedKeys = null;
 var ts = 0;
 
+var activeListenerOptions;
+function detectListenerOptionsSupport() {
+    activeListenerOptions = false;
+    try {
+        document.createComment("").addEventListener("test", function() {}, { 
+            get passive() { 
+                activeListenerOptions = {passive: false};
+            }
+        });
+    } catch(e) {}
+}
+
+function getListenerOptions() {
+    if (activeListenerOptions == undefined)
+        detectListenerOptionsSupport();
+    return activeListenerOptions;
+}
+
 exports.addListener = function(elem, type, callback) {
-    if (elem.addEventListener) {
-        return elem.addEventListener(type, callback, false);
-    }
-    if (elem.attachEvent) {
-        var wrapper = function() {
-            callback.call(elem, window.event);
-        };
-        callback._wrapper = wrapper;
-        elem.attachEvent("on" + type, wrapper);
-    }
+    return elem.addEventListener(type, callback, getListenerOptions());
 };
 
 exports.removeListener = function(elem, type, callback) {
-    if (elem.removeEventListener) {
-        return elem.removeEventListener(type, callback, false);
-    }
-    if (elem.detachEvent) {
-        elem.detachEvent("on" + type, callback._wrapper || callback);
-    }
+    return elem.removeEventListener(type, callback, getListenerOptions());
 };
 exports.stopEvent = function(e) {
     exports.stopPropagation(e);
@@ -1434,27 +1438,18 @@ exports.stopEvent = function(e) {
 exports.stopPropagation = function(e) {
     if (e.stopPropagation)
         e.stopPropagation();
-    else
-        e.cancelBubble = true;
 };
 
 exports.preventDefault = function(e) {
     if (e.preventDefault)
         e.preventDefault();
-    else
-        e.returnValue = false;
 };
 exports.getButton = function(e) {
     if (e.type == "dblclick")
         return 0;
     if (e.type == "contextmenu" || (useragent.isMac && (e.ctrlKey && !e.altKey && !e.shiftKey)))
         return 2;
-    if (e.preventDefault) {
-        return e.button;
-    }
-    else {
-        return {1:0, 2:2, 4:1}[e.button];
-    }
+    return e.button;
 };
 
 exports.capture = function(el, eventHandler, releaseCaptureHandler) {
@@ -1560,30 +1555,16 @@ exports.addMultiMouseDownListener = function(elements, timeouts, eventHandler, c
         else if (clicks > 1)
             return eventHandler[callbackName](eventNames[clicks], e);
     }
-    function onDblclick(e) {
-        clicks = 2;
-        if (timer)
-            clearTimeout(timer);
-        timer = setTimeout(function() {timer = null;}, timeouts[clicks - 1] || 600);
-        eventHandler[callbackName]("mousedown", e);
-        eventHandler[callbackName](eventNames[clicks], e);
-    }
     if (!Array.isArray(elements))
         elements = [elements];
     elements.forEach(function(el) {
         exports.addListener(el, "mousedown", onMousedown);
-        if (useragent.isOldIE)
-            exports.addListener(el, "dblclick", onDblclick);
     });
 };
 
-var getModifierHash = useragent.isMac && useragent.isOpera && !("KeyboardEvent" in window)
-    ? function(e) {
-        return 0 | (e.metaKey ? 1 : 0) | (e.altKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.ctrlKey ? 8 : 0);
-    }
-    : function(e) {
-        return 0 | (e.ctrlKey ? 1 : 0) | (e.altKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0);
-    };
+var getModifierHash = function(e) {
+    return 0 | (e.ctrlKey ? 1 : 0) | (e.altKey ? 2 : 0) | (e.shiftKey ? 4 : 0) | (e.metaKey ? 8 : 0);
+};
 
 exports.getModifierString = function(e) {
     return keys.KEY_MODS[getModifierHash(e)];
@@ -3787,10 +3768,11 @@ exports.DragdropHandler = DragdropHandler;
 
 });
 
-ace.define("ace/mouse/touch_handler",["require","exports","module","ace/mouse/mouse_event","ace/lib/dom"], function(require, exports, module) {
+ace.define("ace/mouse/touch_handler",["require","exports","module","ace/mouse/mouse_event","ace/lib/event","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
 var MouseEvent = require("./mouse_event").MouseEvent;
+var event = require("../lib/event");
 var dom = require("../lib/dom");
 
 exports.addTouchListeners = function(el, editor) {
@@ -3917,12 +3899,12 @@ exports.addTouchListeners = function(el, editor) {
         }
         mode = "wait";
     }
-    el.addEventListener("contextmenu", function(e) {
+    event.addListener(el, "contextmenu", function(e) {
         if (!pressed) return;
         var textarea = editor.textInput.getElement();
         textarea.focus();
     });
-    el.addEventListener("touchstart", function (e) {
+    event.addListener(el, "touchstart", function (e) {
         var touches = e.touches;
         if (longTouchTimer || touches.length > 1) {
             clearTimeout(longTouchTimer);
@@ -3996,7 +3978,7 @@ exports.addTouchListeners = function(el, editor) {
         touchStartT = t;
     });
 
-    el.addEventListener("touchend", function (e) {
+    event.addListener(el, "touchend", function (e) {
         pressed = editor.$mouseHandler.isMousePressed = false;
         if (animationTimer) clearInterval(animationTimer);
         if (mode == "zoom") {
@@ -4016,7 +3998,7 @@ exports.addTouchListeners = function(el, editor) {
         clearTimeout(longTouchTimer);
         longTouchTimer = null;
     });
-    el.addEventListener("touchmove", function (e) {
+    event.addListener(el, "touchmove", function (e) {
         if (longTouchTimer) {
             clearTimeout(longTouchTimer);
             longTouchTimer = null;
@@ -4578,7 +4560,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.4.7";
+exports.version = "1.4.8";
 
 });
 
@@ -5678,6 +5660,8 @@ var Selection = function(session) {
     };
 
     this.$setSelection = function(anchorRow, anchorColumn, cursorRow, cursorColumn) {
+        if (this.$silent)
+            return;
         var wasEmpty = this.$isEmpty;
         var wasMultiselect = this.inMultiSelectMode;
         this.$silent = true;
@@ -6071,14 +6055,19 @@ var Selection = function(session) {
             else
                 this.$desiredColumn = screenPos.column;
         }
-
+        
+        if (rows != 0 && this.session.lineWidgets && this.session.lineWidgets[this.lead.row]) {
+            var widget = this.session.lineWidgets[this.lead.row];
+            if (rows < 0)
+                rows -= widget.rowsAbove || 0;
+            else if (rows > 0)
+                rows += widget.rowCount - (widget.rowsAbove || 0);
+        }
+        
         var docPos = this.session.screenToDocumentPosition(screenPos.row + rows, screenPos.column, offsetX);
         
         if (rows !== 0 && chars === 0 && docPos.row === this.lead.row && docPos.column === this.lead.column) {
-            if (this.session.lineWidgets && this.session.lineWidgets[docPos.row]) {
-                if (docPos.row > 0 || rows > 0)
-                    docPos.row++;
-            }
+            
         }
         this.moveCursorTo(docPos.row, docPos.column + chars, chars === 0);
     };
@@ -9711,7 +9700,7 @@ function BracketMatch() {
         var line = this.getLine(pos.row);
         var before = true, range;
 
-        var chr = line.charAt(pos.column-1);
+        var chr = line.charAt(pos.column - 1);
         var match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
         if (!match) {
             chr = line.charAt(pos.column);
@@ -9745,6 +9734,29 @@ function BracketMatch() {
         }
         
         return range;
+    };
+    this.getMatchingBracketRanges = function(pos) {
+        var line = this.getLine(pos.row);
+
+        var chr = line.charAt(pos.column - 1);
+        var match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
+        if (!match) {
+            chr = line.charAt(pos.column);
+            pos = {row: pos.row, column: pos.column + 1};
+            match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
+        }
+
+        if (!match)
+            return null;
+
+        var startRange = new Range(pos.row, pos.column - 1, pos.row, pos.column);
+        var bracketPos = match[1] ? this.$findClosingBracket(match[1], pos)
+            : this.$findOpeningBracket(match[2], pos);
+        if (!bracketPos)
+            return [startRange];
+        var endRange = new Range(bracketPos.row, bracketPos.column, bracketPos.row, bracketPos.column + 1);
+
+        return [startRange, endRange];
     };
 
     this.$brackets = {
@@ -11148,15 +11160,14 @@ EditSession.$uid = 0;
 
     this.lineWidgets = null;
     this.getRowLength = function(row) {
+        var h = 1;
         if (this.lineWidgets)
-            var h = this.lineWidgets[row] && this.lineWidgets[row].rowCount || 0;
-        else 
-            h = 0;
-        if (!this.$useWrapMode || !this.$wrapData[row]) {
-            return 1 + h;
-        } else {
-            return this.$wrapData[row].length + 1 + h;
-        }
+            h += this.lineWidgets[row] && this.lineWidgets[row].rowCount || 0;
+        
+        if (!this.$useWrapMode || !this.$wrapData[row])
+            return h;
+        else
+            return this.$wrapData[row].length + h;
     };
     this.getRowLineCount = function(row) {
         if (!this.$useWrapMode || !this.$wrapData[row]) {
@@ -11368,6 +11379,9 @@ EditSession.$uid = 0;
                 wrapIndent = screenRowOffset > 0 ? wrapRow.indent : 0;
             }
         }
+        
+        if (this.lineWidgets && this.lineWidgets[row] && this.lineWidgets[row].rowsAbove)
+            screenRow += this.lineWidgets[row].rowsAbove;
 
         return {
             row: screenRow,
@@ -13036,6 +13050,26 @@ exports.commands = [{
     readOnly: true,
     scrollIntoView: "none"
 }, {
+    name: "addLineAfter",
+    exec: function(editor) {
+        editor.selection.clearSelection();
+        editor.navigateLineEnd();
+        editor.insert("\n");
+    },
+    multiSelectAction: "forEach",
+    scrollIntoView: "cursor"
+}, {
+    name: "addLineBefore",
+    exec: function(editor) {
+        editor.selection.clearSelection();
+        var cursor = editor.getCursorPosition();
+        editor.selection.moveTo(cursor.row - 1, Number.MAX_VALUE);
+        editor.insert("\n");
+        if (cursor.row === 0) editor.navigateUp();
+    },
+    multiSelectAction: "forEach",
+    scrollIntoView: "cursor"
+}, {
     name: "openCommandPallete",
     description: "Open command pallete",
     bindKey: bindKey("F1", "F1"),
@@ -13420,28 +13454,46 @@ Editor.$uid = 0;
     };
 
     this.$highlightBrackets = function() {
-        if (this.session.$bracketHighlight) {
-            this.session.removeMarker(this.session.$bracketHighlight);
-            this.session.$bracketHighlight = null;
-        }
-
         if (this.$highlightPending) {
             return;
         }
         var self = this;
         this.$highlightPending = true;
-        setTimeout(function() {
+        setTimeout(function () {
             self.$highlightPending = false;
             var session = self.session;
             if (!session || !session.bgTokenizer) return;
-            var pos = session.findMatchingBracket(self.getCursorPosition());
-            if (pos) {
-                var range = new Range(pos.row, pos.column, pos.row, pos.column + 1);
-            } else if (session.$mode.getMatching) {
-                var range = session.$mode.getMatching(self.session);
+            if (session.$bracketHighlight) {
+                session.$bracketHighlight.markerIds.forEach(function(id) {
+                    session.removeMarker(id);
+                });
+                session.$bracketHighlight = null;
             }
-            if (range)
-                session.$bracketHighlight = session.addMarker(range, "ace_bracket", "text");
+            var ranges = session.getMatchingBracketRanges(self.getCursorPosition());
+            if (!ranges && session.$mode.getMatching) 
+                ranges = session.$mode.getMatching(self.session);
+            if (!ranges)
+                return;
+
+            var markerType = "ace_bracket";
+            if (!Array.isArray(ranges)) {
+                ranges = [ranges];
+            } else if (ranges.length == 1) {
+                markerType = "ace_error_bracket";
+            }
+            if (ranges.length == 2) {
+                if (Range.comparePoints(ranges[0].end, ranges[1].start) == 0)
+                    ranges = [Range.fromPoints(ranges[0].start, ranges[1].end)];
+                else if (Range.comparePoints(ranges[0].start, ranges[1].end) == 0)
+                    ranges = [Range.fromPoints(ranges[1].start, ranges[0].end)];
+            }
+
+            session.$bracketHighlight = {
+                ranges: ranges,
+                markerIds: ranges.map(function(range) {
+                    return session.addMarker(range, markerType, "text");
+                })
+            };
         }, 50);
     };
     this.$highlightTags = function() {
@@ -14872,9 +14924,11 @@ Editor.$uid = 0;
     this.destroy = function() {
         this.renderer.destroy();
         this._signal("destroy", this);
-        if (this.session) {
+        if (this.session)
             this.session.destroy();
-        }
+        if (this._$emitInputEvent)
+            this._$emitInputEvent.cancel();
+        this.session = null;
     };
     this.setAutoScrollEditorIntoView = function(enable) {
         if (!enable)
@@ -15145,6 +15199,7 @@ var UndoManager = function() {
     this.add = function(delta, allowMerge, session) {
         if (this.$fromUndo) return;
         if (delta == this.$lastDelta) return;
+        if (!this.$keepRedoStack) this.$redoStack.length = 0;
         if (allowMerge === false || !this.lastDeltas) {
             this.lastDeltas = [];
             this.$undoStack.push(this.lastDeltas);
@@ -15221,6 +15276,25 @@ var UndoManager = function() {
         if (to == null) to = this.$rev + 1;
         
     };
+
+    this.validateDeltaBoundaries = function(deltaSet, docLength, invertAction) {
+        if (!deltaSet) {
+            return false;
+        }
+        return deltaSet.every(function(delta) {
+            var action = delta.action;
+            if (invertAction && delta.action === "insert") action = "remove";
+            if (invertAction && delta.action === "remove") action = "insert";
+            switch(action) {
+                case "insert":
+                    return delta.start.row <= docLength;
+                case "remove":
+                    return delta.start.row < docLength && delta.end.row < docLength;
+                default:
+                    return true;
+            }
+        });
+    };
     this.undo = function(session, dontSelect) {
         this.lastDeltas = null;
         var stack = this.$undoStack;
@@ -15238,7 +15312,7 @@ var UndoManager = function() {
         
         var deltaSet = stack.pop();
         var undoSelectionRange = null;
-        if (deltaSet && deltaSet.length) {
+        if (this.validateDeltaBoundaries(deltaSet, session.getLength(), true)) {
             undoSelectionRange = session.undoChanges(deltaSet, dontSelect);
             this.$redoStack.push(deltaSet);
             this.$syncRev();
@@ -15266,7 +15340,7 @@ var UndoManager = function() {
         var deltaSet = this.$redoStack.pop();
         var redoSelectionRange = null;
         
-        if (deltaSet) {
+        if (this.validateDeltaBoundaries(deltaSet, session.getLength(), false)) {
             redoSelectionRange = session.redoChanges(deltaSet, dontSelect);
             this.$undoStack.push(deltaSet);
             this.$syncRev();
@@ -15645,7 +15719,7 @@ var Lines = function(element, canvasHeight) {
     };
     
     this.computeLineHeight = function(row, config, session) {
-        return config.lineHeight * session.getRowLength(row);
+        return config.lineHeight * session.getRowLineCount(row);
     };
     
     this.getLength = function() {
@@ -15672,10 +15746,10 @@ var Lines = function(element, canvasHeight) {
                 fragment.appendChild(cell[i].element);
             }
             this.element.appendChild(fragment);
-         } else {
+        } else {
             this.cells.push(cell);
             this.element.appendChild(cell.element);
-         }
+        }
     };
     
     this.unshift = function(cell) {
@@ -15689,10 +15763,10 @@ var Lines = function(element, canvasHeight) {
                 this.element.insertBefore(fragment, this.element.firstChild);
             else
                 this.element.appendChild(fragment);
-         } else {
+        } else {
             this.cells.unshift(cell);
             this.element.insertAdjacentElement("afterbegin", cell.element);
-         }
+        }
     };
     
     this.last = function() {
@@ -17660,6 +17734,7 @@ position: absolute;\
 box-sizing: border-box;\
 min-width: 100%;\
 contain: style size layout;\
+font-variant-ligatures: no-common-ligatures;\
 }\
 .ace_dragging .ace_scroller:before{\
 position: absolute;\
@@ -17791,7 +17866,6 @@ margin-top: 1px;\
 [ace_nocontext=true] {\
 transform: none!important;\
 filter: none!important;\
-perspective: none!important;\
 clip-path: none!important;\
 mask : none!important;\
 contain: none!important;\
@@ -17908,6 +17982,11 @@ z-index: 5;\
 .ace_marker-layer .ace_bracket {\
 position: absolute;\
 z-index: 6;\
+}\
+.ace_marker-layer .ace_error_bracket {\
+position: absolute;\
+border-bottom: 1px solid #DE5555;\
+border-radius: 0;\
 }\
 .ace_marker-layer .ace_active-line {\
 position: absolute;\
@@ -18096,9 +18175,10 @@ background-color: #ddd;\
 .ace_placeholder {\
 font-family: arial;\
 transform: scale(0.9);\
-opacity: 0.7;\
 transform-origin: left;\
-text-indent: 10px;\
+white-space: pre;\
+opacity: 0.7;\
+margin: 0 10px;\
 }";
 
 var useragent = require("./lib/useragent");
@@ -18685,7 +18765,7 @@ var VirtualRenderer = function(container, theme) {
             this.$textLayer.checkForSizeChanges();
         }
         
-        this._signal("beforeRender");
+        this._signal("beforeRender", changes);
         
         if (this.session && this.session.$bidiHandler)
             this.session.$bidiHandler.updateCharacterWidths(this.$fontMetrics);
@@ -18733,7 +18813,7 @@ var VirtualRenderer = function(container, theme) {
             this.$markerFront.update(config);
             this.$cursorLayer.update(config);
             this.$moveTextAreaToCursor();
-            this._signal("afterRender");
+            this._signal("afterRender", changes);
             return;
         }
         if (changes & this.CHANGE_SCROLL) {
@@ -18753,7 +18833,7 @@ var VirtualRenderer = function(container, theme) {
             this.$markerFront.update(config);
             this.$cursorLayer.update(config);
             this.$moveTextAreaToCursor();
-            this._signal("afterRender");
+            this._signal("afterRender", changes);
             return;
         }
 
@@ -18789,7 +18869,7 @@ var VirtualRenderer = function(container, theme) {
             this.$markerBack.update(config);
         }
 
-        this._signal("afterRender");
+        this._signal("afterRender", changes);
     };
 
     
@@ -20115,10 +20195,20 @@ exports.defaultCommands = [{
     scrollIntoView: "cursor",
     readOnly: true
 }, {
-    name: "splitIntoLines",
+    name: "toggleSplitSelectionIntoLines",
+    description: "Split into lines",
+    exec: function(editor) {
+        if (editor.multiSelect.rangeCount > 1)
+            editor.multiSelect.joinSelections();
+        else
+            editor.multiSelect.splitIntoLines();
+    },
+    bindKey: {win: "Ctrl-Alt-L", mac: "Ctrl-Alt-L"},
+    readOnly: true
+}, {
+    name: "splitSelectionIntoLines",
     description: "Split into lines",
     exec: function(editor) { editor.multiSelect.splitIntoLines(); },
-    bindKey: {win: "Ctrl-Alt-L", mac: "Ctrl-Alt-L"},
     readOnly: true
 }, {
     name: "alignCursors",
@@ -20213,7 +20303,6 @@ var EditSession = require("./edit_session").EditSession;
 
         return $blockChangeEvents || this.fromOrientedRange(range);
     };
-
     this.toSingleRange = function(range) {
         range = range || this.ranges[0];
         var removed = this.rangeList.removeAll();
@@ -20278,45 +20367,36 @@ var EditSession = require("./edit_session").EditSession;
     this.getAllRanges = function() {
         return this.rangeCount ? this.rangeList.ranges.concat() : [this.getRange()];
     };
-
     this.splitIntoLines = function () {
-        if (this.rangeCount > 1) {
-            var ranges = this.rangeList.ranges;
-            var lastRange = ranges[ranges.length - 1];
-            var range = Range.fromPoints(ranges[0].start, lastRange.end);
-
-            this.toSingleRange();
-            this.setSelectionRange(range, lastRange.cursor == lastRange.start);
-        } else {
-            var range = this.getRange();
-            var isBackwards = this.isBackwards();
-            var startRow = range.start.row;
+        var ranges = this.ranges.length ? this.ranges : [this.getRange()];
+        var newRanges = [];
+        for (var i = 0; i < ranges.length; i++) {
+            var range = ranges[i];
+            var row = range.start.row;
             var endRow = range.end.row;
-            if (startRow == endRow) {
-                if (isBackwards)
-                    var start = range.end, end = range.start;
-                else
-                    var start = range.start, end = range.end;
-                
-                this.addRange(Range.fromPoints(end, end));
-                this.addRange(Range.fromPoints(start, start));
-                return;
+            if (row === endRow) {
+                newRanges.push(range.clone());
+            } else {
+                newRanges.push(new Range(row, range.start.column, row, this.session.getLine(row).length));
+                while (++row < endRow)
+                    newRanges.push(this.getLineRange(row, true));
+                newRanges.push(new Range(endRow, 0, endRow, range.end.column));
             }
-
-            var rectSel = [];
-            var r = this.getLineRange(startRow, true);
-            r.start.column = range.start.column;
-            rectSel.push(r);
-
-            for (var i = startRow + 1; i < endRow; i++)
-                rectSel.push(this.getLineRange(i, true));
-
-            r = this.getLineRange(endRow, true);
-            r.end.column = range.end.column;
-            rectSel.push(r);
-
-            rectSel.forEach(this.addRange, this);
+            if (i == 0 && !this.isBackwards())
+                newRanges = newRanges.reverse();
         }
+        this.toSingleRange();
+        for (var i = newRanges.length; i--;)
+            this.addRange(newRanges[i]);
+    };
+    
+    this.joinSelections = function () {
+        var ranges = this.rangeList.ranges;
+        var lastRange = ranges[ranges.length - 1];
+        var range = Range.fromPoints(ranges[0].start, lastRange.end);
+
+        this.toSingleRange();
+        this.setSelectionRange(range, lastRange.cursor == lastRange.start);
     };
     this.toggleBlockSelection = function () {
         if (this.rangeCount > 1) {
@@ -21182,13 +21262,10 @@ var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass);
 });
 
-ace.define("ace/line_widgets",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/range"], function(require, exports, module) {
+ace.define("ace/line_widgets",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
-var oop = require("./lib/oop");
 var dom = require("./lib/dom");
-var Range = require("./range").Range;
-
 
 function LineWidgets(session) {
     this.session = session;
@@ -21302,14 +21379,21 @@ function LineWidgets(session) {
         var len = delta.end.row - startRow;
 
         if (len === 0) {
-        } else if (delta.action == 'remove') {
+        } else if (delta.action == "remove") {
             var removed = lineWidgets.splice(startRow + 1, len);
+            if (!lineWidgets[startRow] && removed[removed.length - 1]) {
+                lineWidgets[startRow] = removed.pop();
+            }
             removed.forEach(function(w) {
                 w && this.removeLineWidget(w);
             }, this);
             this.$updateRows();
         } else {
             var args = new Array(len);
+            if (lineWidgets[startRow] && lineWidgets[startRow].column != null) {
+                if (delta.start.column > lineWidgets[startRow].column)
+                    startRow++;
+            }
             args.unshift(startRow, 0);
             lineWidgets.splice.apply(lineWidgets, args);
             this.$updateRows();
@@ -21334,7 +21418,7 @@ function LineWidgets(session) {
             this.session.lineWidgets = null;
     };
 
-    this.addLineWidget = function(w) {
+    this.$registerLineWidget = function(w) {
         if (!this.session.lineWidgets)
             this.session.lineWidgets = new Array(this.session.getLength());
         
@@ -21348,8 +21432,14 @@ function LineWidgets(session) {
         }
             
         this.session.lineWidgets[w.row] = w;
-        
+        return w;
+    };
+    
+    this.addLineWidget = function(w) {
+        this.$registerLineWidget(w);
         w.session = this.session;
+        
+        if (!this.editor) return w;
         
         var renderer = this.editor.renderer;
         if (w.html && !w.el) {
@@ -21362,13 +21452,13 @@ function LineWidgets(session) {
             w.el.style.zIndex = 5;
             renderer.container.appendChild(w.el);
             w._inDocument = true;
-        }
-        
-        if (!w.coverGutter) {
-            w.el.style.zIndex = 3;
-        }
-        if (w.pixelHeight == null) {
-            w.pixelHeight = w.el.offsetHeight;
+            
+            if (!w.coverGutter) {
+                w.el.style.zIndex = 3;
+            }
+            if (w.pixelHeight == null) {
+                w.pixelHeight = w.el.offsetHeight;
+            }
         }
         if (w.rowCount == null) {
             w.rowCount = w.pixelHeight / renderer.layerConfig.lineHeight;
