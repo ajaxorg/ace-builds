@@ -1536,26 +1536,34 @@ ace.define("ace/mode/json/json_parse",[], function(require, exports, module) {
 
             switch (ch) {
             case 't':
-                next('t');
-                next('r');
-                next('u');
-                next('e');
-                return true;
+                if(validateWord('true') === 'true') {
+                    return true;
+                }
+                error("Bad string");
             case 'f':
-                next('f');
-                next('a');
-                next('l');
-                next('s');
-                next('e');
-                return false;
+                if(validateWord('false') === 'false') {
+                    return false;
+                }
+                error("Bad string");
             case 'n':
-                next('n');
-                next('u');
-                next('l');
-                next('l');
-                return null;
+                if(validateWord('null') === 'null') {
+                    return null;
+                }
+                error("Bad string");
+            default: 
+            error("Bad string");
+            return;
             }
-            error("Unexpected '" + ch + "'");
+        },
+
+        validateWord = function (word) {
+            for (var i = 0; i < word.length; i++) {
+                if (word.charAt(i) !== ch) {
+                    return;
+                }
+                next();
+              }
+              return word;
         },
 
         value,  // Place holder for the value function.
