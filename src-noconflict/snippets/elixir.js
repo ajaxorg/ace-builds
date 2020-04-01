@@ -2,7 +2,7 @@ ace.define("ace/snippets/elixir",["require","exports","module"], function(requir
 "use strict";
 
 exports.snippetText =undefined;
-exports.scope = "";
+exports.scope = "elixir";
 
 });                (function() {
                     ace.require(["ace/snippets/elixir"], function(m) {

@@ -615,6 +615,12 @@ var SnippetManager = function() {
             }
             snippetMap[scope].push(s);
 
+            if (s.prefix)
+                s.tabTrigger = s.prefix;
+
+            if (!s.content && s.body)
+                s.content = Array.isArray(s.body) ? s.body.join("\n") : s.body;
+
             if (s.tabTrigger && !s.trigger) {
                 if (!s.guard && /^\w/.test(s.tabTrigger))
                     s.guard = "\\b";
@@ -631,10 +637,13 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger);
         }
 
-        if (snippets && snippets.content)
-            addSnippet(snippets);
-        else if (Array.isArray(snippets))
+        if (Array.isArray(snippets)) {
             snippets.forEach(addSnippet);
+        } else {
+            Object.keys(snippets).forEach(function(key) {
+                addSnippet(snippets[key]);
+            });
+        }
         
         this._signal("registerSnippets", {scope: scope});
     };
@@ -684,7 +693,7 @@ var SnippetManager = function() {
                     snippet.tabTrigger = val.match(/^\S*/)[0];
                     if (!snippet.name)
                         snippet.name = val;
-                } else {
+                } else if (key) {
                     snippet[key] = val;
                 }
             }
@@ -2032,31 +2041,33 @@ var onChangeMode = function(e, editor) {
 };
 
 var loadSnippetsForMode = function(mode) {
-    var id = mode.$id;
+    if (typeof mode == "string")
+        mode = config.$modes[mode];
+    if (!mode)
+        return;
     if (!snippetManager.files)
         snippetManager.files = {};
-    loadSnippetFile(id);
+    
+    loadSnippetFile(mode.$id, mode.snippetFileId);
     if (mode.modes)
         mode.modes.forEach(loadSnippetsForMode);
 };
 
-var loadSnippetFile = function(id) {
-    if (!id || snippetManager.files[id])
+var loadSnippetFile = function(id, snippetFilePath) {
+    if (!snippetFilePath || !id || snippetManager.files[id])
         return;
-    var snippetFilePath = id.replace("mode", "snippets");
     snippetManager.files[id] = {};
     config.loadModule(snippetFilePath, function(m) {
-        if (m) {
-            snippetManager.files[id] = m;
-            if (!m.snippets && m.snippetText)
-                m.snippets = snippetManager.parseSnippetFile(m.snippetText);
-            snippetManager.register(m.snippets || [], m.scope);
-            if (m.includeScopes) {
-                snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
-                m.includeScopes.forEach(function(x) {
-                    loadSnippetFile("ace/mode/" + x);
-                });
-            }
+        if (!m) return;
+        snippetManager.files[id] = m;
+        if (!m.snippets && m.snippetText)
+            m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+        snippetManager.register(m.snippets || [], m.scope);
+        if (m.includeScopes) {
+            snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
+            m.includeScopes.forEach(function(x) {
+                loadSnippetsForMode("ace/mode/" + x);
+            });
         }
     });
 };

@@ -1,8 +1,8 @@
 ace.define("ace/snippets/php_laravel_blade",["require","exports","module"], function(require, exports, module) {
-    "use strict";
+"use strict";
 
-    exports.snippetText =undefined;
-    exports.scope = "php";
+exports.snippetText =undefined;
+exports.scope = "php_laravel_blade";
 
 });                (function() {
                     ace.require(["ace/snippets/php_laravel_blade"], function(m) {

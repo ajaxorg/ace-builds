@@ -1047,6 +1047,12 @@ var SnippetManager = function() {
             }
             snippetMap[scope].push(s);
 
+            if (s.prefix)
+                s.tabTrigger = s.prefix;
+
+            if (!s.content && s.body)
+                s.content = Array.isArray(s.body) ? s.body.join("\n") : s.body;
+
             if (s.tabTrigger && !s.trigger) {
                 if (!s.guard && /^\w/.test(s.tabTrigger))
                     s.guard = "\\b";
@@ -1063,10 +1069,13 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger);
         }
 
-        if (snippets && snippets.content)
-            addSnippet(snippets);
-        else if (Array.isArray(snippets))
+        if (Array.isArray(snippets)) {
             snippets.forEach(addSnippet);
+        } else {
+            Object.keys(snippets).forEach(function(key) {
+                addSnippet(snippets[key]);
+            });
+        }
         
         this._signal("registerSnippets", {scope: scope});
     };
@@ -1116,7 +1125,7 @@ var SnippetManager = function() {
                     snippet.tabTrigger = val.match(/^\S*/)[0];
                     if (!snippet.name)
                         snippet.name = val;
-                } else {
+                } else if (key) {
                     snippet[key] = val;
                 }
             }
@@ -2097,22 +2106,23 @@ var supportedModes = {
     ABC:         ["abc"],
     ActionScript:["as"],
     ADA:         ["ada|adb"],
+    Alda:        ["alda"],
     Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
+    Apex:        ["apex|cls|trigger|tgr"],
+    AQL:         ["aql"],
     AsciiDoc:    ["asciidoc|adoc"],
     ASL:         ["dsl|asl"],
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
-    Apex:        ["apex|cls|trigger|tgr"],
-    AQL:         ["aql"],
     BatchFile:   ["bat|cmd"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search:    ["c9search_results"],
-    Crystal:     ["cr"],
     Cirru:       ["cirru|cr"],
     Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
     coffee:      ["coffee|cf|cson|^Cakefile"],
     ColdFusion:  ["cfm"],
+    Crystal:     ["cr"],
     CSharp:      ["cs"],
     Csound_Document: ["csd"],
     Csound_Orchestra: ["orc"],
@@ -2159,8 +2169,8 @@ var supportedModes = {
     Jade:        ["jade|pug"],
     Java:        ["java"],
     JavaScript:  ["js|jsm|jsx"],
-    JSON5:       ["json5"],
     JSON:        ["json"],
+    JSON5:       ["json5"],
     JSONiq:      ["jq"],
     JSP:         ["jsp"],
     JSSM:        ["jssm|jssm_state"],
@@ -2182,13 +2192,14 @@ var supportedModes = {
     Mask:        ["mask"],
     MATLAB:      ["matlab"],
     Maze:        ["mz"],
+    MediaWiki:   ["wiki|mediawiki"],
     MEL:         ["mel"],
     MIXAL:       ["mixal"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
     Nginx:       ["nginx|conf"],
-    Nix:         ["nix"],
     Nim:         ["nim"],
+    Nix:         ["nix"],
     NSIS:        ["nsi|nsh"],
     Nunjucks:    ["nunjucks|nunjs|nj|njk"],
     ObjectiveC:  ["m|mm"],
@@ -2197,16 +2208,18 @@ var supportedModes = {
     Perl:        ["pl|pm"],
     Perl6:       ["p6|pl6|pm6"],
     pgSQL:       ["pgsql"],
-    PHP_Laravel_blade: ["blade.php"],
     PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
-    Puppet:      ["epp|pp"],
+    PHP_Laravel_blade: ["blade.php"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
+    Prisma:      ["prisma"],
     Prolog:      ["plg|prolog"],
     Properties:  ["properties"],
     Protobuf:    ["proto"],
+    Puppet:      ["epp|pp"],
     Python:      ["py"],
+    QML:         ["qml"],
     R:           ["r"],
     Razor:       ["cshtml|asp"],
     RDoc:        ["Rd"],

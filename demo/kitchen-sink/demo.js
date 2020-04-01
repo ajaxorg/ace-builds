@@ -1356,13 +1356,13 @@ function toString(x) {
 }
 
 exports.getUI = function(container) {
-    return ["div", {},
+    return ["div", {role: "group", "aria-label": "Test"},
         " Test ", 
-        ["button", {onclick: exports.openLogView}, "O"],
+        ["button", {"aria-label": "Open Log View", onclick: exports.openLogView}, "O"],
         ["button", {onclick: exports.record}, "Record"],
         ["button", {onclick: exports.stop}, "Stop"],
         ["button", {onclick: exports.play}, "Play"],
-        ["button", {onclick: exports.closeLogView}, "X"],
+        ["button", {"aria-label": "Close Log View", onclick: exports.closeLogView}, "X"],
     ];
 };
 
@@ -1400,6 +1400,7 @@ exports.textInputDebugger = {
             if (ignoreEvents) return;
             var data = {
                 _: e.type, 
+                inputType: e.inputType,
                 range: [text.selectionStart, text.selectionEnd], 
                 value: text.value, 
                 key: e.key && {
@@ -1530,22 +1531,23 @@ var supportedModes = {
     ABC:         ["abc"],
     ActionScript:["as"],
     ADA:         ["ada|adb"],
+    Alda:        ["alda"],
     Apache_Conf: ["^htaccess|^htgroups|^htpasswd|^conf|htaccess|htgroups|htpasswd"],
+    Apex:        ["apex|cls|trigger|tgr"],
+    AQL:         ["aql"],
     AsciiDoc:    ["asciidoc|adoc"],
     ASL:         ["dsl|asl"],
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
-    Apex:        ["apex|cls|trigger|tgr"],
-    AQL:         ["aql"],
     BatchFile:   ["bat|cmd"],
     C_Cpp:       ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search:    ["c9search_results"],
-    Crystal:     ["cr"],
     Cirru:       ["cirru|cr"],
     Clojure:     ["clj|cljs"],
     Cobol:       ["CBL|COB"],
     coffee:      ["coffee|cf|cson|^Cakefile"],
     ColdFusion:  ["cfm"],
+    Crystal:     ["cr"],
     CSharp:      ["cs"],
     Csound_Document: ["csd"],
     Csound_Orchestra: ["orc"],
@@ -1592,8 +1594,8 @@ var supportedModes = {
     Jade:        ["jade|pug"],
     Java:        ["java"],
     JavaScript:  ["js|jsm|jsx"],
-    JSON5:       ["json5"],
     JSON:        ["json"],
+    JSON5:       ["json5"],
     JSONiq:      ["jq"],
     JSP:         ["jsp"],
     JSSM:        ["jssm|jssm_state"],
@@ -1615,13 +1617,14 @@ var supportedModes = {
     Mask:        ["mask"],
     MATLAB:      ["matlab"],
     Maze:        ["mz"],
+    MediaWiki:   ["wiki|mediawiki"],
     MEL:         ["mel"],
     MIXAL:       ["mixal"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
     Nginx:       ["nginx|conf"],
-    Nix:         ["nix"],
     Nim:         ["nim"],
+    Nix:         ["nix"],
     NSIS:        ["nsi|nsh"],
     Nunjucks:    ["nunjucks|nunjs|nj|njk"],
     ObjectiveC:  ["m|mm"],
@@ -1630,16 +1633,18 @@ var supportedModes = {
     Perl:        ["pl|pm"],
     Perl6:       ["p6|pl6|pm6"],
     pgSQL:       ["pgsql"],
-    PHP_Laravel_blade: ["blade.php"],
     PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
-    Puppet:      ["epp|pp"],
+    PHP_Laravel_blade: ["blade.php"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
+    Prisma:      ["prisma"],
     Prolog:      ["plg|prolog"],
     Properties:  ["properties"],
     Protobuf:    ["proto"],
+    Puppet:      ["epp|pp"],
     Python:      ["py"],
+    QML:         ["qml"],
     R:           ["r"],
     Razor:       ["cshtml|asp"],
     RDoc:        ["Rd"],
@@ -3969,7 +3974,7 @@ var themeData = [
     ["Solarized Light"],
     ["TextMate"       ],
     ["Tomorrow"       ],
-    ["XCode"          ],
+    ["Xcode"          ],
     ["Kuroir"],
     ["KatzenMilch"],
     ["SQL Server"           ,"sqlserver"               , "light"],
@@ -3986,6 +3991,7 @@ var themeData = [
     ["Merbivore Soft"       ,"merbivore_soft"          ,  "dark"],
     ["Mono Industrial"      ,"mono_industrial"         ,  "dark"],
     ["Monokai"              ,"monokai"                 ,  "dark"],
+    ["Nord Dark"            ,"nord_dark"               ,  "dark"],
     ["Pastel on dark"       ,"pastel_on_dark"          ,  "dark"],
     ["Solarized Dark"       ,"solarized_dark"          ,  "dark"],
     ["Terminal"             ,"terminal"                ,  "dark"],
@@ -4100,6 +4106,7 @@ var optionGroups = {
         "Soft Tabs": [{
             path: "useSoftTabs"
         }, {
+            ariaLabel: "Tab Size",
             path: "tabSize",
             type: "number",
             values: [2, 3, 4, 8, 16]
@@ -4121,6 +4128,12 @@ var optionGroups = {
         "Enable Behaviours": {
             path: "behavioursEnabled"
         },
+        "Wrap with quotes": {
+            path: "wrapBehavioursEnabled"
+        },
+        "Enable Auto Indent": {
+            path: "enableAutoIndent"
+        },
         "Full Line Selection": {
             type: "checkbox",
             values: "text|line",
@@ -4135,11 +4148,12 @@ var optionGroups = {
         "Show Indent Guides": {
             path: "displayIndentGuides"
         },
-        "Persistent Scrollbar": [{
+        "Persistent HScrollbar": {
             path: "hScrollBarAlwaysVisible"
-        }, {
+        },
+        "Persistent VScrollbar": {
             path: "vScrollBarAlwaysVisible"
-        }],
+        },
         "Animate scrolling": {
             path: "animatedScroll"
         },
@@ -4158,6 +4172,7 @@ var optionGroups = {
         "Show Print Margin": [{
             path: "showPrintMargin"
         }, {
+            ariaLabel: "Print Margin",
             type: "number",
             path: "printMarginColumn"
         }],
@@ -4220,10 +4235,10 @@ var OptionPanel = function(editor, element) {
     
     this.render = function() {
         this.container.innerHTML = "";
-        buildDom(["table", {id: "controls"}, 
+        buildDom(["table", {role: "presentation", id: "controls"}, 
             this.renderOptionGroup(optionGroups.Main),
             ["tr", null, ["td", {colspan: 2},
-                ["table", {id: "more-controls"}, 
+                ["table", {role: "presentation", id: "more-controls"}, 
                     this.renderOptionGroup(optionGroups.More)
                 ]
             ]],
@@ -4266,17 +4281,20 @@ var OptionPanel = function(editor, element) {
         }
         
         if (option.type == "buttonBar") {
-            control = ["div", option.items.map(function(item) {
+            control = ["div", {role: "group", "aria-labelledby": option.path + "-label"}, option.items.map(function(item) {
                 return ["button", { 
                     value: item.value, 
                     ace_selected_button: value == item.value, 
+                    'aria-pressed': value == item.value, 
                     onclick: function() {
                         self.setOption(option, item.value);
                         var nodes = this.parentNode.querySelectorAll("[ace_selected_button]");
                         for (var i = 0; i < nodes.length; i++) {
                             nodes[i].removeAttribute("ace_selected_button");
+                            nodes[i].setAttribute("aria-pressed", false);
                         }
                         this.setAttribute("ace_selected_button", true);
+                        this.setAttribute("aria-pressed", true);
                     } 
                 }, item.desc || item.caption || item.name];
             })];
@@ -4284,6 +4302,11 @@ var OptionPanel = function(editor, element) {
             control = ["input", {type: "number", value: value || option.defaultValue, style:"width:3em", oninput: function() {
                 self.setOption(option, parseInt(this.value));
             }}];
+            if (option.ariaLabel) {
+                control[1]["aria-label"] = option.ariaLabel;
+            } else {
+                control[1].id = key;
+            }
             if (option.defaults) {
                 control = [control, option.defaults.map(function(item) {
                     return ["button", {onclick: function() {
@@ -4327,11 +4350,13 @@ var OptionPanel = function(editor, element) {
     this.renderOption = function(key, option) {
         if (option.path && !option.onchange && !this.editor.$options[option.path])
             return;
-        this.options[option.path] = option;
-        var safeKey = "-" + option.path;
+        var path = Array.isArray(option) ? option[0].path : option.path;
+        this.options[path] = option;
+        var safeKey = "-" + path;
+        var safeId = path + "-label";
         var control = this.renderOptionControl(safeKey, option);
         return ["tr", {class: "ace_optionsMenuEntry"}, ["td",
-            ["label", {for: safeKey}, key]
+            ["label", {for: safeKey, id: safeId}, key]
         ], ["td", control]];
     };
     
@@ -5030,6 +5055,12 @@ var SnippetManager = function() {
             }
             snippetMap[scope].push(s);
 
+            if (s.prefix)
+                s.tabTrigger = s.prefix;
+
+            if (!s.content && s.body)
+                s.content = Array.isArray(s.body) ? s.body.join("\n") : s.body;
+
             if (s.tabTrigger && !s.trigger) {
                 if (!s.guard && /^\w/.test(s.tabTrigger))
                     s.guard = "\\b";
@@ -5046,10 +5077,13 @@ var SnippetManager = function() {
             s.endTriggerRe = new RegExp(s.endTrigger);
         }
 
-        if (snippets && snippets.content)
-            addSnippet(snippets);
-        else if (Array.isArray(snippets))
+        if (Array.isArray(snippets)) {
             snippets.forEach(addSnippet);
+        } else {
+            Object.keys(snippets).forEach(function(key) {
+                addSnippet(snippets[key]);
+            });
+        }
         
         this._signal("registerSnippets", {scope: scope});
     };
@@ -5099,7 +5133,7 @@ var SnippetManager = function() {
                     snippet.tabTrigger = val.match(/^\S*/)[0];
                     if (!snippet.name)
                         snippet.name = val;
-                } else {
+                } else if (key) {
                     snippet[key] = val;
                 }
             }
@@ -6764,31 +6798,33 @@ var onChangeMode = function(e, editor) {
 };
 
 var loadSnippetsForMode = function(mode) {
-    var id = mode.$id;
+    if (typeof mode == "string")
+        mode = config.$modes[mode];
+    if (!mode)
+        return;
     if (!snippetManager.files)
         snippetManager.files = {};
-    loadSnippetFile(id);
+    
+    loadSnippetFile(mode.$id, mode.snippetFileId);
     if (mode.modes)
         mode.modes.forEach(loadSnippetsForMode);
 };
 
-var loadSnippetFile = function(id) {
-    if (!id || snippetManager.files[id])
+var loadSnippetFile = function(id, snippetFilePath) {
+    if (!snippetFilePath || !id || snippetManager.files[id])
         return;
-    var snippetFilePath = id.replace("mode", "snippets");
     snippetManager.files[id] = {};
     config.loadModule(snippetFilePath, function(m) {
-        if (m) {
-            snippetManager.files[id] = m;
-            if (!m.snippets && m.snippetText)
-                m.snippets = snippetManager.parseSnippetFile(m.snippetText);
-            snippetManager.register(m.snippets || [], m.scope);
-            if (m.includeScopes) {
-                snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
-                m.includeScopes.forEach(function(x) {
-                    loadSnippetFile("ace/mode/" + x);
-                });
-            }
+        if (!m) return;
+        snippetManager.files[id] = m;
+        if (!m.snippets && m.snippetText)
+            m.snippets = snippetManager.parseSnippetFile(m.snippetText);
+        snippetManager.register(m.snippets || [], m.scope);
+        if (m.includeScopes) {
+            snippetManager.snippetMap[m.scope].includeScopes = m.includeScopes;
+            m.includeScopes.forEach(function(x) {
+                loadSnippetsForMode("ace/mode/" + x);
+            });
         }
     });
 };
@@ -6897,9 +6933,9 @@ exports.beautify = function(session) {
 
     var trimNext = function() {
         if (nextToken && nextToken.value && nextToken.type !== 'string.regexp')
-            nextToken.value = nextToken.value.trim();
+            nextToken.value = nextToken.value.replace(/^\s*/, "");
     };
-
+    
     var trimLine = function() {
         code = code.replace(/ +$/, "");
     };
@@ -7118,6 +7154,9 @@ exports.beautify = function(session) {
                         }
                     }
                 }
+                
+                if (token.type == "text")
+                    value = value.replace(/\s+$/, " ");
                 if (spaceBefore && !breakBefore) {
                     trimLine();
                     if (code.substr(-1) !== "\n")
@@ -7385,13 +7424,22 @@ commands.addCommand({
         }
     }
 });
-var sidePanelContainer = document.getElementById("sidePanel");
-sidePanelContainer.onclick = function(e) {
+function handleToggleActivate(target) {
     if (dom.hasCssClass(sidePanelContainer, "closed"))
         onResize(null, false);
-    else if (dom.hasCssClass(e.target, "toggleButton"))
+    else if (dom.hasCssClass(target, "toggleButton"))
         onResize(null, true);
-}
+};
+var sidePanelContainer = document.getElementById("sidePanel");
+sidePanelContainer.onclick = function(e) {
+    handleToggleActivate(e.target);
+};
+var optionToggle = document.getElementById("optionToggle");
+optionToggle.onkeydown = function(e) {
+    if (e.code === "Space" || e.code === "Enter") {
+        handleToggleActivate(e.target);
+    }
+};
 var consoleHeight = 20;
 function onResize(e, closeSidePanel) {
     var left = 280;
@@ -7399,8 +7447,11 @@ function onResize(e, closeSidePanel) {
     var height = document.documentElement.clientHeight;
     if (closeSidePanel == null)
         closeSidePanel = width < 2 * left;
-    if (closeSidePanel)
+    if (closeSidePanel) {
         left = 20;
+        document.getElementById("optionToggle").setAttribute("aria-label", "Show Options");
+    } else
+        document.getElementById("optionToggle").setAttribute("aria-label", "Hide Options");
     width -= left;
     container.style.width = width + "px";
     container.style.height = height - consoleHeight + "px";

@@ -597,8 +597,9 @@ define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/eve
   this.getMode = function() {
     return { name : this.getOption("mode") };
   };
-  this.execCommand = function() {
-
+  this.execCommand = function(name) {
+    if (name == "indentAuto") this.ace.execCommand("autoindent");
+    else console.log(name + " is not implemented");
   };
 }).call(CodeMirror.prototype);
   function toAcePos(cmPos) {

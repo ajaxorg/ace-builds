@@ -1545,6 +1545,7 @@ oop.inherits(Mode, TextMode);
     this.lineCommentStart = "//";
     
     this.$id = "ace/mode/haml";
+    this.snippetFileId = "ace/snippets/haml";
 }).call(Mode.prototype);
 
 exports.Mode = Mode;

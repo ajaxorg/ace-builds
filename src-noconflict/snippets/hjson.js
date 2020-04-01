@@ -2,7 +2,7 @@ ace.define("ace/snippets/hjson",["require","exports","module"], function(require
 "use strict";
 
 exports.snippetText =undefined;
-exports.scope = "";
+exports.scope = "hjson";
 
 });                (function() {
                     ace.require(["ace/snippets/hjson"], function(m) {

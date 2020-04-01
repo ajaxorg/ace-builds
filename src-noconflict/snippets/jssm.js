@@ -2,7 +2,7 @@ ace.define("ace/snippets/jssm",["require","exports","module"], function(require,
 "use strict";
 
 exports.snippetText =undefined;
-exports.scope = "";
+exports.scope = "jssm";
 
 });                (function() {
                     ace.require(["ace/snippets/jssm"], function(m) {

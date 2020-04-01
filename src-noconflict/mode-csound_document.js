@@ -1206,11 +1206,19 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "chnclear",
         "chnexport",
         "chnget",
+        "chngeta",
+        "chngeti",
+        "chngetk",
         "chngetks",
+        "chngets",
         "chnmix",
         "chnparams",
         "chnset",
+        "chnseta",
+        "chnseti",
+        "chnsetk",
         "chnsetks",
+        "chnsets",
         "chuap",
         "clear",
         "clfilt",
@@ -1408,6 +1416,7 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "ftchnls",
         "ftconv",
         "ftcps",
+        "ftexists",
         "ftfree",
         "ftgen",
         "ftgenonce",
@@ -1689,6 +1698,7 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "la_k_upper_solve_mr",
         "la_k_vc_set",
         "la_k_vr_set",
+        "lastcycle",
         "lenarray",
         "lfo",
         "limit",
@@ -1779,6 +1789,7 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "median",
         "mediank",
         "metro",
+        "metro2",
         "mfb",
         "midglobal",
         "midiarp",
@@ -2133,6 +2144,7 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "qnan",
         "r2c",
         "rand",
+        "randc",
         "randh",
         "randi",
         "random",
@@ -2193,6 +2205,7 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "schedkwhen",
         "schedkwhennamed",
         "schedule",
+        "schedulek",
         "schedwhen",
         "scoreline",
         "scoreline_i",
@@ -2303,6 +2316,7 @@ var CsoundOrchestraHighlightRules = function(embeddedRulePrefix) {
         "strrindex",
         "strrindexk",
         "strset",
+        "strstrip",
         "strsub",
         "strsubk",
         "strtod",
@@ -4005,6 +4019,11 @@ var Mode = function() {
     this.HighlightRules = CsoundDocumentHighlightRules;
 };
 oop.inherits(Mode, TextMode);
+
+(function() {
+    this.$id = "ace/mode/csound_document";
+    this.snippetFileId = "ace/snippets/csound_document";
+}).call(Mode.prototype);
 
 exports.Mode = Mode;
 });                (function() {

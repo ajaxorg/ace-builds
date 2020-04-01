@@ -212,6 +212,7 @@ export namespace Ace {
     mergeUndoDeltas: true | false | 'always';
     behavioursEnabled: boolean;
     wrapBehavioursEnabled: boolean;
+    enableAutoIndent: boolean;
     autoScrollEditorIntoView: boolean;
     keyboardHandler: string;
     placeholder: string;

@@ -2,7 +2,7 @@ ace.define("ace/snippets/csp",["require","exports","module"], function(require, 
 "use strict";
 
 exports.snippetText =undefined;
-exports.scope = "";
+exports.scope = "csp";
 
 });                (function() {
                     ace.require(["ace/snippets/csp"], function(m) {

@@ -1294,7 +1294,8 @@ var Keys = (function() {
 
         KEY_MODS: {
             "ctrl": 1, "alt": 2, "option" : 2, "shift": 4,
-            "super": 8, "meta": 8, "command": 8, "cmd": 8
+            "super": 8, "meta": 8, "command": 8, "cmd": 8, 
+            "control": 1
         },
 
         FUNCTION_KEYS : {
@@ -2181,6 +2182,7 @@ var KEYS = require("../lib/keys");
 var MODS = KEYS.KEY_MODS;
 var isIOS = useragent.isIOS;
 var valueResetRegex = isIOS ? /\s/ : /\n/;
+var isMobile = useragent.isMobile;
 
 var TextInput = function(parentNode, host) {
     var text = dom.createElement("textarea");
@@ -2200,7 +2202,7 @@ var TextInput = function(parentNode, host) {
     var sendingText = false;
     var tempStyle = '';
     
-    if (!useragent.isMobile)
+    if (!isMobile)
         text.style.fontSize = "1px";
 
     var commandMode = false;
@@ -2330,6 +2332,11 @@ var TextInput = function(parentNode, host) {
             selectionEnd += line.length + 1;
             line = line + "\n" + nextLine;
         }
+        else if (isMobile) {
+            line = "\n" + line;
+            selectionEnd += 1;
+            selectionStart += 1;
+        }
 
         if (line.length > MAX_LINE_LENGTH) {
             if (selectionStart < MAX_LINE_LENGTH && selectionEnd < MAX_LINE_LENGTH) {
@@ -2381,6 +2388,8 @@ var TextInput = function(parentNode, host) {
             copied = false;
         } else if (isAllSelected(text)) {
             host.selectAll();
+            resetSelection();
+        } else if (isMobile && text.selectionStart != lastSelectionStart) {
             resetSelection();
         }
     };
@@ -2460,8 +2469,13 @@ var TextInput = function(parentNode, host) {
         }
         var data = text.value;
         var inserted = sendText(data, true);
-        if (data.length > MAX_LINE_LENGTH + 100 || valueResetRegex.test(inserted))
+        if (
+            data.length > MAX_LINE_LENGTH + 100 
+            || valueResetRegex.test(inserted)
+            || isMobile && lastSelectionStart < 1 && lastSelectionStart == lastSelectionEnd
+        ) {
             resetSelection();
+        }
     };
     
     var handleClipboardData = function(e, data, forceIEMime) {
@@ -3990,7 +4004,6 @@ exports.addTouchListeners = function(el, editor) {
             showContextMenu();
         } else if (mode == "scroll") {
             animate();
-            e.preventDefault();
             hideContextMenu();
         } else {
             showContextMenu();
@@ -4560,7 +4573,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.4.8";
+exports.version = "1.4.9";
 
 });
 
@@ -8083,6 +8096,16 @@ var Document = function(textOrLines) {
         }
     };
     
+    this.$safeApplyDelta = function(delta) {
+        var docLength = this.$lines.length;
+        if (
+            delta.action == "remove" && delta.start.row < docLength && delta.end.row < docLength
+            || delta.action == "insert" && delta.start.row <= docLength
+        ) {
+            this.applyDelta(delta);
+        }
+    };
+    
     this.$splitAndapplyLargeDelta = function(delta, MAX) {
         var lines = delta.lines;
         var l = lines.length - MAX + 1;
@@ -8105,7 +8128,7 @@ var Document = function(textOrLines) {
         this.applyDelta(delta, true);
     };
     this.revertDelta = function(delta) {
-        this.applyDelta({
+        this.$safeApplyDelta({
             start: this.clonePos(delta.start),
             end: this.clonePos(delta.end),
             action: (delta.action == "insert" ? "remove" : "insert"),
@@ -10539,7 +10562,7 @@ EditSession.$uid = 0;
         for (var i = 0; i < deltas.length; i++) {
             var delta = deltas[i];
             if (delta.action == "insert" || delta.action == "remove") {
-                this.doc.applyDelta(delta);
+                this.doc.$safeApplyDelta(delta);
             }
         }
 
@@ -10561,7 +10584,6 @@ EditSession.$uid = 0;
         }
 
         var range, point;
-        var lastDeltaIsInsert;
 
         for (var i = 0; i < deltas.length; i++) {
             var delta = deltas[i];
@@ -10569,10 +10591,8 @@ EditSession.$uid = 0;
             if (!range) {
                 if (isInsert(delta)) {
                     range = Range.fromPoints(delta.start, delta.end);
-                    lastDeltaIsInsert = true;
                 } else {
                     range = Range.fromPoints(delta.start, delta.start);
-                    lastDeltaIsInsert = false;
                 }
                 continue;
             }
@@ -10586,13 +10606,11 @@ EditSession.$uid = 0;
                 if (range.compare(point.row, point.column) == 1) {
                     range.setEnd(point);
                 }
-                lastDeltaIsInsert = true;
             } else {
                 point = delta.start;
                 if (range.compare(point.row, point.column) == -1) {
                     range = Range.fromPoints(delta.start, delta.start);
                 }
-                lastDeltaIsInsert = false;
             }
         }
         return range;
@@ -12960,6 +12978,13 @@ exports.commands = [{
     multiSelectAction: "forEach",
     scrollIntoView: "cursor"
 }, {
+    name: "autoindent",
+    description: "Auto Indent",
+    bindKey: bindKey(null, null),
+    exec: function(editor) { editor.autoIndent(); },
+    multiSelectAction: "forEachLine",
+    scrollIntoView: "animate"
+}, {
     name: "expandtoline",
     description: "Expand to line",
     bindKey: bindKey("Ctrl-Shift-L", "Command-Shift-L"),
@@ -13206,7 +13231,7 @@ Editor.$uid = 0;
 
     this.endOperation = function(e) {
         if (this.curOp) {
-            if (e && e.returnValue === false)
+            if (e && e.returnValue === false || !this.session)
                 return (this.curOp = null);
             if (e == true && this.curOp.command && this.curOp.command.name == "mouse")
                 return;
@@ -13889,15 +13914,61 @@ Editor.$uid = 0;
                               transform.selection[3]));
             }
         }
+        if (this.$enableAutoIndent) {
+            if (session.getDocument().isNewLine(text)) {
+                var lineIndent = mode.getNextLineIndent(lineState, line.slice(0, cursor.column), session.getTabString());
 
-        if (session.getDocument().isNewLine(text)) {
-            var lineIndent = mode.getNextLineIndent(lineState, line.slice(0, cursor.column), session.getTabString());
-
-            session.insert({row: cursor.row+1, column: 0}, lineIndent);
+                session.insert({row: cursor.row+1, column: 0}, lineIndent);
+            }
+            if (shouldOutdent)
+                mode.autoOutdent(lineState, session, cursor.row);
         }
-        if (shouldOutdent)
-            mode.autoOutdent(lineState, session, cursor.row);
     };
+
+    this.autoIndent = function () {
+        var session = this.session;
+        var mode = session.getMode();
+
+        var startRow, endRow;
+        if (this.selection.isEmpty()) {
+            startRow = 0;
+            endRow = session.doc.getLength() - 1;
+        } else {
+            var selectedRange = this.getSelectionRange();
+
+            startRow = selectedRange.start.row;
+            endRow = selectedRange.end.row;
+        }
+
+        var prevLineState = "";
+        var prevLine = "";
+        var lineIndent = "";
+        var line, currIndent, range;
+        var tab = session.getTabString();
+
+        for (var row = startRow; row <= endRow; row++) {
+            if (row > 0) {
+                prevLineState = session.getState(row - 1);
+                prevLine = session.getLine(row - 1);
+                lineIndent = mode.getNextLineIndent(prevLineState, prevLine, tab);
+            }
+
+            line = session.getLine(row);
+            currIndent = mode.$getIndent(line);
+            if (lineIndent !== currIndent) {
+                if (currIndent.length > 0) {
+                    range = new Range(row, 0, row, currIndent.length);
+                    session.remove(range);
+                }
+                if (lineIndent.length > 0) {
+                    session.insert({row: row, column: 0}, lineIndent);
+                }
+            }
+
+            mode.autoOutdent(prevLineState, session, row);
+        }
+    };
+
 
     this.onTextInput = function(text, composition) {
         if (!composition)
@@ -13917,6 +13988,10 @@ Editor.$uid = 0;
             var r = this.selection.getRange();
             r.start.column -= composition.extendLeft;
             r.end.column += composition.extendRight;
+            if (r.start.column < 0) {
+                r.start.row--;
+                r.start.column += this.session.getLine(r.start.row).length + 1;
+            }
             this.selection.setRange(r);
             if (!text && !r.isEmpty())
                 this.remove();
@@ -15044,6 +15119,7 @@ config.defineOptions(Editor.prototype, "editor", {
     },
     behavioursEnabled: {initialValue: true},
     wrapBehavioursEnabled: {initialValue: true},
+    enableAutoIndent: {initialValue: true},
     autoScrollEditorIntoView: {
         set: function(val) {this.setAutoScrollEditorIntoView(val);}
     },
@@ -15088,7 +15164,7 @@ config.defineOptions(Editor.prototype, "editor", {
         set: function(message) {
             if (!this.$updatePlaceholder) {
                 this.$updatePlaceholder = function() {
-                    var value = this.renderer.$composition || this.getValue();
+                    var value = this.session && (this.renderer.$composition || this.getValue());
                     if (value && this.renderer.placeholderNode) {
                         this.renderer.off("afterRender", this.$updatePlaceholder);
                         dom.removeCssClass(this.container, "ace_hasPlaceholder");
@@ -15102,6 +15178,8 @@ config.defineOptions(Editor.prototype, "editor", {
                         el.textContent = this.$placeholder || "";
                         this.renderer.placeholderNode = el;
                         this.renderer.content.appendChild(this.renderer.placeholderNode);
+                    } else if (!value && this.renderer.placeholderNode) {
+                        this.renderer.placeholderNode.textContent = this.$placeholder || "";
                     }
                 }.bind(this);
                 this.on("input", this.$updatePlaceholder);
@@ -15276,25 +15354,6 @@ var UndoManager = function() {
         if (to == null) to = this.$rev + 1;
         
     };
-
-    this.validateDeltaBoundaries = function(deltaSet, docLength, invertAction) {
-        if (!deltaSet) {
-            return false;
-        }
-        return deltaSet.every(function(delta) {
-            var action = delta.action;
-            if (invertAction && delta.action === "insert") action = "remove";
-            if (invertAction && delta.action === "remove") action = "insert";
-            switch(action) {
-                case "insert":
-                    return delta.start.row <= docLength;
-                case "remove":
-                    return delta.start.row < docLength && delta.end.row < docLength;
-                default:
-                    return true;
-            }
-        });
-    };
     this.undo = function(session, dontSelect) {
         this.lastDeltas = null;
         var stack = this.$undoStack;
@@ -15312,7 +15371,7 @@ var UndoManager = function() {
         
         var deltaSet = stack.pop();
         var undoSelectionRange = null;
-        if (this.validateDeltaBoundaries(deltaSet, session.getLength(), true)) {
+        if (deltaSet) {
             undoSelectionRange = session.undoChanges(deltaSet, dontSelect);
             this.$redoStack.push(deltaSet);
             this.$syncRev();
@@ -15340,7 +15399,7 @@ var UndoManager = function() {
         var deltaSet = this.$redoStack.pop();
         var redoSelectionRange = null;
         
-        if (this.validateDeltaBoundaries(deltaSet, session.getLength(), false)) {
+        if (deltaSet) {
             redoSelectionRange = session.redoChanges(deltaSet, dontSelect);
             this.$undoStack.push(deltaSet);
             this.$syncRev();
@@ -16529,11 +16588,21 @@ var Text = function(parentEl) {
     };
 
     this.showInvisibles = false;
+    this.showSpaces = false;
+    this.showTabs = false;
+    this.showEOL = false;
     this.setShowInvisibles = function(showInvisibles) {
         if (this.showInvisibles == showInvisibles)
             return false;
 
         this.showInvisibles = showInvisibles;
+        if (typeof showInvisibles == "string") {
+            this.showSpaces = /tab/i.test(showInvisibles);
+            this.showTabs = /space/i.test(showInvisibles);
+            this.showEOL = /eol/i.test(showInvisibles);
+        } else {
+            this.showSpaces = this.showTabs = this.showEOL = showInvisibles;
+        }
         this.$computeTabString();
         return true;
     };
@@ -16555,7 +16624,7 @@ var Text = function(parentEl) {
         this.tabSize = tabSize;
         var tabStr = this.$tabStrings = [0];
         for (var i = 1; i < tabSize + 1; i++) {
-            if (this.showInvisibles) {
+            if (this.showTabs) {
                 var span = this.dom.createElement("span");
                 span.className = "ace_invisible ace_invisible_tab";
                 span.textContent = lang.stringRepeat(this.TAB_CHAR, i);
@@ -16567,18 +16636,15 @@ var Text = function(parentEl) {
         if (this.displayIndentGuides) {
             this.$indentGuideRe =  /\s\S| \t|\t |\s$/;
             var className = "ace_indent-guide";
-            var spaceClass = "";
-            var tabClass = "";
-            if (this.showInvisibles) {
-                className += " ace_invisible";
-                spaceClass = " ace_invisible_space";
-                tabClass = " ace_invisible_tab";
-                var spaceContent = lang.stringRepeat(this.SPACE_CHAR, this.tabSize);
-                var tabContent = lang.stringRepeat(this.TAB_CHAR, this.tabSize);
-            } else {
-                var spaceContent = lang.stringRepeat(" ", this.tabSize);
-                var tabContent = spaceContent;
-            }
+            var spaceClass = this.showSpaces ? " ace_invisible ace_invisible_space" : "";
+            var spaceContent = this.showSpaces
+                ? lang.stringRepeat(this.SPACE_CHAR, this.tabSize)
+                : lang.stringRepeat(" ", this.tabSize);
+
+            var tabClass = this.showTabs ? " ace_invisible ace_invisible_tab" : "";
+            var tabContent = this.showTabs 
+                ? lang.stringRepeat(this.TAB_CHAR, this.tabSize)
+                : spaceContent;
 
             var span = this.dom.createElement("span");
             span.className = className + spaceClass;
@@ -16771,7 +16837,7 @@ var Text = function(parentEl) {
             var cjkSpace = m[4];
             var cjk = m[5];
             
-            if (!self.showInvisibles && simpleSpace)
+            if (!self.showSpaces && simpleSpace)
                 continue;
 
             var before = i != m.index ? value.slice(i, m.index) : "";
@@ -16787,7 +16853,7 @@ var Text = function(parentEl) {
                 valueFragment.appendChild(self.$tabStrings[tabSize].cloneNode(true));
                 screenColumn += tabSize - 1;
             } else if (simpleSpace) {
-                if (self.showInvisibles) {
+                if (self.showSpaces) {
                     var span = this.dom.createElement("span");
                     span.className = "ace_invisible ace_invisible_space";
                     span.textContent = lang.stringRepeat(self.SPACE_CHAR, simpleSpace.length);
@@ -16805,8 +16871,8 @@ var Text = function(parentEl) {
                 
                 var span = this.dom.createElement("span");
                 span.style.width = (self.config.characterWidth * 2) + "px";
-                span.className = self.showInvisibles ? "ace_cjk ace_invisible ace_invisible_space" : "ace_cjk";
-                span.textContent = self.showInvisibles ? self.SPACE_CHAR : cjkSpace;
+                span.className = self.showSpaces ? "ace_cjk ace_invisible ace_invisible_space" : "ace_cjk";
+                span.textContent = self.showSpaces ? self.SPACE_CHAR : cjkSpace;
                 valueFragment.appendChild(span);
             } else if (cjk) {
                 screenColumn += 1;
@@ -16975,7 +17041,7 @@ var Text = function(parentEl) {
             parent.appendChild(lastLineEl);
         }
 
-        if (this.showInvisibles && lastLineEl) {
+        if (this.showEOL && lastLineEl) {
             if (foldLine)
                 row = foldLine.end.row;
 
@@ -17506,7 +17572,7 @@ var FontMetrics = exports.FontMetrics = function(parentEl) {
     this.el.appendChild(this.$measureNode);
     parentEl.appendChild(this.el);
     
-    this.$measureNode.innerHTML = lang.stringRepeat("X", CHAR_COUNT);
+    this.$measureNode.textContent = lang.stringRepeat("X", CHAR_COUNT);
     
     this.$characterSize = {width: 0, height: 0};
     
@@ -17595,7 +17661,7 @@ var FontMetrics = exports.FontMetrics = function(parentEl) {
     };
 
     this.$measureCharWidth = function(ch) {
-        this.$main.innerHTML = lang.stringRepeat(ch, CHAR_COUNT);
+        this.$main.textContent = lang.stringRepeat(ch, CHAR_COUNT);
         var rect = this.$main.getBoundingClientRect();
         return rect.width / CHAR_COUNT;
     };
@@ -17712,6 +17778,7 @@ var editorCss = "\
 .ace_editor {\
 position: relative;\
 overflow: hidden;\
+padding: 0;\
 font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;\
 direction: ltr;\
 text-align: left;\
