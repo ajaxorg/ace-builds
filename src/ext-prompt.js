@@ -1578,6 +1578,7 @@ var Autocomplete = function() {
         if (!data)
             return false;
 
+        this.editor.startOperation({command: {name: "insertMatch"}});
         if (data.completer && data.completer.insertMatch) {
             data.completer.insertMatch(this.editor, data);
         } else {
@@ -1594,6 +1595,7 @@ var Autocomplete = function() {
                 this.editor.execCommand("insertstring", data.value || data);
         }
         this.detach();
+        this.editor.endOperation();
     };
 
 

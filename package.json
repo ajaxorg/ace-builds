@@ -2,7 +2,7 @@
     "name": "ace-builds",
     "main": "./src-noconflict/ace.js",
     "typings": "ace.d.ts",
-    "version": "1.4.9",
+    "version": "1.4.10",
     "description": "Ace (Ajax.org Cloud9 Editor)",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,5 +16,8 @@
     "bugs": {
         "url": "https://github.com/ajaxorg/ace-builds/issues"
     },
-    "homepage": "https://github.com/ajaxorg/ace-builds"
+    "homepage": "https://github.com/ajaxorg/ace-builds",
+    "dependencies": {
+        "ace": "^1.3.0"
+    }
 }
