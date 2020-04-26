@@ -19315,7 +19315,7 @@ var VirtualRenderer = function(container, theme) {
     };
     this.scrollTo = function(x, y) {
         this.session.setScrollTop(y);
-        this.session.setScrollLeft(y);
+        this.session.setScrollLeft(x);
     };
     this.scrollBy = function(deltaX, deltaY) {
         deltaY && this.session.setScrollTop(this.session.getScrollTop() + deltaY);
