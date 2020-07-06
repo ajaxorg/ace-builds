@@ -153,7 +153,7 @@ export namespace Ace {
   }
 
   export interface EditSessionOptions {
-    wrap: string | number;
+    wrap: "off" | "free" | "printmargin" | boolean | number;
     wrapMethod: 'code' | 'text' | 'auto';
     indentedSoftWrap: boolean;
     firstLineNumber: number;
@@ -550,7 +550,7 @@ export namespace Ace {
     toggleRecording(editor: Editor): void;
     replay(editor: Editor): void;
     addCommand(command: Command): void;
-    removeCommand(command: Command, keepCommand?: boolean): void;
+    removeCommand(command: Command | string, keepCommand?: boolean): void;
     bindKey(key: string | { mac?: string, win?: string },
       command: CommandLike,
       position?: number): void;
@@ -747,7 +747,7 @@ export namespace Ace {
     setFontSize(size: string): void;
     focus(): void;
     isFocused(): boolean;
-    flur(): void;
+    blur(): void;
     getSelectedText(): string;
     getCopyText(): string;
     execCommand(command: string | string[], args?: any): boolean;

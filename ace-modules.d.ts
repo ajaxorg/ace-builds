@@ -1,3 +1,5 @@
+declare module 'ace-builds/webpack-resolver';
+declare module 'ace-builds/src-noconflict/ace';
 declare module 'ace-builds/src-noconflict/ext-beautify';
 declare module 'ace-builds/src-noconflict/ext-code_lens';
 declare module 'ace-builds/src-noconflict/ext-elastic_tabstops_lite';
@@ -403,4 +405,3 @@ declare module 'ace-builds/src-noconflict/snippets/xml';
 declare module 'ace-builds/src-noconflict/snippets/xquery';
 declare module 'ace-builds/src-noconflict/snippets/yaml';
 declare module 'ace-builds/src-noconflict/snippets/zeek';
-declare module 'ace-builds/webpack-resolver';

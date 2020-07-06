@@ -576,7 +576,9 @@ var SnippetManager = function() {
                 {regex: "\\|" + escape("\\|") + "*\\|", onMatch: function(val, state, stack) {
                     var choices = val.slice(1, -1).replace(/\\[,|\\]|,/g, function(operator) {
                         return operator.length == 2 ? operator[1] : "\x00";
-                    }).split("\x00");
+                    }).split("\x00").map(function(value){
+                        return {value: value};
+                    });
                     stack[0].choices = choices;
                     return [choices[0]];
                 }, next: "start"},
@@ -1274,18 +1276,17 @@ var TabstopManager = function(editor) {
         
         this.selectedTabstop = ts;
         var range = ts.firstNonLinked || ts;
+        if (ts.choices) range.cursor = range.start;
         if (!this.editor.inVirtualSelectionMode) {
             var sel = this.editor.multiSelect;
-            sel.toSingleRange(range.clone());
+            sel.toSingleRange(range);
             for (var i = 0; i < ts.length; i++) {
                 if (ts.hasLinkedRanges && ts[i].linked)
                     continue;
                 sel.addRange(ts[i].clone(), true);
             }
-            if (sel.ranges[0])
-                sel.addRange(sel.ranges[0].clone());
         } else {
-            this.editor.selection.setRange(range);
+            this.editor.selection.fromOrientedRange(range);
         }
         
         this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
@@ -1516,6 +1517,7 @@ var Autocomplete = function() {
         } else if (keepPopupPosition && !prefix) {
             this.detach();
         }
+        this.changeTimer.cancel();
     };
 
     this.detach = function() {
@@ -1578,14 +1580,15 @@ var Autocomplete = function() {
         if (!data)
             return false;
 
+        var completions = this.completions;
         this.editor.startOperation({command: {name: "insertMatch"}});
         if (data.completer && data.completer.insertMatch) {
             data.completer.insertMatch(this.editor, data);
         } else {
-            if (this.completions.filterText) {
+            if (completions.filterText) {
                 var ranges = this.editor.selection.getAllRanges();
                 for (var i = 0, range; range = ranges[i]; i++) {
-                    range.start.column -= this.completions.filterText.length;
+                    range.start.column -= completions.filterText.length;
                     this.editor.session.remove(range);
                 }
             }
@@ -1594,7 +1597,8 @@ var Autocomplete = function() {
             else
                 this.editor.execCommand("insertstring", data.value || data);
         }
-        this.detach();
+        if (this.completions == completions)
+            this.detach();
         this.editor.endOperation();
     };
 
