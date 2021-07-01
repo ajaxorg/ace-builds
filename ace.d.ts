@@ -363,7 +363,7 @@ export namespace Ace {
     moduleUrl(name: string, component?: string): string;
     setModuleUrl(name: string, subst: string): string;
     loadModule(moduleName: string | [string, string],
-      onLoad: (module: any) => void): void;
+      onLoad?: (module: any) => void): void;
     init(packaged: any): any;
     defineOptions(obj: any, path: string, options: { [key: string]: any }): Config;
     resetOptions(obj: any): void;
