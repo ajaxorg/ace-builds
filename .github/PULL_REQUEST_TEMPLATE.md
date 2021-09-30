@@ -1,3 +1,8 @@
+<!--
+Most of the files here are generated with a build script, so You probably
+should submit your pull request to https://github.com/ajaxorg/ace instead
+-->
+
 *Issue #, if available:*
 
 *Description of changes:*

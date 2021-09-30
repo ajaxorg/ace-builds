@@ -14936,16 +14936,6 @@ oop.inherits(JavaScriptWorker, Mirror);
         this.doc.getValue() && this.deferredUpdate.schedule(100);
     };
 
-    this.isValidJS = function(str) {
-        try {
-            eval("throw 0;" + str);
-        } catch(e) {
-            if (e === 0)
-                return true;
-        }
-        return false;
-    };
-
     this.onUpdate = function() {
         var value = this.doc.getValue();
         value = value.replace(/^#!.*\n/, "\n");
@@ -14953,7 +14943,6 @@ oop.inherits(JavaScriptWorker, Mirror);
             return this.sender.emit("annotate", []);
 
         var errors = [];
-        var maxErrorLevel = this.isValidJS(value) ? "warning" : "error";
         lint(value, this.options, this.options.globals);
         var results = lint.errors;
 
@@ -14968,7 +14957,7 @@ oop.inherits(JavaScriptWorker, Mirror);
             if (raw == "Missing semicolon.") {
                 var str = error.evidence.substr(error.character);
                 str = str.charAt(str.search(/\S/));
-                if (maxErrorLevel == "error" && str && /[\w\d{(['"]/.test(str)) {
+                if (str && /[\w\d{(['"]/.test(str)) {
                     error.reason = 'Missing ";" before statement';
                     type = "error";
                 } else {
@@ -14983,7 +14972,7 @@ oop.inherits(JavaScriptWorker, Mirror);
             }
             else if (errorsRe.test(raw)) {
                 errorAdded  = true;
-                type = maxErrorLevel;
+                type = "error";
             }
             else if (raw == "'{a}' is not defined.") {
                 type = "warning";

@@ -98,7 +98,7 @@ dom.importCssString(".ace_occur-highlight {\n\
 .ace_dark .ace_occur-highlight {\n\
     background-color: rgb(80, 140, 85);\n\
     box-shadow: 0 0 4px rgb(60, 120, 70);\n\
-}\n", "incremental-occur-highlighting");
+}\n", "incremental-occur-highlighting", false);
 
 exports.Occur = Occur;
 
@@ -558,7 +558,7 @@ function objectToRegExp(obj) {
 exports.IncrementalSearch = IncrementalSearch;
 
 var dom = require('./lib/dom');
-dom.importCssString && dom.importCssString("\
+dom.importCssString("\
 .ace_marker-layer .ace_isearch-result {\
   position: absolute;\
   z-index: 6;\
@@ -572,7 +572,7 @@ div.ace_isearch-result {\
 .ace_dark div.ace_isearch-result {\
   background-color: rgb(100, 110, 160);\
   box-shadow: 0 0 4px rgb(80, 90, 140);\
-}", "incremental-search-highlighting");
+}", "incremental-search-highlighting", false);
 var commands = require("./commands/command_manager");
 (function() {
     this.setupIncrementalSearch = function(editor, val) {

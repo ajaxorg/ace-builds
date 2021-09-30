@@ -185,6 +185,194 @@ require("ace/commands/default_commands").commands.push({
 });
 });
 
+define("ace/test/user",["require","exports","module"], function(require, exports, module) {
+"use strict";
+
+var keyCodeToKey = {};
+var keyCodeToCode = {};
+
+var alias = {};
+alias.Ctrl = "Control";
+alias.Option = "Alt";
+alias.Cmd = alias.Super = alias.Meta = "Command";
+
+var controlKeys = {
+    Shift: 16, Control: 17, Alt: 18, Meta: 224, Command: 224,
+    Backspace:8, Tab:9, Return: 13, Enter: 13,
+    Pause: 19, Escape: 27, PageUp: 33, PageDown: 34, End: 35, Home: 36,
+    Left: 37, Up: 38, Right: 39, Down: 40, Insert: 45, Delete: 46,
+    ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40
+};
+
+var shiftedKeys = {};
+var printableKeys = {};
+var specialKeys = {
+    Backquote: [192, "`", "~"], Minus: [189, "-", "_"], Equal: [187, "=", "+"],
+    BracketLeft: [219, "[", "{"], Backslash: [220, "\\", "|"], BracketRight: [221, "]", "}"],
+    Semicolon: [186, ";", ":"], Quote: [222, "'", '"'], Comma: [188, ",", "<"],
+    Period: [190, ".", ">"], Slash: [191, "/", "?"], Space: [32, " "], NumpadAdd: [107, "+"],
+    NumpadDecimal: [110, "."], NumpadSubtract: [109, "-"], NumpadDivide: [111, "/"], NumpadMultiply: [106, "*"]
+};
+for (var i in specialKeys) {
+    var key = specialKeys[i];
+    printableKeys[i] = printableKeys[key[1]] = shiftedKeys[key[2]] = key[0];
+    keyCodeToCode[key[0]] = i;
+}
+for (var i = 0; i < 10; i++) {
+    printableKeys[i] = shiftedKeys["!@#$%^&*()"[i]] = 48 + i;
+    keyCodeToCode[48 + i] = "Digit" + i;
+}
+for (var i = 65; i < 90; i++) {
+    var chr = String.fromCharCode(i + 32);
+    printableKeys[chr] = shiftedKeys[chr.toUpperCase()] = i;
+    keyCodeToCode[i] = "Key" + chr.toUpperCase();
+}
+for (var i = 1; i < 13; i++) {
+    controlKeys["F" + i] = 111 + i;
+}
+
+for (var i in controlKeys) {
+    keyCodeToKey[controlKeys[i]] = i;
+    keyCodeToCode[controlKeys[i]] = i;
+}
+controlKeys["\n"] = controlKeys.Return;
+
+var shift = false;
+var ctrl = false;
+var meta = false;
+var alt = false;
+function reset() {
+    shift = ctrl = meta = alt = false;
+}
+function updateModifierStates(keyCode) {
+    if (keyCode == controlKeys.Shift)
+        return shift = true;
+    if (keyCode == controlKeys.Control)
+        return ctrl = true;
+    if (keyCode == controlKeys.Meta)
+        return meta = true;
+    if (keyCode == controlKeys.Alt)
+        return alt = true;
+}
+
+function sendKey(letter, timeout) {
+    var keyCode = controlKeys[letter] || printableKeys[letter] || shiftedKeys[letter];
+    var isModifier = updateModifierStates(keyCode);
+            
+    var text = letter;
+    if (ctrl || alt || meta || controlKeys[letter]) {
+        text = "";
+    }
+    else if (shift) {
+        text = text.toUpperCase();
+    }
+
+    var target = document.activeElement;
+    var prevented = emit("keydown", true);
+    if (isModifier) return;
+    if (text) emit("keypress", true);
+    if (!prevented) updateTextInput();
+    emit("keyup", true);
+            
+    function emit(type, bubbles) {
+        var data = {bubbles: bubbles, cancelable:true};
+        data.charCode = text.charCodeAt(0);
+        data.keyCode = type == "keypress" ? data.charCode : keyCode;
+        data.which = data.keyCode;
+        data.shiftKey = shift || shiftedKeys[text];
+        data.ctrlKey = ctrl;
+        data.altKey = alt;
+        data.metaKey = meta;
+        data.key = text || keyCodeToKey[keyCode];
+        data.code = keyCodeToCode[keyCode];
+        var event = new KeyboardEvent(type, data);
+        
+        var el = document.activeElement;
+        el.dispatchEvent(event);
+        return event.defaultPrevented;
+    }
+    
+    function updateTextInput() {
+        var el = target;
+        var isTextarea = "selectionStart" in el && typeof el.value == "string";
+        var isContentEditable = /text|true/.test(el.contentEditable);
+        if (!isTextarea && !isContentEditable) return;
+                
+        var s = el.selectionStart;
+        var e = el.selectionEnd;
+        var value = el.value;
+                
+        if (isContentEditable) {
+            value = el.textContent;
+            var range = window.getSelection().getRangeAt(0);
+            s = range.startOffset;
+            e = range.endOffset;
+        }
+                
+        if (!text) {
+            if (keyCode == 13) { // enter
+                text = "\n";
+            }
+            else if (keyCode == 8) { // backspace
+                if (s != e) s = Math.max(s-1, 0);
+            }
+            else if (keyCode == 46) { // delete
+                if (s != e) e = Math.min(e+1, value.length);
+            }
+            else {
+                return;
+            }
+        }
+        var newValue = value.slice(0, s) + text + value.slice(e);
+        s = e = s + text.length;
+        if (newValue != value) {
+            if (isContentEditable) {
+                el.textContent = newValue;
+                range.setStart(el.firstChild, s);
+                range.setEnd(el.firstChild, e);
+            }
+            else {
+                el.value = newValue;
+                el.setSelectionRange(s, e);
+            }
+            emit("input", false);
+        }
+    }
+}
+
+function type() {
+    var keys = Array.prototype.slice.call(arguments);
+    for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        if (Array.isArray(key)) {
+            type.apply(null, key);
+            continue;
+        }
+        reset();
+        if (key.length > 1) {
+            var isKeyName = controlKeys[key] || printableKeys[key] || shiftedKeys[key];
+            if (!isKeyName) {
+                var parts = key.split("-");
+                var modifier = alias[parts[0]] || parts[0];
+                if (!updateModifierStates(controlKeys[modifier])) {
+                    type.apply(null, key.split(""));
+                    continue;
+                } 
+                key = parts.pop();
+                parts.forEach(function(part) {
+                    var keyCode = controlKeys[part];
+                    updateModifierStates(keyCode);
+                });
+            }
+        }
+        sendKey(key);
+    }
+}
+
+exports.type = type;
+
+});
+
 define("ace/test/asyncjs/assert",["require","exports","module","ace/lib/oop"], function(require, exports, module) {
 var oop = require("ace/lib/oop");
 var pSlice = Array.prototype.slice;
@@ -1091,7 +1279,7 @@ MockRenderer.prototype.adjustWrapLimit = function () {
 
 });
 
-define("kitchen-sink/dev_util",["require","exports","module","ace/lib/dom","ace/lib/event","ace/range","ace/edit_session","ace/undomanager","ace/lib/oop","ace/lib/dom","ace/range","ace/editor","ace/test/asyncjs/assert","ace/test/asyncjs/async","ace/undomanager","ace/edit_session","ace/test/mockrenderer","ace/lib/event_emitter"], function(require, exports, module) {
+define("kitchen-sink/dev_util",["require","exports","module","ace/lib/dom","ace/lib/event","ace/range","ace/edit_session","ace/undomanager","ace/lib/oop","ace/lib/dom","ace/test/user","ace/range","ace/editor","ace/test/asyncjs/assert","ace/test/asyncjs/async","ace/undomanager","ace/edit_session","ace/test/mockrenderer","ace/lib/event_emitter"], function(require, exports, module) {
 var dom = require("ace/lib/dom");
 var event = require("ace/lib/event");
 var Range = require("ace/range").Range;
@@ -1122,6 +1310,7 @@ def(window, "devUtil", function(){ return exports });
 exports.addGlobals = function() {
     window.oop = require("ace/lib/oop");
     window.dom = require("ace/lib/dom");
+    window.user = require("ace/test/user");
     window.Range = require("ace/range").Range;
     window.Editor = require("ace/editor").Editor;
     window.assert = require("ace/test/asyncjs/assert");
@@ -1537,7 +1726,7 @@ var supportedModes = {
     Apex:        ["apex|cls|trigger|tgr"],
     AQL:         ["aql"],
     AsciiDoc:    ["asciidoc|adoc"],
-    ASL:         ["dsl|asl"],
+    ASL:         ["dsl|asl|asl.json"],
     Assembly_x86:["asm|a"],
     AutoHotKey:  ["ahk"],
     BatchFile:   ["bat|cmd"],
@@ -1604,6 +1793,7 @@ var supportedModes = {
     Julia:       ["jl"],
     Kotlin:      ["kt|kts"],
     LaTeX:       ["tex|latex|ltx|bib"],
+    Latte:       ["latte"],
     LESS:        ["less"],
     Liquid:      ["liquid"],
     Lisp:        ["lisp"],
@@ -1620,6 +1810,7 @@ var supportedModes = {
     Maze:        ["mz"],
     MediaWiki:   ["wiki|mediawiki"],
     MEL:         ["mel"],
+    MIPS:        ["s|asm"],
     MIXAL:       ["mixal"],
     MUSHCode:    ["mc|mush"],
     MySQL:       ["mysql"],
@@ -1632,7 +1823,6 @@ var supportedModes = {
     OCaml:       ["ml|mli"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
-    Perl6:       ["p6|pl6|pm6"],
     pgSQL:       ["pgsql"],
     PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     PHP_Laravel_blade: ["blade.php"],
@@ -1647,6 +1837,7 @@ var supportedModes = {
     Python:      ["py"],
     QML:         ["qml"],
     R:           ["r"],
+    Raku:        ["raku|rakumod|rakutest|p6|pl6|pm6"],
     Razor:       ["cshtml|asp"],
     RDoc:        ["Rd"],
     Red:         ["red|reds"],
@@ -1658,11 +1849,13 @@ var supportedModes = {
     SCAD:        ["scad"],
     Scala:       ["scala|sbt"],
     Scheme:      ["scm|sm|rkt|oak|scheme"],
+    Scrypt:      ["scrypt"],
     SCSS:        ["scss"],
     SH:          ["sh|bash|^.bashrc"],
     SJS:         ["sjs"],
     Slim:        ["slim|skim"],
     Smarty:      ["smarty|tpl"],
+    Smithy:      ["smithy"],
     snippets:    ["snippets"],
     Soy_Template:["soy"],
     Space:       ["space"],
@@ -1678,7 +1871,7 @@ var supportedModes = {
     Textile:     ["textile"],
     Toml:        ["toml"],
     TSX:         ["tsx"],
-    Twig:        ["latte|twig|swig"],
+    Twig:        ["twig|swig"],
     Typescript:  ["ts|typescript|str"],
     Vala:        ["vala"],
     VBScript:    ["vbs|vb"],
@@ -1710,6 +1903,7 @@ var nameOverrides = {
     Perl6: "Perl 6",
     AutoHotKey: "AutoHotkey / AutoIt"
 };
+
 var modesByName = {};
 for (var name in supportedModes) {
     var data = supportedModes[name];
@@ -1770,137 +1964,6 @@ config.defineOptions(Editor.prototype, "editor", {
     }
 });
 
-});
-
-define("ace/theme/textmate",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
-"use strict";
-
-exports.isDark = false;
-exports.cssClass = "ace-tm";
-exports.cssText = ".ace-tm .ace_gutter {\
-background: #f0f0f0;\
-color: #333;\
-}\
-.ace-tm .ace_print-margin {\
-width: 1px;\
-background: #e8e8e8;\
-}\
-.ace-tm .ace_fold {\
-background-color: #6B72E6;\
-}\
-.ace-tm {\
-background-color: #FFFFFF;\
-color: black;\
-}\
-.ace-tm .ace_cursor {\
-color: black;\
-}\
-.ace-tm .ace_invisible {\
-color: rgb(191, 191, 191);\
-}\
-.ace-tm .ace_storage,\
-.ace-tm .ace_keyword {\
-color: blue;\
-}\
-.ace-tm .ace_constant {\
-color: rgb(197, 6, 11);\
-}\
-.ace-tm .ace_constant.ace_buildin {\
-color: rgb(88, 72, 246);\
-}\
-.ace-tm .ace_constant.ace_language {\
-color: rgb(88, 92, 246);\
-}\
-.ace-tm .ace_constant.ace_library {\
-color: rgb(6, 150, 14);\
-}\
-.ace-tm .ace_invalid {\
-background-color: rgba(255, 0, 0, 0.1);\
-color: red;\
-}\
-.ace-tm .ace_support.ace_function {\
-color: rgb(60, 76, 114);\
-}\
-.ace-tm .ace_support.ace_constant {\
-color: rgb(6, 150, 14);\
-}\
-.ace-tm .ace_support.ace_type,\
-.ace-tm .ace_support.ace_class {\
-color: rgb(109, 121, 222);\
-}\
-.ace-tm .ace_keyword.ace_operator {\
-color: rgb(104, 118, 135);\
-}\
-.ace-tm .ace_string {\
-color: rgb(3, 106, 7);\
-}\
-.ace-tm .ace_comment {\
-color: rgb(76, 136, 107);\
-}\
-.ace-tm .ace_comment.ace_doc {\
-color: rgb(0, 102, 255);\
-}\
-.ace-tm .ace_comment.ace_doc.ace_tag {\
-color: rgb(128, 159, 191);\
-}\
-.ace-tm .ace_constant.ace_numeric {\
-color: rgb(0, 0, 205);\
-}\
-.ace-tm .ace_variable {\
-color: rgb(49, 132, 149);\
-}\
-.ace-tm .ace_xml-pe {\
-color: rgb(104, 104, 91);\
-}\
-.ace-tm .ace_entity.ace_name.ace_function {\
-color: #0000A2;\
-}\
-.ace-tm .ace_heading {\
-color: rgb(12, 7, 255);\
-}\
-.ace-tm .ace_list {\
-color:rgb(185, 6, 144);\
-}\
-.ace-tm .ace_meta.ace_tag {\
-color:rgb(0, 22, 142);\
-}\
-.ace-tm .ace_string.ace_regex {\
-color: rgb(255, 0, 0)\
-}\
-.ace-tm .ace_marker-layer .ace_selection {\
-background: rgb(181, 213, 255);\
-}\
-.ace-tm.ace_multiselect .ace_selection.ace_start {\
-box-shadow: 0 0 3px 0px white;\
-}\
-.ace-tm .ace_marker-layer .ace_step {\
-background: rgb(252, 255, 0);\
-}\
-.ace-tm .ace_marker-layer .ace_stack {\
-background: rgb(164, 229, 101);\
-}\
-.ace-tm .ace_marker-layer .ace_bracket {\
-margin: -1px 0 0 -1px;\
-border: 1px solid rgb(192, 192, 192);\
-}\
-.ace-tm .ace_marker-layer .ace_active-line {\
-background: rgba(0, 0, 0, 0.07);\
-}\
-.ace-tm .ace_gutter-active-line {\
-background-color : #dcdcdc;\
-}\
-.ace-tm .ace_marker-layer .ace_selected-word {\
-background: rgb(250, 250, 255);\
-border: 1px solid rgb(200, 200, 250);\
-}\
-.ace-tm .ace_indent-guide {\
-background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
-}\
-";
-exports.$id = "ace/theme/textmate";
-
-var dom = require("../lib/dom");
-dom.importCssString(exports.cssText, exports.cssClass);
 });
 
 define("ace/ext/whitespace",["require","exports","module","ace/lib/lang"], function(require, exports, module) {
@@ -3017,7 +3080,7 @@ dom.importCssString(".ace_occur-highlight {\n\
 .ace_dark .ace_occur-highlight {\n\
     background-color: rgb(80, 140, 85);\n\
     box-shadow: 0 0 4px rgb(60, 120, 70);\n\
-}\n", "incremental-occur-highlighting");
+}\n", "incremental-occur-highlighting", false);
 
 exports.Occur = Occur;
 
@@ -3477,7 +3540,7 @@ function objectToRegExp(obj) {
 exports.IncrementalSearch = IncrementalSearch;
 
 var dom = require('./lib/dom');
-dom.importCssString && dom.importCssString("\
+dom.importCssString("\
 .ace_marker-layer .ace_isearch-result {\
   position: absolute;\
   z-index: 6;\
@@ -3491,7 +3554,7 @@ div.ace_isearch-result {\
 .ace_dark div.ace_isearch-result {\
   background-color: rgb(100, 110, 160);\
   box-shadow: 0 0 4px rgb(80, 90, 140);\
-}", "incremental-search-highlighting");
+}", "incremental-search-highlighting", false);
 var commands = require("./commands/command_manager");
 (function() {
     this.setupIncrementalSearch = function(editor, val) {
@@ -3903,7 +3966,7 @@ margin: 0px;\
 .ace_optionsMenuEntry button:hover{\
 background: #f0f0f0;\
 }";
-dom.importCssString(cssText);
+dom.importCssString(cssText, "settings_menu.css", false);
 
 module.exports.overlayPage = function overlayPage(editor, contentElement, callback) {
     var closer = document.createElement('div');
@@ -3994,6 +4057,7 @@ var themeData = [
     ["Mono Industrial"      ,"mono_industrial"         ,  "dark"],
     ["Monokai"              ,"monokai"                 ,  "dark"],
     ["Nord Dark"            ,"nord_dark"               ,  "dark"],
+    ["One Dark"             ,"one_dark"                ,  "dark"],
     ["Pastel on dark"       ,"pastel_on_dark"          ,  "dark"],
     ["Solarized Dark"       ,"solarized_dark"          ,  "dark"],
     ["Terminal"             ,"terminal"                ,  "dark"],
@@ -4440,8 +4504,9 @@ exports.StatusBar = StatusBar;
 
 });
 
-define("ace/snippets",["require","exports","module","ace/lib/oop","ace/lib/event_emitter","ace/lib/lang","ace/range","ace/range_list","ace/keyboard/hash_handler","ace/tokenizer","ace/clipboard","ace/lib/dom","ace/editor"], function(require, exports, module) {
+define("ace/snippets",["require","exports","module","ace/lib/dom","ace/lib/oop","ace/lib/event_emitter","ace/lib/lang","ace/range","ace/range_list","ace/keyboard/hash_handler","ace/tokenizer","ace/clipboard","ace/editor"], function(require, exports, module) {
 "use strict";
+var dom = require("./lib/dom");
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
 var lang = require("./lib/lang");
@@ -5423,14 +5488,14 @@ var moveRelative = function(point, start) {
 };
 
 
-require("./lib/dom").importCssString("\
+dom.importCssString("\
 .ace_snippet-marker {\
     -moz-box-sizing: border-box;\
     box-sizing: border-box;\
     background: rgba(194, 193, 208, 0.09);\
     border: 1px dotted rgba(211, 208, 235, 0.62);\
     position: absolute;\
-}");
+}", "snippets.css", false);
 
 exports.snippetManager = new SnippetManager();
 
@@ -6099,7 +6164,7 @@ dom.importCssString("\
     line-height: 1.4;\
     background: #25282c;\
     color: #c1c1c1;\
-}", "autocompletion.css");
+}", "autocompletion.css", false);
 
 exports.AcePopup = AcePopup;
 exports.$singleLineEditor = $singleLineEditor;
@@ -6423,19 +6488,14 @@ var Autocomplete = function() {
             return this.openPopup(this.editor, "", keepPopupPosition);
         }
         var _id = this.gatherCompletionsId;
-        this.gatherCompletions(this.editor, function(err, results) {
-            var detachIfFinished = function() {
-                if (!results.finished) return;
-                return this.detach();
-            }.bind(this);
+        var detachIfFinished = function(results) {
+            if (!results.finished) return;
+            return this.detach();
+        }.bind(this);
 
+        var processResults = function(results) {
             var prefix = results.prefix;
-            var matches = results && results.matches;
-
-            if (!matches || !matches.length)
-                return detachIfFinished();
-            if (prefix.indexOf(results.prefix) !== 0 || _id != this.gatherCompletionsId)
-                return;
+            var matches = results.matches;
 
             this.completions = new FilteredList(matches);
 
@@ -6445,14 +6505,39 @@ var Autocomplete = function() {
             this.completions.setFilter(prefix);
             var filtered = this.completions.filtered;
             if (!filtered.length)
-                return detachIfFinished();
+                return detachIfFinished(results);
             if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
-                return detachIfFinished();
+                return detachIfFinished(results);
             if (this.autoInsert && filtered.length == 1 && results.finished)
                 return this.insertMatch(filtered[0]);
 
             this.openPopup(this.editor, prefix, keepPopupPosition);
+        }.bind(this);
+
+        var isImmediate = true;
+        var immediateResults = null;
+        this.gatherCompletions(this.editor, function(err, results) {
+            var prefix = results.prefix;
+            var matches = results && results.matches;
+
+            if (!matches || !matches.length)
+                return detachIfFinished(results);
+            if (prefix.indexOf(results.prefix) !== 0 || _id != this.gatherCompletionsId)
+                return;
+            if (isImmediate) {
+                immediateResults = results;
+                return;
+            }
+
+            processResults(results);
         }.bind(this));
+        
+        isImmediate = false;
+        if (immediateResults) {
+            var results = immediateResults;
+            immediateResults = null;
+            processResults(results);
+        }
     };
 
     this.cancelContextMenu = function() {
@@ -6938,6 +7023,7 @@ exports.beautify = function(session) {
     var inBlock = false;
     var levels = {0: 0};
     var parents = [];
+    var caseBody = false;
 
     var trimNext = function() {
         if (nextToken && nextToken.value && nextToken.type !== 'string.regexp')
@@ -7099,6 +7185,9 @@ exports.beautify = function(session) {
                     trimLine();
                     if(value === "/>")
                         spaceBefore = true;
+                } else if (token.type === "keyword" && value.match(/^(case|default)$/)) {
+                    if (caseBody)
+                        unindent = 1;
                 }
                 if (breakBefore && !(token.type.match(/^(comment)$/) && !value.substr(0, 1).match(/^[/#]$/)) && !(token.type.match(/^(string)$/) && !value.substr(0, 1).match(/^['"]$/))) {
 
@@ -7127,16 +7216,16 @@ exports.beautify = function(session) {
                         code += tabString;
                 }
 
-
                 if (token.type === "keyword" && value.match(/^(case|default)$/)) {
-                    parents[depth] = value;
-                    depth++;
-                }
-
-
-                if (token.type === "keyword" && value.match(/^(break)$/)) {
+                    if (caseBody === false) {
+                        parents[depth] = value;
+                        depth++;
+                        caseBody = true;
+                    }
+                } else if (token.type === "keyword" && value.match(/^(break)$/)) {
                     if(parents[depth-1] && parents[depth-1].match(/^(case|default)$/)) {
                         depth--;
+                        caseBody = false;
                     }
                 }
                 if (token.type === "paren.lparen") {
@@ -7217,7 +7306,7 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/demo",["require","exports","module","ace/lib/fixoldbrowsers","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/useragent","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {
+define("kitchen-sink/demo",["require","exports","module","ace/lib/fixoldbrowsers","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {
 "use strict";
 
 require("ace/lib/fixoldbrowsers");
@@ -7236,7 +7325,6 @@ var env = {};
 var dom = require("ace/lib/dom");
 var net = require("ace/lib/net");
 var lang = require("ace/lib/lang");
-var useragent = require("ace/lib/useragent");
 
 var event = require("ace/lib/event");
 var theme = require("ace/theme/textmate");

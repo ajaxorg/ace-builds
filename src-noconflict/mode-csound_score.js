@@ -300,7 +300,7 @@ var CsoundScoreHighlightRules = function(embeddedRulePrefix) {
     start.push(
         {
             token : "keyword.control.csound-score",
-            regex : /[abCdefiqstvxy]/
+            regex : /[aBbCdefiqstvxy]/
         }, {
             token : "invalid.illegal.csound-score",
             regex : /w/
