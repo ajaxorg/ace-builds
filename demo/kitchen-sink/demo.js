@@ -222,7 +222,7 @@ for (var i = 0; i < 10; i++) {
     printableKeys[i] = shiftedKeys["!@#$%^&*()"[i]] = 48 + i;
     keyCodeToCode[48 + i] = "Digit" + i;
 }
-for (var i = 65; i < 90; i++) {
+for (var i = 65; i < 91; i++) {
     var chr = String.fromCharCode(i + 32);
     printableKeys[chr] = shiftedKeys[chr.toUpperCase()] = i;
     keyCodeToCode[i] = "Key" + chr.toUpperCase();
@@ -2311,7 +2311,10 @@ function loadDoc(name, callback) {
 }
 
 function saveDoc(name, callback) {
-    var doc = fileCache[name.toLowerCase()] || name;
+    var doc = name;
+    if (typeof(name) === 'string') {
+        doc = fileCache[name.toLowerCase()];
+    }
     if (!doc || !doc.session)
         return callback("Unknown document: " + name);
 
@@ -7031,9 +7034,20 @@ exports.beautify = function(session) {
     };
     
     var trimLine = function() {
-        code = code.replace(/ +$/, "");
-    };
+        var end = code.length - 1;
 
+        while (true) {
+            if (end == 0)
+                break;
+            if (code[end] !== " ")
+                break;
+            
+            end = end - 1;
+        }
+
+        code = code.slice(0, end + 1);
+    };
+    
     var trimCode = function() {
         code = code.trimRight();
         breakBefore = false;
@@ -7189,7 +7203,7 @@ exports.beautify = function(session) {
                     if (caseBody)
                         unindent = 1;
                 }
-                if (breakBefore && !(token.type.match(/^(comment)$/) && !value.substr(0, 1).match(/^[/#]$/)) && !(token.type.match(/^(string)$/) && !value.substr(0, 1).match(/^['"]$/))) {
+                if (breakBefore && !(token.type.match(/^(comment)$/) && !value.substr(0, 1).match(/^[/#]$/)) && !(token.type.match(/^(string)$/) && !value.substr(0, 1).match(/^['"@]$/))) {
 
                     indent = lastIndent;
 

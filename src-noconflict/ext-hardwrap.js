@@ -1,10 +1,11 @@
-ace.define("ace/ext/hardwrap",["require","exports","module","ace/range"], function(require, exports, module) {
+ace.define("ace/ext/hardwrap",["require","exports","module","ace/range","ace/editor","ace/config"], function(require, exports, module) {
 "use strict";
 
 var Range = require("../range").Range;
 
 function hardWrap(editor, options) {
     var max = options.column || editor.getOption("printMarginColumn");
+    var allowMerge = options.allowMerge != false;
        
     var row = Math.min(options.startRow, options.endRow);
     var endRow = Math.max(options.startRow, options.endRow);
@@ -16,10 +17,11 @@ function hardWrap(editor, options) {
         if (line.length > max) {
             var space = findSpace(line, max, 5);
             if (space) {
-                session.replace(new Range(row,space.start,row,space.end), "\n");
+                var indentation = /^\s*/.exec(line)[0];
+                session.replace(new Range(row,space.start,row,space.end), "\n" + indentation);
             }
             endRow++;
-        } else if (/\S/.test(line) && row != endRow) {
+        } else if (allowMerge && /\S/.test(line) && row != endRow) {
             var nextLine = session.getLine(row + 1);
             if (nextLine && /\S/.test(nextLine)) {
                 var trimmedLine = line.replace(/\s+$/, "");
@@ -32,6 +34,8 @@ function hardWrap(editor, options) {
                     session.replace(replaceRange, " ");
                     row--;
                     endRow--;
+                } else if (trimmedLine.length < line.length) {
+                    session.remove(new Range(row, trimmedLine.length, row, line.length));
                 }
             }
         }
@@ -65,13 +69,49 @@ function hardWrap(editor, options) {
         if (spaceBefore && spaceBefore[2] && spaceBefore.index > min) {
             return {
                 start: spaceBefore.index,
-                end: spaceBefore.index + spaceBefore[3].length
+                end: spaceBefore.index + spaceBefore[2].length
             };
         }
-
+        if (spaceAfter && spaceAfter[2]) {
+            start =  max + spaceAfter[2].length;
+            return {
+                start: start,
+                end: start + spaceAfter[3].length
+            };
+        }
     }
 
 }
+
+function wrapAfterInput(e) {
+    if (e.command.name == "insertstring" && /\S/.test(e.args)) {
+        var editor = e.editor;
+        var cursor = editor.selection.cursor;
+        if (cursor.column <= editor.renderer.$printMarginColumn) return;
+        var lastDelta = editor.session.$undoManager.$lastDelta;
+
+        hardWrap(editor, {
+            startRow: cursor.row, endRow: cursor.row,
+            allowMerge: false
+        });
+        if (lastDelta != editor.session.$undoManager.$lastDelta) 
+            editor.session.markUndoGroup();
+    }
+}
+
+var Editor = require("../editor").Editor;
+require("../config").defineOptions(Editor.prototype, "editor", {
+    hardWrap: {
+        set: function(val) {
+            if (val) {
+                this.commands.on("afterExec", wrapAfterInput);
+            } else {
+                this.commands.off("afterExec", wrapAfterInput);
+            }
+        },
+        value: false
+    }
+});
 
 exports.hardWrap = hardWrap;
 
