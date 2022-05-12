@@ -2005,15 +2005,6 @@ var keyWordCompleter = {
     }
 };
 
-var transformSnippetTooltip = function(str) {
-    var record = {};
-    return str.replace(/\${(\d+)(:(.*?))?}/g, function(_, p1, p2, p3) {
-        return (record[p1] = p3 || '');
-    }).replace(/\$(\d+?)/g, function (_, p1) {
-        return record[p1];
-    });
-};
-
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
         var scopes = [];
@@ -2046,7 +2037,7 @@ var snippetCompleter = {
         if (item.type == "snippet" && !item.docHTML) {
             item.docHTML = [
                 "<b>", lang.escapeHTML(item.caption), "</b>", "<hr></hr>",
-                lang.escapeHTML(transformSnippetTooltip(item.snippet))
+                lang.escapeHTML(item.snippet)
             ].join("");
         }
     }
