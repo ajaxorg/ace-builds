@@ -757,7 +757,7 @@ export namespace Ace {
     setStyle(style: string): void;
     unsetStyle(style: string): void;
     getFontSize(): string;
-    setFontSize(size: string): void;
+    setFontSize(size: number): void;
     focus(): void;
     isFocused(): boolean;
     blur(): void;

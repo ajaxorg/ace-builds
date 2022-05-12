@@ -1780,6 +1780,7 @@ var supportedModes = {
     HTML_Ruby:   ["erb|rhtml|html.erb"],
     INI:         ["ini|conf|cfg|prefs"],
     Io:          ["io"],
+    Ion:         ["ion"],
     Jack:        ["jack"],
     Jade:        ["jade|pug"],
     Java:        ["java"],
@@ -1821,11 +1822,12 @@ var supportedModes = {
     Nunjucks:    ["nunjucks|nunjs|nj|njk"],
     ObjectiveC:  ["m|mm"],
     OCaml:       ["ml|mli"],
+    PartiQL:     ["partiql|pql"],
     Pascal:      ["pas|p"],
     Perl:        ["pl|pm"],
     pgSQL:       ["pgsql"],
-    PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     PHP_Laravel_blade: ["blade.php"],
+    PHP:         ["php|inc|phtml|shtml|php3|php4|php5|phps|phpt|aw|ctp|module"],
     Pig:         ["pig"],
     Powershell:  ["ps1"],
     Praat:       ["praat|praatscript|psc|proc"],
@@ -1845,6 +1847,7 @@ var supportedModes = {
     RST:         ["rst"],
     Ruby:        ["rb|ru|gemspec|rake|^Guardfile|^Rakefile|^Gemfile"],
     Rust:        ["rs"],
+    SaC:         ["sac"],
     SASS:        ["sass"],
     SCAD:        ["scad"],
     Scala:       ["scala|sbt"],
@@ -6831,6 +6834,15 @@ var keyWordCompleter = {
     }
 };
 
+var transformSnippetTooltip = function(str) {
+    var record = {};
+    return str.replace(/\${(\d+)(:(.*?))?}/g, function(_, p1, p2, p3) {
+        return (record[p1] = p3 || '');
+    }).replace(/\$(\d+?)/g, function (_, p1) {
+        return record[p1];
+    });
+};
+
 var snippetCompleter = {
     getCompletions: function(editor, session, pos, prefix, callback) {
         var scopes = [];
@@ -6863,7 +6875,7 @@ var snippetCompleter = {
         if (item.type == "snippet" && !item.docHTML) {
             item.docHTML = [
                 "<b>", lang.escapeHTML(item.caption), "</b>", "<hr></hr>",
-                lang.escapeHTML(item.snippet)
+                lang.escapeHTML(transformSnippetTooltip(item.snippet))
             ].join("");
         }
     }
@@ -6994,12 +7006,17 @@ function is(token, type) {
 exports.singletonTags = ["area", "base", "br", "col", "command", "embed", "hr", "html", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"];
 exports.blockTags = ["article", "aside", "blockquote", "body", "div", "dl", "fieldset", "footer", "form", "head", "header", "html", "nav", "ol", "p", "script", "section", "style", "table", "tbody", "tfoot", "thead", "ul"];
 
+exports.formatOptions = {
+    lineBreaksAfterCommasInCurlyBlock: true
+};
+
 exports.beautify = function(session) {
     var iterator = new TokenIterator(session, 0, 0);
     var token = iterator.getCurrentToken();
     var tabString = session.getTabString();
     var singletonTags = exports.singletonTags;
     var blockTags = exports.blockTags;
+    var formatOptions = exports.formatOptions || {};
     var nextToken;
     var breakBefore = false;
     var spaceBefore = false;
@@ -7181,7 +7198,7 @@ exports.beautify = function(session) {
                 } else if (token.type === "punctuation.operator" && value.match(/^(:|,)$/)) {
                     trimCode();
                     trimNext();
-                    if (value.match(/^(,)$/) && curlyDepth>0 && roundDepth===0) {
+                    if (value.match(/^(,)$/) && curlyDepth>0 && roundDepth===0 && formatOptions.lineBreaksAfterCommasInCurlyBlock) {
                         rowsToAdd++;
                     } else {
                         spaceAfter = true;
@@ -7288,14 +7305,18 @@ exports.beautify = function(session) {
                     else
                         rowsToAdd = 1;
                 }
-                if (is(token, "tag-open") && value === "</") {
-                    depth--;
-                } else if (is(token, "tag-open") && value === "<" && singletonTags.indexOf(nextToken.value) === -1) {
-                    depth++;
-                } else if (is(token, "tag-name")) {
+                if (nextToken && singletonTags.indexOf(nextToken.value) === -1) {
+                    if (is(token, "tag-open") && value === "</") {
+                        depth--;
+                    } else if (is(token, "tag-open") && value === "<") {
+                        depth++;
+                    } else if (is(token, "tag-close") && value === "/>"){
+                        depth--;
+                    }
+                }
+                
+                if (is(token, "tag-name")) {
                     tagName = value;
-                } else if (is(token, "tag-close") && value === "/>" && singletonTags.indexOf(tagName) === -1){
-                    depth--;
                 }
 
                 row = curRow;

@@ -318,7 +318,7 @@ oop.inherits(Mode, TextMode);
 (function() {
    
     this.lineCommentStart = "--";
-    this.blockComment = {start: "--[", end: "]--"};
+    this.blockComment = {start: "--[[", end: "--]]"};
     
     var indentKeywords = {
         "function": 1,

@@ -8,12 +8,17 @@ function is(token, type) {
 exports.singletonTags = ["area", "base", "br", "col", "command", "embed", "hr", "html", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"];
 exports.blockTags = ["article", "aside", "blockquote", "body", "div", "dl", "fieldset", "footer", "form", "head", "header", "html", "nav", "ol", "p", "script", "section", "style", "table", "tbody", "tfoot", "thead", "ul"];
 
+exports.formatOptions = {
+    lineBreaksAfterCommasInCurlyBlock: true
+};
+
 exports.beautify = function(session) {
     var iterator = new TokenIterator(session, 0, 0);
     var token = iterator.getCurrentToken();
     var tabString = session.getTabString();
     var singletonTags = exports.singletonTags;
     var blockTags = exports.blockTags;
+    var formatOptions = exports.formatOptions || {};
     var nextToken;
     var breakBefore = false;
     var spaceBefore = false;
@@ -195,7 +200,7 @@ exports.beautify = function(session) {
                 } else if (token.type === "punctuation.operator" && value.match(/^(:|,)$/)) {
                     trimCode();
                     trimNext();
-                    if (value.match(/^(,)$/) && curlyDepth>0 && roundDepth===0) {
+                    if (value.match(/^(,)$/) && curlyDepth>0 && roundDepth===0 && formatOptions.lineBreaksAfterCommasInCurlyBlock) {
                         rowsToAdd++;
                     } else {
                         spaceAfter = true;
@@ -302,14 +307,18 @@ exports.beautify = function(session) {
                     else
                         rowsToAdd = 1;
                 }
-                if (is(token, "tag-open") && value === "</") {
-                    depth--;
-                } else if (is(token, "tag-open") && value === "<" && singletonTags.indexOf(nextToken.value) === -1) {
-                    depth++;
-                } else if (is(token, "tag-name")) {
+                if (nextToken && singletonTags.indexOf(nextToken.value) === -1) {
+                    if (is(token, "tag-open") && value === "</") {
+                        depth--;
+                    } else if (is(token, "tag-open") && value === "<") {
+                        depth++;
+                    } else if (is(token, "tag-close") && value === "/>"){
+                        depth--;
+                    }
+                }
+                
+                if (is(token, "tag-name")) {
                     tagName = value;
-                } else if (is(token, "tag-close") && value === "/>" && singletonTags.indexOf(tagName) === -1){
-                    depth--;
                 }
 
                 row = curRow;
