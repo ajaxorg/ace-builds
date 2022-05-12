@@ -2076,16 +2076,17 @@ var PHPLaravelBladeHighlightRules = function() {
 
     var bladeRules = {
         start: [{
-            include: "comments"
+            include: "bladeComments"
         }, {
             include: "directives"
         }, {
             include: "parenthesis"
         }],
         comments: [{
+            include: "bladeComments"
+        }, {
             token: "punctuation.definition.comment.blade",
-            regex: "(\\/\\/(.)*)|(\\#(.)*)",
-            next: "pop"
+            regex: "(\\/\\/(.)*)|(\\#(.)*)"
         }, {
             token: "punctuation.definition.comment.begin.php",
             regex: "(?:\\/\\*)",
@@ -2096,7 +2097,8 @@ var PHPLaravelBladeHighlightRules = function() {
             }, {
                 defaultToken: "comment.block.blade"
             }]
-        }, {
+        }], 
+        bladeComments: [{
             token: "punctuation.definition.comment.begin.blade",
             regex: "(?:\\{\\{\\-\\-)",
             push: [{
@@ -2123,6 +2125,8 @@ var PHPLaravelBladeHighlightRules = function() {
             }, {
                 include: "parenthesis"
             }, {
+                include: "comments"
+            }, {
                 defaultToken: "source.blade"
             }]
         }],
@@ -2144,6 +2148,8 @@ var PHPLaravelBladeHighlightRules = function() {
                     include: "strings"
                 }, {
                     include: "variables"
+                }, {
+                    include: "comments"
                 }, {
                     defaultToken: "source.blade"
                 }]
