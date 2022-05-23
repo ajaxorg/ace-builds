@@ -86,8 +86,8 @@ ace.define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib
                   "include": "value"
                 },
                 {
-                  "token": "punctuation.definition.symbol.operator.ion",
-                  "regex": "[\\!\\#\\%\\&\\*\\+\\-\\./\\;\\<\\=\\>\\?\\@\\^\\`\\|\\~]"
+                  "token": "storage.type.symbol.operator.ion",
+                  "regex": "[\\!\\#\\%\\&\\*\\+\\-\\./\\;\\<\\=\\>\\?\\@\\^\\`\\|\\~]+"
                 }
               ]
             }
@@ -103,12 +103,16 @@ ace.define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib
               "push": [
                 {
                   "token": "comment.block.ion",
-                  "regex": "\\*/",
+                  "regex": "[*]/",
                   "next": "pop"
                 },
                 {
                   "token": "comment.block.ion",
-                  "regex": "(:?.|[^\\*]+)"
+                  "regex": "[^*/]+"
+                },
+                {
+                  "token": "comment.block.ion",
+                  "regex": "[*/]+"
                 }
               ]
             }
@@ -181,11 +185,11 @@ ace.define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib
           ],
           "symbol": [
             {
-              "token": "constant.other.symbol.quoted.ion",
+              "token": "storage.type.symbol.quoted.ion",
               "regex": "(['])((?:(?:\\\\')|(?:[^']))*?)(['])"
             },
             {
-              "token": "constant.other.symbol.identifier.ion",
+              "token": "storage.type.symbol.identifier.ion",
               "regex": "[\\$_a-zA-Z][\\$_a-zA-Z0-9]*"
             }
           ],
@@ -243,19 +247,29 @@ ace.define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib
                 },
                 {
                   "token": "string.quoted.triple.ion",
-                  "regex": "(?:\\\\'*|.|[^']+)"
+                  "regex": "(?:\\\\'|[^'])+"
+                },
+                {
+                  "token": "string.quoted.triple.ion",
+                  "regex": "'"
                 }
               ]
             }
           ],
           "annotation": [
             {
-              "token": "variable.language.annotation.ion",
-              "regex": "'(?:[^']|\\\\\\\\|\\\\')*'\\s*::"
+              "token": [
+                "variable.language.annotation.ion",
+                "punctuation.definition.annotation.ion"
+              ],
+              "regex": "('(?:[^']|\\\\\\\\|\\\\')*')\\s*(::)"
             },
             {
-              "token": "variable.language.annotation.ion",
-              "regex": "[\\$_a-zA-Z][\\$_a-zA-Z0-9]*::"
+              "token": [
+                "variable.language.annotation.ion",
+                "punctuation.definition.annotation.ion"
+              ],
+              "regex": "([\\$_a-zA-Z][\\$_a-zA-Z0-9]*)\\s*(::)"
             }
           ],
           "whitespace": [

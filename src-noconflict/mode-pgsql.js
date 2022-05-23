@@ -318,6 +318,9 @@ var PythonHighlightRules = function() {
             token: "paren.rparen",
             regex: "[\\]\\)\\}]"
         }, {
+            token: ["keyword", "text", "entity.name.function"],
+            regex: "(def|class)(\\s+)(\\w+)"
+         }, {
             token: "text",
             regex: "\\s+"
         }, {
@@ -613,6 +616,9 @@ var JsonHighlightRules = function() {
             }, {
                 token : "paren.rparen",
                 regex : "[\\])}]"
+            }, {
+                token : "punctuation.operator",
+                regex : /[,]/
             }, {
                 token : "text",
                 regex : "\\s+"

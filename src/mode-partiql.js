@@ -86,8 +86,8 @@ define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib/oop
                   "include": "value"
                 },
                 {
-                  "token": "punctuation.definition.symbol.operator.ion",
-                  "regex": "[\\!\\#\\%\\&\\*\\+\\-\\./\\;\\<\\=\\>\\?\\@\\^\\`\\|\\~]"
+                  "token": "storage.type.symbol.operator.ion",
+                  "regex": "[\\!\\#\\%\\&\\*\\+\\-\\./\\;\\<\\=\\>\\?\\@\\^\\`\\|\\~]+"
                 }
               ]
             }
@@ -103,12 +103,16 @@ define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib/oop
               "push": [
                 {
                   "token": "comment.block.ion",
-                  "regex": "\\*/",
+                  "regex": "[*]/",
                   "next": "pop"
                 },
                 {
                   "token": "comment.block.ion",
-                  "regex": "(:?.|[^\\*]+)"
+                  "regex": "[^*/]+"
+                },
+                {
+                  "token": "comment.block.ion",
+                  "regex": "[*/]+"
                 }
               ]
             }
@@ -181,11 +185,11 @@ define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib/oop
           ],
           "symbol": [
             {
-              "token": "constant.other.symbol.quoted.ion",
+              "token": "storage.type.symbol.quoted.ion",
               "regex": "(['])((?:(?:\\\\')|(?:[^']))*?)(['])"
             },
             {
-              "token": "constant.other.symbol.identifier.ion",
+              "token": "storage.type.symbol.identifier.ion",
               "regex": "[\\$_a-zA-Z][\\$_a-zA-Z0-9]*"
             }
           ],
@@ -243,19 +247,29 @@ define("ace/mode/ion_highlight_rules",["require","exports","module","ace/lib/oop
                 },
                 {
                   "token": "string.quoted.triple.ion",
-                  "regex": "(?:\\\\'*|.|[^']+)"
+                  "regex": "(?:\\\\'|[^'])+"
+                },
+                {
+                  "token": "string.quoted.triple.ion",
+                  "regex": "'"
                 }
               ]
             }
           ],
           "annotation": [
             {
-              "token": "variable.language.annotation.ion",
-              "regex": "'(?:[^']|\\\\\\\\|\\\\')*'\\s*::"
+              "token": [
+                "variable.language.annotation.ion",
+                "punctuation.definition.annotation.ion"
+              ],
+              "regex": "('(?:[^']|\\\\\\\\|\\\\')*')\\s*(::)"
             },
             {
-              "token": "variable.language.annotation.ion",
-              "regex": "[\\$_a-zA-Z][\\$_a-zA-Z0-9]*::"
+              "token": [
+                "variable.language.annotation.ion",
+                "punctuation.definition.annotation.ion"
+              ],
+              "regex": "([\\$_a-zA-Z][\\$_a-zA-Z0-9]*)\\s*(::)"
             }
           ],
           "whitespace": [
@@ -362,111 +376,13 @@ define("ace/mode/partiql_highlight_rules",["require","exports","module","ace/lib
               "include": "comment"
             },
             {
-              "include": "scalar_value"
-            },
-            {
               "include": "tuple_value"
             },
             {
               "include": "collection_value"
-            }
-          ],
-          "collection_value": [
-            {
-              "include": "array_value"
             },
             {
-              "include": "bag_value"
-            }
-          ],
-          "bag_value": [
-            {
-              "token": "punctuation.definition.bag.begin.partiql",
-              "regex": "<<",
-              "push": [
-                {
-                  "token": "punctuation.definition.bag.end.partiql",
-                  "regex": ">>",
-                  "next": "pop"
-                },
-                {
-                  "include": "comment"
-                },
-                {
-                  "include": "value"
-                },
-                {
-                  "token": "punctuation.definition.bag.separator.partiql",
-                  "regex": ","
-                }
-              ]
-            }
-          ],
-          "comment": [
-            {
-              "token": "comment.line.partiql",
-              "regex": "--.*"
-            },
-            {
-              "token": "comment.block.partiql",
-              "regex": "/\\*",
-              "push": [
-                {
-                  "token": "comment.block.partiql",
-                  "regex": "\\*/",
-                  "next": "pop"
-                },
-                {
-                  "token": "comment.block.partiql",
-                  "regex": "(:?.|[^\\*]+)"
-                }
-              ]
-            }
-          ],
-          "array_value": [
-            {
-              "token": "punctuation.definition.array.begin.partiql",
-              "regex": "\\[",
-              "push": [
-                {
-                  "token": "punctuation.definition.array.end.partiql",
-                  "regex": "\\]",
-                  "next": "pop"
-                },
-                {
-                  "include": "comment"
-                },
-                {
-                  "include": "value"
-                },
-                {
-                  "token": "punctuation.definition.array.separator.partiql",
-                  "regex": ","
-                }
-              ]
-            }
-          ],
-          "tuple_value": [
-            {
-              "token": "punctuation.definition.tuple.begin.partiql",
-              "regex": "\\{",
-              "push": [
-                {
-                  "token": "punctuation.definition.tuple.end.partiql",
-                  "regex": "\\}",
-                  "next": "pop"
-                },
-                {
-                  "include": "comment"
-                },
-                {
-                  "include": "value"
-                },
-                {
-                  "token": "punctuation.definition.tuple.separator.partiql",
-                  "regex": ",|:"
-                }
-              ]
+              "include": "scalar_value"
             }
           ],
           "scalar_value": [
@@ -501,7 +417,7 @@ define("ace/mode/partiql_highlight_rules",["require","exports","module","ace/lib
           "operator": [
             {
               "token": "keyword.operator.partiql",
-              "regex": "[+*/<>=~!@#%&|?^-]"
+              "regex": "[+*/<>=~!@#%&|?^-]+"
             }
           ],
           "identifier": [
@@ -534,6 +450,114 @@ define("ace/mode/partiql_highlight_rules",["require","exports","module","ace/lib
               "regex": "(['])((?:(?:\\\\.)|(?:[^'\\\\]))*?)(['])"
             }
           ],
+          "collection_value": [
+            {
+              "include": "array_value"
+            },
+            {
+              "include": "bag_value"
+            }
+          ],
+          "bag_value": [
+            {
+              "token": "punctuation.definition.bag.begin.partiql",
+              "regex": "<<",
+              "push": [
+                {
+                  "token": "punctuation.definition.bag.end.partiql",
+                  "regex": ">>",
+                  "next": "pop"
+                },
+                {
+                  "include": "comment"
+                },
+                {
+                  "token": "punctuation.definition.bag.separator.partiql",
+                  "regex": ","
+                },
+                {
+                  "include": "value"
+                }
+              ]
+            }
+          ],
+          "comment": [
+            {
+              "token": "comment.line.partiql",
+              "regex": "--.*"
+            },
+            {
+              "token": "comment.block.partiql",
+              "regex": "/\\*",
+              "push": "comment__1"
+            }
+          ],
+          "comment__1": [
+            {
+              "token": "comment.block.partiql",
+              "regex": "[*]/",
+              "next": "pop"
+            },
+            {
+              "token": "comment.block.partiql",
+              "regex": "[^*/]+"
+            },
+            {
+              "token": "comment.block.partiql",
+              "regex": "/\\*",
+              "push": "comment__1"
+            },
+            {
+              "token": "comment.block.partiql",
+              "regex": "[*/]+"
+            }
+          ],
+          "array_value": [
+            {
+              "token": "punctuation.definition.array.begin.partiql",
+              "regex": "\\[",
+              "push": [
+                {
+                  "token": "punctuation.definition.array.end.partiql",
+                  "regex": "\\]",
+                  "next": "pop"
+                },
+                {
+                  "include": "comment"
+                },
+                {
+                  "token": "punctuation.definition.array.separator.partiql",
+                  "regex": ","
+                },
+                {
+                  "include": "value"
+                }
+              ]
+            }
+          ],
+          "tuple_value": [
+            {
+              "token": "punctuation.definition.tuple.begin.partiql",
+              "regex": "\\{",
+              "push": [
+                {
+                  "token": "punctuation.definition.tuple.end.partiql",
+                  "regex": "\\}",
+                  "next": "pop"
+                },
+                {
+                  "include": "comment"
+                },
+                {
+                  "token": "punctuation.definition.tuple.separator.partiql",
+                  "regex": ",|:"
+                },
+                {
+                  "include": "value"
+                }
+              ]
+            }
+          ],
           "whitespace": [
             {
               "token": "text.partiql",
@@ -544,7 +568,7 @@ define("ace/mode/partiql_highlight_rules",["require","exports","module","ace/lib
         this.$rules["keywords"] = [keywordMapperRule];
 
         this.$rules["embed-ion"] = [{token : "punctuation.definition.ion.begin.partiql", regex : "`", next : "ion-start"}];
-        this.embedRules(IonHighlightRules, "ion-", [{token : "punctuation.definition.ion.begin.partiql", regex : "`", next : "start"}]);
+        this.embedRules(IonHighlightRules, "ion-", [{token : "punctuation.definition.ion.end.partiql", regex : "`", next : "start"}]);
 
         this.normalizeRules();
     };
@@ -755,7 +779,7 @@ define("ace/mode/partiql",["require","exports","module","ace/lib/oop","ace/mode/
     (function() {
 
         this.lineCommentStart = "--";
-        this.blockComment = {start: "/*", end: "*/"};
+        this.blockComment = {start: "/*", end: "*/", nestable:true};
 
         this.getNextLineIndent = function(state, line, tab) {
             var indent = this.$getIndent(line);
