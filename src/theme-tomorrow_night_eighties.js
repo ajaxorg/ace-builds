@@ -78,7 +78,9 @@ border-color: #CCCCCC\
 }\
 .ace-tomorrow-night-eighties .ace_entity.ace_name.ace_function,\
 .ace-tomorrow-night-eighties .ace_support.ace_function,\
-.ace-tomorrow-night-eighties .ace_variable {\
+.ace-tomorrow-night-eighties .ace_variable,\
+.ace-tomorrow-night-eighties .ace_variable:not(.ace_parameter),\
+.ace-tomorrow-night-eighties .ace_constant:not(.ace_numeric) {\
 color: #6699CC\
 }\
 .ace-tomorrow-night-eighties .ace_support.ace_class,\

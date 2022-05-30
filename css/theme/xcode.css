@@ -77,4 +77,8 @@ color: #008E00
 }
 .ace-xcode .ace_indent-guide {
 background: url("../xcode-1.png") right repeat-y
+}#008E00
+}
+.ace-xcode .ace_indent-guide {
+background: url("../xcode-1.png") right repeat-y
 }

@@ -53,7 +53,9 @@ color: #FC803A\
 .ace-merbivore-soft .ace_constant.ace_character,\
 .ace-merbivore-soft .ace_constant.ace_character.ace_escape,\
 .ace-merbivore-soft .ace_constant.ace_other,\
-.ace-merbivore-soft .ace_support.ace_type {\
+.ace-merbivore-soft .ace_support.ace_type,\
+.ace-merbivore-soft .ace_variable:not(.ace_parameter),\
+.ace-merbivore-soft .ace_constant:not(.ace_numeric) {\
 color: #68C1D8\
 }\
 .ace-merbivore-soft .ace_constant.ace_character.ace_escape {\

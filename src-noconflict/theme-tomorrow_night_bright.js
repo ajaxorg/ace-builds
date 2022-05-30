@@ -87,7 +87,9 @@ border-color: #DEDEDE\
 }\
 .ace-tomorrow-night-bright .ace_entity.ace_name.ace_function,\
 .ace-tomorrow-night-bright .ace_support.ace_function,\
-.ace-tomorrow-night-bright .ace_variable {\
+.ace-tomorrow-night-bright .ace_variable,\
+.ace-tomorrow-night-bright .ace_variable:not(.ace_parameter),\
+.ace-tomorrow-night-bright .ace_constant:not(.ace_numeric) {\
 color: #7AA6DA\
 }\
 .ace-tomorrow-night-bright .ace_support.ace_class,\

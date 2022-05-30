@@ -66,7 +66,9 @@ color: #236e24;\
 .ace-chrome .ace_constant.ace_numeric {\
 color: rgb(0, 0, 205);\
 }\
-.ace-chrome .ace_variable {\
+.ace-chrome .ace_variable,\
+.ace-chrome .ace_variable:not(.ace_parameter),\
+.ace-chrome .ace_constant:not(.ace_numeric) {\
 color: rgb(49, 132, 149);\
 }\
 .ace-chrome .ace_xml-pe {\
@@ -120,8 +122,7 @@ color: #994409;\
 }\
 .ace-chrome .ace_indent-guide {\
 background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
-}\
-";
+}";
 
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass, false);

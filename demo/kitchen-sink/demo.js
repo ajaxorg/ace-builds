@@ -1784,7 +1784,7 @@ var supportedModes = {
     Jack:        ["jack"],
     Jade:        ["jade|pug"],
     Java:        ["java"],
-    JavaScript:  ["js|jsm|jsx"],
+    JavaScript:  ["js|jsm|jsx|cjs|mjs"],
     JSON:        ["json"],
     JSON5:       ["json5"],
     JSONiq:      ["jq"],
@@ -1799,6 +1799,7 @@ var supportedModes = {
     Liquid:      ["liquid"],
     Lisp:        ["lisp"],
     LiveScript:  ["ls"],
+    Log:         ["log"],
     LogiQL:      ["logic|lql"],
     LSL:         ["lsl"],
     Lua:         ["lua"],
@@ -4045,7 +4046,7 @@ var themeData = [
     ["Solarized Light"],
     ["TextMate"       ],
     ["Tomorrow"       ],
-    ["Xcode"          ],
+    ["XCode"          ],
     ["Kuroir"],
     ["KatzenMilch"],
     ["SQL Server"           ,"sqlserver"               , "light"],
@@ -6145,18 +6146,49 @@ dom.importCssString("\
     opacity: 0.5;\
     margin: 0.9em;\
 }\
-.ace_completion-message {\
-    color: blue;\
-}\
 .ace_editor.ace_autocomplete .ace_completion-highlight{\
     color: #2d69c7;\
 }\
 .ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\
     color: #93ca12;\
 }\
-.ace_editor.ace_autocomplete {\
-    width: 300px;\
+.ace_autocomplete.ace-tm .ace_marker-layer .ace_active-line {\
+    background-color: #CAD6FA;\
+    z-index: 1;\
+}\
+.ace_autocomplete.ace-tm .ace_line-hover {\
+    border: 1px solid #abbffe;\
+    margin-top: -1px;\
+    background: rgba(233,233,253,0.4);\
+}\
+.ace_autocomplete .ace_line-hover {\
+    position: absolute;\
+    z-index: 2;\
+}\
+.ace_autocomplete .ace_scroller {\
+    background: none;\
+    border: none;\
+    box-shadow: none;\
+}\
+.ace_rightAlignedText {\
+    color: gray;\
+    display: inline-block;\
+    position: absolute;\
+    right: 4px;\
+    text-align: right;\
+    z-index: -1;\
+}\
+.ace_completion-message {\
+    color: blue;\
+}\
+.ace_autocomplete .ace_completion-highlight{\
+    text-shadow: 0 0 0.01em;\
+}\
+.ace_autocomplete {\
+    width: 280px;\
     z-index: 200000;\
+    background: #fbfbfb;\
+    color: #444;\
     border: 1px lightgray solid;\
     position: fixed;\
     box-shadow: 2px 3px 5px rgba(0,0,0,.2);\

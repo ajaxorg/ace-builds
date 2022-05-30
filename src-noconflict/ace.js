@@ -173,17 +173,141 @@ exportAce(ACE_NAMESPACE);
 
 })();
 
-ace.define("ace/lib/fixoldbrowsers",["require","exports","module"], function(require, exports, module) {
-"use strict";
-if (typeof Element != "undefined" && !Element.prototype.remove) {
-    Object.defineProperty(Element.prototype, "remove", {
-        enumerable: false,
-        writable: true,
-        configurable: true,
-        value: function() { this.parentNode && this.parentNode.removeChild(this); }
+ace.define("ace/lib/es6-shim",["require","exports","module"], function (require, exports, module) {
+  function defineProp(obj, name, val) {
+    Object.defineProperty(obj, name, {
+      value: val,
+      enumerable: false,
+      writable: true,
+      configurable: true
     });
-}
+  }
+  if (!String.prototype.startsWith) {
+    defineProp(
+      String.prototype,
+      "startsWith",
+      function (searchString, position) {
+        position = position || 0;
+        return this.lastIndexOf(searchString, position) === position;
+      }
+    );
+  }
+  if (!String.prototype.endsWith) {
+    defineProp(String.prototype, "endsWith", function (searchString, position) {
+      var subjectString = this;
+      if (position === undefined || position > subjectString.length) {
+        position = subjectString.length;
+      }
+      position -= searchString.length;
+      var lastIndex = subjectString.indexOf(searchString, position);
+      return lastIndex !== -1 && lastIndex === position;
+    });
+  }
+  if (!String.prototype.repeat) {
+    defineProp(String.prototype, "repeat", function (count) {
+      var result = "";
+      var string = this;
+      while (count > 0) {
+        if (count & 1) result += string;
 
+        if ((count >>= 1)) string += string;
+      }
+      return result;
+    });
+  }
+  if (!String.prototype.includes) {
+    defineProp(String.prototype, "includes", function (str, position) {
+      return this.indexOf(str, position) != -1;
+    });
+  }
+  if (!Object.assign) {
+    Object.assign = function (target) {
+      if (target === undefined || target === null) {
+        throw new TypeError("Cannot convert undefined or null to object");
+      }
+
+      var output = Object(target);
+      for (var index = 1; index < arguments.length; index++) {
+        var source = arguments[index];
+        if (source !== undefined && source !== null) {
+          Object.keys(source).forEach(function (key) {
+            output[key] = source[key];
+          });
+        }
+      }
+      return output;
+    };
+  }
+  if (!Object.values) {
+    Object.values = function (o) {
+      return Object.keys(o).map(function (k) {
+        return o[k];
+      });
+    };
+  }
+  if (!Array.prototype.find) {
+    defineProp(Array.prototype, "find", function (predicate) {
+      var len = this.length;
+      var thisArg = arguments[1];
+      for (var k = 0; k < len; k++) {
+        var kValue = this[k];
+        if (predicate.call(thisArg, kValue, k, this)) {
+          return kValue;
+        }
+      }
+    });
+  }
+  if (!Array.prototype.findIndex) {
+    defineProp(Array.prototype, "findIndex", function (predicate) {
+      var len = this.length;
+      var thisArg = arguments[1];
+      for (var k = 0; k < len; k++) {
+        var kValue = this[k];
+        if (predicate.call(thisArg, kValue, k, this)) {
+          return k;
+        }
+      }
+    });
+  }
+  if (!Array.prototype.includes) {
+    defineProp(Array.prototype, "includes", function (item, position) {
+      return this.indexOf(item, position) != -1;
+    });
+  }
+  if (!Array.prototype.fill) {
+    defineProp(Array.prototype, "fill", function (value) {
+      var O = this;
+      var len = O.length >>> 0;
+      var start = arguments[1];
+      var relativeStart = start >> 0;
+      var k =
+        relativeStart < 0
+          ? Math.max(len + relativeStart, 0)
+          : Math.min(relativeStart, len);
+      var end = arguments[2];
+      var relativeEnd = end === undefined ? len : end >> 0;
+      var final =
+        relativeEnd < 0
+          ? Math.max(len + relativeEnd, 0)
+          : Math.min(relativeEnd, len);
+      while (k < final) {
+        O[k] = value;
+        k++;
+      }
+      return O;
+    });
+  }
+  if (!Array.of) {
+    defineProp(Array, "of", function () {
+      return Array.prototype.slice.call(arguments);
+    });
+  }
+});
+
+ace.define("ace/lib/fixoldbrowsers",["require","exports","module","ace/lib/es6-shim"], function(require, exports, module) {
+"use strict";
+
+require("./es6-shim");
 
 });
 
@@ -303,8 +427,8 @@ exports.getDocumentHead = function(doc) {
 
 exports.createElement = function(tag, ns) {
     return document.createElementNS ?
-           document.createElementNS(ns || XHTML_NS, tag) :
-           document.createElement(tag);
+            document.createElementNS(ns || XHTML_NS, tag) :
+            document.createElement(tag);
 };
 
 exports.removeChildren = function(element) {
@@ -370,9 +494,18 @@ exports.hasCssString = function(id, doc) {
     var index = 0, sheets;
     doc = doc || document;
     if ((sheets = doc.querySelectorAll("style"))) {
-        while (index < sheets.length)
-            if (sheets[index++].id === id)
+        while (index < sheets.length) {
+            if (sheets[index++].id === id) {
                 return true;
+            }
+        }
+    }
+};
+
+exports.removeElementById = function(id, doc) {
+    doc = doc || document;
+    if(doc.getElementById(id)) {
+        doc.getElementById(id).remove();
     }
 };
 
@@ -1942,8 +2075,8 @@ var TextInput = function(parentNode, host) {
         return text;
     };
     this.setCommandMode = function(value) {
-       commandMode = value;
-       text.readOnly = false;
+        commandMode = value;
+        text.readOnly = false;
     };
     
     this.setReadOnly = function(readOnly) {
@@ -2021,7 +2154,7 @@ var TextInput = function(parentNode, host) {
     function addIosSelectionHandler(parentNode, host, text) {
         var typingResetTimeout = null;
         var typing = false;
- 
+
         text.addEventListener("keydown", function (e) {
             if (typingResetTimeout) clearTimeout(typingResetTimeout);
             typing = true;
@@ -2099,6 +2232,11 @@ var TextInput = function(parentNode, host) {
             document.removeEventListener("selectionchange", detectArrowKeys);
         });
     }
+
+    this.destroy = function() {
+        if (text.parentElement)
+            text.parentElement.removeChild(text);
+    };
 };
 
 exports.TextInput = TextInput;
@@ -3862,7 +4000,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.5.1";
+exports.version = "1.5.2";
 
 });
 
@@ -3892,6 +4030,9 @@ var MouseHandler = function(editor) {
         if (windowBlurred)
             window.focus();
         editor.focus();
+        setTimeout(function () {
+            if (!editor.isFocused()) editor.focus();
+        });
     };
 
     var mouseTarget = editor.renderer.getMouseEventTarget();
@@ -7597,6 +7738,14 @@ var BackgroundTokenizer = function(tokenizer, editor) {
         return this.lines[row] = data.tokens;
     };
 
+    this.cleanup = function() {
+        this.running = false;
+        this.lines = [];
+        this.states = [];
+        this.currentLine = 0;
+        this.removeAllListeners();
+    };
+
 }).call(BackgroundTokenizer.prototype);
 
 exports.BackgroundTokenizer = BackgroundTokenizer;
@@ -7629,6 +7778,7 @@ var SearchHighlight = function(regExp, clazz, type) {
         if (!this.regExp)
             return;
         var start = config.firstRow, end = config.lastRow;
+        var renderedMarkerRanges = {};
 
         for (var i = start; i <= end; i++) {
             var ranges = this.cache[i];
@@ -7643,8 +7793,13 @@ var SearchHighlight = function(regExp, clazz, type) {
             }
 
             for (var j = ranges.length; j --; ) {
+                var rangeToAddMarkerTo = ranges[j].toScreenRange(session);
+                var rangeAsString = rangeToAddMarkerTo.toString();
+                if (renderedMarkerRanges[rangeAsString]) continue;
+
+                renderedMarkerRanges[rangeAsString] = true;
                 markerLayer.drawSingleLineMarker(
-                    html, ranges[j].toScreenRange(session), this.clazz, config);
+                    html, rangeToAddMarkerTo, this.clazz, config);
             }
         }
     };
@@ -9258,6 +9413,13 @@ var EditSession = function(text, mode) {
     this.$foldData.toString = function() {
         return this.join("\n");
     };
+    this.bgTokenizer = new BackgroundTokenizer((new TextMode()).getTokenizer(), this);
+
+    var _self = this;
+    this.bgTokenizer.on("update", function(e) {
+        _self._signal("tokenizerUpdate", e);
+    });
+
     this.on("changeFold", this.onChangeFold.bind(this));
     this.$onChange = this.onChange.bind(this);
 
@@ -9271,6 +9433,8 @@ var EditSession = function(text, mode) {
     config.resetOptions(this);
     this.setMode(mode);
     config._signal("session", this);
+
+    this.destroyed = false;
 };
 
 
@@ -9286,8 +9450,7 @@ EditSession.$uid = 0;
         this.doc = doc;
         doc.on("change", this.$onChange);
 
-        if (this.bgTokenizer)
-            this.bgTokenizer.setDocument(this.getDocument());
+        this.bgTokenizer.setDocument(this.getDocument());
 
         this.resetCaches();
     };
@@ -9332,7 +9495,7 @@ EditSession.$uid = 0;
         this.$wrapData = [];
         this.$rowLengthCache = [];
         this.$resetRowCache(0);
-        if (this.bgTokenizer)
+        if (!this.destroyed)
             this.bgTokenizer.start(0);
     };
 
@@ -9361,7 +9524,7 @@ EditSession.$uid = 0;
             this.$informUndoManager.schedule();
         }
 
-        this.bgTokenizer && this.bgTokenizer.$updateOnChange(delta);
+        this.bgTokenizer.$updateOnChange(delta);
         this._signal("change", delta);
     };
     this.setValue = function(text) {
@@ -9724,16 +9887,7 @@ EditSession.$uid = 0;
             tokenizer.on("update", onReloadTokenizer);
         }
 
-        if (!this.bgTokenizer) {
-            this.bgTokenizer = new BackgroundTokenizer(tokenizer);
-            var _self = this;
-            this.bgTokenizer.on("update", function(e) {
-                _self._signal("tokenizerUpdate", e);
-            });
-        } else {
-            this.bgTokenizer.setTokenizer(tokenizer);
-        }
-
+        this.bgTokenizer.setTokenizer(tokenizer);
         this.bgTokenizer.setDocument(this.getDocument());
 
         this.tokenRe = mode.tokenRe;
@@ -10801,9 +10955,10 @@ EditSession.$uid = 0;
     };
     
     this.destroy = function() {
-        if (this.bgTokenizer) {
+        if (!this.destroyed) {
             this.bgTokenizer.setDocument(null);
-            this.bgTokenizer = null;
+            this.bgTokenizer.cleanup();
+            this.destroyed = true;
         }
         this.$stopWorker();
         this.removeAllListeners();
@@ -11508,7 +11663,10 @@ var CommandManager = function(platform, commands) {
     MultiHashHandler.call(this, commands, platform);
     this.byName = this.commands;
     this.setDefaultHandler("exec", function(e) {
-        return e.command.exec(e.editor, e.args || {});
+        if (!e.args) {
+            return e.command.exec(e.editor, {}, e.event, true);
+        }
+        return e.command.exec(e.editor, e.args, e.event, false);
     });
 };
 
@@ -12525,7 +12683,7 @@ var Editor = function(renderer, session, options) {
     
     this._$emitInputEvent = lang.delayedCall(function() {
         this._signal("input", {});
-        if (this.session && this.session.bgTokenizer)
+        if (this.session && !this.session.destroyed)
             this.session.bgTokenizer.scheduleStart();
     }.bind(this));
     
@@ -12792,7 +12950,7 @@ Editor.$uid = 0;
         oldSession && oldSession._signal("changeEditor", {oldEditor: this});
         session && session._signal("changeEditor", {editor: this});
         
-        if (session && session.bgTokenizer)
+        if (session && !session.destroyed)
             session.bgTokenizer.scheduleStart();
     };
     this.getSession = function() {
@@ -12848,7 +13006,7 @@ Editor.$uid = 0;
         setTimeout(function () {
             self.$highlightPending = false;
             var session = self.session;
-            if (!session || !session.bgTokenizer) return;
+            if (!session || session.destroyed) return;
             if (session.$bracketHighlight) {
                 session.$bracketHighlight.markerIds.forEach(function(id) {
                     session.removeMarker(id);
@@ -12891,7 +13049,7 @@ Editor.$uid = 0;
             self.$highlightTagPending = false;
             
             var session = self.session;
-            if (!session || !session.bgTokenizer) return;
+            if (!session || session.destroyed) return;
             
             var pos = self.getCursorPosition();
             var iterator = new TokenIterator(self.session, pos.row, pos.column);
@@ -12991,11 +13149,6 @@ Editor.$uid = 0;
         }, 50);
     };
     this.focus = function() {
-        var _self = this;
-        setTimeout(function() {
-            if (!_self.isFocused())
-                _self.textInput.focus();
-        });
         this.textInput.focus();
     };
     this.isFocused = function() {
@@ -17215,9 +17368,6 @@ z-index: 1000;\
 .ace_dragging.ace_dark .ace_scroller:before{\
 background: rgba(0, 0, 0, 0.01);\
 }\
-.ace_selecting, .ace_selecting * {\
-cursor: text !important;\
-}\
 .ace_gutter {\
 position: absolute;\
 overflow : hidden;\
@@ -19181,7 +19331,7 @@ var WorkerClient = function(worker) {
         try {
             if (data.data && data.data.err)
                 data.data.err = {message: data.data.err.message, stack: data.data.err.stack, code: data.data.err.code};
-            this.$worker.postMessage({event: event, data: {data: data.data}});
+                this.$worker && this.$worker.postMessage({event: event, data: {data: data.data}});
         }
         catch(ex) {
             console.error(ex.stack);
