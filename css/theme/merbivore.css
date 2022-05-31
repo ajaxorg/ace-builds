@@ -50,7 +50,9 @@ color: #FC6F09
 .ace-merbivore .ace_constant.ace_character,
 .ace-merbivore .ace_constant.ace_character.ace_escape,
 .ace-merbivore .ace_constant.ace_other,
-.ace-merbivore .ace_support.ace_type {
+.ace-merbivore .ace_support.ace_type,
+.ace-merbivore .ace_variable:not(.ace_parameter),
+.ace-merbivore .ace_constant:not(.ace_numeric) {
 color: #1EDAFB
 }
 .ace-merbivore .ace_constant.ace_character.ace_escape {
@@ -81,10 +83,6 @@ color: #AD2EA4
 }
 .ace-merbivore .ace_entity.ace_other.ace_attribute-name {
 color: #FFFF89
-}
-.ace-merbivore .ace_indent-guide {
-background: url("../merbivore-1.png") right repeat-y
-}FFFF89
 }
 .ace-merbivore .ace_indent-guide {
 background: url("../merbivore-1.png") right repeat-y

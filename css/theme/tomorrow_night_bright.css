@@ -83,7 +83,9 @@ border-color: #DEDEDE
 }
 .ace-tomorrow-night-bright .ace_entity.ace_name.ace_function,
 .ace-tomorrow-night-bright .ace_support.ace_function,
-.ace-tomorrow-night-bright .ace_variable {
+.ace-tomorrow-night-bright .ace_variable,
+.ace-tomorrow-night-bright .ace_variable:not(.ace_parameter),
+.ace-tomorrow-night-bright .ace_constant:not(.ace_numeric) {
 color: #7AA6DA
 }
 .ace-tomorrow-night-bright .ace_support.ace_class,
@@ -107,10 +109,6 @@ color: #969896
 }
 .ace-tomorrow-night-bright .ace_c9searchresults.ace_keyword {
 color: #C2C280
-}
-.ace-tomorrow-night-bright .ace_indent-guide {
-background: url("../tomorrow_night_bright-1.png") right repeat-y
-}C2C280
 }
 .ace-tomorrow-night-bright .ace_indent-guide {
 background: url("../tomorrow_night_bright-1.png") right repeat-y

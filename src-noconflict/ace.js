@@ -4000,7 +4000,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.5.2";
+exports.version = "1.5.3";
 
 });
 

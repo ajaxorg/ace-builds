@@ -73,7 +73,9 @@ border-color: #C5C8C6
 }
 .ace-tomorrow-night .ace_entity.ace_name.ace_function,
 .ace-tomorrow-night .ace_support.ace_function,
-.ace-tomorrow-night .ace_variable {
+.ace-tomorrow-night .ace_variable,
+.ace-tomorrow-night .ace_variable:not(.ace_parameter),
+.ace-tomorrow-night .ace_constant:not(.ace_numeric) {
 color: #81A2BE
 }
 .ace-tomorrow-night .ace_support.ace_class,
@@ -94,10 +96,6 @@ color: #CC6666
 }
 .ace-tomorrow-night .ace_comment {
 color: #969896
-}
-.ace-tomorrow-night .ace_indent-guide {
-background: url("../tomorrow_night-1.png") right repeat-y
-}969896
 }
 .ace-tomorrow-night .ace_indent-guide {
 background: url("../tomorrow_night-1.png") right repeat-y

@@ -54,7 +54,9 @@ color: #3A00DC
 }
 .ace-xcode .ace_entity.ace_other.ace_attribute-name,
 .ace-xcode .ace_support.ace_constant,
-.ace-xcode .ace_support.ace_function {
+.ace-xcode .ace_support.ace_function, 
+.ace-xcode .ace_variable:not(.ace_parameter),
+.ace-xcode .ace_constant:not(.ace_numeric) {
 color: #450084
 }
 .ace-xcode .ace_fold {
@@ -74,10 +76,6 @@ color: #DF0002
 }
 .ace-xcode .ace_comment {
 color: #008E00
-}
-.ace-xcode .ace_indent-guide {
-background: url("../xcode-1.png") right repeat-y
-}#008E00
 }
 .ace-xcode .ace_indent-guide {
 background: url("../xcode-1.png") right repeat-y
