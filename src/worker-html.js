@@ -6141,6 +6141,7 @@ TreeBuilder.prototype.startTokenization = function(tokenizer) {
 	this.activeFormattingElements = [];
 	this.start();
 	if (this.context) {
+
 		switch(this.context) {
 		case 'title':
 		case 'textarea':
@@ -6165,6 +6166,13 @@ TreeBuilder.prototype.startTokenization = function(tokenizer) {
 			break;
 		}
 		this.insertHtmlElement();
+
+		if (this.context === 'head') {
+			this.insertHeadElement();
+		} else {
+			this.insertBodyElement();
+		}
+
 		this.resetInsertionMode();
 	} else {
 		this.setInsertionMode('initial');
@@ -6429,13 +6437,13 @@ TreeBuilder.prototype.parseError = function(code, args) {
 	this.errorHandler.error(message, this.tokenizer._inputStream.location(), code);
 };
 TreeBuilder.prototype.resetInsertionMode = function() {
-	var last = false;
+	var fragmentAssigned = false;
 	var node = null;
 	for (var i = this.openElements.length - 1; i >= 0; i--) {
 		node = this.openElements.item(i);
 		if (i === 0) {
 			assert.ok(this.context);
-			last = true;
+			fragmentAssigned = true;
 			node = new StackItem("http://www.w3.org/1999/xhtml", this.context, [], null);
 		}
 
@@ -6454,7 +6462,7 @@ TreeBuilder.prototype.resetInsertionMode = function() {
 				return this.setInsertionMode('inColumnGroup');
 			if (node.localName === 'table')
 				return this.setInsertionMode('inTable');
-			if (node.localName === 'head' && !last)
+			if (node.localName === 'head')
 				return this.setInsertionMode('inHead');
 			if (node.localName === 'body')
 				return this.setInsertionMode('inBody');
@@ -6467,7 +6475,7 @@ TreeBuilder.prototype.resetInsertionMode = function() {
 					return this.setInsertionMode('afterHead');
 		}
 
-		if (last)
+		if (fragmentAssigned)
 			return this.setInsertionMode('inBody');
 	}
 };
@@ -6930,7 +6938,10 @@ function SAXParser() {
 	this._scriptingEnabled = false;
 }
 
-SAXParser.prototype.parse = function(source) {
+SAXParser.prototype.parse = function(source, context) {
+	if (context) {
+		this._treeBuilder.setFragmentContext(context);
+	}
 	this._tokenizer.tokenize(source);
 	var document = this._treeBuilder.document;
 	if (document) {
@@ -10922,10 +10933,9 @@ oop.inherits(Worker, Mirror);
                 });
             }
         };
-        if (this.context)
-            parser.parseFragment(value, this.context);
-        else
-            parser.parse(value);
+
+        parser.parse(value, this.context);
+
         this.sender.emit("error", errors);
     };
 

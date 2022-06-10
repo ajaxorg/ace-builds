@@ -2851,9 +2851,11 @@ Parser.prototype = function() {
 
                     value = new PropertyName(propertyName, hack, line || token.startLine, col || token.startCol);
                     this._readWhitespace();
-                } else if (tokenStream.peek() === Tokens.RBRACE) {
                 } else {
-                    this._unexpectedToken(tokenStream.LT(1));
+                    var tt = tokenStream.peek();
+                    if (tt !== Tokens.EOF && tt !== Tokens.RBRACE) {
+                        this._unexpectedToken(tokenStream.LT(1));
+                    }
                 }
 
                 return value;
@@ -3729,7 +3731,7 @@ Parser.prototype = function() {
                         tt = tokenStream.advance([Tokens.SEMICOLON, Tokens.RBRACE]);
                         if (tt === Tokens.SEMICOLON) {
                             this._readDeclarations(false, readMargins);
-                        } else if (tt !== Tokens.RBRACE) {
+                        } else if (tt !== Tokens.EOF && tt !== Tokens.RBRACE) {
                             throw ex;
                         }
 
