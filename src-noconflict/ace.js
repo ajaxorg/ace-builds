@@ -4009,7 +4009,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.6.0";
+exports.version = "1.6.1";
 
 });
 
