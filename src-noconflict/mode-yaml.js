@@ -272,7 +272,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/yaml",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/yaml_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/folding/coffee"], function(require, exports, module) {
+ace.define("ace/mode/yaml",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/yaml_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/folding/coffee","ace/worker/worker_client"], function(require, exports, module) {
 "use strict";
 
 var oop = require("../lib/oop");
@@ -280,6 +280,7 @@ var TextMode = require("./text").Mode;
 var YamlHighlightRules = require("./yaml_highlight_rules").YamlHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var FoldMode = require("./folding/coffee").FoldMode;
+var WorkerClient = require("../worker/worker_client").WorkerClient;
 
 var Mode = function() {
     this.HighlightRules = YamlHighlightRules;
@@ -312,6 +313,21 @@ oop.inherits(Mode, TextMode);
 
     this.autoOutdent = function(state, doc, row) {
         this.$outdent.autoOutdent(doc, row);
+    };
+
+    this.createWorker = function(session) {
+        var worker = new WorkerClient(["ace"], "ace/mode/yaml_worker", "YamlWorker");
+        worker.attachToDocument(session.getDocument());
+
+        worker.on("annotate", function(results) {
+            session.setAnnotations(results.data);
+        });
+
+        worker.on("terminate", function() {
+            session.clearAnnotations();
+        });
+
+        return worker;
     };
 
 

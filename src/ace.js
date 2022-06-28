@@ -4009,7 +4009,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.6.1";
+exports.version = "1.7.0";
 
 });
 
@@ -15490,7 +15490,10 @@ var Gutter = function(parentEl) {
                 rowInfo.text.push(annoText);
 
             var type = annotation.type;
-            if (type == "error")
+            var className = annotation.className;
+            if (className) 
+                rowInfo.className = className;
+            else if (type == "error")
                 rowInfo.className = " ace_error";
             else if (type == "warning" && rowInfo.className != " ace_error")
                 rowInfo.className = " ace_warning";
