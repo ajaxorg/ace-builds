@@ -4009,7 +4009,7 @@ function deHyphenate(str) {
     return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
 }
 
-exports.version = "1.7.0";
+exports.version = "1.7.1";
 
 });
 
@@ -19356,7 +19356,7 @@ var WorkerClient = function(worker) {
 
         this.$doc = doc;
         this.call("setValue", [doc.getValue()]);
-        doc.on("change", this.changeListener);
+        doc.on("change", this.changeListener, true);
     };
 
     this.changeListener = function(delta) {
