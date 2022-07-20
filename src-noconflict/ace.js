@@ -311,6 +311,222 @@ require("./es6-shim");
 
 });
 
+ace.define("ace/lib/lang",["require","exports","module"], function(require, exports, module) {
+"use strict";
+
+exports.last = function(a) {
+    return a[a.length - 1];
+};
+
+exports.stringReverse = function(string) {
+    return string.split("").reverse().join("");
+};
+
+exports.stringRepeat = function (string, count) {
+    var result = '';
+    while (count > 0) {
+        if (count & 1)
+            result += string;
+
+        if (count >>= 1)
+            string += string;
+    }
+    return result;
+};
+
+var trimBeginRegexp = /^\s\s*/;
+var trimEndRegexp = /\s\s*$/;
+
+exports.stringTrimLeft = function (string) {
+    return string.replace(trimBeginRegexp, '');
+};
+
+exports.stringTrimRight = function (string) {
+    return string.replace(trimEndRegexp, '');
+};
+
+exports.copyObject = function(obj) {
+    var copy = {};
+    for (var key in obj) {
+        copy[key] = obj[key];
+    }
+    return copy;
+};
+
+exports.copyArray = function(array){
+    var copy = [];
+    for (var i=0, l=array.length; i<l; i++) {
+        if (array[i] && typeof array[i] == "object")
+            copy[i] = this.copyObject(array[i]);
+        else 
+            copy[i] = array[i];
+    }
+    return copy;
+};
+
+exports.deepCopy = function deepCopy(obj) {
+    if (typeof obj !== "object" || !obj)
+        return obj;
+    var copy;
+    if (Array.isArray(obj)) {
+        copy = [];
+        for (var key = 0; key < obj.length; key++) {
+            copy[key] = deepCopy(obj[key]);
+        }
+        return copy;
+    }
+    if (Object.prototype.toString.call(obj) !== "[object Object]")
+        return obj;
+    
+    copy = {};
+    for (var key in obj)
+        copy[key] = deepCopy(obj[key]);
+    return copy;
+};
+
+exports.arrayToMap = function(arr) {
+    var map = {};
+    for (var i=0; i<arr.length; i++) {
+        map[arr[i]] = 1;
+    }
+    return map;
+
+};
+
+exports.createMap = function(props) {
+    var map = Object.create(null);
+    for (var i in props) {
+        map[i] = props[i];
+    }
+    return map;
+};
+exports.arrayRemove = function(array, value) {
+  for (var i = 0; i <= array.length; i++) {
+    if (value === array[i]) {
+      array.splice(i, 1);
+    }
+  }
+};
+
+exports.escapeRegExp = function(str) {
+    return str.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
+};
+
+exports.escapeHTML = function(str) {
+    return ("" + str).replace(/&/g, "&#38;").replace(/"/g, "&#34;").replace(/'/g, "&#39;").replace(/</g, "&#60;");
+};
+
+exports.getMatchOffsets = function(string, regExp) {
+    var matches = [];
+
+    string.replace(regExp, function(str) {
+        matches.push({
+            offset: arguments[arguments.length-2],
+            length: str.length
+        });
+    });
+
+    return matches;
+};
+exports.deferredCall = function(fcn) {
+    var timer = null;
+    var callback = function() {
+        timer = null;
+        fcn();
+    };
+
+    var deferred = function(timeout) {
+        deferred.cancel();
+        timer = setTimeout(callback, timeout || 0);
+        return deferred;
+    };
+
+    deferred.schedule = deferred;
+
+    deferred.call = function() {
+        this.cancel();
+        fcn();
+        return deferred;
+    };
+
+    deferred.cancel = function() {
+        clearTimeout(timer);
+        timer = null;
+        return deferred;
+    };
+    
+    deferred.isPending = function() {
+        return timer;
+    };
+
+    return deferred;
+};
+
+
+exports.delayedCall = function(fcn, defaultTimeout) {
+    var timer = null;
+    var callback = function() {
+        timer = null;
+        fcn();
+    };
+
+    var _self = function(timeout) {
+        if (timer == null)
+            timer = setTimeout(callback, timeout || defaultTimeout);
+    };
+
+    _self.delay = function(timeout) {
+        timer && clearTimeout(timer);
+        timer = setTimeout(callback, timeout || defaultTimeout);
+    };
+    _self.schedule = _self;
+
+    _self.call = function() {
+        this.cancel();
+        fcn();
+    };
+
+    _self.cancel = function() {
+        timer && clearTimeout(timer);
+        timer = null;
+    };
+
+    _self.isPending = function() {
+        return timer;
+    };
+
+    return _self;
+};
+});
+
+ace.define("ace/lib/oop",["require","exports","module"], function(require, exports, module) {
+"use strict";
+
+exports.inherits = function(ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+        constructor: {
+            value: ctor,
+            enumerable: false,
+            writable: true,
+            configurable: true
+        }
+    });
+};
+
+exports.mixin = function(obj, mixin) {
+    for (var key in mixin) {
+        obj[key] = mixin[key];
+    }
+    return obj;
+};
+
+exports.implement = function(proto, mixin) {
+    exports.mixin(proto, mixin);
+};
+
+});
+
 ace.define("ace/lib/useragent",["require","exports","module"], function(require, exports, module) {
 "use strict";
 exports.OS = {
@@ -644,31 +860,651 @@ if (exports.HAS_CSS_TRANSFORMS) {
 
 });
 
-ace.define("ace/lib/oop",["require","exports","module"], function(require, exports, module) {
+ace.define("ace/lib/net",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
+"use strict";
+var dom = require("./dom");
+
+exports.get = function (url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            callback(xhr.responseText);
+        }
+    };
+    xhr.send(null);
+};
+
+exports.loadScript = function(path, callback) {
+    var head = dom.getDocumentHead();
+    var s = document.createElement('script');
+
+    s.src = path;
+    head.appendChild(s);
+
+    s.onload = s.onreadystatechange = function(_, isAbort) {
+        if (isAbort || !s.readyState || s.readyState == "loaded" || s.readyState == "complete") {
+            s = s.onload = s.onreadystatechange = null;
+            if (!isAbort)
+                callback();
+        }
+    };
+};
+exports.qualifyURL = function(url) {
+    var a = document.createElement('a');
+    a.href = url;
+    return a.href;
+};
+
+});
+
+ace.define("ace/lib/event_emitter",["require","exports","module"], function(require, exports, module) {
 "use strict";
 
-exports.inherits = function(ctor, superCtor) {
-    ctor.super_ = superCtor;
-    ctor.prototype = Object.create(superCtor.prototype, {
-        constructor: {
-            value: ctor,
-            enumerable: false,
-            writable: true,
-            configurable: true
-        }
-    });
-};
+var EventEmitter = {};
+var stopPropagation = function() { this.propagationStopped = true; };
+var preventDefault = function() { this.defaultPrevented = true; };
 
-exports.mixin = function(obj, mixin) {
-    for (var key in mixin) {
-        obj[key] = mixin[key];
+EventEmitter._emit =
+EventEmitter._dispatchEvent = function(eventName, e) {
+    this._eventRegistry || (this._eventRegistry = {});
+    this._defaultHandlers || (this._defaultHandlers = {});
+
+    var listeners = this._eventRegistry[eventName] || [];
+    var defaultHandler = this._defaultHandlers[eventName];
+    if (!listeners.length && !defaultHandler)
+        return;
+
+    if (typeof e != "object" || !e)
+        e = {};
+
+    if (!e.type)
+        e.type = eventName;
+    if (!e.stopPropagation)
+        e.stopPropagation = stopPropagation;
+    if (!e.preventDefault)
+        e.preventDefault = preventDefault;
+
+    listeners = listeners.slice();
+    for (var i=0; i<listeners.length; i++) {
+        listeners[i](e, this);
+        if (e.propagationStopped)
+            break;
     }
-    return obj;
+    
+    if (defaultHandler && !e.defaultPrevented)
+        return defaultHandler(e, this);
 };
 
-exports.implement = function(proto, mixin) {
-    exports.mixin(proto, mixin);
+
+EventEmitter._signal = function(eventName, e) {
+    var listeners = (this._eventRegistry || {})[eventName];
+    if (!listeners)
+        return;
+    listeners = listeners.slice();
+    for (var i=0; i<listeners.length; i++)
+        listeners[i](e, this);
 };
+
+EventEmitter.once = function(eventName, callback) {
+    var _self = this;
+    this.on(eventName, function newCallback() {
+        _self.off(eventName, newCallback);
+        callback.apply(null, arguments);
+    });
+    if (!callback) {
+        return new Promise(function(resolve) {
+            callback = resolve;
+        });
+    }
+};
+
+
+EventEmitter.setDefaultHandler = function(eventName, callback) {
+    var handlers = this._defaultHandlers;
+    if (!handlers)
+        handlers = this._defaultHandlers = {_disabled_: {}};
+    
+    if (handlers[eventName]) {
+        var old = handlers[eventName];
+        var disabled = handlers._disabled_[eventName];
+        if (!disabled)
+            handlers._disabled_[eventName] = disabled = [];
+        disabled.push(old);
+        var i = disabled.indexOf(callback);
+        if (i != -1) 
+            disabled.splice(i, 1);
+    }
+    handlers[eventName] = callback;
+};
+EventEmitter.removeDefaultHandler = function(eventName, callback) {
+    var handlers = this._defaultHandlers;
+    if (!handlers)
+        return;
+    var disabled = handlers._disabled_[eventName];
+    
+    if (handlers[eventName] == callback) {
+        if (disabled)
+            this.setDefaultHandler(eventName, disabled.pop());
+    } else if (disabled) {
+        var i = disabled.indexOf(callback);
+        if (i != -1)
+            disabled.splice(i, 1);
+    }
+};
+
+EventEmitter.on =
+EventEmitter.addEventListener = function(eventName, callback, capturing) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners)
+        listeners = this._eventRegistry[eventName] = [];
+
+    if (listeners.indexOf(callback) == -1)
+        listeners[capturing ? "unshift" : "push"](callback);
+    return callback;
+};
+
+EventEmitter.off =
+EventEmitter.removeListener =
+EventEmitter.removeEventListener = function(eventName, callback) {
+    this._eventRegistry = this._eventRegistry || {};
+
+    var listeners = this._eventRegistry[eventName];
+    if (!listeners)
+        return;
+
+    var index = listeners.indexOf(callback);
+    if (index !== -1)
+        listeners.splice(index, 1);
+};
+
+EventEmitter.removeAllListeners = function(eventName) {
+    if (!eventName) this._eventRegistry = this._defaultHandlers = undefined;
+    if (this._eventRegistry) this._eventRegistry[eventName] = undefined;
+    if (this._defaultHandlers) this._defaultHandlers[eventName] = undefined;
+};
+
+exports.EventEmitter = EventEmitter;
+
+});
+
+ace.define("ace/lib/app_config",["require","exports","module","ace/lib/oop","ace/lib/event_emitter"], function(require, exports, module) {
+"no use strict";
+
+var oop = require("./oop");
+var EventEmitter = require("./event_emitter").EventEmitter;
+
+var optionsProvider = {
+    setOptions: function(optList) {
+        Object.keys(optList).forEach(function(key) {
+            this.setOption(key, optList[key]);
+        }, this);
+    },
+    getOptions: function(optionNames) {
+        var result = {};
+        if (!optionNames) {
+            var options = this.$options;
+            optionNames = Object.keys(options).filter(function(key) {
+                return !options[key].hidden;
+            });
+        } else if (!Array.isArray(optionNames)) {
+            result = optionNames;
+            optionNames = Object.keys(result);
+        }
+        optionNames.forEach(function(key) {
+            result[key] = this.getOption(key);
+        }, this);
+        return result;
+    },
+    setOption: function(name, value) {
+        if (this["$" + name] === value)
+            return;
+        var opt = this.$options[name];
+        if (!opt) {
+            return warn('misspelled option "' + name + '"');
+        }
+        if (opt.forwardTo)
+            return this[opt.forwardTo] && this[opt.forwardTo].setOption(name, value);
+
+        if (!opt.handlesSet)
+            this["$" + name] = value;
+        if (opt && opt.set)
+            opt.set.call(this, value);
+    },
+    getOption: function(name) {
+        var opt = this.$options[name];
+        if (!opt) {
+            return warn('misspelled option "' + name + '"');
+        }
+        if (opt.forwardTo)
+            return this[opt.forwardTo] && this[opt.forwardTo].getOption(name);
+        return opt && opt.get ? opt.get.call(this) : this["$" + name];
+    }
+};
+
+function warn(message) {
+    if (typeof console != "undefined" && console.warn)
+        console.warn.apply(console, arguments);
+}
+
+function reportError(msg, data) {
+    var e = new Error(msg);
+    e.data = data;
+    if (typeof console == "object" && console.error)
+        console.error(e);
+    setTimeout(function() { throw e; });
+}
+
+var AppConfig = function() {
+    this.$defaultOptions = {};
+};
+
+(function() {
+    oop.implement(this, EventEmitter);
+    this.defineOptions = function(obj, path, options) {
+        if (!obj.$options)
+            this.$defaultOptions[path] = obj.$options = {};
+
+        Object.keys(options).forEach(function(key) {
+            var opt = options[key];
+            if (typeof opt == "string")
+                opt = {forwardTo: opt};
+
+            opt.name || (opt.name = key);
+            obj.$options[opt.name] = opt;
+            if ("initialValue" in opt)
+                obj["$" + opt.name] = opt.initialValue;
+        });
+        oop.implement(obj, optionsProvider);
+
+        return this;
+    };
+
+    this.resetOptions = function(obj) {
+        Object.keys(obj.$options).forEach(function(key) {
+            var opt = obj.$options[key];
+            if ("value" in opt)
+                obj.setOption(key, opt.value);
+        });
+    };
+
+    this.setDefaultValue = function(path, name, value) {
+        if (!path) {
+            for (path in this.$defaultOptions)
+                if (this.$defaultOptions[path][name])
+                    break;
+            if (!this.$defaultOptions[path][name])
+                return false;
+        }
+        var opts = this.$defaultOptions[path] || (this.$defaultOptions[path] = {});
+        if (opts[name]) {
+            if (opts.forwardTo)
+                this.setDefaultValue(opts.forwardTo, name, value);
+            else
+                opts[name].value = value;
+        }
+    };
+
+    this.setDefaultValues = function(path, optionHash) {
+        Object.keys(optionHash).forEach(function(key) {
+            this.setDefaultValue(path, key, optionHash[key]);
+        }, this);
+    };
+    
+    this.warn = warn;
+    this.reportError = reportError;
+    
+}).call(AppConfig.prototype);
+
+exports.AppConfig = AppConfig;
+
+});
+
+ace.define("ace/theme/textmate",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
+"use strict";
+
+exports.isDark = false;
+exports.cssClass = "ace-tm";
+exports.cssText = ".ace-tm .ace_gutter {\
+background: #f0f0f0;\
+color: #333;\
+}\
+.ace-tm .ace_print-margin {\
+width: 1px;\
+background: #e8e8e8;\
+}\
+.ace-tm .ace_fold {\
+background-color: #6B72E6;\
+}\
+.ace-tm {\
+background-color: #FFFFFF;\
+color: black;\
+}\
+.ace-tm .ace_cursor {\
+color: black;\
+}\
+.ace-tm .ace_invisible {\
+color: rgb(191, 191, 191);\
+}\
+.ace-tm .ace_storage,\
+.ace-tm .ace_keyword {\
+color: blue;\
+}\
+.ace-tm .ace_constant {\
+color: rgb(197, 6, 11);\
+}\
+.ace-tm .ace_constant.ace_buildin {\
+color: rgb(88, 72, 246);\
+}\
+.ace-tm .ace_constant.ace_language {\
+color: rgb(88, 92, 246);\
+}\
+.ace-tm .ace_constant.ace_library {\
+color: rgb(6, 150, 14);\
+}\
+.ace-tm .ace_invalid {\
+background-color: rgba(255, 0, 0, 0.1);\
+color: red;\
+}\
+.ace-tm .ace_support.ace_function {\
+color: rgb(60, 76, 114);\
+}\
+.ace-tm .ace_support.ace_constant {\
+color: rgb(6, 150, 14);\
+}\
+.ace-tm .ace_support.ace_type,\
+.ace-tm .ace_support.ace_class {\
+color: rgb(109, 121, 222);\
+}\
+.ace-tm .ace_keyword.ace_operator {\
+color: rgb(104, 118, 135);\
+}\
+.ace-tm .ace_string {\
+color: rgb(3, 106, 7);\
+}\
+.ace-tm .ace_comment {\
+color: rgb(76, 136, 107);\
+}\
+.ace-tm .ace_comment.ace_doc {\
+color: rgb(0, 102, 255);\
+}\
+.ace-tm .ace_comment.ace_doc.ace_tag {\
+color: rgb(128, 159, 191);\
+}\
+.ace-tm .ace_constant.ace_numeric {\
+color: rgb(0, 0, 205);\
+}\
+.ace-tm .ace_variable {\
+color: rgb(49, 132, 149);\
+}\
+.ace-tm .ace_xml-pe {\
+color: rgb(104, 104, 91);\
+}\
+.ace-tm .ace_entity.ace_name.ace_function {\
+color: #0000A2;\
+}\
+.ace-tm .ace_heading {\
+color: rgb(12, 7, 255);\
+}\
+.ace-tm .ace_list {\
+color:rgb(185, 6, 144);\
+}\
+.ace-tm .ace_meta.ace_tag {\
+color:rgb(0, 22, 142);\
+}\
+.ace-tm .ace_string.ace_regex {\
+color: rgb(255, 0, 0)\
+}\
+.ace-tm .ace_marker-layer .ace_selection {\
+background: rgb(181, 213, 255);\
+}\
+.ace-tm.ace_multiselect .ace_selection.ace_start {\
+box-shadow: 0 0 3px 0px white;\
+}\
+.ace-tm .ace_marker-layer .ace_step {\
+background: rgb(252, 255, 0);\
+}\
+.ace-tm .ace_marker-layer .ace_stack {\
+background: rgb(164, 229, 101);\
+}\
+.ace-tm .ace_marker-layer .ace_bracket {\
+margin: -1px 0 0 -1px;\
+border: 1px solid rgb(192, 192, 192);\
+}\
+.ace-tm .ace_marker-layer .ace_active-line {\
+background: rgba(0, 0, 0, 0.07);\
+}\
+.ace-tm .ace_gutter-active-line {\
+background-color : #dcdcdc;\
+}\
+.ace-tm .ace_marker-layer .ace_selected-word {\
+background: rgb(250, 250, 255);\
+border: 1px solid rgb(200, 200, 250);\
+}\
+.ace-tm .ace_indent-guide {\
+background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
+}\
+";
+exports.$id = "ace/theme/textmate";
+
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass, false);
+});
+
+ace.define("ace/config",["require","exports","module","ace/lib/lang","ace/lib/oop","ace/lib/net","ace/lib/dom","ace/lib/app_config","ace/theme/textmate"], function(require, exports, module) {
+"no use strict";
+
+var lang = require("./lib/lang");
+var oop = require("./lib/oop");
+var net = require("./lib/net");
+var dom = require("./lib/dom");
+var AppConfig = require("./lib/app_config").AppConfig;
+
+module.exports = exports = new AppConfig();
+
+var options = {
+    packaged: false,
+    workerPath: null,
+    modePath: null,
+    themePath: null,
+    basePath: "",
+    suffix: ".js",
+    $moduleUrls: {},
+    loadWorkerFromBlob: true,
+    sharedPopups: false,
+    useStrictCSP: null
+};
+
+exports.get = function(key) {
+    if (!options.hasOwnProperty(key))
+        throw new Error("Unknown config key: " + key);
+    return options[key];
+};
+
+exports.set = function(key, value) {
+    if (options.hasOwnProperty(key))
+        options[key] = value;
+    else if (this.setDefaultValue("", key, value) == false)
+        throw new Error("Unknown config key: " + key);
+    if (key == "useStrictCSP")
+        dom.useStrictCSP(value);
+};
+
+exports.all = function() {
+    return lang.copyObject(options);
+};
+
+exports.$modes = {};
+exports.moduleUrl = function(name, component) {
+    if (options.$moduleUrls[name])
+        return options.$moduleUrls[name];
+
+    var parts = name.split("/");
+    component = component || parts[parts.length - 2] || "";
+    var sep = component == "snippets" ? "/" : "-";
+    var base = parts[parts.length - 1];
+    if (component == "worker" && sep == "-") {
+        var re = new RegExp("^" + component + "[\\-_]|[\\-_]" + component + "$", "g");
+        base = base.replace(re, "");
+    }
+
+    if ((!base || base == component) && parts.length > 1)
+        base = parts[parts.length - 2];
+    var path = options[component + "Path"];
+    if (path == null) {
+        path = options.basePath;
+    } else if (sep == "/") {
+        component = sep = "";
+    }
+    if (path && path.slice(-1) != "/")
+        path += "/";
+    return path + component + sep + base + this.get("suffix");
+};
+
+exports.setModuleUrl = function(name, subst) {
+    return options.$moduleUrls[name] = subst;
+};
+
+var loader = function(moduleName, cb) {
+    if (moduleName == "ace/theme/textmate")
+        return cb(null, require("./theme/textmate"));
+    return console.error("loader is not configured");
+};
+
+exports.setLoader = function(cb) {
+    loader = cb;
+};
+
+exports.$loading = {};
+exports.loadModule = function(moduleName, onLoad) {
+    var module, moduleType;
+    if (Array.isArray(moduleName)) {
+        moduleType = moduleName[0];
+        moduleName = moduleName[1];
+    }
+
+    try {
+        module = require(moduleName);
+    } catch (e) {}
+    if (module && !exports.$loading[moduleName])
+        return onLoad && onLoad(module);
+
+    if (!exports.$loading[moduleName])
+        exports.$loading[moduleName] = [];
+
+    exports.$loading[moduleName].push(onLoad);
+
+    if (exports.$loading[moduleName].length > 1)
+        return;
+
+    var afterLoad = function() {
+        require([moduleName], function(module) {
+            exports._emit("load.module", {name: moduleName, module: module});
+            var listeners = exports.$loading[moduleName];
+            exports.$loading[moduleName] = null;
+            listeners.forEach(function(onLoad) {
+                onLoad && onLoad(module);
+            });
+        });
+    };
+
+    if (!exports.get("packaged"))
+        return afterLoad();
+    
+    net.loadScript(exports.moduleUrl(moduleName, moduleType), afterLoad);
+    reportErrorIfPathIsNotConfigured();
+};
+
+var reportErrorIfPathIsNotConfigured = function() {
+    if (
+        !options.basePath && !options.workerPath 
+        && !options.modePath && !options.themePath
+        && !Object.keys(options.$moduleUrls).length
+    ) {
+        console.error(
+            "Unable to infer path to ace from script src,",
+            "use ace.config.set('basePath', 'path') to enable dynamic loading of modes and themes",
+            "or with webpack use ace/webpack-resolver"
+        );
+        reportErrorIfPathIsNotConfigured = function() {};
+    }
+};
+
+exports.version = "1.8.0";
+
+});
+
+ace.define("ace/loader_build",["require","exports","module","ace/lib/fixoldbrowsers","ace/config"], function(require, exports, module) {
+"use strict";
+
+require("./lib/fixoldbrowsers");
+var config = require("./config");
+
+var global = (function() {
+    return this || typeof window != "undefined" && window;
+})();
+
+module.exports = function(ace) {
+    config.init = init;
+    ace.require = require;
+
+    if (typeof define === "function")
+        ace.define = define;
+};
+init(true);function init(packaged) {
+
+    if (!global || !global.document)
+        return;
+    
+    config.set("packaged", packaged || require.packaged || module.packaged || (global.define && define.packaged));
+
+    var scriptOptions = {};
+    var scriptUrl = "";
+    var currentScript = (document.currentScript || document._currentScript ); // native or polyfill
+    var currentDocument = currentScript && currentScript.ownerDocument || document;
+    
+    var scripts = currentDocument.getElementsByTagName("script");
+    for (var i=0; i<scripts.length; i++) {
+        var script = scripts[i];
+
+        var src = script.src || script.getAttribute("src");
+        if (!src)
+            continue;
+
+        var attributes = script.attributes;
+        for (var j=0, l=attributes.length; j < l; j++) {
+            var attr = attributes[j];
+            if (attr.name.indexOf("data-ace-") === 0) {
+                scriptOptions[deHyphenate(attr.name.replace(/^data-ace-/, ""))] = attr.value;
+            }
+        }
+
+        var m = src.match(/^(.*)\/ace(\-\w+)?\.js(\?|$)/);
+        if (m)
+            scriptUrl = m[1];
+    }
+
+    if (scriptUrl) {
+        scriptOptions.base = scriptOptions.base || scriptUrl;
+        scriptOptions.packaged = true;
+    }
+
+    scriptOptions.basePath = scriptOptions.base;
+    scriptOptions.workerPath = scriptOptions.workerPath || scriptOptions.base;
+    scriptOptions.modePath = scriptOptions.modePath || scriptOptions.base;
+    scriptOptions.themePath = scriptOptions.themePath || scriptOptions.base;
+    delete scriptOptions.base;
+
+    for (var key in scriptOptions)
+        if (typeof scriptOptions[key] !== "undefined")
+            config.set(key, scriptOptions[key]);
+}
+
+function deHyphenate(str) {
+    return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
+}
 
 });
 
@@ -1341,194 +2177,6 @@ Range.comparePoints = function(p1, p2) {
 
 
 exports.Range = Range;
-});
-
-ace.define("ace/lib/lang",["require","exports","module"], function(require, exports, module) {
-"use strict";
-
-exports.last = function(a) {
-    return a[a.length - 1];
-};
-
-exports.stringReverse = function(string) {
-    return string.split("").reverse().join("");
-};
-
-exports.stringRepeat = function (string, count) {
-    var result = '';
-    while (count > 0) {
-        if (count & 1)
-            result += string;
-
-        if (count >>= 1)
-            string += string;
-    }
-    return result;
-};
-
-var trimBeginRegexp = /^\s\s*/;
-var trimEndRegexp = /\s\s*$/;
-
-exports.stringTrimLeft = function (string) {
-    return string.replace(trimBeginRegexp, '');
-};
-
-exports.stringTrimRight = function (string) {
-    return string.replace(trimEndRegexp, '');
-};
-
-exports.copyObject = function(obj) {
-    var copy = {};
-    for (var key in obj) {
-        copy[key] = obj[key];
-    }
-    return copy;
-};
-
-exports.copyArray = function(array){
-    var copy = [];
-    for (var i=0, l=array.length; i<l; i++) {
-        if (array[i] && typeof array[i] == "object")
-            copy[i] = this.copyObject(array[i]);
-        else 
-            copy[i] = array[i];
-    }
-    return copy;
-};
-
-exports.deepCopy = function deepCopy(obj) {
-    if (typeof obj !== "object" || !obj)
-        return obj;
-    var copy;
-    if (Array.isArray(obj)) {
-        copy = [];
-        for (var key = 0; key < obj.length; key++) {
-            copy[key] = deepCopy(obj[key]);
-        }
-        return copy;
-    }
-    if (Object.prototype.toString.call(obj) !== "[object Object]")
-        return obj;
-    
-    copy = {};
-    for (var key in obj)
-        copy[key] = deepCopy(obj[key]);
-    return copy;
-};
-
-exports.arrayToMap = function(arr) {
-    var map = {};
-    for (var i=0; i<arr.length; i++) {
-        map[arr[i]] = 1;
-    }
-    return map;
-
-};
-
-exports.createMap = function(props) {
-    var map = Object.create(null);
-    for (var i in props) {
-        map[i] = props[i];
-    }
-    return map;
-};
-exports.arrayRemove = function(array, value) {
-  for (var i = 0; i <= array.length; i++) {
-    if (value === array[i]) {
-      array.splice(i, 1);
-    }
-  }
-};
-
-exports.escapeRegExp = function(str) {
-    return str.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1');
-};
-
-exports.escapeHTML = function(str) {
-    return ("" + str).replace(/&/g, "&#38;").replace(/"/g, "&#34;").replace(/'/g, "&#39;").replace(/</g, "&#60;");
-};
-
-exports.getMatchOffsets = function(string, regExp) {
-    var matches = [];
-
-    string.replace(regExp, function(str) {
-        matches.push({
-            offset: arguments[arguments.length-2],
-            length: str.length
-        });
-    });
-
-    return matches;
-};
-exports.deferredCall = function(fcn) {
-    var timer = null;
-    var callback = function() {
-        timer = null;
-        fcn();
-    };
-
-    var deferred = function(timeout) {
-        deferred.cancel();
-        timer = setTimeout(callback, timeout || 0);
-        return deferred;
-    };
-
-    deferred.schedule = deferred;
-
-    deferred.call = function() {
-        this.cancel();
-        fcn();
-        return deferred;
-    };
-
-    deferred.cancel = function() {
-        clearTimeout(timer);
-        timer = null;
-        return deferred;
-    };
-    
-    deferred.isPending = function() {
-        return timer;
-    };
-
-    return deferred;
-};
-
-
-exports.delayedCall = function(fcn, defaultTimeout) {
-    var timer = null;
-    var callback = function() {
-        timer = null;
-        fcn();
-    };
-
-    var _self = function(timeout) {
-        if (timer == null)
-            timer = setTimeout(callback, timeout || defaultTimeout);
-    };
-
-    _self.delay = function(timeout) {
-        timer && clearTimeout(timer);
-        timer = setTimeout(callback, timeout || defaultTimeout);
-    };
-    _self.schedule = _self;
-
-    _self.call = function() {
-        this.cancel();
-        fcn();
-    };
-
-    _self.cancel = function() {
-        timer && clearTimeout(timer);
-        timer = null;
-    };
-
-    _self.isPending = function() {
-        return timer;
-    };
-
-    return _self;
-};
 });
 
 ace.define("ace/clipboard",["require","exports","module"], function(require, exports, module) {
@@ -3520,499 +4168,6 @@ exports.addTouchListeners = function(el, editor) {
 
 });
 
-ace.define("ace/lib/net",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
-"use strict";
-var dom = require("./dom");
-
-exports.get = function (url, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
-            callback(xhr.responseText);
-        }
-    };
-    xhr.send(null);
-};
-
-exports.loadScript = function(path, callback) {
-    var head = dom.getDocumentHead();
-    var s = document.createElement('script');
-
-    s.src = path;
-    head.appendChild(s);
-
-    s.onload = s.onreadystatechange = function(_, isAbort) {
-        if (isAbort || !s.readyState || s.readyState == "loaded" || s.readyState == "complete") {
-            s = s.onload = s.onreadystatechange = null;
-            if (!isAbort)
-                callback();
-        }
-    };
-};
-exports.qualifyURL = function(url) {
-    var a = document.createElement('a');
-    a.href = url;
-    return a.href;
-};
-
-});
-
-ace.define("ace/lib/event_emitter",["require","exports","module"], function(require, exports, module) {
-"use strict";
-
-var EventEmitter = {};
-var stopPropagation = function() { this.propagationStopped = true; };
-var preventDefault = function() { this.defaultPrevented = true; };
-
-EventEmitter._emit =
-EventEmitter._dispatchEvent = function(eventName, e) {
-    this._eventRegistry || (this._eventRegistry = {});
-    this._defaultHandlers || (this._defaultHandlers = {});
-
-    var listeners = this._eventRegistry[eventName] || [];
-    var defaultHandler = this._defaultHandlers[eventName];
-    if (!listeners.length && !defaultHandler)
-        return;
-
-    if (typeof e != "object" || !e)
-        e = {};
-
-    if (!e.type)
-        e.type = eventName;
-    if (!e.stopPropagation)
-        e.stopPropagation = stopPropagation;
-    if (!e.preventDefault)
-        e.preventDefault = preventDefault;
-
-    listeners = listeners.slice();
-    for (var i=0; i<listeners.length; i++) {
-        listeners[i](e, this);
-        if (e.propagationStopped)
-            break;
-    }
-    
-    if (defaultHandler && !e.defaultPrevented)
-        return defaultHandler(e, this);
-};
-
-
-EventEmitter._signal = function(eventName, e) {
-    var listeners = (this._eventRegistry || {})[eventName];
-    if (!listeners)
-        return;
-    listeners = listeners.slice();
-    for (var i=0; i<listeners.length; i++)
-        listeners[i](e, this);
-};
-
-EventEmitter.once = function(eventName, callback) {
-    var _self = this;
-    this.on(eventName, function newCallback() {
-        _self.off(eventName, newCallback);
-        callback.apply(null, arguments);
-    });
-    if (!callback) {
-        return new Promise(function(resolve) {
-            callback = resolve;
-        });
-    }
-};
-
-
-EventEmitter.setDefaultHandler = function(eventName, callback) {
-    var handlers = this._defaultHandlers;
-    if (!handlers)
-        handlers = this._defaultHandlers = {_disabled_: {}};
-    
-    if (handlers[eventName]) {
-        var old = handlers[eventName];
-        var disabled = handlers._disabled_[eventName];
-        if (!disabled)
-            handlers._disabled_[eventName] = disabled = [];
-        disabled.push(old);
-        var i = disabled.indexOf(callback);
-        if (i != -1) 
-            disabled.splice(i, 1);
-    }
-    handlers[eventName] = callback;
-};
-EventEmitter.removeDefaultHandler = function(eventName, callback) {
-    var handlers = this._defaultHandlers;
-    if (!handlers)
-        return;
-    var disabled = handlers._disabled_[eventName];
-    
-    if (handlers[eventName] == callback) {
-        if (disabled)
-            this.setDefaultHandler(eventName, disabled.pop());
-    } else if (disabled) {
-        var i = disabled.indexOf(callback);
-        if (i != -1)
-            disabled.splice(i, 1);
-    }
-};
-
-EventEmitter.on =
-EventEmitter.addEventListener = function(eventName, callback, capturing) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners)
-        listeners = this._eventRegistry[eventName] = [];
-
-    if (listeners.indexOf(callback) == -1)
-        listeners[capturing ? "unshift" : "push"](callback);
-    return callback;
-};
-
-EventEmitter.off =
-EventEmitter.removeListener =
-EventEmitter.removeEventListener = function(eventName, callback) {
-    this._eventRegistry = this._eventRegistry || {};
-
-    var listeners = this._eventRegistry[eventName];
-    if (!listeners)
-        return;
-
-    var index = listeners.indexOf(callback);
-    if (index !== -1)
-        listeners.splice(index, 1);
-};
-
-EventEmitter.removeAllListeners = function(eventName) {
-    if (!eventName) this._eventRegistry = this._defaultHandlers = undefined;
-    if (this._eventRegistry) this._eventRegistry[eventName] = undefined;
-    if (this._defaultHandlers) this._defaultHandlers[eventName] = undefined;
-};
-
-exports.EventEmitter = EventEmitter;
-
-});
-
-ace.define("ace/lib/app_config",["require","exports","module","ace/lib/oop","ace/lib/event_emitter"], function(require, exports, module) {
-"no use strict";
-
-var oop = require("./oop");
-var EventEmitter = require("./event_emitter").EventEmitter;
-
-var optionsProvider = {
-    setOptions: function(optList) {
-        Object.keys(optList).forEach(function(key) {
-            this.setOption(key, optList[key]);
-        }, this);
-    },
-    getOptions: function(optionNames) {
-        var result = {};
-        if (!optionNames) {
-            var options = this.$options;
-            optionNames = Object.keys(options).filter(function(key) {
-                return !options[key].hidden;
-            });
-        } else if (!Array.isArray(optionNames)) {
-            result = optionNames;
-            optionNames = Object.keys(result);
-        }
-        optionNames.forEach(function(key) {
-            result[key] = this.getOption(key);
-        }, this);
-        return result;
-    },
-    setOption: function(name, value) {
-        if (this["$" + name] === value)
-            return;
-        var opt = this.$options[name];
-        if (!opt) {
-            return warn('misspelled option "' + name + '"');
-        }
-        if (opt.forwardTo)
-            return this[opt.forwardTo] && this[opt.forwardTo].setOption(name, value);
-
-        if (!opt.handlesSet)
-            this["$" + name] = value;
-        if (opt && opt.set)
-            opt.set.call(this, value);
-    },
-    getOption: function(name) {
-        var opt = this.$options[name];
-        if (!opt) {
-            return warn('misspelled option "' + name + '"');
-        }
-        if (opt.forwardTo)
-            return this[opt.forwardTo] && this[opt.forwardTo].getOption(name);
-        return opt && opt.get ? opt.get.call(this) : this["$" + name];
-    }
-};
-
-function warn(message) {
-    if (typeof console != "undefined" && console.warn)
-        console.warn.apply(console, arguments);
-}
-
-function reportError(msg, data) {
-    var e = new Error(msg);
-    e.data = data;
-    if (typeof console == "object" && console.error)
-        console.error(e);
-    setTimeout(function() { throw e; });
-}
-
-var AppConfig = function() {
-    this.$defaultOptions = {};
-};
-
-(function() {
-    oop.implement(this, EventEmitter);
-    this.defineOptions = function(obj, path, options) {
-        if (!obj.$options)
-            this.$defaultOptions[path] = obj.$options = {};
-
-        Object.keys(options).forEach(function(key) {
-            var opt = options[key];
-            if (typeof opt == "string")
-                opt = {forwardTo: opt};
-
-            opt.name || (opt.name = key);
-            obj.$options[opt.name] = opt;
-            if ("initialValue" in opt)
-                obj["$" + opt.name] = opt.initialValue;
-        });
-        oop.implement(obj, optionsProvider);
-
-        return this;
-    };
-
-    this.resetOptions = function(obj) {
-        Object.keys(obj.$options).forEach(function(key) {
-            var opt = obj.$options[key];
-            if ("value" in opt)
-                obj.setOption(key, opt.value);
-        });
-    };
-
-    this.setDefaultValue = function(path, name, value) {
-        if (!path) {
-            for (path in this.$defaultOptions)
-                if (this.$defaultOptions[path][name])
-                    break;
-            if (!this.$defaultOptions[path][name])
-                return false;
-        }
-        var opts = this.$defaultOptions[path] || (this.$defaultOptions[path] = {});
-        if (opts[name]) {
-            if (opts.forwardTo)
-                this.setDefaultValue(opts.forwardTo, name, value);
-            else
-                opts[name].value = value;
-        }
-    };
-
-    this.setDefaultValues = function(path, optionHash) {
-        Object.keys(optionHash).forEach(function(key) {
-            this.setDefaultValue(path, key, optionHash[key]);
-        }, this);
-    };
-    
-    this.warn = warn;
-    this.reportError = reportError;
-    
-}).call(AppConfig.prototype);
-
-exports.AppConfig = AppConfig;
-
-});
-
-ace.define("ace/config",["require","exports","module","ace/lib/lang","ace/lib/oop","ace/lib/net","ace/lib/dom","ace/lib/app_config"], function(require, exports, module) {
-"no use strict";
-
-var lang = require("./lib/lang");
-var oop = require("./lib/oop");
-var net = require("./lib/net");
-var dom = require("./lib/dom");
-var AppConfig = require("./lib/app_config").AppConfig;
-
-module.exports = exports = new AppConfig();
-
-var global = (function() {
-    return this || typeof window != "undefined" && window;
-})();
-
-var options = {
-    packaged: false,
-    workerPath: null,
-    modePath: null,
-    themePath: null,
-    basePath: "",
-    suffix: ".js",
-    $moduleUrls: {},
-    loadWorkerFromBlob: true,
-    sharedPopups: false,
-    useStrictCSP: null
-};
-
-exports.get = function(key) {
-    if (!options.hasOwnProperty(key))
-        throw new Error("Unknown config key: " + key);
-    return options[key];
-};
-
-exports.set = function(key, value) {
-    if (options.hasOwnProperty(key))
-        options[key] = value;
-    else if (this.setDefaultValue("", key, value) == false)
-        throw new Error("Unknown config key: " + key);
-    if (key == "useStrictCSP")
-        dom.useStrictCSP(value);
-};
-
-exports.all = function() {
-    return lang.copyObject(options);
-};
-
-exports.$modes = {};
-exports.moduleUrl = function(name, component) {
-    if (options.$moduleUrls[name])
-        return options.$moduleUrls[name];
-
-    var parts = name.split("/");
-    component = component || parts[parts.length - 2] || "";
-    var sep = component == "snippets" ? "/" : "-";
-    var base = parts[parts.length - 1];
-    if (component == "worker" && sep == "-") {
-        var re = new RegExp("^" + component + "[\\-_]|[\\-_]" + component + "$", "g");
-        base = base.replace(re, "");
-    }
-
-    if ((!base || base == component) && parts.length > 1)
-        base = parts[parts.length - 2];
-    var path = options[component + "Path"];
-    if (path == null) {
-        path = options.basePath;
-    } else if (sep == "/") {
-        component = sep = "";
-    }
-    if (path && path.slice(-1) != "/")
-        path += "/";
-    return path + component + sep + base + this.get("suffix");
-};
-
-exports.setModuleUrl = function(name, subst) {
-    return options.$moduleUrls[name] = subst;
-};
-
-exports.$loading = {};
-exports.loadModule = function(moduleName, onLoad) {
-    var module, moduleType;
-    if (Array.isArray(moduleName)) {
-        moduleType = moduleName[0];
-        moduleName = moduleName[1];
-    }
-
-    try {
-        module = require(moduleName);
-    } catch (e) {}
-    if (module && !exports.$loading[moduleName])
-        return onLoad && onLoad(module);
-
-    if (!exports.$loading[moduleName])
-        exports.$loading[moduleName] = [];
-
-    exports.$loading[moduleName].push(onLoad);
-
-    if (exports.$loading[moduleName].length > 1)
-        return;
-
-    var afterLoad = function() {
-        require([moduleName], function(module) {
-            exports._emit("load.module", {name: moduleName, module: module});
-            var listeners = exports.$loading[moduleName];
-            exports.$loading[moduleName] = null;
-            listeners.forEach(function(onLoad) {
-                onLoad && onLoad(module);
-            });
-        });
-    };
-
-    if (!exports.get("packaged"))
-        return afterLoad();
-    
-    net.loadScript(exports.moduleUrl(moduleName, moduleType), afterLoad);
-    reportErrorIfPathIsNotConfigured();
-};
-
-var reportErrorIfPathIsNotConfigured = function() {
-    if (
-        !options.basePath && !options.workerPath 
-        && !options.modePath && !options.themePath
-        && !Object.keys(options.$moduleUrls).length
-    ) {
-        console.error(
-            "Unable to infer path to ace from script src,",
-            "use ace.config.set('basePath', 'path') to enable dynamic loading of modes and themes",
-            "or with webpack use ace/webpack-resolver"
-        );
-        reportErrorIfPathIsNotConfigured = function() {};
-    }
-};
-init(true);function init(packaged) {
-
-    if (!global || !global.document)
-        return;
-    
-    options.packaged = packaged || require.packaged || module.packaged || (global.define && define.packaged);
-
-    var scriptOptions = {};
-    var scriptUrl = "";
-    var currentScript = (document.currentScript || document._currentScript ); // native or polyfill
-    var currentDocument = currentScript && currentScript.ownerDocument || document;
-    
-    var scripts = currentDocument.getElementsByTagName("script");
-    for (var i=0; i<scripts.length; i++) {
-        var script = scripts[i];
-
-        var src = script.src || script.getAttribute("src");
-        if (!src)
-            continue;
-
-        var attributes = script.attributes;
-        for (var j=0, l=attributes.length; j < l; j++) {
-            var attr = attributes[j];
-            if (attr.name.indexOf("data-ace-") === 0) {
-                scriptOptions[deHyphenate(attr.name.replace(/^data-ace-/, ""))] = attr.value;
-            }
-        }
-
-        var m = src.match(/^(.*)\/ace(\-\w+)?\.js(\?|$)/);
-        if (m)
-            scriptUrl = m[1];
-    }
-
-    if (scriptUrl) {
-        scriptOptions.base = scriptOptions.base || scriptUrl;
-        scriptOptions.packaged = true;
-    }
-
-    scriptOptions.basePath = scriptOptions.base;
-    scriptOptions.workerPath = scriptOptions.workerPath || scriptOptions.base;
-    scriptOptions.modePath = scriptOptions.modePath || scriptOptions.base;
-    scriptOptions.themePath = scriptOptions.themePath || scriptOptions.base;
-    delete scriptOptions.base;
-
-    for (var key in scriptOptions)
-        if (typeof scriptOptions[key] !== "undefined")
-            exports.set(key, scriptOptions[key]);
-}
-
-exports.init = init;
-
-function deHyphenate(str) {
-    return str.replace(/-(.)/g, function(m, m1) { return m1.toUpperCase(); });
-}
-
-exports.version = "1.7.1";
-
-});
-
 ace.define("ace/mouse/mouse_handler",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/mouse/default_handlers","ace/mouse/default_gutter_handler","ace/mouse/mouse_event","ace/mouse/dragdrop_handler","ace/mouse/touch_handler","ace/config"], function(require, exports, module) {
 "use strict";
 
@@ -4835,9 +4990,11 @@ var BidiHandler = function(session) {
                 } else {
                     this.line = this.line.substring(0, splits[splitIndex]);
                 }
+
+                if (splitIndex == splits.length) {
+                    this.line += (this.showInvisibles) ? endOfLine : bidiUtil.DOT;
+                }
             }
-            if (splitIndex == splits.length)
-                this.line += (this.showInvisibles) ? endOfLine : bidiUtil.DOT;
         } else {
             this.line += this.showInvisibles ? endOfLine : bidiUtil.DOT;
         }
@@ -9457,7 +9614,7 @@ EditSession.$uid = 0;
             this.doc.off("change", this.$onChange);
 
         this.doc = doc;
-        doc.on("change", this.$onChange);
+        doc.on("change", this.$onChange, true);
 
         this.bgTokenizer.setDocument(this.getDocument());
 
@@ -12641,10 +12798,8 @@ for (var i = 1; i < 9; i++) {
 
 });
 
-ace.define("ace/editor",["require","exports","module","ace/lib/fixoldbrowsers","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/useragent","ace/keyboard/textinput","ace/mouse/mouse_handler","ace/mouse/fold_handler","ace/keyboard/keybinding","ace/edit_session","ace/search","ace/range","ace/lib/event_emitter","ace/commands/command_manager","ace/commands/default_commands","ace/config","ace/token_iterator","ace/clipboard"], function(require, exports, module) {
+ace.define("ace/editor",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/useragent","ace/keyboard/textinput","ace/mouse/mouse_handler","ace/mouse/fold_handler","ace/keyboard/keybinding","ace/edit_session","ace/search","ace/range","ace/lib/event_emitter","ace/commands/command_manager","ace/commands/default_commands","ace/config","ace/token_iterator","ace/clipboard"], function(require, exports, module) {
 "use strict";
-
-require("./lib/fixoldbrowsers");
 
 var oop = require("./lib/oop");
 var dom = require("./lib/dom");
@@ -19453,7 +19608,7 @@ var PlaceHolder = function(session, length, pos, others, mainClass, othersClass)
     this.mainClass = mainClass;
     this.othersClass = othersClass;
     this.$onUpdate = this.onUpdate.bind(this);
-    this.doc.on("change", this.$onUpdate);
+    this.doc.on("change", this.$onUpdate, true);
     this.$others = others;
     
     this.$onCursorChange = function() {
@@ -20772,137 +20927,6 @@ var FoldMode = exports.FoldMode = function() {};
 
 });
 
-ace.define("ace/theme/textmate",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
-"use strict";
-
-exports.isDark = false;
-exports.cssClass = "ace-tm";
-exports.cssText = ".ace-tm .ace_gutter {\
-background: #f0f0f0;\
-color: #333;\
-}\
-.ace-tm .ace_print-margin {\
-width: 1px;\
-background: #e8e8e8;\
-}\
-.ace-tm .ace_fold {\
-background-color: #6B72E6;\
-}\
-.ace-tm {\
-background-color: #FFFFFF;\
-color: black;\
-}\
-.ace-tm .ace_cursor {\
-color: black;\
-}\
-.ace-tm .ace_invisible {\
-color: rgb(191, 191, 191);\
-}\
-.ace-tm .ace_storage,\
-.ace-tm .ace_keyword {\
-color: blue;\
-}\
-.ace-tm .ace_constant {\
-color: rgb(197, 6, 11);\
-}\
-.ace-tm .ace_constant.ace_buildin {\
-color: rgb(88, 72, 246);\
-}\
-.ace-tm .ace_constant.ace_language {\
-color: rgb(88, 92, 246);\
-}\
-.ace-tm .ace_constant.ace_library {\
-color: rgb(6, 150, 14);\
-}\
-.ace-tm .ace_invalid {\
-background-color: rgba(255, 0, 0, 0.1);\
-color: red;\
-}\
-.ace-tm .ace_support.ace_function {\
-color: rgb(60, 76, 114);\
-}\
-.ace-tm .ace_support.ace_constant {\
-color: rgb(6, 150, 14);\
-}\
-.ace-tm .ace_support.ace_type,\
-.ace-tm .ace_support.ace_class {\
-color: rgb(109, 121, 222);\
-}\
-.ace-tm .ace_keyword.ace_operator {\
-color: rgb(104, 118, 135);\
-}\
-.ace-tm .ace_string {\
-color: rgb(3, 106, 7);\
-}\
-.ace-tm .ace_comment {\
-color: rgb(76, 136, 107);\
-}\
-.ace-tm .ace_comment.ace_doc {\
-color: rgb(0, 102, 255);\
-}\
-.ace-tm .ace_comment.ace_doc.ace_tag {\
-color: rgb(128, 159, 191);\
-}\
-.ace-tm .ace_constant.ace_numeric {\
-color: rgb(0, 0, 205);\
-}\
-.ace-tm .ace_variable {\
-color: rgb(49, 132, 149);\
-}\
-.ace-tm .ace_xml-pe {\
-color: rgb(104, 104, 91);\
-}\
-.ace-tm .ace_entity.ace_name.ace_function {\
-color: #0000A2;\
-}\
-.ace-tm .ace_heading {\
-color: rgb(12, 7, 255);\
-}\
-.ace-tm .ace_list {\
-color:rgb(185, 6, 144);\
-}\
-.ace-tm .ace_meta.ace_tag {\
-color:rgb(0, 22, 142);\
-}\
-.ace-tm .ace_string.ace_regex {\
-color: rgb(255, 0, 0)\
-}\
-.ace-tm .ace_marker-layer .ace_selection {\
-background: rgb(181, 213, 255);\
-}\
-.ace-tm.ace_multiselect .ace_selection.ace_start {\
-box-shadow: 0 0 3px 0px white;\
-}\
-.ace-tm .ace_marker-layer .ace_step {\
-background: rgb(252, 255, 0);\
-}\
-.ace-tm .ace_marker-layer .ace_stack {\
-background: rgb(164, 229, 101);\
-}\
-.ace-tm .ace_marker-layer .ace_bracket {\
-margin: -1px 0 0 -1px;\
-border: 1px solid rgb(192, 192, 192);\
-}\
-.ace-tm .ace_marker-layer .ace_active-line {\
-background: rgba(0, 0, 0, 0.07);\
-}\
-.ace-tm .ace_gutter-active-line {\
-background-color : #dcdcdc;\
-}\
-.ace-tm .ace_marker-layer .ace_selected-word {\
-background: rgb(250, 250, 255);\
-border: 1px solid rgb(200, 200, 250);\
-}\
-.ace-tm .ace_indent-guide {\
-background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\
-}\
-";
-exports.$id = "ace/theme/textmate";
-
-var dom = require("../lib/dom");
-dom.importCssString(exports.cssText, exports.cssClass, false);
-});
-
 ace.define("ace/line_widgets",["require","exports","module","ace/lib/dom"], function(require, exports, module) {
 "use strict";
 
@@ -21451,10 +21475,9 @@ dom.importCssString("\
 
 });
 
-ace.define("ace/ace",["require","exports","module","ace/lib/fixoldbrowsers","ace/lib/dom","ace/lib/event","ace/range","ace/editor","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/worker/worker_client","ace/keyboard/hash_handler","ace/placeholder","ace/multi_select","ace/mode/folding/fold_mode","ace/theme/textmate","ace/ext/error_marker","ace/config"], function(require, exports, module) {
+ace.define("ace/ace",["require","exports","module","ace/lib/dom","ace/lib/event","ace/range","ace/editor","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/worker/worker_client","ace/keyboard/hash_handler","ace/placeholder","ace/multi_select","ace/mode/folding/fold_mode","ace/theme/textmate","ace/ext/error_marker","ace/config","ace/loader_build"], function(require, exports, module) {
 "use strict";
-
-require("./lib/fixoldbrowsers");
+require("./loader_build")(exports)
 
 var dom = require("./lib/dom");
 var event = require("./lib/event");
@@ -21473,10 +21496,6 @@ require("./theme/textmate");
 require("./ext/error_marker");
 
 exports.config = require("./config");
-exports.require = require;
-
-if (typeof define === "function")
-    exports.define = define;
 exports.edit = function(el, options) {
     if (typeof el == "string") {
         var _id = el;
