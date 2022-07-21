@@ -1432,7 +1432,7 @@ var reportErrorIfPathIsNotConfigured = function() {
     }
 };
 
-exports.version = "1.8.0";
+exports.version = "1.8.1";
 
 });
 
