@@ -1178,7 +1178,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.9.2";
+exports.version = "1.9.3";
 
 });
 
@@ -1187,6 +1187,11 @@ define("ace/loader_build",["require","exports","module","ace/lib/fixoldbrowsers"
 
 require("./lib/fixoldbrowsers");
 var config = require("./config");
+config.setLoader(function(moduleName, cb) {
+    require([moduleName], function(module) {
+        cb(null, module);
+    });
+});
 
 var global = (function() {
     return this || typeof window != "undefined" && window;

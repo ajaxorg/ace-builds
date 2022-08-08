@@ -112,24 +112,7 @@ function clearTextLayer(renderer) {
 
 });
 
-define("kitchen-sink/inline_editor",["require","exports","module","ace/line_widgets","ace/editor","ace/virtual_renderer","ace/lib/dom","ace/commands/default_commands"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+define("kitchen-sink/inline_editor",["require","exports","module","ace/line_widgets","ace/editor","ace/virtual_renderer","ace/lib/dom","ace/commands/default_commands"], function(require, exports, module) {"use strict";
 
 var LineWidgets = require("ace/line_widgets").LineWidgets;
 var Editor = require("ace/editor").Editor;
@@ -197,6 +180,7 @@ require("ace/commands/default_commands").commands.push({
         inlineEditor.setTheme("ace/theme/solarized_light");
     }
 });
+
 });
 
 define("ace/test/user",["require","exports","module"], function(require, exports, module){"use strict";
@@ -1153,24 +1137,7 @@ MockRenderer.prototype.adjustWrapLimit = function () {
 
 });
 
-define("kitchen-sink/dev_util",["require","exports","module","ace/ace","ace/lib/dom","ace/lib/event","ace/range","ace/edit_session","ace/undomanager","ace/lib/oop","ace/lib/dom","ace/test/user","ace/range","ace/editor","ace/test/asyncjs/assert","ace/test/asyncjs/async","ace/undomanager","ace/edit_session","ace/test/mockrenderer","ace/lib/event_emitter"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;var ace = require("ace/ace");
+define("kitchen-sink/dev_util",["require","exports","module","ace/ace","ace/lib/dom","ace/lib/event","ace/range","ace/edit_session","ace/undomanager","ace/lib/oop","ace/lib/dom","ace/test/user","ace/range","ace/editor","ace/test/asyncjs/assert","ace/test/asyncjs/async","ace/undomanager","ace/edit_session","ace/test/mockrenderer","ace/lib/event_emitter"], function(require, exports, module) {var ace = require("ace/ace");
 var dom = require("ace/lib/dom");
 var event = require("ace/lib/event");
 var Range = require("ace/range").Range;
@@ -1568,6 +1535,7 @@ exports.log = function(str) {
 };
 
 exports.addGlobals();
+
 });
 
 define("ace/ext/modelist",["require","exports","module"], function(require, exports, module){"use strict";
@@ -1810,24 +1778,7 @@ module.exports = {
 
 });
 
-define("kitchen-sink/file_drop",["require","exports","module","ace/config","ace/lib/event","ace/ext/modelist","ace/editor"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;var config = require("ace/config");
+define("kitchen-sink/file_drop",["require","exports","module","ace/config","ace/lib/event","ace/ext/modelist","ace/editor"], function(require, exports, module) {var config = require("ace/config");
 var event = require("ace/lib/event");
 var modelist = require("ace/ext/modelist");
 
@@ -1866,6 +1817,7 @@ config.defineOptions(Editor.prototype, "editor", {
         value: true
     }
 });
+
 });
 
 define("ace/ext/whitespace",["require","exports","module","ace/lib/lang"], function(require, exports, module){"use strict";
@@ -2054,24 +2006,7 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/doclist",["require","exports","module","ace/edit_session","ace/undomanager","ace/lib/net","ace/ext/modelist"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+define("kitchen-sink/doclist",["require","exports","module","ace/edit_session","ace/undomanager","ace/lib/net","ace/ext/modelist"], function(require, exports, module) {"use strict";
 
 var EditSession = require("ace/edit_session").EditSession;
 var UndoManager = require("ace/undomanager").UndoManager;
@@ -2256,26 +2191,10 @@ module.exports.all = {
     "Huge documents": module.exports.hugeDocs,
     "own source": module.exports.ownSource
 };
+
 });
 
-define("kitchen-sink/layout",["require","exports","module","ace/lib/dom","ace/lib/event","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/editor","ace/multi_select","ace/theme/textmate"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+define("kitchen-sink/layout",["require","exports","module","ace/lib/dom","ace/lib/event","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/editor","ace/multi_select","ace/theme/textmate"], function(require, exports, module) {"use strict";
 
 var dom = require("ace/lib/dom");
 var event = require("ace/lib/event");
@@ -2396,26 +2315,10 @@ exports.singleLineEditor = function(el) {
 
     return editor;
 };
+
 });
 
-define("kitchen-sink/util",["require","exports","module","ace/lib/dom","ace/lib/event","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/editor","ace/multi_select"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+define("kitchen-sink/util",["require","exports","module","ace/lib/dom","ace/lib/event","ace/edit_session","ace/undomanager","ace/virtual_renderer","ace/editor","ace/multi_select"], function(require, exports, module) {"use strict";
 
 var dom = require("ace/lib/dom");
 var event = require("ace/lib/event");
@@ -2633,6 +2536,7 @@ function dropdown(values) {
         return elt("optgroup", {"label": i}, optgroup(values[i]));
     });
 }
+
 });
 
 define("ace/ext/elastic_tabstops_lite",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){"use strict";
@@ -3399,24 +3303,7 @@ require("./config").defineOptions(Editor.prototype, "editor", {
 
 });
 
-define("kitchen-sink/token_tooltip",["require","exports","module","ace/lib/dom","ace/lib/oop","ace/lib/event","ace/range","ace/tooltip"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+define("kitchen-sink/token_tooltip",["require","exports","module","ace/lib/dom","ace/lib/oop","ace/lib/event","ace/range","ace/tooltip"], function(require, exports, module) {"use strict";
 
 var dom = require("ace/lib/dom");
 var oop = require("ace/lib/oop");
@@ -3539,6 +3426,7 @@ oop.inherits(TokenTooltip, Tooltip);
 }).call(TokenTooltip.prototype);
 
 exports.TokenTooltip = TokenTooltip;
+
 });
 
 define("ace/split",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/lib/event_emitter","ace/editor","ace/virtual_renderer","ace/edit_session"], function(require, exports, module){"use strict";
@@ -6871,24 +6759,7 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
 
 require("ace/ext/rtl");
 
@@ -6900,8 +6771,8 @@ require("./file_drop");
 var config = require("ace/config");
 config.setLoader(function(moduleName, cb) {
     require([moduleName], function(module) {
-        cb(null, module)
-    })
+        cb(null, module);
+    });
 });
 
 var env = {};
@@ -7398,6 +7269,7 @@ function moveFocus() {
     else
         env.editor.focus();
 }
+
 });                (function() {
                     window.require(["kitchen-sink/demo"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {

@@ -1,21 +1,4 @@
-ace.define("ace/snippets/xquery.snippets",["require","exports","module"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;module.exports = 'snippet for\n\
+ace.define("ace/snippets/xquery.snippets",["require","exports","module"], function(require, exports, module) {module.exports = 'snippet for\n\
 	for \$\${1:item} in \${2:expr}\n\
 snippet return\n\
 	return \${1:expr}\n\
@@ -77,29 +60,14 @@ snippet fn\n\
 snippet module\n\
 	module namespace \${1:ns} = "\${2:http://www.example.com}";\n\
 ';
+
 });
 
-ace.define("ace/snippets/xquery",["require","exports","module","ace/snippets/xquery.snippets"], function(require, exports, module) {
-var $build_deps$ = {require: require, exports: exports, module: module};
-exports = undefined; module = undefined;
-function define(name, deps, m) {
-    if (typeof name == "function") {
-        m = name; deps = ["require", "exports", "module"]; name = $build_deps$.module.id
-    }
-    if (typeof name !== "string") {
-        m = deps; deps = name; name = $build_deps$.module.id
-    }
-    if (!m) {
-        m = deps; deps = [];
-    }
-   var ret = typeof m == "function" ?
-       m.apply($build_deps$.module, deps.map(function(n){return $build_deps$[n] || require(n)})) : m
-   if (ret != undefined) $build_deps$.module.exports = ret;
-}
-define.amd = true;"use strict";
+ace.define("ace/snippets/xquery",["require","exports","module","ace/snippets/xquery.snippets"], function(require, exports, module) {"use strict";
 
 exports.snippetText = require("./xquery.snippets");
 exports.scope = "xquery";
+
 });                (function() {
                     ace.require(["ace/snippets/xquery"], function(m) {
                         if (typeof module == "object" && typeof exports == "object" && module) {
