@@ -1,6 +1,4 @@
-define("ace/snippets/io",["require","exports","module"], function(require, exports, module) {
-"use strict";
-
+define("ace/snippets/io",["require","exports","module"], function(require, exports, module){"use strict";
 exports.snippets = [
     {
         "content": "assertEquals(${1:expected}, ${2:expr})",
