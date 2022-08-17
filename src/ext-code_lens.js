@@ -190,29 +190,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         }
     }
 });
-dom.importCssString("\
-.ace_codeLens {\
-    position: absolute;\
-    color: #aaa;\
-    font-size: 88%;\
-    background: inherit;\
-    width: 100%;\
-    display: flex;\
-    align-items: flex-end;\
-    pointer-events: none;\
-}\
-.ace_codeLens > a {\
-    cursor: pointer;\
-    pointer-events: auto;\
-}\
-.ace_codeLens > a:hover {\
-    color: #0000ff;\
-    text-decoration: underline;\
-}\
-.ace_dark > .ace_codeLens > a:hover {\
-    color: #4e94ce;\
-}\
-", "codelense.css", false);
+dom.importCssString("\n.ace_codeLens {\n    position: absolute;\n    color: #aaa;\n    font-size: 88%;\n    background: inherit;\n    width: 100%;\n    display: flex;\n    align-items: flex-end;\n    pointer-events: none;\n}\n.ace_codeLens > a {\n    cursor: pointer;\n    pointer-events: auto;\n}\n.ace_codeLens > a:hover {\n    color: #0000ff;\n    text-decoration: underline;\n}\n.ace_dark > .ace_codeLens > a:hover {\n    color: #4e94ce;\n}\n", "codelense.css", false);
 
 });                (function() {
                     window.require(["ace/ext/code_lens"], function(m) {

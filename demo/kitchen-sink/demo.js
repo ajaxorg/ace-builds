@@ -3261,21 +3261,7 @@ function objectToRegExp(obj) {
 }).call(IncrementalSearch.prototype);
 exports.IncrementalSearch = IncrementalSearch;
 var dom = require('./lib/dom');
-dom.importCssString("\
-.ace_marker-layer .ace_isearch-result {\
-  position: absolute;\
-  z-index: 6;\
-  box-sizing: border-box;\
-}\
-div.ace_isearch-result {\
-  border-radius: 4px;\
-  background-color: rgba(255, 200, 0, 0.5);\
-  box-shadow: 0 0 4px rgb(255, 200, 0);\
-}\
-.ace_dark div.ace_isearch-result {\
-  background-color: rgb(100, 110, 160);\
-  box-shadow: 0 0 4px rgb(80, 90, 140);\
-}", "incremental-search-highlighting", false);
+dom.importCssString("\n.ace_marker-layer .ace_isearch-result {\n  position: absolute;\n  z-index: 6;\n  box-sizing: border-box;\n}\ndiv.ace_isearch-result {\n  border-radius: 4px;\n  background-color: rgba(255, 200, 0, 0.5);\n  box-shadow: 0 0 4px rgb(255, 200, 0);\n}\n.ace_dark div.ace_isearch-result {\n  background-color: rgb(100, 110, 160);\n  box-shadow: 0 0 4px rgb(80, 90, 140);\n}", "incremental-search-highlighting", false);
 var commands = require("./commands/command_manager");
 (function () {
     this.setupIncrementalSearch = function (editor, val) {
@@ -5059,14 +5045,7 @@ var moveRelative = function (point, start) {
         point.column -= start.column;
     point.row -= start.row;
 };
-dom.importCssString("\
-.ace_snippet-marker {\
-    -moz-box-sizing: border-box;\
-    box-sizing: border-box;\
-    background: rgba(194, 193, 208, 0.09);\
-    border: 1px dotted rgba(211, 208, 235, 0.62);\
-    position: absolute;\
-}", "snippets.css", false);
+dom.importCssString("\n.ace_snippet-marker {\n    -moz-box-sizing: border-box;\n    box-sizing: border-box;\n    background: rgba(194, 193, 208, 0.09);\n    border: 1px dotted rgba(211, 208, 235, 0.62);\n    position: absolute;\n}", "snippets.css", false);
 exports.snippetManager = new SnippetManager();
 var Editor = require("./editor").Editor;
 (function () {
@@ -5636,55 +5615,7 @@ var AcePopup = function (parentNode) {
     popup.$borderSize = 1;
     return popup;
 };
-dom.importCssString("\
-.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\
-    background-color: #CAD6FA;\
-    z-index: 1;\
-}\
-.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\
-    background-color: #3a674e;\
-}\
-.ace_editor.ace_autocomplete .ace_line-hover {\
-    border: 1px solid #abbffe;\
-    margin-top: -1px;\
-    background: rgba(233,233,253,0.4);\
-    position: absolute;\
-    z-index: 2;\
-}\
-.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\
-    border: 1px solid rgba(109, 150, 13, 0.8);\
-    background: rgba(58, 103, 78, 0.62);\
-}\
-.ace_completion-meta {\
-    opacity: 0.5;\
-    margin: 0.9em;\
-}\
-.ace_completion-message {\
-    color: blue;\
-}\
-.ace_editor.ace_autocomplete .ace_completion-highlight{\
-    color: #2d69c7;\
-}\
-.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\
-    color: #93ca12;\
-}\
-.ace_editor.ace_autocomplete {\
-    width: 300px;\
-    z-index: 200000;\
-    border: 1px lightgray solid;\
-    position: fixed;\
-    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\
-    line-height: 1.4;\
-    background: #fefefe;\
-    color: #111;\
-}\
-.ace_dark.ace_editor.ace_autocomplete {\
-    border: 1px #484747 solid;\
-    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\
-    line-height: 1.4;\
-    background: #25282c;\
-    color: #c1c1c1;\
-}", "autocompletion.css", false);
+dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}", "autocompletion.css", false);
 exports.AcePopup = AcePopup;
 exports.$singleLineEditor = $singleLineEditor;
 

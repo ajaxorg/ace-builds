@@ -500,21 +500,7 @@ function objectToRegExp(obj) {
 }).call(IncrementalSearch.prototype);
 exports.IncrementalSearch = IncrementalSearch;
 var dom = require('./lib/dom');
-dom.importCssString("\
-.ace_marker-layer .ace_isearch-result {\
-  position: absolute;\
-  z-index: 6;\
-  box-sizing: border-box;\
-}\
-div.ace_isearch-result {\
-  border-radius: 4px;\
-  background-color: rgba(255, 200, 0, 0.5);\
-  box-shadow: 0 0 4px rgb(255, 200, 0);\
-}\
-.ace_dark div.ace_isearch-result {\
-  background-color: rgb(100, 110, 160);\
-  box-shadow: 0 0 4px rgb(80, 90, 140);\
-}", "incremental-search-highlighting", false);
+dom.importCssString("\n.ace_marker-layer .ace_isearch-result {\n  position: absolute;\n  z-index: 6;\n  box-sizing: border-box;\n}\ndiv.ace_isearch-result {\n  border-radius: 4px;\n  background-color: rgba(255, 200, 0, 0.5);\n  box-shadow: 0 0 4px rgb(255, 200, 0);\n}\n.ace_dark div.ace_isearch-result {\n  background-color: rgb(100, 110, 160);\n  box-shadow: 0 0 4px rgb(80, 90, 140);\n}", "incremental-search-highlighting", false);
 var commands = require("./commands/command_manager");
 (function () {
     this.setupIncrementalSearch = function (editor, val) {
@@ -550,35 +536,10 @@ var HashHandler = require("./hash_handler").HashHandler;
 exports.handler = new HashHandler();
 exports.handler.isEmacs = true;
 exports.handler.$id = "ace/keyboard/emacs";
-var initialized = false;
+dom.importCssString("\n.emacs-mode .ace_cursor{\n    border: 1px rgba(50,250,50,0.8) solid!important;\n    box-sizing: border-box!important;\n    background-color: rgba(0,250,0,0.9);\n    opacity: 0.5;\n}\n.emacs-mode .ace_hidden-cursors .ace_cursor{\n    opacity: 1;\n    background-color: transparent;\n}\n.emacs-mode .ace_overwrite-cursors .ace_cursor {\n    opacity: 1;\n    background-color: transparent;\n    border-width: 0 0 2px 2px !important;\n}\n.emacs-mode .ace_text-layer {\n    z-index: 4\n}\n.emacs-mode .ace_cursor-layer {\n    z-index: 2\n}", 'emacsMode');
 var $formerLongWords;
 var $formerLineStart;
 exports.handler.attach = function (editor) {
-    if (!initialized) {
-        initialized = true;
-        dom.importCssString('\
-            .emacs-mode .ace_cursor{\
-                border: 1px rgba(50,250,50,0.8) solid!important;\
-                box-sizing: border-box!important;\
-                background-color: rgba(0,250,0,0.9);\
-                opacity: 0.5;\
-            }\
-            .emacs-mode .ace_hidden-cursors .ace_cursor{\
-                opacity: 1;\
-                background-color: transparent;\
-            }\
-            .emacs-mode .ace_overwrite-cursors .ace_cursor {\
-                opacity: 1;\
-                background-color: transparent;\
-                border-width: 0 0 2px 2px !important;\
-            }\
-            .emacs-mode .ace_text-layer {\
-                z-index: 4\
-            }\
-            .emacs-mode .ace_cursor-layer {\
-                z-index: 2\
-            }', 'emacsMode');
-    }
     $formerLongWords = editor.session.$selectLongWords;
     editor.session.$selectLongWords = true;
     $formerLineStart = editor.session.$useEmacsStyleLineStart;

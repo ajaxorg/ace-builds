@@ -934,14 +934,7 @@ var moveRelative = function (point, start) {
         point.column -= start.column;
     point.row -= start.row;
 };
-dom.importCssString("\
-.ace_snippet-marker {\
-    -moz-box-sizing: border-box;\
-    box-sizing: border-box;\
-    background: rgba(194, 193, 208, 0.09);\
-    border: 1px dotted rgba(211, 208, 235, 0.62);\
-    position: absolute;\
-}", "snippets.css", false);
+dom.importCssString("\n.ace_snippet-marker {\n    -moz-box-sizing: border-box;\n    box-sizing: border-box;\n    background: rgba(194, 193, 208, 0.09);\n    border: 1px dotted rgba(211, 208, 235, 0.62);\n    position: absolute;\n}", "snippets.css", false);
 exports.snippetManager = new SnippetManager();
 var Editor = require("./editor").Editor;
 (function () {

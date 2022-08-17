@@ -1178,7 +1178,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.9.5";
+exports.version = "1.9.6";
 
 });
 
@@ -18796,40 +18796,7 @@ exports.showErrorMarker = function (editor, dir) {
     w.el.onmousedown = editor.focus.bind(editor);
     editor.renderer.scrollCursorIntoView(null, 0.5, { bottom: w.el.offsetHeight });
 };
-dom.importCssString("\
-    .error_widget_wrapper {\
-        background: inherit;\
-        color: inherit;\
-        border:none\
-    }\
-    .error_widget {\
-        border-top: solid 2px;\
-        border-bottom: solid 2px;\
-        margin: 5px 0;\
-        padding: 10px 40px;\
-        white-space: pre-wrap;\
-    }\
-    .error_widget.ace_error, .error_widget_arrow.ace_error{\
-        border-color: #ff5a5a\
-    }\
-    .error_widget.ace_warning, .error_widget_arrow.ace_warning{\
-        border-color: #F1D817\
-    }\
-    .error_widget.ace_info, .error_widget_arrow.ace_info{\
-        border-color: #5a5a5a\
-    }\
-    .error_widget.ace_ok, .error_widget_arrow.ace_ok{\
-        border-color: #5aaa5a\
-    }\
-    .error_widget_arrow {\
-        position: absolute;\
-        border: solid 5px;\
-        border-top-color: transparent!important;\
-        border-right-color: transparent!important;\
-        border-left-color: transparent!important;\
-        top: -5px;\
-    }\
-", "error_marker.css", false);
+dom.importCssString("\n    .error_widget_wrapper {\n        background: inherit;\n        color: inherit;\n        border:none\n    }\n    .error_widget {\n        border-top: solid 2px;\n        border-bottom: solid 2px;\n        margin: 5px 0;\n        padding: 10px 40px;\n        white-space: pre-wrap;\n    }\n    .error_widget.ace_error, .error_widget_arrow.ace_error{\n        border-color: #ff5a5a\n    }\n    .error_widget.ace_warning, .error_widget_arrow.ace_warning{\n        border-color: #F1D817\n    }\n    .error_widget.ace_info, .error_widget_arrow.ace_info{\n        border-color: #5a5a5a\n    }\n    .error_widget.ace_ok, .error_widget_arrow.ace_ok{\n        border-color: #5aaa5a\n    }\n    .error_widget_arrow {\n        position: absolute;\n        border: solid 5px;\n        border-top-color: transparent!important;\n        border-right-color: transparent!important;\n        border-left-color: transparent!important;\n        top: -5px;\n    }\n", "error_marker.css", false);
 
 });
 

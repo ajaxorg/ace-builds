@@ -845,40 +845,7 @@ StringStream.prototype = {
 CodeMirror.defineExtension = function (name, fn) {
     CodeMirror.prototype[name] = fn;
 };
-dom.importCssString(".normal-mode .ace_cursor{\
-    border: none;\
-    background-color: rgba(255,0,0,0.5);\
-}\
-.normal-mode .ace_hidden-cursors .ace_cursor{\
-  background-color: transparent;\
-  border: 1px solid red;\
-  opacity: 0.7\
-}\
-.ace_dialog {\
-  position: absolute;\
-  left: 0; right: 0;\
-  background: inherit;\
-  z-index: 15;\
-  padding: .1em .8em;\
-  overflow: hidden;\
-  color: inherit;\
-}\
-.ace_dialog-top {\
-  border-bottom: 1px solid #444;\
-  top: 0;\
-}\
-.ace_dialog-bottom {\
-  border-top: 1px solid #444;\
-  bottom: 0;\
-}\
-.ace_dialog input {\
-  border: none;\
-  outline: none;\
-  background: transparent;\
-  width: 20em;\
-  color: inherit;\
-  font-family: monospace;\
-}", "vimMode", false);
+dom.importCssString(".normal-mode .ace_cursor{\n    border: none;\n    background-color: rgba(255,0,0,0.5);\n}\n.normal-mode .ace_hidden-cursors .ace_cursor{\n  background-color: transparent;\n  border: 1px solid red;\n  opacity: 0.7\n}\n.ace_dialog {\n  position: absolute;\n  left: 0; right: 0;\n  background: inherit;\n  z-index: 15;\n  padding: .1em .8em;\n  overflow: hidden;\n  color: inherit;\n}\n.ace_dialog-top {\n  border-bottom: 1px solid #444;\n  top: 0;\n}\n.ace_dialog-bottom {\n  border-top: 1px solid #444;\n  bottom: 0;\n}\n.ace_dialog input {\n  border: none;\n  outline: none;\n  background: transparent;\n  width: 20em;\n  color: inherit;\n  font-family: monospace;\n}", "vimMode", false);
 (function () {
     function dialogDiv(cm, template, bottom) {
         var wrap = cm.ace.container;
