@@ -622,6 +622,9 @@ border: 1px solid rgb(200, 200, 250);
 .ace-tm .ace_indent-guide {
 background: url("./main-15.png") right repeat-y;
 }
+.ace-tm .ace_indent-guide-active {
+background: url("./main-16.png") right repeat-y;
+}
 /*error_marker.css*/
 .error_widget_wrapper {
 background: inherit;
@@ -900,7 +903,7 @@ transform: rotate(-45deg);
 border-width: 0 2px 2px 0 ;
 }
 .ace_searchbtn_close {
-background: url("./main-16.png") no-repeat 50% 0;
+background: url("./main-17.png") no-repeat 50% 0;
 border-radius: 50%;
 border: 0 none;
 color: #656565;

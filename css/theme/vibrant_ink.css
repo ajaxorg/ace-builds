@@ -107,3 +107,7 @@
 .ace-vibrant-ink .ace_indent-guide {
   background: url("../vibrant_ink-1.png") right repeat-y
 }
+
+.ace-vibrant-ink .ace_indent-guide-active {
+  background: url("../vibrant_ink-2.png") right repeat-y;
+}

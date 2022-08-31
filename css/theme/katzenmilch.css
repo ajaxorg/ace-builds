@@ -141,3 +141,11 @@
   color: #3976a2;
   rbackground-color: rgba(73, 166, 210, 0.039)
 }
+
+.ace-katzenmilch .ace_indent-guide {
+  background: url("../katzenmilch-1.png") right repeat-y;
+}
+
+.ace-katzenmilch .ace_indent-guide-active {
+  background: url("../katzenmilch-2.png") right repeat-y;
+}

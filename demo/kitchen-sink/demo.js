@@ -1134,6 +1134,10 @@ MockRenderer.prototype.screenToTextCoordinates = function () {
 };
 MockRenderer.prototype.adjustWrapLimit = function () {
 };
+MockRenderer.prototype.getHighlightIndentGuides = function () {
+};
+MockRenderer.prototype.setHighlightIndentGuides = function () {
+};
 
 });
 
@@ -3834,6 +3838,9 @@ var optionGroups = {
         },
         "Show Indent Guides": {
             path: "displayIndentGuides"
+        },
+        "Highlight Indent Guides": {
+            path: "highlightIndentGuides"
         },
         "Persistent HScrollbar": {
             path: "hScrollBarAlwaysVisible"

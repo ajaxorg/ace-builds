@@ -214,3 +214,7 @@
 .ace-ambiance .ace_indent-guide {
   background: url("../ambiance-2.png") right repeat-y;
 }
+
+.ace-ambiance .ace_indent-guide-active {
+  background: url("../ambiance-3.png") right repeat-y;
+}

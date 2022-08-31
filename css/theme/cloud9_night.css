@@ -140,3 +140,7 @@
 .ace-cloud9-night .ace_indent-guide {
     background: url("../cloud9_night-1.png") right repeat-y
 }
+
+.ace-cloud9-night .ace_indent-guide-active {
+  background: url("../cloud9_night-2.png") right repeat-y;
+}

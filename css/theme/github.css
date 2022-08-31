@@ -122,3 +122,7 @@
 .ace-github .ace_indent-guide {
   background: url("../github-1.png") right repeat-y;
 }
+
+.ace-github .ace_indent-guide-active {
+  background: url("../github-2.png") right repeat-y;
+}

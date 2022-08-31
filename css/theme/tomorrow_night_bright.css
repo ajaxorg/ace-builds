@@ -138,3 +138,7 @@
 .ace-tomorrow-night-bright .ace_indent-guide {
   background: url("../tomorrow_night_bright-1.png") right repeat-y
 }
+
+.ace-tomorrow-night-bright .ace_indent-guide-active {
+  background: url("../tomorrow_night_bright-2.png") right repeat-y;
+}

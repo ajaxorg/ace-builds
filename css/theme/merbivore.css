@@ -107,3 +107,7 @@
 .ace-merbivore .ace_indent-guide {
   background: url("../merbivore-1.png") right repeat-y
 }
+
+.ace-merbivore .ace_indent-guide-active {
+  background: url("../merbivore-2.png") right repeat-y;
+}

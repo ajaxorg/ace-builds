@@ -152,3 +152,7 @@
 .ace-tm .ace_indent-guide {
   background: url("../textmate-1.png") right repeat-y;
 }
+
+.ace-tm .ace_indent-guide-active {
+  background: url("../textmate-2.png") right repeat-y;
+}

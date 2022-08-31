@@ -157,3 +157,11 @@
 .ace-gruvbox-light-hard .ace_markup.ace_list {
   color: #076678
 }
+
+.ace-gruvbox-light-hard .ace_indent-guide {
+    background: url("../gruvbox_light_hard-1.png") right repeat-y;
+}
+
+.ace-gruvbox-light-hard .ace_indent-guide-active {
+  background: url("../gruvbox_light_hard-2.png") right repeat-y;
+} 

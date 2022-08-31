@@ -98,3 +98,7 @@
 .ace-solarized-dark .ace_indent-guide {
   background: url("../solarized_dark-1.png") right repeat-y
 }
+
+.ace-solarized-dark .ace_indent-guide-active {
+  background: url("../solarized_dark-2.png") right repeat-y;
+}

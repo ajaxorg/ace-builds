@@ -122,3 +122,7 @@
 .ace-tomorrow .ace_indent-guide {
   background: url("../tomorrow-1.png") right repeat-y
 }
+
+.ace-tomorrow .ace_indent-guide-active {
+  background: url("../tomorrow-2.png") right repeat-y;
+} 

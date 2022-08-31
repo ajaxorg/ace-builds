@@ -159,3 +159,7 @@
 .ace-dracula .ace_indent-guide {
   background: url("../dracula-1.png") right repeat-y
 }
+
+.ace-dracula .ace_indent-guide-active {
+  background: url("../dracula-2.png") right repeat-y;
+}

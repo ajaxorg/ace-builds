@@ -124,3 +124,7 @@
 .ace-dawn .ace_indent-guide {
   background: url("../dawn-1.png") right repeat-y
 }
+
+.ace-dawn .ace_indent-guide-active {
+  background: url("../dawn-2.png") right repeat-y;
+} 

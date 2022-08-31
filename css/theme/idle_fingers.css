@@ -110,3 +110,7 @@
 .ace-idle-fingers .ace_indent-guide {
   background: url("../idle_fingers-1.png") right repeat-y
 }
+
+.ace-idle-fingers .ace_indent-guide-active {
+  background: url("../idle_fingers-2.png") right repeat-y;
+}

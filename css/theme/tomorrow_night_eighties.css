@@ -122,3 +122,7 @@
 .ace-tomorrow-night-eighties .ace_indent-guide {
   background: url("../tomorrow_night_eighties-1.png") right repeat-y
 }
+
+.ace-tomorrow-night-eighties .ace_indent-guide-active {
+  background: url("../tomorrow_night_eighties-2.png") right repeat-y;
+}

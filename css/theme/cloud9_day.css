@@ -154,3 +154,7 @@
 .ace-cloud9-day .ace_indent-guide {
     background: url("../cloud9_day-1.png") right repeat-y;
 }
+
+.ace-cloud9-day .ace_indent-guide-active {
+  background: url("../cloud9_day-2.png") right repeat-y;
+} 

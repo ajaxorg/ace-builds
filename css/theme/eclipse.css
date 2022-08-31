@@ -111,3 +111,7 @@
 .ace-eclipse .ace_indent-guide {
   background: url("../eclipse-1.png") right repeat-y;
 }
+
+.ace-eclipse .ace_indent-guide-active {
+  background: url("../eclipse-2.png") right repeat-y;
+} 

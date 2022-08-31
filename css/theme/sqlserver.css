@@ -165,3 +165,7 @@
 .ace-sqlserver .ace_indent-guide {
     background: url("../sqlserver-1.png") right repeat-y;
 }
+
+.ace-sqlserver .ace_indent-guide-active {
+  background: url("../sqlserver-2.png") right repeat-y;
+} 

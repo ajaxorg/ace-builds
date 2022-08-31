@@ -128,3 +128,6 @@
   background: url("../gob-1.png") right repeat-y
 }
 
+.ace-gob .ace_indent-guide-active {
+  background: url("../gob-2.png") right repeat-y;
+}

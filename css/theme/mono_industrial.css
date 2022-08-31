@@ -123,3 +123,7 @@
 .ace-mono-industrial .ace_indent-guide {
   background: url("../mono_industrial-1.png") right repeat-y
 }
+
+.ace-mono-industrial .ace_indent-guide-active {
+  background: url("../mono_industrial-2.png") right repeat-y;
+}

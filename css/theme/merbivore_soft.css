@@ -108,3 +108,7 @@
 .ace-merbivore-soft .ace_indent-guide {
   background: url("../merbivore_soft-1.png") right repeat-y
 }
+
+.ace-merbivore-soft .ace_indent-guide-active {
+  background: url("../merbivore_soft-2.png") right repeat-y;
+}

@@ -93,3 +93,7 @@
 .ace-gruvbox .ace_indent-guide {
   background: url("../gruvbox-1.png") right repeat-y;
 }
+
+.ace-gruvbox .ace_indent-guide-active {
+  background: url("../gruvbox-2.png") right repeat-y;
+}

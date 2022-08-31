@@ -103,3 +103,7 @@
 .ace-solarized-light .ace_indent-guide {
   background: url("../solarized_light-1.png") right repeat-y
 }
+
+.ace-solarized-light .ace_indent-guide-active {
+  background: url("../solarized_light-2.png") right repeat-y;
+} 

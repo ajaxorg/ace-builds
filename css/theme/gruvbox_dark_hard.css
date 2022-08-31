@@ -157,3 +157,7 @@
 .ace-gruvbox-dark-hard .ace_markup.ace_list {
   color: #83a598
 }
+
+.ace-gruvbox-dark-hard .ace_indent-guide-active {
+  background: url("../gruvbox_dark_hard-1.png") right repeat-y;
+}

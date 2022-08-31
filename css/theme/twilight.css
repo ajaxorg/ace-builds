@@ -124,3 +124,7 @@
 .ace-twilight .ace_indent-guide {
   background: url("../twilight-1.png") right repeat-y
 }
+
+.ace-twilight .ace_indent-guide-active {
+  background: url("../twilight-2.png") right repeat-y;
+}

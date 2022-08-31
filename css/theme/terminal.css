@@ -129,3 +129,7 @@
 .ace-terminal-theme .ace_indent-guide {
   background: url("../terminal-1.png") right repeat-y;
 }
+
+.ace-terminal-theme .ace_indent-guide-active {
+  background: url("../terminal-2.png") right repeat-y;
+}

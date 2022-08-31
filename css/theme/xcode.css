@@ -100,3 +100,7 @@
 .ace-xcode .ace_indent-guide {
   background: url("../xcode-1.png") right repeat-y
 }
+
+.ace-xcode .ace_indent-guide-active {
+  background: url("../xcode-2.png") right repeat-y;
+} 

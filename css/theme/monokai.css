@@ -119,3 +119,7 @@
 .ace-monokai .ace_indent-guide {
   background: url("../monokai-1.png") right repeat-y
 }
+
+.ace-monokai .ace_indent-guide-active {
+  background: url("../monokai-2.png") right repeat-y;
+}

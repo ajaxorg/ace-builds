@@ -131,3 +131,7 @@
 .ace-cobalt .ace_indent-guide {
   background: url("../cobalt-1.png") right repeat-y
 }
+
+.ace-cobalt .ace_indent-guide-active {
+  background: url("../cobalt-2.png") right repeat-y;
+}

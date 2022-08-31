@@ -110,3 +110,7 @@
 .ace-clouds-midnight .ace_indent-guide {
   background: url("../clouds_midnight-1.png") right repeat-y
 }
+
+.ace-clouds-midnight .ace_indent-guide-active {
+  background: url("../clouds_midnight-2.png") right repeat-y;
+}

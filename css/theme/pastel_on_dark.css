@@ -126,3 +126,7 @@
 .ace-pastel-on-dark .ace_indent-guide {
   background: url("../pastel_on_dark-1.png") right repeat-y
 }
+
+.ace-pastel-on-dark .ace_indent-guide-active {
+  background: url("../pastel_on_dark-2.png") right repeat-y;
+}

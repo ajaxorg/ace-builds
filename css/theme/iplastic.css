@@ -138,3 +138,7 @@
 .ace-iplastic .ace_indent-guide {
   background: url("../iplastic-2.png") right repeat-y
 }
+
+.ace-iplastic .ace_indent-guide-active {
+  background: url("../iplastic-3.png") right repeat-y;
+}

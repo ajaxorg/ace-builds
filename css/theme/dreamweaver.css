@@ -174,3 +174,7 @@
 .ace-dreamweaver .ace_indent-guide {
   background: url("../dreamweaver-1.png") right repeat-y;
 }
+
+.ace-dreamweaver .ace_indent-guide-active {
+  background: url("../dreamweaver-2.png") right repeat-y;
+} 

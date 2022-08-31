@@ -141,3 +141,7 @@
 .ace-crimson-editor .ace_indent-guide {
   background: url("../crimson_editor-1.png") right repeat-y;
 }
+
+.ace-crimson-editor .ace_indent-guide-active {
+  background: url("../crimson_editor-2.png") right repeat-y;
+} 

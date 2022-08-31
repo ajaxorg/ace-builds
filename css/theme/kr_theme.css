@@ -121,3 +121,7 @@
 .ace-kr-theme .ace_indent-guide {
   background: url("../kr_theme-1.png") right repeat-y
 }
+
+.ace-kr-theme .ace_indent-guide-active {
+  background: url("../kr_theme-2.png") right repeat-y;
+}
