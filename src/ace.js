@@ -1178,7 +1178,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.11.0";
+exports.version = "1.11.1";
 
 });
 
@@ -6632,7 +6632,7 @@ var Document = function (textOrLines) {
     this.setValue = function (text) {
         var len = this.getLength() - 1;
         this.remove(new Range(0, 0, len, this.getLine(len).length));
-        this.insert({ row: 0, column: 0 }, text);
+        this.insert({ row: 0, column: 0 }, text || "");
     };
     this.getValue = function () {
         return this.getAllLines().join(this.getNewLineCharacter());
