@@ -983,6 +983,16 @@ function transformCursor(cm, range) {
     }
     return range.head;
 }
+function updateSelectionForSurrogateCharacters(cm, curStart, curEnd) {
+    if (curStart.line === curEnd.line && curStart.ch >= curEnd.ch - 1) {
+        var text = cm.getLine(curStart.line);
+        var charCode = text.charCodeAt(curStart.ch);
+        if (0xD800 <= charCode && charCode <= 0xD8FF) {
+            curEnd.ch += 1;
+        }
+    }
+    return { start: curStart, end: curEnd };
+}
 var defaultKeymap = [
     { keys: '<Left>', type: 'keyToKey', toKeys: 'h' },
     { keys: '<Right>', type: 'keyToKey', toKeys: 'l' },
@@ -2458,9 +2468,10 @@ var commandDispatcher = {
                 mode = vim.visualBlock ? 'block' :
                     linewise ? 'line' :
                         'char';
+                var newPositions = updateSelectionForSurrogateCharacters(cm, curStart, curEnd);
                 cmSel = makeCmSelection(cm, {
-                    anchor: curStart,
-                    head: curEnd
+                    anchor: newPositions.start,
+                    head: newPositions.end
                 }, mode);
                 if (linewise) {
                     var ranges = cmSel.ranges;
@@ -2491,9 +2502,10 @@ var commandDispatcher = {
                 }
                 mode = 'char';
                 var exclusive = !motionArgs.inclusive || linewise;
+                var newPositions = updateSelectionForSurrogateCharacters(cm, curStart, curEnd);
                 cmSel = makeCmSelection(cm, {
-                    anchor: curStart,
-                    head: curEnd
+                    anchor: newPositions.start,
+                    head: newPositions.end
                 }, mode, exclusive);
             }
             cm.setSelections(cmSel.ranges, cmSel.primary);
@@ -3213,10 +3225,12 @@ var actions = {
             head = new Pos(head.line, 0);
         }
         else if (insertAt == 'charAfter') {
-            head = offsetCursor(head, 0, 1);
+            var newPosition = updateSelectionForSurrogateCharacters(cm, head, offsetCursor(head, 0, 1));
+            head = newPosition.end;
         }
         else if (insertAt == 'firstNonBlank') {
-            head = motions.moveToFirstNonWhiteSpaceCharacter(cm, head);
+            var newPosition = updateSelectionForSurrogateCharacters(cm, head, motions.moveToFirstNonWhiteSpaceCharacter(cm, head));
+            head = newPosition.end;
         }
         else if (insertAt == 'startOfSelectedArea') {
             if (!vim.visualMode)
@@ -3287,9 +3301,10 @@ var actions = {
             vim.visualLine = !!actionArgs.linewise;
             vim.visualBlock = !!actionArgs.blockwise;
             head = clipCursorToContent(cm, new Pos(anchor.line, anchor.ch + repeat - 1));
+            var newPosition = updateSelectionForSurrogateCharacters(cm, anchor, head);
             vim.sel = {
-                anchor: anchor,
-                head: head
+                anchor: newPosition.start,
+                head: newPosition.end
             };
             CodeMirror.signal(cm, "vim-mode-change", { mode: "visual", subMode: vim.visualLine ? "linewise" : vim.visualBlock ? "blockwise" : "" });
             updateCmSelection(cm);
@@ -3584,6 +3599,9 @@ var actions = {
             }
             curEnd = new Pos(curStart.line, replaceTo);
         }
+        var newPositions = updateSelectionForSurrogateCharacters(cm, curStart, curEnd);
+        curStart = newPositions.start;
+        curEnd = newPositions.end;
         if (replaceWith == '\n') {
             if (!vim.visualMode)
                 cm.replaceRange('', curStart, curEnd);
@@ -3591,10 +3609,12 @@ var actions = {
         }
         else {
             var replaceWithStr = cm.getRange(curStart, curEnd);
+            replaceWithStr = replaceWithStr.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, replaceWith);
             replaceWithStr = replaceWithStr.replace(/[^\n]/g, replaceWith);
             if (vim.visualBlock) {
                 var spaces = new Array(cm.getOption("tabSize") + 1).join(' ');
                 replaceWithStr = cm.getSelection();
+                replaceWithStr = replaceWithStr.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, replaceWith);
                 replaceWithStr = replaceWithStr.replace(/\t/g, spaces).replace(/[^\n]/g, replaceWith).split('\n');
                 cm.replaceSelections(replaceWithStr);
             }
