@@ -1178,7 +1178,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.11.2";
+exports.version = "1.12.0";
 
 });
 
@@ -8121,11 +8121,11 @@ function Folding() {
             if (dir != 1) {
                 do {
                     token = iterator.stepBackward();
-                } while (token && re.test(token.type));
-                iterator.stepForward();
+                } while (token && re.test(token.type) && !/^comment.end/.test(token.type));
+                token = iterator.stepForward();
             }
             range.start.row = iterator.getCurrentTokenRow();
-            range.start.column = iterator.getCurrentTokenColumn() + 2;
+            range.start.column = iterator.getCurrentTokenColumn() + (/^comment.start/.test(token.type) ? token.value.length : 2);
             iterator = new TokenIterator(this, row, column);
             if (dir != -1) {
                 var lastRow = -1;
@@ -8139,13 +8139,16 @@ function Folding() {
                     else if (iterator.$row > lastRow) {
                         break;
                     }
-                } while (token && re.test(token.type));
+                } while (token && re.test(token.type) && !/^comment.start/.test(token.type));
                 token = iterator.stepBackward();
             }
             else
                 token = iterator.getCurrentToken();
             range.end.row = iterator.getCurrentTokenRow();
-            range.end.column = iterator.getCurrentTokenColumn() + token.value.length - 2;
+            range.end.column = iterator.getCurrentTokenColumn();
+            if (!/^comment.end/.test(token.type)) {
+                range.end.column += token.value.length - 2;
+            }
             return range;
         }
     };
@@ -8521,6 +8524,172 @@ function BracketMatch() {
             valueIndex = 0;
         }
         return null;
+    };
+    this.getMatchingTags = function (pos) {
+        var iterator = new TokenIterator(this, pos.row, pos.column);
+        var token = this.$findTagName(iterator);
+        if (!token)
+            return;
+        var prevToken = iterator.stepBackward();
+        if (prevToken.value === '<') {
+            return this.$findClosingTag(iterator, token);
+        }
+        else {
+            return this.$findOpeningTag(iterator, token);
+        }
+    };
+    this.$findTagName = function (iterator) {
+        var token = iterator.getCurrentToken();
+        var found = false;
+        var backward = false;
+        if (token && token.type.indexOf('tag-name') === -1) {
+            do {
+                if (backward)
+                    token = iterator.stepBackward();
+                else
+                    token = iterator.stepForward();
+                if (token) {
+                    if (token.value === "/>") {
+                        backward = true;
+                    }
+                    else if (token.type.indexOf('tag-name') !== -1) {
+                        found = true;
+                    }
+                }
+            } while (token && !found);
+        }
+        return token;
+    };
+    this.$findClosingTag = function (iterator, token) {
+        var prevToken;
+        var currentTag = token.value;
+        var tag = token.value;
+        var depth = 0;
+        var openTagStart = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1);
+        token = iterator.stepForward();
+        var openTagName = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + token.value.length);
+        var foundOpenTagEnd = false;
+        do {
+            prevToken = token;
+            token = iterator.stepForward();
+            if (token) {
+                if (token.value === '>' && !foundOpenTagEnd) {
+                    var openTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for `>`
+                    foundOpenTagEnd = true;
+                }
+                if (token.type.indexOf('tag-name') !== -1) {
+                    currentTag = token.value;
+                    if (tag === currentTag) {
+                        if (prevToken.value === '<') {
+                            depth++;
+                        }
+                        else if (prevToken.value === '</') {
+                            depth--;
+                            if (depth < 0) { //found closing tag
+                                iterator.stepBackward();
+                                var closeTagStart = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 2); //Range for </
+                                token = iterator.stepForward();
+                                var closeTagName = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + token.value.length);
+                                token = iterator.stepForward();
+                                if (token && token.value === '>') {
+                                    var closeTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for >
+                                }
+                                else {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (tag === currentTag && token.value === '/>') { // self-closing tag
+                    depth--;
+                    if (depth < 0) { //found self-closing tag end
+                        var closeTagStart = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 2);
+                        var closeTagName = closeTagStart;
+                        var closeTagEnd = closeTagName;
+                        var openTagEnd = new Range(openTagName.end.row, openTagName.end.column, openTagName.end.row, openTagName.end.column + 1);
+                    }
+                }
+            }
+        } while (token && depth >= 0);
+        if (openTagStart && openTagEnd && closeTagStart && closeTagEnd && openTagName && closeTagName) {
+            return {
+                openTag: new Range(openTagStart.start.row, openTagStart.start.column, openTagEnd.end.row, openTagEnd.end.column),
+                closeTag: new Range(closeTagStart.start.row, closeTagStart.start.column, closeTagEnd.end.row, closeTagEnd.end.column),
+                openTagName: openTagName,
+                closeTagName: closeTagName
+            };
+        }
+    };
+    this.$findOpeningTag = function (iterator, token) {
+        var prevToken = iterator.getCurrentToken();
+        var tag = token.value;
+        var depth = 0;
+        var startRow = iterator.getCurrentTokenRow();
+        var startColumn = iterator.getCurrentTokenColumn();
+        var endColumn = startColumn + 2;
+        var closeTagStart = new Range(startRow, startColumn, startRow, endColumn); //Range for </
+        iterator.stepForward();
+        var closeTagName = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + token.value.length);
+        token = iterator.stepForward();
+        if (!token || token.value !== ">")
+            return;
+        var closeTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for >
+        iterator.stepBackward();
+        iterator.stepBackward();
+        do {
+            token = prevToken;
+            startRow = iterator.getCurrentTokenRow();
+            startColumn = iterator.getCurrentTokenColumn();
+            endColumn = startColumn + token.value.length;
+            prevToken = iterator.stepBackward();
+            if (token) {
+                if (token.type.indexOf('tag-name') !== -1) {
+                    if (tag === token.value) {
+                        if (prevToken.value === '<') {
+                            depth++;
+                            if (depth > 0) { //found opening tag
+                                var openTagName = new Range(startRow, startColumn, startRow, endColumn);
+                                var openTagStart = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for <
+                                do {
+                                    token = iterator.stepForward();
+                                } while (token && token.value !== '>');
+                                var openTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for >
+                            }
+                        }
+                        else if (prevToken.value === '</') {
+                            depth--;
+                        }
+                    }
+                }
+                else if (token.value === '/>') { // self-closing tag
+                    var stepCount = 0;
+                    var tmpToken = prevToken;
+                    while (tmpToken) {
+                        if (tmpToken.type.indexOf('tag-name') !== -1 && tmpToken.value === tag) {
+                            depth--;
+                            break;
+                        }
+                        else if (tmpToken.value === '<') {
+                            break;
+                        }
+                        tmpToken = iterator.stepBackward();
+                        stepCount++;
+                    }
+                    for (var i = 0; i < stepCount; i++) {
+                        iterator.stepForward();
+                    }
+                }
+            }
+        } while (prevToken && depth <= 0);
+        if (openTagStart && openTagEnd && closeTagStart && closeTagEnd && openTagName && closeTagName) {
+            return {
+                openTag: new Range(openTagStart.start.row, openTagStart.start.column, openTagEnd.end.row, openTagEnd.end.column),
+                closeTag: new Range(closeTagStart.start.row, closeTagStart.start.column, closeTagEnd.end.row, closeTagEnd.end.column),
+                openTagName: openTagName,
+                closeTagName: closeTagName
+            };
+        }
     };
 }
 exports.BracketMatch = BracketMatch;
@@ -11868,7 +12037,17 @@ Editor.$uid = 0;
                 });
                 session.$bracketHighlight = null;
             }
-            var ranges = session.getMatchingBracketRanges(self.getCursorPosition());
+            var pos = self.getCursorPosition();
+            var ranges = session.getMatchingBracketRanges(pos);
+            if (!ranges) {
+                var iterator = new TokenIterator(session, pos.row, pos.column);
+                var token = iterator.getCurrentToken();
+                if (token && /\b(?:tag-open|tag-name)/.test(token.type)) {
+                    var tagNamesRanges = session.getMatchingTags(pos);
+                    if (tagNamesRanges)
+                        ranges = [tagNamesRanges.openTagName, tagNamesRanges.closeTagName];
+                }
+            }
             if (!ranges && session.$mode.getMatching)
                 ranges = session.$mode.getMatching(self.session);
             if (!ranges) {
@@ -11899,109 +12078,6 @@ Editor.$uid = 0;
                 self.renderer.$textLayer.$highlightIndentGuide();
         }, 50);
     };
-    this.$highlightTags = function () {
-        if (this.$highlightTagPending)
-            return;
-        var self = this;
-        this.$highlightTagPending = true;
-        setTimeout(function () {
-            self.$highlightTagPending = false;
-            var session = self.session;
-            if (!session || session.destroyed)
-                return;
-            var pos = self.getCursorPosition();
-            var iterator = new TokenIterator(self.session, pos.row, pos.column);
-            var token = iterator.getCurrentToken();
-            if (!token || !/\b(?:tag-open|tag-name)/.test(token.type)) {
-                session.removeMarker(session.$tagHighlight);
-                session.$tagHighlight = null;
-                return;
-            }
-            if (token.type.indexOf("tag-open") !== -1) {
-                token = iterator.stepForward();
-                if (!token)
-                    return;
-            }
-            var tag = token.value;
-            var currentTag = token.value;
-            var depth = 0;
-            var prevToken = iterator.stepBackward();
-            if (prevToken.value === '<') {
-                do {
-                    prevToken = token;
-                    token = iterator.stepForward();
-                    if (token) {
-                        if (token.type.indexOf('tag-name') !== -1) {
-                            currentTag = token.value;
-                            if (tag === currentTag) {
-                                if (prevToken.value === '<') {
-                                    depth++;
-                                }
-                                else if (prevToken.value === '</') {
-                                    depth--;
-                                }
-                            }
-                        }
-                        else if (tag === currentTag && token.value === '/>') { // self closing tag
-                            depth--;
-                        }
-                    }
-                } while (token && depth >= 0);
-            }
-            else {
-                do {
-                    token = prevToken;
-                    prevToken = iterator.stepBackward();
-                    if (token) {
-                        if (token.type.indexOf('tag-name') !== -1) {
-                            if (tag === token.value) {
-                                if (prevToken.value === '<') {
-                                    depth++;
-                                }
-                                else if (prevToken.value === '</') {
-                                    depth--;
-                                }
-                            }
-                        }
-                        else if (token.value === '/>') { // self closing tag
-                            var stepCount = 0;
-                            var tmpToken = prevToken;
-                            while (tmpToken) {
-                                if (tmpToken.type.indexOf('tag-name') !== -1 && tmpToken.value === tag) {
-                                    depth--;
-                                    break;
-                                }
-                                else if (tmpToken.value === '<') {
-                                    break;
-                                }
-                                tmpToken = iterator.stepBackward();
-                                stepCount++;
-                            }
-                            for (var i = 0; i < stepCount; i++) {
-                                iterator.stepForward();
-                            }
-                        }
-                    }
-                } while (prevToken && depth <= 0);
-                iterator.stepForward();
-            }
-            if (!token) {
-                session.removeMarker(session.$tagHighlight);
-                session.$tagHighlight = null;
-                return;
-            }
-            var row = iterator.getCurrentTokenRow();
-            var column = iterator.getCurrentTokenColumn();
-            var range = new Range(row, column, row, column + token.value.length);
-            var sbm = session.$backMarkers[session.$tagHighlight];
-            if (session.$tagHighlight && sbm != undefined && range.compareRange(sbm.range) !== 0) {
-                session.removeMarker(session.$tagHighlight);
-                session.$tagHighlight = null;
-            }
-            if (!session.$tagHighlight)
-                session.$tagHighlight = session.addMarker(range, "ace_bracket", "text");
-        }, 50);
-    };
     this.focus = function () {
         this.textInput.focus();
     };
@@ -12030,7 +12106,6 @@ Editor.$uid = 0;
     this.$cursorChange = function () {
         this.renderer.updateCursor();
         this.$highlightBrackets();
-        this.$highlightTags();
         this.$updateHighlightActiveLine();
     };
     this.onDocumentChange = function (delta) {
@@ -12959,6 +13034,10 @@ Editor.$uid = 0;
         var cursor = this.getCursorPosition();
         var iterator = new TokenIterator(this.session, cursor.row, cursor.column);
         var prevToken = iterator.getCurrentToken();
+        var tokenCount = 0;
+        if (prevToken && prevToken.type.indexOf('tag-name') !== -1) {
+            prevToken = iterator.stepBackward();
+        }
         var token = prevToken || iterator.stepForward();
         if (!token)
             return;
@@ -13007,7 +13086,7 @@ Editor.$uid = 0;
                 if (isNaN(depth[token.value])) {
                     depth[token.value] = 0;
                 }
-                if (prevToken.value === '<') {
+                if (prevToken.value === '<' && tokenCount > 1) {
                     depth[token.value]++;
                 }
                 else if (prevToken.value === '</') {
@@ -13020,6 +13099,7 @@ Editor.$uid = 0;
             }
             if (!found) {
                 prevToken = token;
+                tokenCount++;
                 token = iterator.stepForward();
                 i = 0;
             }
@@ -13032,43 +13112,33 @@ Editor.$uid = 0;
             if (!range) {
                 range = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + i - 1, iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + i - 1);
                 pos = range.start;
-                if (expand || pos.row === cursor.row && Math.abs(pos.column - cursor.column) < 2)
+                if (expand || pos.row === cursor.row && Math.abs(pos.column - cursor.column)
+                    < 2)
                     range = this.session.getBracketRange(pos);
             }
         }
         else if (matchType === 'tag') {
-            if (token && token.type.indexOf('tag-name') !== -1)
-                var tag = token.value;
-            else
+            if (!token || token.type.indexOf('tag-name') === -1)
                 return;
             range = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() - 2, iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() - 2);
             if (range.compare(cursor.row, cursor.column) === 0) {
-                found = false;
-                do {
-                    token = prevToken;
-                    prevToken = iterator.stepBackward();
-                    if (prevToken) {
-                        if (prevToken.type.indexOf('tag-close') !== -1) {
-                            range.setEnd(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1);
-                        }
-                        if (token.value === tag && token.type.indexOf('tag-name') !== -1) {
-                            if (prevToken.value === '<') {
-                                depth[tag]++;
-                            }
-                            else if (prevToken.value === '</') {
-                                depth[tag]--;
-                            }
-                            if (depth[tag] === 0)
-                                found = true;
-                        }
+                var tagsRanges = this.session.getMatchingTags(cursor);
+                if (tagsRanges) {
+                    if (tagsRanges.openTag.contains(cursor.row, cursor.column)) {
+                        range = tagsRanges.closeTag;
+                        pos = range.start;
                     }
-                } while (prevToken && !found);
+                    else {
+                        range = tagsRanges.openTag;
+                        if (tagsRanges.closeTag.start.row === cursor.row && tagsRanges.closeTag.start.column
+                            === cursor.column)
+                            pos = range.end;
+                        else
+                            pos = range.start;
+                    }
+                }
             }
-            if (token && token.type.indexOf('tag-name')) {
-                pos = range.start;
-                if (pos.row == cursor.row && Math.abs(pos.column - cursor.column) < 2)
-                    pos = range.end;
-            }
+            pos = pos || range.start;
         }
         pos = range && range.cursor || pos;
         if (pos) {
@@ -15059,8 +15129,10 @@ var Text = function (parentEl) {
         var line = this.session.doc.getLine(cell.row);
         if (line !== "") {
             var childNodes = cell.element.childNodes;
-            if (childNodes && childNodes[indentLevel - 1] && childNodes[indentLevel - 1].classList) {
-                childNodes[indentLevel - 1].classList.add("ace_indent-guide-active");
+            if (childNodes) {
+                var node = childNodes[indentLevel - 1];
+                if (node && node.classList && node.classList.contains("ace_indent-guide"))
+                    node.classList.add("ace_indent-guide-active");
             }
         }
     };

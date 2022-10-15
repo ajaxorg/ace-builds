@@ -2070,15 +2070,15 @@ ace.define("ace/mode/php/php",[], function (require, exports, module) {
 					},
 					{
 						value: PHP.Constants.T_NAME_FULLY_QUALIFIED,
-						re: /^\\App\\Namespace/
+						re: /^\\\w+\\\w+(?:\\\w+)*/
 					},
 					{
 						value: PHP.Constants.T_NAME_QUALIFIED,
-						re: /^App\\Namespace/
+						re: /^\w+\\\w+(?:\\\w+)*/
 					},
 					{
 						value: PHP.Constants.T_NAME_RELATIVE,
-						re: /^namespace\\Namespace/
+						re: /^namespace\\\w+(?:\\\w+)*/
 					},
 					{
 						value: PHP.Constants.T_ATTRIBUTE,
