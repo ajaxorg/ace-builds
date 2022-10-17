@@ -2070,7 +2070,7 @@ ace.define("ace/mode/php/php",[], function (require, exports, module) {
 					},
 					{
 						value: PHP.Constants.T_NAME_FULLY_QUALIFIED,
-						re: /^\\\w+\\\w+(?:\\\w+)*/
+						re: /^\\\w+(?:\\\w+)*/
 					},
 					{
 						value: PHP.Constants.T_NAME_QUALIFIED,
