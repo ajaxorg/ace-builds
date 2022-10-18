@@ -1762,10 +1762,6 @@ ace.define("ace/mode/php/php",[], function (require, exports, module) {
 						re: /^match\b/i
 					},
 					{
-						value: PHP.Constants.T_NAMESPACE,
-						re: /^namespace\b/i
-					},
-					{
 						value: PHP.Constants.T_NEW,
 						re: /^new\b/i
 					},
@@ -2079,6 +2075,10 @@ ace.define("ace/mode/php/php",[], function (require, exports, module) {
 					{
 						value: PHP.Constants.T_NAME_RELATIVE,
 						re: /^namespace\\\w+(?:\\\w+)*/
+					},
+					{
+						value: PHP.Constants.T_NAMESPACE,
+						re: /^namespace\b/i
 					},
 					{
 						value: PHP.Constants.T_ATTRIBUTE,
