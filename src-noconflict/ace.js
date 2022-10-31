@@ -1178,7 +1178,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.12.3";
+exports.version = "1.12.4";
 
 });
 
@@ -11586,6 +11586,10 @@ exports.commands = [{
         scrollIntoView: "cursor",
         readOnly: true
     }, {
+        name: "openlink",
+        bindKey: bindKey("Ctrl+F3", "F3"),
+        exec: function (editor) { editor.openLink(); }
+    }, {
         name: "joinlines",
         description: "Join lines",
         bindKey: bindKey(null, null),
@@ -11709,6 +11713,17 @@ for (var i = 1; i < 9; i++) {
 });
 
 ace.define("ace/editor",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/useragent","ace/keyboard/textinput","ace/mouse/mouse_handler","ace/mouse/fold_handler","ace/keyboard/keybinding","ace/edit_session","ace/search","ace/range","ace/lib/event_emitter","ace/commands/command_manager","ace/commands/default_commands","ace/config","ace/token_iterator","ace/clipboard"], function(require, exports, module){"use strict";
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 var oop = require("./lib/oop");
 var dom = require("./lib/dom");
 var lang = require("./lib/lang");
@@ -12838,6 +12853,43 @@ Editor.$uid = 0;
                 }
             }
         }
+    };
+    this.findLinkAt = function (row, column) {
+        var e_1, _a;
+        var line = this.session.getLine(row);
+        var wordParts = line.split(/((?:https?|ftp):\/\/[\S]+)/);
+        var columnPosition = column;
+        if (columnPosition < 0)
+            columnPosition = 0;
+        var previousPosition = 0, currentPosition = 0, match;
+        try {
+            for (var wordParts_1 = __values(wordParts), wordParts_1_1 = wordParts_1.next(); !wordParts_1_1.done; wordParts_1_1 = wordParts_1.next()) {
+                var item = wordParts_1_1.value;
+                currentPosition = previousPosition + item.length;
+                if (columnPosition >= previousPosition && columnPosition <= currentPosition) {
+                    if (item.match(/((?:https?|ftp):\/\/[\S]+)/)) {
+                        match = item.replace(/[\s:.,'";}\]]+$/, "");
+                        break;
+                    }
+                }
+                previousPosition = currentPosition;
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (wordParts_1_1 && !wordParts_1_1.done && (_a = wordParts_1.return)) _a.call(wordParts_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return match;
+    };
+    this.openLink = function () {
+        var cursor = this.selection.getCursor();
+        var url = this.findLinkAt(cursor.row, cursor.column);
+        if (url)
+            window.open(url, '_blank');
+        return url != null;
     };
     this.removeLines = function () {
         var rows = this.$getSelectedRows();

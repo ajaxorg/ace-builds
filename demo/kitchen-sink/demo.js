@@ -1660,6 +1660,7 @@ var supportedModes = {
     LiveScript: ["ls"],
     Log: ["log"],
     LogiQL: ["logic|lql"],
+    Logtalk: ["lgt"],
     LSL: ["lsl"],
     Lua: ["lua"],
     LuaPage: ["lp"],
@@ -1723,6 +1724,7 @@ var supportedModes = {
     snippets: ["snippets"],
     Soy_Template: ["soy"],
     Space: ["space"],
+    SPARQL: ["rq"],
     SQL: ["sql"],
     SQLServer: ["sqlserver"],
     Stylus: ["styl|stylus"],
@@ -1735,6 +1737,7 @@ var supportedModes = {
     Textile: ["textile"],
     Toml: ["toml"],
     TSX: ["tsx"],
+    Turtle: ["ttl"],
     Twig: ["twig|swig"],
     Typescript: ["ts|typescript|str"],
     Vala: ["vala"],
@@ -2060,7 +2063,6 @@ var docs = {
 
     "docs/c9search.c9search_results": "C9 Search Results",
     "docs/mel.mel": "MEL",
-    "docs/Nix.nix": "Nix"
 };
 
 var ownSource = {
