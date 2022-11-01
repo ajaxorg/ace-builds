@@ -6457,6 +6457,13 @@ exports.handler = {
         domLib.setStyle(element.style, "width", w + "px");
         domLib.setStyle(element.style, "height", h + "px");
     },
+    $getDirectionForHighlight: function (editor) {
+        var cm = editor.state.cm;
+        var vim = getVim(cm);
+        if (!vim.insertMode) {
+            return editor.session.selection.isBackwards() || editor.session.selection.isEmpty();
+        }
+    },
     handleKeyboard: function (data, hashId, key, keyCode, e) {
         var editor = data.editor;
         var cm = editor.state.cm;

@@ -1178,7 +1178,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.12.4";
+exports.version = "1.12.5";
 
 });
 
@@ -8412,14 +8412,18 @@ function BracketMatch() {
         }
         return range;
     };
-    this.getMatchingBracketRanges = function (pos) {
+    this.getMatchingBracketRanges = function (pos, isBackwards) {
         var line = this.getLine(pos.row);
-        var chr = line.charAt(pos.column - 1);
-        var match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
+        var bracketsRegExp = /([\(\[\{])|([\)\]\}])/;
+        var chr = !isBackwards && line.charAt(pos.column - 1);
+        var match = chr && chr.match(bracketsRegExp);
         if (!match) {
-            chr = line.charAt(pos.column);
-            pos = { row: pos.row, column: pos.column + 1 };
-            match = chr && chr.match(/([\(\[\{])|([\)\]\}])/);
+            chr = (isBackwards === undefined || isBackwards) && line.charAt(pos.column);
+            pos = {
+                row: pos.row,
+                column: pos.column + 1
+            };
+            match = chr && chr.match(bracketsRegExp);
         }
         if (!match)
             return null;
@@ -12054,7 +12058,9 @@ Editor.$uid = 0;
                 session.$bracketHighlight = null;
             }
             var pos = self.getCursorPosition();
-            var ranges = session.getMatchingBracketRanges(pos);
+            var handler = self.getKeyboardHandler();
+            var isBackwards = handler && handler.$getDirectionForHighlight && handler.$getDirectionForHighlight(self);
+            var ranges = session.getMatchingBracketRanges(pos, isBackwards);
             if (!ranges) {
                 var iterator = new TokenIterator(session, pos.row, pos.column);
                 var token = iterator.getCurrentToken();
