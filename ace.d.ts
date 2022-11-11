@@ -181,6 +181,7 @@ export namespace Ace {
     showFoldWidgets: boolean;
     showLineNumbers: boolean;
     displayIndentGuides: boolean;
+    highlightIndentGuides: boolean;
     highlightGutterLine: boolean;
     hScrollBarAlwaysVisible: boolean;
     vScrollBarAlwaysVisible: boolean;
@@ -190,6 +191,7 @@ export namespace Ace {
     minLines: number;
     scrollPastEnd: boolean;
     fixedWidthGutter: boolean;
+    customScrollbar: boolean;
     theme: string;
     hasCssTransforms: boolean;
     maxPixelHeight: number;
@@ -221,6 +223,7 @@ export namespace Ace {
     placeholder: string;
     value: string;
     session: EditSession;
+    relativeLineNumbers: boolean;
   }
 
   export interface SearchOptions {

@@ -719,7 +719,7 @@ exports.importCssString = importCssString;
 exports.importCssStylsheet = function (uri, doc) {
     exports.buildDom(["link", { rel: "stylesheet", href: uri }], exports.getDocumentHead(doc));
 };
-exports.scrollbarWidth = function (document) {
+exports.scrollbarWidth = function (doc) {
     var inner = exports.createElement("ace_inner");
     inner.style.width = "100%";
     inner.style.minWidth = "0px";
@@ -735,12 +735,14 @@ exports.scrollbarWidth = function (document) {
     style.height = "150px";
     style.display = "block";
     outer.appendChild(inner);
-    var body = document.documentElement;
+    var body = (doc && doc.documentElement) || (document && document.documentElement);
+    if (!body)
+        return 0;
     body.appendChild(outer);
     var noScrollbar = inner.offsetWidth;
     style.overflow = "scroll";
     var withScrollbar = inner.offsetWidth;
-    if (noScrollbar == withScrollbar) {
+    if (noScrollbar === withScrollbar) {
         withScrollbar = outer.clientWidth;
     }
     body.removeChild(outer);
@@ -1178,7 +1180,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.12.5";
+exports.version = "1.13.0";
 
 });
 
@@ -1356,6 +1358,7 @@ var Keys = (function () {
             219: '[', 220: '\\', 221: ']', 222: "'", 111: '/', 106: '*'
         }
     };
+    ret.PRINTABLE_KEYS[173] = '-';
     var name, i;
     for (i in ret.FUNCTION_KEYS) {
         name = ret.FUNCTION_KEYS[i].toLowerCase();
@@ -1371,7 +1374,6 @@ var Keys = (function () {
     ret.enter = ret["return"];
     ret.escape = ret.esc;
     ret.del = ret["delete"];
-    ret[173] = '-';
     (function () {
         var mods = ["cmd", "ctrl", "alt", "shift"];
         for (var i = Math.pow(2, mods.length); i--;) {
@@ -17082,6 +17084,9 @@ var VirtualRenderer = function (container, theme) {
         var top = pos.top;
         var topMargin = $viewMargin && $viewMargin.top || 0;
         var bottomMargin = $viewMargin && $viewMargin.bottom || 0;
+        if (this.$scrollAnimation) {
+            this.$stopAnimation = true;
+        }
         var scrollTop = this.$scrollAnimation ? this.session.getScrollTop() : this.scrollTop;
         if (scrollTop + topMargin > top) {
             if (offset && scrollTop + topMargin > top + this.lineHeight)
@@ -17174,7 +17179,17 @@ var VirtualRenderer = function (container, theme) {
         clearInterval(this.$timer);
         _self.session.setScrollTop(steps.shift());
         _self.session.$scrollTop = toValue;
+        function endAnimation() {
+            _self.$timer = clearInterval(_self.$timer);
+            _self.$scrollAnimation = null;
+            _self.$stopAnimation = false;
+            callback && callback();
+        }
         this.$timer = setInterval(function () {
+            if (_self.$stopAnimation) {
+                endAnimation();
+                return;
+            }
             if (!_self.session)
                 return clearInterval(_self.$timer);
             if (steps.length) {
@@ -17187,9 +17202,7 @@ var VirtualRenderer = function (container, theme) {
                 toValue = null;
             }
             else {
-                _self.$timer = clearInterval(_self.$timer);
-                _self.$scrollAnimation = null;
-                callback && callback();
+                endAnimation();
             }
         }, 10);
     };
