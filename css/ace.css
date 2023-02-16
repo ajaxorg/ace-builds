@@ -39,17 +39,6 @@ z-index: 8;
 background: #000;
 }
 /*ace_editor.css*/
-/*
-styles = []
-for (var i = 1; i < 16; i++) {
-styles.push(".ace_br" + i + "{" + (
-["top-left", "top-right", "bottom-right", "bottom-left"]
-).map(function(x, j) {
-return i & (1<<j) ? "border-" + x + "-radius: 3px;" : "" 
-}).filter(Boolean).join(" ") + "}")
-}
-styles.join("\n")
-*/
 .ace_br1 {border-top-left-radius    : 3px;}
 .ace_br2 {border-top-right-radius   : 3px;}
 .ace_br3 {border-top-left-radius    : 3px; border-top-right-radius:    3px;}
