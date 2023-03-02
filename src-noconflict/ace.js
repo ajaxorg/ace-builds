@@ -1132,13 +1132,14 @@ exports.setModuleUrl = function (name, subst) {
     return options.$moduleUrls[name] = subst;
 };
 var loader = function (moduleName, cb) {
-    if (moduleName == "ace/theme/textmate")
+    if (moduleName === "ace/theme/textmate" || moduleName === "./theme/textmate")
         return cb(null, require("./theme/textmate"));
     return console.error("loader is not configured");
 };
 exports.setLoader = function (cb) {
     loader = cb;
 };
+exports.dynamicModules = Object.create(null);
 exports.$loading = {};
 exports.loadModule = function (moduleName, onLoad) {
     var module, moduleType;
@@ -1146,31 +1147,49 @@ exports.loadModule = function (moduleName, onLoad) {
         moduleType = moduleName[0];
         moduleName = moduleName[1];
     }
-    try {
-        module = require(moduleName);
-    }
-    catch (e) { }
-    if (module && !exports.$loading[moduleName])
-        return onLoad && onLoad(module);
-    if (!exports.$loading[moduleName])
-        exports.$loading[moduleName] = [];
-    exports.$loading[moduleName].push(onLoad);
-    if (exports.$loading[moduleName].length > 1)
-        return;
-    var afterLoad = function () {
-        loader(moduleName, function (err, module) {
-            exports._emit("load.module", { name: moduleName, module: module });
-            var listeners = exports.$loading[moduleName];
-            exports.$loading[moduleName] = null;
-            listeners.forEach(function (onLoad) {
-                onLoad && onLoad(module);
+    var load = function (module) {
+        if (module && !exports.$loading[moduleName])
+            return onLoad && onLoad(module);
+        if (!exports.$loading[moduleName])
+            exports.$loading[moduleName] = [];
+        exports.$loading[moduleName].push(onLoad);
+        if (exports.$loading[moduleName].length > 1)
+            return;
+        var afterLoad = function () {
+            loader(moduleName, function (err, module) {
+                exports._emit("load.module", { name: moduleName, module: module });
+                var listeners = exports.$loading[moduleName];
+                exports.$loading[moduleName] = null;
+                listeners.forEach(function (onLoad) {
+                    onLoad && onLoad(module);
+                });
             });
-        });
+        };
+        if (!exports.get("packaged"))
+            return afterLoad();
+        net.loadScript(exports.moduleUrl(moduleName, moduleType), afterLoad);
+        reportErrorIfPathIsNotConfigured();
     };
-    if (!exports.get("packaged"))
-        return afterLoad();
-    net.loadScript(exports.moduleUrl(moduleName, moduleType), afterLoad);
-    reportErrorIfPathIsNotConfigured();
+    if (exports.dynamicModules[moduleName]) {
+        exports.dynamicModules[moduleName]().then(function (module) {
+            if (module.default) {
+                load(module.default);
+            }
+            else {
+                load(module);
+            }
+        });
+    }
+    else {
+        try {
+            module = require(moduleName);
+        }
+        catch (e) { }
+        load(module);
+    }
+};
+exports.setModuleLoader = function (moduleName, onLoad) {
+    exports.dynamicModules[moduleName] = onLoad;
 };
 var reportErrorIfPathIsNotConfigured = function () {
     if (!options.basePath && !options.workerPath
@@ -1180,7 +1199,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.15.2";
+exports.version = "1.15.3";
 
 });
 
@@ -1218,6 +1237,10 @@ init(true);function init(packaged) {
     var currentScript = (document.currentScript || document._currentScript ); // native or polyfill
     var currentDocument = currentScript && currentScript.ownerDocument || document;
     
+    if (currentScript && currentScript.src) {
+        scriptUrl = currentScript.src.split(/[?#]/)[0].split("/").slice(0, -1).join("/") || "";
+    }
+    
     var scripts = currentDocument.getElementsByTagName("script");
     for (var i=0; i<scripts.length; i++) {
         var script = scripts[i];
@@ -1234,7 +1257,7 @@ init(true);function init(packaged) {
             }
         }
 
-        var m = src.match(/^(.*)\/ace(\-\w+)?\.js(\?|$)/);
+        var m = src.match(/^(.*)\/ace([\-.]\w+)?\.js(\?|$)/);
         if (m)
             scriptUrl = m[1];
     }
@@ -18616,7 +18639,7 @@ exports.defaultCommands = [{
         readOnly: true
     }, {
         name: "toggleSplitSelectionIntoLines",
-        description: "Split into lines",
+        description: "Split selection into lines",
         exec: function (editor) {
             if (editor.multiSelect.rangeCount > 1)
                 editor.multiSelect.joinSelections();
