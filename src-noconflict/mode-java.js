@@ -740,6 +740,9 @@ oop.inherits(Mode, TextMode);
     this.lineCommentStart = "//";
     this.blockComment = { start: "/*", end: "*/" };
     this.$quotes = { '"': '"', "'": "'", "`": "`" };
+    this.$pairQuotesAfter = {
+        "`": /\w/
+    };
     this.getNextLineIndent = function (state, line, tab) {
         var indent = this.$getIndent(line);
         var tokenizedLine = this.getTokenizer().getLineTokens(line, state);

@@ -415,6 +415,10 @@ var Mode = function () {
 oop.inherits(Mode, TextMode);
 (function () {
     this.lineCommentStart = "#";
+    this.$pairQuotesAfter = {
+        "'": /[ruf]/i,
+        '"': /[ruf]/i
+    };
     this.getNextLineIndent = function (state, line, tab) {
         var indent = this.$getIndent(line);
         var tokenizedLine = this.getTokenizer().getLineTokens(line, state);

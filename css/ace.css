@@ -58,7 +58,7 @@ background: #000;
 position: relative;
 overflow: hidden;
 padding: 0;
-font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Source Code Pro', 'source-code-pro', monospace;
 direction: ltr;
 text-align: left;
 -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -377,8 +377,7 @@ url("./main-7.png"),
 url("./main-8.png");
 }
 .ace_tooltip {
-background-color: #FFF;
-background-image: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.1));
+background-color: #f5f5f5;
 border: 1px solid gray;
 border-radius: 1px;
 box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -396,6 +395,9 @@ font-style: normal;
 font-weight: normal;
 letter-spacing: normal;
 pointer-events: none;
+}
+.ace_tooltip:focus {
+outline: 1px solid black;
 }
 .ace_folding-enabled > .ace_gutter-cell {
 padding-right: 13px;
@@ -541,6 +543,7 @@ margin: 0 10px;
 .ace_ghost_text {
 opacity: 0.5;
 font-style: italic;
+white-space: pre;
 }
 /*ace-tm*/
 .ace-tm .ace_gutter {
@@ -749,7 +752,7 @@ background: rgba(58, 103, 78, 0.62);
 }
 .ace_completion-meta {
 opacity: 0.5;
-margin: 0.9em;
+margin: 0 0.9em;
 }
 .ace_completion-message {
 color: blue;
@@ -776,6 +779,38 @@ box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);
 line-height: 1.4;
 background: #25282c;
 color: #c1c1c1;
+}
+.ace_autocomplete_right .ace_text-layer  {
+width: calc(100% - 8px);
+}
+.ace_autocomplete_right .ace_line {
+display: flex;
+}
+.ace_autocomplete_right .ace_completion-meta {
+flex: 1;
+text-align: right;
+}
+/*inlinetooltip.css*/
+.ace_inline_autocomplete_tooltip {
+display: inline-block;
+}
+.inline_autocomplete_tooltip_entry {
+display: inline-block;
+padding: 0 5px;
+}
+.inline_autocomplete_tooltip_button {
+display: inline-block;
+cursor: pointer;
+padding: 5px;
+}
+.inline_autocomplete_tooltip_button:hover {
+background-color: rgba(0, 0, 0, 0.1);
+}
+div.inline_autocomplete_tooltip_button_disabled {
+display: inline-block;
+padding: 5px;
+cursor: default;
+color: #777;
 }
 /*settings_menu.css*/
 #ace_settingsmenu, #kbshortcutmenu {
@@ -840,7 +875,7 @@ background: #f0f0f0;
 }
 /*promtp.css*/
 .ace_prompt_container {
-max-width: 600px;
+max-width: 603px;
 width: 100%;
 margin: 20px auto;
 padding: 3px;

@@ -4083,44 +4083,331 @@ exports.OptionPanel = OptionPanel;
 
 });
 
-define("ace/ext/statusbar",["require","exports","module","ace/lib/dom","ace/lib/lang"], function(require, exports, module){"use strict";
-var dom = require("../lib/dom");
+define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module){"use strict";
+var Renderer = require("../virtual_renderer").VirtualRenderer;
+var Editor = require("../editor").Editor;
+var Range = require("../range").Range;
+var event = require("../lib/event");
 var lang = require("../lib/lang");
-var StatusBar = function (editor, parentNode) {
-    this.element = dom.createElement("div");
-    this.element.className = "ace_status-indicator";
-    this.element.style.cssText = "display: inline-block;";
-    parentNode.appendChild(this.element);
-    var statusUpdate = lang.delayedCall(function () {
-        this.updateStatus(editor);
-    }.bind(this)).schedule.bind(null, 100);
-    editor.on("changeStatus", statusUpdate);
-    editor.on("changeSelection", statusUpdate);
-    editor.on("keyboardActivity", statusUpdate);
+var dom = require("../lib/dom");
+var getAriaId = function (index) {
+    return "suggest-aria-id:".concat(index);
 };
-(function () {
-    this.updateStatus = function (editor) {
-        var status = [];
-        function add(str, separator) {
-            str && status.push(str, separator || "|");
+var $singleLineEditor = function (el) {
+    var renderer = new Renderer(el);
+    renderer.$maxLines = 4;
+    var editor = new Editor(renderer);
+    editor.setHighlightActiveLine(false);
+    editor.setShowPrintMargin(false);
+    editor.renderer.setShowGutter(false);
+    editor.renderer.setHighlightGutterLine(false);
+    editor.$mouseHandler.$focusTimeout = 0;
+    editor.$highlightTagPending = true;
+    return editor;
+};
+var AcePopup = function (parentNode) {
+    var el = dom.createElement("div");
+    var popup = new $singleLineEditor(el);
+    if (parentNode)
+        parentNode.appendChild(el);
+    el.style.display = "none";
+    popup.renderer.content.style.cursor = "default";
+    popup.renderer.setStyle("ace_autocomplete");
+    popup.renderer.container.setAttribute("role", "listbox");
+    popup.renderer.container.setAttribute("aria-label", "Autocomplete suggestions");
+    popup.setOption("displayIndentGuides", false);
+    popup.setOption("dragDelay", 150);
+    var noop = function () { };
+    popup.focus = noop;
+    popup.$isFocused = true;
+    popup.renderer.$cursorLayer.restartTimer = noop;
+    popup.renderer.$cursorLayer.element.style.opacity = 0;
+    popup.renderer.$maxLines = 8;
+    popup.renderer.$keepTextAreaAtCursor = false;
+    popup.setHighlightActiveLine(false);
+    popup.session.highlight("");
+    popup.session.$searchHighlight.clazz = "ace_highlight-marker";
+    popup.on("mousedown", function (e) {
+        var pos = e.getDocumentPosition();
+        popup.selection.moveToPosition(pos);
+        selectionMarker.start.row = selectionMarker.end.row = pos.row;
+        e.stop();
+    });
+    var lastMouseEvent;
+    var hoverMarker = new Range(-1, 0, -1, Infinity);
+    var selectionMarker = new Range(-1, 0, -1, Infinity);
+    selectionMarker.id = popup.session.addMarker(selectionMarker, "ace_active-line", "fullLine");
+    popup.setSelectOnHover = function (val) {
+        if (!val) {
+            hoverMarker.id = popup.session.addMarker(hoverMarker, "ace_line-hover", "fullLine");
         }
-        add(editor.keyBinding.getStatusText(editor));
-        if (editor.commands.recording)
-            add("REC");
-        var sel = editor.selection;
-        var c = sel.lead;
-        if (!sel.isEmpty()) {
-            var r = editor.getSelectionRange();
-            add("(" + (r.end.row - r.start.row) + ":" + (r.end.column - r.start.column) + ")", " ");
+        else if (hoverMarker.id) {
+            popup.session.removeMarker(hoverMarker.id);
+            hoverMarker.id = null;
         }
-        add(c.row + ":" + c.column, " ");
-        if (sel.rangeCount)
-            add("[" + sel.rangeCount + "]", " ");
-        status.pop();
-        this.element.textContent = status.join("");
     };
-}).call(StatusBar.prototype);
-exports.StatusBar = StatusBar;
+    popup.setSelectOnHover(false);
+    popup.on("mousemove", function (e) {
+        if (!lastMouseEvent) {
+            lastMouseEvent = e;
+            return;
+        }
+        if (lastMouseEvent.x == e.x && lastMouseEvent.y == e.y) {
+            return;
+        }
+        lastMouseEvent = e;
+        lastMouseEvent.scrollTop = popup.renderer.scrollTop;
+        var row = lastMouseEvent.getDocumentPosition().row;
+        if (hoverMarker.start.row != row) {
+            if (!hoverMarker.id)
+                popup.setRow(row);
+            setHoverMarker(row);
+        }
+    });
+    popup.renderer.on("beforeRender", function () {
+        if (lastMouseEvent && hoverMarker.start.row != -1) {
+            lastMouseEvent.$pos = null;
+            var row = lastMouseEvent.getDocumentPosition().row;
+            if (!hoverMarker.id)
+                popup.setRow(row);
+            setHoverMarker(row, true);
+        }
+    });
+    popup.renderer.on("afterRender", function () {
+        var row = popup.getRow();
+        var t = popup.renderer.$textLayer;
+        var selected = t.element.childNodes[row - t.config.firstRow];
+        var el = document.activeElement; // Active element is textarea of main editor
+        if (selected !== t.selectedNode && t.selectedNode) {
+            dom.removeCssClass(t.selectedNode, "ace_selected");
+            el.removeAttribute("aria-activedescendant");
+            t.selectedNode.removeAttribute("id");
+        }
+        t.selectedNode = selected;
+        if (selected) {
+            dom.addCssClass(selected, "ace_selected");
+            var ariaId = getAriaId(row);
+            selected.id = ariaId;
+            popup.renderer.container.setAttribute("aria-activedescendant", ariaId);
+            el.setAttribute("aria-activedescendant", ariaId);
+            selected.setAttribute("role", "option");
+            selected.setAttribute("aria-label", popup.getData(row).value);
+            selected.setAttribute("aria-setsize", popup.data.length);
+            selected.setAttribute("aria-posinset", row);
+        }
+    });
+    var hideHoverMarker = function () { setHoverMarker(-1); };
+    var setHoverMarker = function (row, suppressRedraw) {
+        if (row !== hoverMarker.start.row) {
+            hoverMarker.start.row = hoverMarker.end.row = row;
+            if (!suppressRedraw)
+                popup.session._emit("changeBackMarker");
+            popup._emit("changeHoverMarker");
+        }
+    };
+    popup.getHoveredRow = function () {
+        return hoverMarker.start.row;
+    };
+    event.addListener(popup.container, "mouseout", hideHoverMarker);
+    popup.on("hide", hideHoverMarker);
+    popup.on("changeSelection", hideHoverMarker);
+    popup.session.doc.getLength = function () {
+        return popup.data.length;
+    };
+    popup.session.doc.getLine = function (i) {
+        var data = popup.data[i];
+        if (typeof data == "string")
+            return data;
+        return (data && data.value) || "";
+    };
+    var bgTokenizer = popup.session.bgTokenizer;
+    bgTokenizer.$tokenizeRow = function (row) {
+        var data = popup.data[row];
+        var tokens = [];
+        if (!data)
+            return tokens;
+        if (typeof data == "string")
+            data = { value: data };
+        var caption = data.caption || data.value || data.name;
+        function addToken(value, className) {
+            value && tokens.push({
+                type: (data.className || "") + (className || ""),
+                value: value
+            });
+        }
+        var lower = caption.toLowerCase();
+        var filterText = (popup.filterText || "").toLowerCase();
+        var lastIndex = 0;
+        var lastI = 0;
+        for (var i = 0; i <= filterText.length; i++) {
+            if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {
+                var sub = filterText.slice(lastI, i);
+                lastI = i;
+                var index = lower.indexOf(sub, lastIndex);
+                if (index == -1)
+                    continue;
+                addToken(caption.slice(lastIndex, index), "");
+                lastIndex = index + sub.length;
+                addToken(caption.slice(index, lastIndex), "completion-highlight");
+            }
+        }
+        addToken(caption.slice(lastIndex, caption.length), "");
+        if (data.meta)
+            tokens.push({ type: "completion-meta", value: data.meta });
+        if (data.message)
+            tokens.push({ type: "completion-message", value: data.message });
+        return tokens;
+    };
+    bgTokenizer.$updateOnChange = noop;
+    bgTokenizer.start = noop;
+    popup.session.$computeWidth = function () {
+        return this.screenWidth = 0;
+    };
+    popup.isOpen = false;
+    popup.isTopdown = false;
+    popup.autoSelect = true;
+    popup.filterText = "";
+    popup.data = [];
+    popup.setData = function (list, filterText) {
+        popup.filterText = filterText || "";
+        popup.setValue(lang.stringRepeat("\n", list.length), -1);
+        popup.data = list || [];
+        popup.setRow(0);
+    };
+    popup.getData = function (row) {
+        return popup.data[row];
+    };
+    popup.getRow = function () {
+        return selectionMarker.start.row;
+    };
+    popup.setRow = function (line) {
+        line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length, line));
+        if (selectionMarker.start.row != line) {
+            popup.selection.clearSelection();
+            selectionMarker.start.row = selectionMarker.end.row = line || 0;
+            popup.session._emit("changeBackMarker");
+            popup.moveCursorTo(line || 0, 0);
+            if (popup.isOpen)
+                popup._signal("select");
+        }
+    };
+    popup.on("changeSelection", function () {
+        if (popup.isOpen)
+            popup.setRow(popup.selection.lead.row);
+        popup.renderer.scrollCursorIntoView();
+    });
+    popup.hide = function () {
+        this.container.style.display = "none";
+        popup.anchorPos = null;
+        popup.anchor = null;
+        if (popup.isOpen) {
+            popup.isOpen = false;
+            this._signal("hide");
+        }
+    };
+    popup.tryShow = function (pos, lineHeight, anchor, forceShow) {
+        if (!forceShow && popup.isOpen && popup.anchorPos && popup.anchor &&
+            popup.anchorPos.top === pos.top && popup.anchorPos.left === pos.left &&
+            popup.anchor === anchor) {
+            return true;
+        }
+        var el = this.container;
+        var screenHeight = window.innerHeight;
+        var screenWidth = window.innerWidth;
+        var renderer = this.renderer;
+        var maxH = renderer.$maxLines * lineHeight * 1.4;
+        var dims = { top: 0, bottom: 0, left: 0 };
+        var spaceBelow = screenHeight - pos.top - 3 * this.$borderSize - lineHeight;
+        var spaceAbove = pos.top - 3 * this.$borderSize;
+        if (!anchor) {
+            if (spaceAbove <= spaceBelow || spaceBelow >= maxH) {
+                anchor = "bottom";
+            }
+            else {
+                anchor = "top";
+            }
+        }
+        if (anchor === "top") {
+            dims.bottom = pos.top - this.$borderSize;
+            dims.top = dims.bottom - maxH;
+        }
+        else if (anchor === "bottom") {
+            dims.top = pos.top + lineHeight + this.$borderSize;
+            dims.bottom = dims.top + maxH;
+        }
+        var fitsX = dims.top >= 0 && dims.bottom <= screenHeight;
+        if (!forceShow && !fitsX) {
+            return false;
+        }
+        if (!fitsX) {
+            if (anchor === "top") {
+                renderer.$maxPixelHeight = spaceAbove;
+            }
+            else {
+                renderer.$maxPixelHeight = spaceBelow;
+            }
+        }
+        else {
+            renderer.$maxPixelHeight = null;
+        }
+        if (anchor === "top") {
+            el.style.top = "";
+            el.style.bottom = (screenHeight - dims.bottom) + "px";
+            popup.isTopdown = false;
+        }
+        else {
+            el.style.top = dims.top + "px";
+            el.style.bottom = "";
+            popup.isTopdown = true;
+        }
+        el.style.display = "";
+        var left = pos.left;
+        if (left + el.offsetWidth > screenWidth)
+            left = screenWidth - el.offsetWidth;
+        el.style.left = left + "px";
+        el.style.right = "";
+        if (!popup.isOpen) {
+            popup.isOpen = true;
+            this._signal("show");
+            lastMouseEvent = null;
+        }
+        popup.anchorPos = pos;
+        popup.anchor = anchor;
+        return true;
+    };
+    popup.show = function (pos, lineHeight, topdownOnly) {
+        this.tryShow(pos, lineHeight, topdownOnly ? "bottom" : undefined, true);
+    };
+    popup.goTo = function (where) {
+        var row = this.getRow();
+        var max = this.session.getLength() - 1;
+        switch (where) {
+            case "up":
+                row = row <= 0 ? max : row - 1;
+                break;
+            case "down":
+                row = row >= max ? -1 : row + 1;
+                break;
+            case "start":
+                row = 0;
+                break;
+            case "end":
+                row = max;
+                break;
+        }
+        this.setRow(row);
+    };
+    popup.getTextLeftOffset = function () {
+        return this.$borderSize + this.renderer.$padding + this.$imageSize;
+    };
+    popup.$imageSize = 0;
+    popup.$borderSize = 1;
+    return popup;
+};
+dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}\n.ace_autocomplete_right .ace_text-layer  {\n    width: calc(100% - 8px);\n}\n.ace_autocomplete_right .ace_line {\n    display: flex;\n}\n.ace_autocomplete_right .ace_completion-meta {\n    flex: 1;\n    text-align: right;\n}\n", "autocompletion.css", false);
+exports.AcePopup = AcePopup;
+exports.$singleLineEditor = $singleLineEditor;
+exports.getAriaId = getAriaId;
 
 });
 
@@ -4463,7 +4750,7 @@ var SnippetManager = function () {
         }
         return result;
     };
-    this.insertSnippetForSelection = function (editor, snippetText) {
+    var processSnippetText = function (editor, snippetText) {
         var cursor = editor.getCursorPosition();
         var line = editor.session.getLine(cursor.row);
         var tabString = editor.session.getTabString();
@@ -4571,11 +4858,23 @@ var SnippetManager = function () {
                     t.end = { row: row, column: column };
             }
         });
+        return {
+            text: text,
+            tabstops: tabstops,
+            tokens: tokens
+        };
+    };
+    this.getDisplayTextForSnippet = function (editor, snippetText) {
+        var processedSnippet = processSnippetText.call(this, editor, snippetText);
+        return processedSnippet.text;
+    };
+    this.insertSnippetForSelection = function (editor, snippetText) {
+        var processedSnippet = processSnippetText.call(this, editor, snippetText);
         var range = editor.getSelectionRange();
-        var end = editor.session.replace(range, text);
+        var end = editor.session.replace(range, processedSnippet.text);
         var tabstopManager = new TabstopManager(editor);
         var selectionId = editor.inVirtualSelectionMode && editor.selection.index;
-        tabstopManager.addTabstops(tabstops, range.start, end, selectionId);
+        tabstopManager.addTabstops(processedSnippet.tabstops, range.start, end, selectionId);
     };
     this.insertSnippet = function (editor, snippetText) {
         var self = this;
@@ -5074,6 +5373,740 @@ var Editor = require("./editor").Editor;
 
 });
 
+define("ace/autocomplete/inline",["require","exports","module","ace/snippets"], function(require, exports, module){"use strict";
+var snippetManager = require("../snippets").snippetManager;
+var AceInline = function () {
+    this.editor = null;
+};
+(function () {
+    this.show = function (editor, completion, prefix) {
+        prefix = prefix || "";
+        if (editor && this.editor && this.editor !== editor) {
+            this.hide();
+            this.editor = null;
+        }
+        if (!editor || !completion) {
+            return false;
+        }
+        var displayText = completion.snippet ? snippetManager.getDisplayTextForSnippet(editor, completion.snippet) : completion.value;
+        if (!displayText || !displayText.startsWith(prefix)) {
+            return false;
+        }
+        this.editor = editor;
+        displayText = displayText.slice(prefix.length);
+        if (displayText === "") {
+            editor.removeGhostText();
+        }
+        else {
+            editor.setGhostText(displayText);
+        }
+        return true;
+    };
+    this.isOpen = function () {
+        if (!this.editor) {
+            return false;
+        }
+        return !!this.editor.renderer.$ghostText;
+    };
+    this.hide = function () {
+        if (!this.editor) {
+            return false;
+        }
+        this.editor.removeGhostText();
+        return true;
+    };
+    this.destroy = function () {
+        this.hide();
+        this.editor = null;
+    };
+}).call(AceInline.prototype);
+exports.AceInline = AceInline;
+
+});
+
+define("ace/autocomplete/util",["require","exports","module"], function(require, exports, module){"use strict";
+exports.parForEach = function (array, fn, callback) {
+    var completed = 0;
+    var arLength = array.length;
+    if (arLength === 0)
+        callback();
+    for (var i = 0; i < arLength; i++) {
+        fn(array[i], function (result, err) {
+            completed++;
+            if (completed === arLength)
+                callback(result, err);
+        });
+    }
+};
+var ID_REGEX = /[a-zA-Z_0-9\$\-\u00A2-\u2000\u2070-\uFFFF]/;
+exports.retrievePrecedingIdentifier = function (text, pos, regex) {
+    regex = regex || ID_REGEX;
+    var buf = [];
+    for (var i = pos - 1; i >= 0; i--) {
+        if (regex.test(text[i]))
+            buf.push(text[i]);
+        else
+            break;
+    }
+    return buf.reverse().join("");
+};
+exports.retrieveFollowingIdentifier = function (text, pos, regex) {
+    regex = regex || ID_REGEX;
+    var buf = [];
+    for (var i = pos; i < text.length; i++) {
+        if (regex.test(text[i]))
+            buf.push(text[i]);
+        else
+            break;
+    }
+    return buf;
+};
+exports.getCompletionPrefix = function (editor) {
+    var pos = editor.getCursorPosition();
+    var line = editor.session.getLine(pos.row);
+    var prefix;
+    editor.completers.forEach(function (completer) {
+        if (completer.identifierRegexps) {
+            completer.identifierRegexps.forEach(function (identifierRegex) {
+                if (!prefix && identifierRegex)
+                    prefix = this.retrievePrecedingIdentifier(line, pos.column, identifierRegex);
+            }.bind(this));
+        }
+    }.bind(this));
+    return prefix || this.retrievePrecedingIdentifier(line, pos.column);
+};
+
+});
+
+define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/inline","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config"], function(require, exports, module){"use strict";
+var HashHandler = require("./keyboard/hash_handler").HashHandler;
+var AcePopup = require("./autocomplete/popup").AcePopup;
+var AceInline = require("./autocomplete/inline").AceInline;
+var getAriaId = require("./autocomplete/popup").getAriaId;
+var util = require("./autocomplete/util");
+var lang = require("./lib/lang");
+var dom = require("./lib/dom");
+var snippetManager = require("./snippets").snippetManager;
+var config = require("./config");
+var destroyCompleter = function (e, editor) {
+    editor.completer && editor.completer.destroy();
+};
+var Autocomplete = function () {
+    this.autoInsert = false;
+    this.autoSelect = true;
+    this.exactMatch = false;
+    this.inlineEnabled = false;
+    this.keyboardHandler = new HashHandler();
+    this.keyboardHandler.bindKeys(this.commands);
+    this.blurListener = this.blurListener.bind(this);
+    this.changeListener = this.changeListener.bind(this);
+    this.mousedownListener = this.mousedownListener.bind(this);
+    this.mousewheelListener = this.mousewheelListener.bind(this);
+    this.changeTimer = lang.delayedCall(function () {
+        this.updateCompletions(true);
+    }.bind(this));
+    this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);
+};
+(function () {
+    this.$init = function () {
+        this.popup = new AcePopup(document.body || document.documentElement);
+        this.popup.on("click", function (e) {
+            this.insertMatch();
+            e.stop();
+        }.bind(this));
+        this.popup.focus = this.editor.focus.bind(this.editor);
+        this.popup.on("show", this.$onPopupChange.bind(this));
+        this.popup.on("hide", this.$onHidePopup.bind(this));
+        this.popup.on("select", this.$onPopupChange.bind(this));
+        this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
+        return this.popup;
+    };
+    this.$initInline = function () {
+        if (!this.inlineEnabled || this.inlineRenderer)
+            return;
+        this.inlineRenderer = new AceInline();
+        return this.inlineRenderer;
+    };
+    this.getPopup = function () {
+        return this.popup || this.$init();
+    };
+    this.$onHidePopup = function () {
+        if (this.inlineRenderer) {
+            this.inlineRenderer.hide();
+        }
+        this.hideDocTooltip();
+    };
+    this.$onPopupChange = function (hide) {
+        if (this.inlineRenderer && this.inlineEnabled) {
+            var completion = hide ? null : this.popup.getData(this.popup.getRow());
+            var prefix = util.getCompletionPrefix(this.editor);
+            if (!this.inlineRenderer.show(this.editor, completion, prefix)) {
+                this.inlineRenderer.hide();
+            }
+            this.$updatePopupPosition();
+        }
+        this.tooltipTimer.call(null, null);
+    };
+    this.$updatePopupPosition = function () {
+        var editor = this.editor;
+        var renderer = editor.renderer;
+        var lineHeight = renderer.layerConfig.lineHeight;
+        var pos = renderer.$cursorLayer.getPixelPosition(this.base, true);
+        pos.left -= this.popup.getTextLeftOffset();
+        var rect = editor.container.getBoundingClientRect();
+        pos.top += rect.top - renderer.layerConfig.offset;
+        pos.left += rect.left - editor.renderer.scrollLeft;
+        pos.left += renderer.gutterWidth;
+        var posGhostText = {
+            top: pos.top,
+            left: pos.left
+        };
+        if (renderer.$ghostText && renderer.$ghostTextWidget) {
+            if (this.base.row === renderer.$ghostText.position.row) {
+                posGhostText.top += renderer.$ghostTextWidget.el.offsetHeight;
+            }
+        }
+        if (this.popup.tryShow(posGhostText, lineHeight, "bottom")) {
+            return;
+        }
+        if (this.popup.tryShow(pos, lineHeight, "top")) {
+            return;
+        }
+        this.popup.show(pos, lineHeight);
+    };
+    this.openPopup = function (editor, prefix, keepPopupPosition) {
+        if (!this.popup)
+            this.$init();
+        if (this.inlineEnabled && !this.inlineRenderer)
+            this.$initInline();
+        this.popup.autoSelect = this.autoSelect;
+        this.popup.setData(this.completions.filtered, this.completions.filterText);
+        if (this.editor.textInput.setAriaOptions) {
+            this.editor.textInput.setAriaOptions({
+                activeDescendant: getAriaId(this.popup.getRow()),
+                inline: this.inlineEnabled
+            });
+        }
+        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+        this.popup.setRow(this.autoSelect ? 0 : -1);
+        if (!keepPopupPosition) {
+            this.popup.setTheme(editor.getTheme());
+            this.popup.setFontSize(editor.getFontSize());
+            this.$updatePopupPosition();
+            if (this.tooltipNode) {
+                this.updateDocTooltip();
+            }
+        }
+        else if (keepPopupPosition && !prefix) {
+            this.detach();
+        }
+        this.changeTimer.cancel();
+    };
+    this.detach = function () {
+        if (this.editor) {
+            this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
+            this.editor.off("changeSelection", this.changeListener);
+            this.editor.off("blur", this.blurListener);
+            this.editor.off("mousedown", this.mousedownListener);
+            this.editor.off("mousewheel", this.mousewheelListener);
+        }
+        this.changeTimer.cancel();
+        this.hideDocTooltip();
+        if (this.completionProvider) {
+            this.completionProvider.detach();
+        }
+        if (this.popup && this.popup.isOpen)
+            this.popup.hide();
+        if (this.base)
+            this.base.detach();
+        this.activated = false;
+        this.completionProvider = this.completions = this.base = null;
+    };
+    this.changeListener = function (e) {
+        var cursor = this.editor.selection.lead;
+        if (cursor.row != this.base.row || cursor.column < this.base.column) {
+            this.detach();
+        }
+        if (this.activated)
+            this.changeTimer.schedule();
+        else
+            this.detach();
+    };
+    this.blurListener = function (e) {
+        var el = document.activeElement;
+        var text = this.editor.textInput.getElement();
+        var fromTooltip = e.relatedTarget && this.tooltipNode && this.tooltipNode.contains(e.relatedTarget);
+        var container = this.popup && this.popup.container;
+        if (el != text && el.parentNode != container && !fromTooltip
+            && el != this.tooltipNode && e.relatedTarget != text) {
+            this.detach();
+        }
+    };
+    this.mousedownListener = function (e) {
+        this.detach();
+    };
+    this.mousewheelListener = function (e) {
+        this.detach();
+    };
+    this.goTo = function (where) {
+        this.popup.goTo(where);
+    };
+    this.insertMatch = function (data, options) {
+        if (!data)
+            data = this.popup.getData(this.popup.getRow());
+        if (!data)
+            return false;
+        var completions = this.completions;
+        var result = this.getCompletionProvider().insertMatch(this.editor, data, completions.filterText, options);
+        if (this.completions == completions)
+            this.detach();
+        return result;
+    };
+    this.commands = {
+        "Up": function (editor) { editor.completer.goTo("up"); },
+        "Down": function (editor) { editor.completer.goTo("down"); },
+        "Ctrl-Up|Ctrl-Home": function (editor) { editor.completer.goTo("start"); },
+        "Ctrl-Down|Ctrl-End": function (editor) { editor.completer.goTo("end"); },
+        "Esc": function (editor) { editor.completer.detach(); },
+        "Return": function (editor) { return editor.completer.insertMatch(); },
+        "Shift-Return": function (editor) { editor.completer.insertMatch(null, { deleteSuffix: true }); },
+        "Tab": function (editor) {
+            var result = editor.completer.insertMatch();
+            if (!result && !editor.tabstopManager)
+                editor.completer.goTo("down");
+            else
+                return result;
+        },
+        "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
+        "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }
+    };
+    this.showPopup = function (editor, options) {
+        if (this.editor)
+            this.detach();
+        this.activated = true;
+        this.editor = editor;
+        if (editor.completer != this) {
+            if (editor.completer)
+                editor.completer.detach();
+            editor.completer = this;
+        }
+        editor.on("changeSelection", this.changeListener);
+        editor.on("blur", this.blurListener);
+        editor.on("mousedown", this.mousedownListener);
+        editor.on("mousewheel", this.mousewheelListener);
+        this.updateCompletions(false, options);
+    };
+    this.getCompletionProvider = function () {
+        if (!this.completionProvider)
+            this.completionProvider = new CompletionProvider();
+        return this.completionProvider;
+    };
+    this.gatherCompletions = function (editor, callback) {
+        return this.getCompletionProvider().gatherCompletions(editor, callback);
+    };
+    this.updateCompletions = function (keepPopupPosition, options) {
+        if (keepPopupPosition && this.base && this.completions) {
+            var pos = this.editor.getCursorPosition();
+            var prefix = this.editor.session.getTextRange({ start: this.base, end: pos });
+            if (prefix == this.completions.filterText)
+                return;
+            this.completions.setFilter(prefix);
+            if (!this.completions.filtered.length)
+                return this.detach();
+            if (this.completions.filtered.length == 1
+                && this.completions.filtered[0].value == prefix
+                && !this.completions.filtered[0].snippet)
+                return this.detach();
+            this.openPopup(this.editor, prefix, keepPopupPosition);
+            return;
+        }
+        if (options && options.matches) {
+            var pos = this.editor.getSelectionRange().start;
+            this.base = this.editor.session.doc.createAnchor(pos.row, pos.column);
+            this.base.$insertRight = true;
+            this.completions = new FilteredList(options.matches);
+            return this.openPopup(this.editor, "", keepPopupPosition);
+        }
+        var session = this.editor.getSession();
+        var pos = this.editor.getCursorPosition();
+        var prefix = util.getCompletionPrefix(this.editor);
+        this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
+        this.base.$insertRight = true;
+        var completionOptions = { exactMatch: this.exactMatch };
+        this.getCompletionProvider().provideCompletions(this.editor, completionOptions, function (err, completions, finished) {
+            var filtered = completions.filtered;
+            var prefix = util.getCompletionPrefix(this.editor);
+            if (finished) {
+                if (!filtered.length)
+                    return this.detach();
+                if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
+                    return this.detach();
+                if (this.autoInsert && filtered.length == 1)
+                    return this.insertMatch(filtered[0]);
+            }
+            this.completions = completions;
+            this.openPopup(this.editor, prefix, keepPopupPosition);
+        }.bind(this));
+    };
+    this.cancelContextMenu = function () {
+        this.editor.$mouseHandler.cancelContextMenu();
+    };
+    this.updateDocTooltip = function () {
+        var popup = this.popup;
+        var all = popup.data;
+        var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);
+        var doc = null;
+        if (!selected || !this.editor || !this.popup.isOpen)
+            return this.hideDocTooltip();
+        this.editor.completers.some(function (completer) {
+            if (completer.getDocTooltip)
+                doc = completer.getDocTooltip(selected);
+            return doc;
+        });
+        if (!doc && typeof selected != "string")
+            doc = selected;
+        if (typeof doc == "string")
+            doc = { docText: doc };
+        if (!doc || !(doc.docHTML || doc.docText))
+            return this.hideDocTooltip();
+        this.showDocTooltip(doc);
+    };
+    this.showDocTooltip = function (item) {
+        if (!this.tooltipNode) {
+            this.tooltipNode = dom.createElement("div");
+            this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
+            this.tooltipNode.style.margin = 0;
+            this.tooltipNode.style.pointerEvents = "auto";
+            this.tooltipNode.tabIndex = -1;
+            this.tooltipNode.onblur = this.blurListener.bind(this);
+            this.tooltipNode.onclick = this.onTooltipClick.bind(this);
+        }
+        var tooltipNode = this.tooltipNode;
+        if (item.docHTML) {
+            tooltipNode.innerHTML = item.docHTML;
+        }
+        else if (item.docText) {
+            tooltipNode.textContent = item.docText;
+        }
+        if (!tooltipNode.parentNode)
+            document.body.appendChild(tooltipNode);
+        var popup = this.popup;
+        var rect = popup.container.getBoundingClientRect();
+        tooltipNode.style.top = popup.container.style.top;
+        tooltipNode.style.bottom = popup.container.style.bottom;
+        tooltipNode.style.display = "block";
+        if (window.innerWidth - rect.right < 320) {
+            if (rect.left < 320) {
+                if (popup.isTopdown) {
+                    tooltipNode.style.top = rect.bottom + "px";
+                    tooltipNode.style.left = rect.left + "px";
+                    tooltipNode.style.right = "";
+                    tooltipNode.style.bottom = "";
+                }
+                else {
+                    tooltipNode.style.top = popup.container.offsetTop - tooltipNode.offsetHeight + "px";
+                    tooltipNode.style.left = rect.left + "px";
+                    tooltipNode.style.right = "";
+                    tooltipNode.style.bottom = "";
+                }
+            }
+            else {
+                tooltipNode.style.right = window.innerWidth - rect.left + "px";
+                tooltipNode.style.left = "";
+            }
+        }
+        else {
+            tooltipNode.style.left = (rect.right + 1) + "px";
+            tooltipNode.style.right = "";
+        }
+    };
+    this.hideDocTooltip = function () {
+        this.tooltipTimer.cancel();
+        if (!this.tooltipNode)
+            return;
+        var el = this.tooltipNode;
+        if (!this.editor.isFocused() && document.activeElement == el)
+            this.editor.focus();
+        this.tooltipNode = null;
+        if (el.parentNode)
+            el.parentNode.removeChild(el);
+    };
+    this.onTooltipClick = function (e) {
+        var a = e.target;
+        while (a && a != this.tooltipNode) {
+            if (a.nodeName == "A" && a.href) {
+                a.rel = "noreferrer";
+                a.target = "_blank";
+                break;
+            }
+            a = a.parentNode;
+        }
+    };
+    this.destroy = function () {
+        this.detach();
+        if (this.popup) {
+            this.popup.destroy();
+            var el = this.popup.container;
+            if (el && el.parentNode)
+                el.parentNode.removeChild(el);
+        }
+        if (this.editor && this.editor.completer == this) {
+            this.editor.off("destroy", destroyCompleter);
+            this.editor.completer = null;
+        }
+        this.inlineRenderer = this.popup = this.editor = null;
+    };
+}).call(Autocomplete.prototype);
+Autocomplete.for = function (editor) {
+    if (editor.completer instanceof Autocomplete) {
+        return editor.completer;
+    }
+    if (editor.completer) {
+        editor.completer.destroy();
+        editor.completer = null;
+    }
+    if (config.get("sharedPopups")) {
+        if (!Autocomplete.$sharedInstance)
+            Autocomplete.$sharedInstance = new Autocomplete();
+        editor.completer = Autocomplete.$sharedInstance;
+    }
+    else {
+        editor.completer = new Autocomplete();
+        editor.once("destroy", destroyCompleter);
+    }
+    return editor.completer;
+};
+Autocomplete.startCommand = {
+    name: "startAutocomplete",
+    exec: function (editor, options) {
+        var completer = Autocomplete.for(editor);
+        completer.autoInsert = false;
+        completer.autoSelect = true;
+        completer.showPopup(editor, options);
+        completer.cancelContextMenu();
+    },
+    bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
+};
+var CompletionProvider = function () {
+    this.active = true;
+};
+(function () {
+    this.insertByIndex = function (editor, index, options) {
+        if (!this.completions || !this.completions.filtered) {
+            return false;
+        }
+        return this.insertMatch(editor, this.completions.filtered[index], options);
+    };
+    this.insertMatch = function (editor, data, options) {
+        if (!data)
+            return false;
+        editor.startOperation({ command: { name: "insertMatch" } });
+        if (data.completer && data.completer.insertMatch) {
+            data.completer.insertMatch(editor, data);
+        }
+        else {
+            if (!this.completions) {
+                return false;
+            }
+            if (this.completions.filterText) {
+                var ranges = editor.selection.getAllRanges();
+                for (var i = 0, range; range = ranges[i]; i++) {
+                    range.start.column -= this.completions.filterText.length;
+                    editor.session.remove(range);
+                }
+            }
+            if (data.snippet)
+                snippetManager.insertSnippet(editor, data.snippet);
+            else
+                editor.execCommand("insertstring", data.value || data);
+        }
+        editor.endOperation();
+        return true;
+    };
+    this.gatherCompletions = function (editor, callback) {
+        var session = editor.getSession();
+        var pos = editor.getCursorPosition();
+        var prefix = util.getCompletionPrefix(editor);
+        var matches = [];
+        var total = editor.completers.length;
+        editor.completers.forEach(function (completer, i) {
+            completer.getCompletions(editor, session, pos, prefix, function (err, results) {
+                if (!err && results)
+                    matches = matches.concat(results);
+                callback(null, {
+                    prefix: util.getCompletionPrefix(editor),
+                    matches: matches,
+                    finished: (--total === 0)
+                });
+            });
+        });
+        return true;
+    };
+    this.provideCompletions = function (editor, options, callback) {
+        var processResults = function (results) {
+            var prefix = results.prefix;
+            var matches = results.matches;
+            this.completions = new FilteredList(matches);
+            if (options.exactMatch)
+                this.completions.exactMatch = true;
+            if (options.ignoreCaption)
+                this.completions.ignoreCaption = true;
+            this.completions.setFilter(prefix);
+            callback(null, this.completions, results.finished);
+        }.bind(this);
+        var isImmediate = true;
+        var immediateResults = null;
+        this.gatherCompletions(editor, function (err, results) {
+            if (!this.active) {
+                return;
+            }
+            if (err) {
+                callback(err, [], true);
+                this.detach();
+            }
+            var prefix = results.prefix;
+            if (prefix.indexOf(results.prefix) !== 0)
+                return;
+            if (isImmediate) {
+                immediateResults = results;
+                return;
+            }
+            processResults(results);
+        }.bind(this));
+        isImmediate = false;
+        if (immediateResults) {
+            var results = immediateResults;
+            immediateResults = null;
+            processResults(results);
+        }
+    };
+    this.detach = function () {
+        this.active = false;
+    };
+}).call(CompletionProvider.prototype);
+var FilteredList = function (array, filterText) {
+    this.all = array;
+    this.filtered = array;
+    this.filterText = filterText || "";
+    this.exactMatch = false;
+    this.ignoreCaption = false;
+};
+(function () {
+    this.setFilter = function (str) {
+        if (str.length > this.filterText && str.lastIndexOf(this.filterText, 0) === 0)
+            var matches = this.filtered;
+        else
+            var matches = this.all;
+        this.filterText = str;
+        matches = this.filterCompletions(matches, this.filterText);
+        matches = matches.sort(function (a, b) {
+            return b.exactMatch - a.exactMatch || b.$score - a.$score
+                || (a.caption || a.value).localeCompare(b.caption || b.value);
+        });
+        var prev = null;
+        matches = matches.filter(function (item) {
+            var caption = item.snippet || item.caption || item.value;
+            if (caption === prev)
+                return false;
+            prev = caption;
+            return true;
+        });
+        this.filtered = matches;
+    };
+    this.filterCompletions = function (items, needle) {
+        var results = [];
+        var upper = needle.toUpperCase();
+        var lower = needle.toLowerCase();
+        loop: for (var i = 0, item; item = items[i]; i++) {
+            var caption = (!this.ignoreCaption && item.caption) || item.value || item.snippet;
+            if (!caption)
+                continue;
+            var lastIndex = -1;
+            var matchMask = 0;
+            var penalty = 0;
+            var index, distance;
+            if (this.exactMatch) {
+                if (needle !== caption.substr(0, needle.length))
+                    continue loop;
+            }
+            else {
+                var fullMatchIndex = caption.toLowerCase().indexOf(lower);
+                if (fullMatchIndex > -1) {
+                    penalty = fullMatchIndex;
+                }
+                else {
+                    for (var j = 0; j < needle.length; j++) {
+                        var i1 = caption.indexOf(lower[j], lastIndex + 1);
+                        var i2 = caption.indexOf(upper[j], lastIndex + 1);
+                        index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;
+                        if (index < 0)
+                            continue loop;
+                        distance = index - lastIndex - 1;
+                        if (distance > 0) {
+                            if (lastIndex === -1)
+                                penalty += 10;
+                            penalty += distance;
+                            matchMask = matchMask | (1 << j);
+                        }
+                        lastIndex = index;
+                    }
+                }
+            }
+            item.matchMask = matchMask;
+            item.exactMatch = penalty ? 0 : 1;
+            item.$score = (item.score || 0) - penalty;
+            results.push(item);
+        }
+        return results;
+    };
+}).call(FilteredList.prototype);
+exports.Autocomplete = Autocomplete;
+exports.CompletionProvider = CompletionProvider;
+exports.FilteredList = FilteredList;
+
+});
+
+define("ace/ext/statusbar",["require","exports","module","ace/lib/dom","ace/lib/lang"], function(require, exports, module){"use strict";
+var dom = require("../lib/dom");
+var lang = require("../lib/lang");
+var StatusBar = function (editor, parentNode) {
+    this.element = dom.createElement("div");
+    this.element.className = "ace_status-indicator";
+    this.element.style.cssText = "display: inline-block;";
+    parentNode.appendChild(this.element);
+    var statusUpdate = lang.delayedCall(function () {
+        this.updateStatus(editor);
+    }.bind(this)).schedule.bind(null, 100);
+    editor.on("changeStatus", statusUpdate);
+    editor.on("changeSelection", statusUpdate);
+    editor.on("keyboardActivity", statusUpdate);
+};
+(function () {
+    this.updateStatus = function (editor) {
+        var status = [];
+        function add(str, separator) {
+            str && status.push(str, separator || "|");
+        }
+        add(editor.keyBinding.getStatusText(editor));
+        if (editor.commands.recording)
+            add("REC");
+        var sel = editor.selection;
+        var c = sel.lead;
+        if (!sel.isEmpty()) {
+            var r = editor.getSelectionRange();
+            add("(" + (r.end.row - r.start.row) + ":" + (r.end.column - r.start.column) + ")", " ");
+        }
+        add(c.row + ":" + c.column, " ");
+        if (sel.rangeCount)
+            add("[" + sel.rangeCount + "]", " ");
+        status.pop();
+        this.element.textContent = status.join("");
+    };
+}).call(StatusBar.prototype);
+exports.StatusBar = StatusBar;
+
+});
+
 define("ace/ext/emmet",["require","exports","module","ace/keyboard/hash_handler","ace/editor","ace/snippets","ace/range","ace/config","resources","resources","tabStops","resources","utils","actions"], function(require, exports, module){"use strict";
 var HashHandler = require("../keyboard/hash_handler").HashHandler;
 var Editor = require("../editor").Editor;
@@ -5374,820 +6407,6 @@ exports.setCore = function (e) {
 
 });
 
-define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module){"use strict";
-var Renderer = require("../virtual_renderer").VirtualRenderer;
-var Editor = require("../editor").Editor;
-var Range = require("../range").Range;
-var event = require("../lib/event");
-var lang = require("../lib/lang");
-var dom = require("../lib/dom");
-var getAriaId = function (index) {
-    return "suggest-aria-id:".concat(index);
-};
-var $singleLineEditor = function (el) {
-    var renderer = new Renderer(el);
-    renderer.$maxLines = 4;
-    var editor = new Editor(renderer);
-    editor.setHighlightActiveLine(false);
-    editor.setShowPrintMargin(false);
-    editor.renderer.setShowGutter(false);
-    editor.renderer.setHighlightGutterLine(false);
-    editor.$mouseHandler.$focusTimeout = 0;
-    editor.$highlightTagPending = true;
-    return editor;
-};
-var AcePopup = function (parentNode) {
-    var el = dom.createElement("div");
-    var popup = new $singleLineEditor(el);
-    if (parentNode)
-        parentNode.appendChild(el);
-    el.style.display = "none";
-    popup.renderer.content.style.cursor = "default";
-    popup.renderer.setStyle("ace_autocomplete");
-    popup.renderer.container.setAttribute("role", "listbox");
-    popup.renderer.container.setAttribute("aria-label", "Autocomplete suggestions");
-    popup.setOption("displayIndentGuides", false);
-    popup.setOption("dragDelay", 150);
-    var noop = function () { };
-    popup.focus = noop;
-    popup.$isFocused = true;
-    popup.renderer.$cursorLayer.restartTimer = noop;
-    popup.renderer.$cursorLayer.element.style.opacity = 0;
-    popup.renderer.$maxLines = 8;
-    popup.renderer.$keepTextAreaAtCursor = false;
-    popup.setHighlightActiveLine(false);
-    popup.session.highlight("");
-    popup.session.$searchHighlight.clazz = "ace_highlight-marker";
-    popup.on("mousedown", function (e) {
-        var pos = e.getDocumentPosition();
-        popup.selection.moveToPosition(pos);
-        selectionMarker.start.row = selectionMarker.end.row = pos.row;
-        e.stop();
-    });
-    var lastMouseEvent;
-    var hoverMarker = new Range(-1, 0, -1, Infinity);
-    var selectionMarker = new Range(-1, 0, -1, Infinity);
-    selectionMarker.id = popup.session.addMarker(selectionMarker, "ace_active-line", "fullLine");
-    popup.setSelectOnHover = function (val) {
-        if (!val) {
-            hoverMarker.id = popup.session.addMarker(hoverMarker, "ace_line-hover", "fullLine");
-        }
-        else if (hoverMarker.id) {
-            popup.session.removeMarker(hoverMarker.id);
-            hoverMarker.id = null;
-        }
-    };
-    popup.setSelectOnHover(false);
-    popup.on("mousemove", function (e) {
-        if (!lastMouseEvent) {
-            lastMouseEvent = e;
-            return;
-        }
-        if (lastMouseEvent.x == e.x && lastMouseEvent.y == e.y) {
-            return;
-        }
-        lastMouseEvent = e;
-        lastMouseEvent.scrollTop = popup.renderer.scrollTop;
-        var row = lastMouseEvent.getDocumentPosition().row;
-        if (hoverMarker.start.row != row) {
-            if (!hoverMarker.id)
-                popup.setRow(row);
-            setHoverMarker(row);
-        }
-    });
-    popup.renderer.on("beforeRender", function () {
-        if (lastMouseEvent && hoverMarker.start.row != -1) {
-            lastMouseEvent.$pos = null;
-            var row = lastMouseEvent.getDocumentPosition().row;
-            if (!hoverMarker.id)
-                popup.setRow(row);
-            setHoverMarker(row, true);
-        }
-    });
-    popup.renderer.on("afterRender", function () {
-        var row = popup.getRow();
-        var t = popup.renderer.$textLayer;
-        var selected = t.element.childNodes[row - t.config.firstRow];
-        var el = document.activeElement; // Active element is textarea of main editor
-        if (selected !== t.selectedNode && t.selectedNode) {
-            dom.removeCssClass(t.selectedNode, "ace_selected");
-            el.removeAttribute("aria-activedescendant");
-            t.selectedNode.removeAttribute("id");
-        }
-        t.selectedNode = selected;
-        if (selected) {
-            dom.addCssClass(selected, "ace_selected");
-            var ariaId = getAriaId(row);
-            selected.id = ariaId;
-            popup.renderer.container.setAttribute("aria-activedescendant", ariaId);
-            el.setAttribute("aria-activedescendant", ariaId);
-            selected.setAttribute("role", "option");
-            selected.setAttribute("aria-label", popup.getData(row).value);
-            selected.setAttribute("aria-setsize", popup.data.length);
-            selected.setAttribute("aria-posinset", row);
-        }
-    });
-    var hideHoverMarker = function () { setHoverMarker(-1); };
-    var setHoverMarker = function (row, suppressRedraw) {
-        if (row !== hoverMarker.start.row) {
-            hoverMarker.start.row = hoverMarker.end.row = row;
-            if (!suppressRedraw)
-                popup.session._emit("changeBackMarker");
-            popup._emit("changeHoverMarker");
-        }
-    };
-    popup.getHoveredRow = function () {
-        return hoverMarker.start.row;
-    };
-    event.addListener(popup.container, "mouseout", hideHoverMarker);
-    popup.on("hide", hideHoverMarker);
-    popup.on("changeSelection", hideHoverMarker);
-    popup.session.doc.getLength = function () {
-        return popup.data.length;
-    };
-    popup.session.doc.getLine = function (i) {
-        var data = popup.data[i];
-        if (typeof data == "string")
-            return data;
-        return (data && data.value) || "";
-    };
-    var bgTokenizer = popup.session.bgTokenizer;
-    bgTokenizer.$tokenizeRow = function (row) {
-        var data = popup.data[row];
-        var tokens = [];
-        if (!data)
-            return tokens;
-        if (typeof data == "string")
-            data = { value: data };
-        var caption = data.caption || data.value || data.name;
-        function addToken(value, className) {
-            value && tokens.push({
-                type: (data.className || "") + (className || ""),
-                value: value
-            });
-        }
-        var lower = caption.toLowerCase();
-        var filterText = (popup.filterText || "").toLowerCase();
-        var lastIndex = 0;
-        var lastI = 0;
-        for (var i = 0; i <= filterText.length; i++) {
-            if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {
-                var sub = filterText.slice(lastI, i);
-                lastI = i;
-                var index = lower.indexOf(sub, lastIndex);
-                if (index == -1)
-                    continue;
-                addToken(caption.slice(lastIndex, index), "");
-                lastIndex = index + sub.length;
-                addToken(caption.slice(index, lastIndex), "completion-highlight");
-            }
-        }
-        addToken(caption.slice(lastIndex, caption.length), "");
-        if (data.meta)
-            tokens.push({ type: "completion-meta", value: data.meta });
-        if (data.message)
-            tokens.push({ type: "completion-message", value: data.message });
-        return tokens;
-    };
-    bgTokenizer.$updateOnChange = noop;
-    bgTokenizer.start = noop;
-    popup.session.$computeWidth = function () {
-        return this.screenWidth = 0;
-    };
-    popup.isOpen = false;
-    popup.isTopdown = false;
-    popup.autoSelect = true;
-    popup.filterText = "";
-    popup.data = [];
-    popup.setData = function (list, filterText) {
-        popup.filterText = filterText || "";
-        popup.setValue(lang.stringRepeat("\n", list.length), -1);
-        popup.data = list || [];
-        popup.setRow(0);
-    };
-    popup.getData = function (row) {
-        return popup.data[row];
-    };
-    popup.getRow = function () {
-        return selectionMarker.start.row;
-    };
-    popup.setRow = function (line) {
-        line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length, line));
-        if (selectionMarker.start.row != line) {
-            popup.selection.clearSelection();
-            selectionMarker.start.row = selectionMarker.end.row = line || 0;
-            popup.session._emit("changeBackMarker");
-            popup.moveCursorTo(line || 0, 0);
-            if (popup.isOpen)
-                popup._signal("select");
-        }
-    };
-    popup.on("changeSelection", function () {
-        if (popup.isOpen)
-            popup.setRow(popup.selection.lead.row);
-        popup.renderer.scrollCursorIntoView();
-    });
-    popup.hide = function () {
-        this.container.style.display = "none";
-        this._signal("hide");
-        popup.isOpen = false;
-    };
-    popup.show = function (pos, lineHeight, topdownOnly) {
-        var el = this.container;
-        var screenHeight = window.innerHeight;
-        var screenWidth = window.innerWidth;
-        var renderer = this.renderer;
-        var maxH = renderer.$maxLines * lineHeight * 1.4;
-        var top = pos.top + this.$borderSize;
-        var allowTopdown = top > screenHeight / 2 && !topdownOnly;
-        if (allowTopdown && top + lineHeight + maxH > screenHeight) {
-            renderer.$maxPixelHeight = top - 2 * this.$borderSize;
-            el.style.top = "";
-            el.style.bottom = screenHeight - top + "px";
-            popup.isTopdown = false;
-        }
-        else {
-            top += lineHeight;
-            renderer.$maxPixelHeight = screenHeight - top - 0.2 * lineHeight;
-            el.style.top = top + "px";
-            el.style.bottom = "";
-            popup.isTopdown = true;
-        }
-        el.style.display = "";
-        var left = pos.left;
-        if (left + el.offsetWidth > screenWidth)
-            left = screenWidth - el.offsetWidth;
-        el.style.left = left + "px";
-        this._signal("show");
-        lastMouseEvent = null;
-        popup.isOpen = true;
-    };
-    popup.goTo = function (where) {
-        var row = this.getRow();
-        var max = this.session.getLength() - 1;
-        switch (where) {
-            case "up":
-                row = row <= 0 ? max : row - 1;
-                break;
-            case "down":
-                row = row >= max ? -1 : row + 1;
-                break;
-            case "start":
-                row = 0;
-                break;
-            case "end":
-                row = max;
-                break;
-        }
-        this.setRow(row);
-    };
-    popup.getTextLeftOffset = function () {
-        return this.$borderSize + this.renderer.$padding + this.$imageSize;
-    };
-    popup.$imageSize = 0;
-    popup.$borderSize = 1;
-    return popup;
-};
-dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}", "autocompletion.css", false);
-exports.AcePopup = AcePopup;
-exports.$singleLineEditor = $singleLineEditor;
-exports.getAriaId = getAriaId;
-
-});
-
-define("ace/autocomplete/util",["require","exports","module"], function(require, exports, module){"use strict";
-exports.parForEach = function (array, fn, callback) {
-    var completed = 0;
-    var arLength = array.length;
-    if (arLength === 0)
-        callback();
-    for (var i = 0; i < arLength; i++) {
-        fn(array[i], function (result, err) {
-            completed++;
-            if (completed === arLength)
-                callback(result, err);
-        });
-    }
-};
-var ID_REGEX = /[a-zA-Z_0-9\$\-\u00A2-\u2000\u2070-\uFFFF]/;
-exports.retrievePrecedingIdentifier = function (text, pos, regex) {
-    regex = regex || ID_REGEX;
-    var buf = [];
-    for (var i = pos - 1; i >= 0; i--) {
-        if (regex.test(text[i]))
-            buf.push(text[i]);
-        else
-            break;
-    }
-    return buf.reverse().join("");
-};
-exports.retrieveFollowingIdentifier = function (text, pos, regex) {
-    regex = regex || ID_REGEX;
-    var buf = [];
-    for (var i = pos; i < text.length; i++) {
-        if (regex.test(text[i]))
-            buf.push(text[i]);
-        else
-            break;
-    }
-    return buf;
-};
-exports.getCompletionPrefix = function (editor) {
-    var pos = editor.getCursorPosition();
-    var line = editor.session.getLine(pos.row);
-    var prefix;
-    editor.completers.forEach(function (completer) {
-        if (completer.identifierRegexps) {
-            completer.identifierRegexps.forEach(function (identifierRegex) {
-                if (!prefix && identifierRegex)
-                    prefix = this.retrievePrecedingIdentifier(line, pos.column, identifierRegex);
-            }.bind(this));
-        }
-    }.bind(this));
-    return prefix || this.retrievePrecedingIdentifier(line, pos.column);
-};
-
-});
-
-define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config"], function(require, exports, module){"use strict";
-var HashHandler = require("./keyboard/hash_handler").HashHandler;
-var AcePopup = require("./autocomplete/popup").AcePopup;
-var getAriaId = require("./autocomplete/popup").getAriaId;
-var util = require("./autocomplete/util");
-var lang = require("./lib/lang");
-var dom = require("./lib/dom");
-var snippetManager = require("./snippets").snippetManager;
-var config = require("./config");
-var Autocomplete = function () {
-    this.autoInsert = false;
-    this.autoSelect = true;
-    this.exactMatch = false;
-    this.gatherCompletionsId = 0;
-    this.keyboardHandler = new HashHandler();
-    this.keyboardHandler.bindKeys(this.commands);
-    this.blurListener = this.blurListener.bind(this);
-    this.changeListener = this.changeListener.bind(this);
-    this.mousedownListener = this.mousedownListener.bind(this);
-    this.mousewheelListener = this.mousewheelListener.bind(this);
-    this.changeTimer = lang.delayedCall(function () {
-        this.updateCompletions(true);
-    }.bind(this));
-    this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);
-};
-(function () {
-    this.$init = function () {
-        this.popup = new AcePopup(document.body || document.documentElement);
-        this.popup.on("click", function (e) {
-            this.insertMatch();
-            e.stop();
-        }.bind(this));
-        this.popup.focus = this.editor.focus.bind(this.editor);
-        this.popup.on("show", this.tooltipTimer.bind(null, null));
-        this.popup.on("select", this.tooltipTimer.bind(null, null));
-        this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
-        return this.popup;
-    };
-    this.getPopup = function () {
-        return this.popup || this.$init();
-    };
-    this.openPopup = function (editor, prefix, keepPopupPosition) {
-        if (!this.popup)
-            this.$init();
-        this.popup.autoSelect = this.autoSelect;
-        this.popup.setData(this.completions.filtered, this.completions.filterText);
-        if (this.editor.textInput.setAriaOptions)
-            this.editor.textInput.setAriaOptions({ activeDescendant: getAriaId(this.popup.getRow()) });
-        editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
-        var renderer = editor.renderer;
-        this.popup.setRow(this.autoSelect ? 0 : -1);
-        if (!keepPopupPosition) {
-            this.popup.setTheme(editor.getTheme());
-            this.popup.setFontSize(editor.getFontSize());
-            var lineHeight = renderer.layerConfig.lineHeight;
-            var pos = renderer.$cursorLayer.getPixelPosition(this.base, true);
-            pos.left -= this.popup.getTextLeftOffset();
-            var rect = editor.container.getBoundingClientRect();
-            pos.top += rect.top - renderer.layerConfig.offset;
-            pos.left += rect.left - editor.renderer.scrollLeft;
-            pos.left += renderer.gutterWidth;
-            this.popup.show(pos, lineHeight);
-        }
-        else if (keepPopupPosition && !prefix) {
-            this.detach();
-        }
-        this.changeTimer.cancel();
-    };
-    this.detach = function () {
-        this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
-        this.editor.off("changeSelection", this.changeListener);
-        this.editor.off("blur", this.blurListener);
-        this.editor.off("mousedown", this.mousedownListener);
-        this.editor.off("mousewheel", this.mousewheelListener);
-        this.changeTimer.cancel();
-        this.hideDocTooltip();
-        this.gatherCompletionsId += 1;
-        if (this.popup && this.popup.isOpen)
-            this.popup.hide();
-        if (this.base)
-            this.base.detach();
-        this.activated = false;
-        this.completions = this.base = null;
-    };
-    this.changeListener = function (e) {
-        var cursor = this.editor.selection.lead;
-        if (cursor.row != this.base.row || cursor.column < this.base.column) {
-            this.detach();
-        }
-        if (this.activated)
-            this.changeTimer.schedule();
-        else
-            this.detach();
-    };
-    this.blurListener = function (e) {
-        var el = document.activeElement;
-        var text = this.editor.textInput.getElement();
-        var fromTooltip = e.relatedTarget && this.tooltipNode && this.tooltipNode.contains(e.relatedTarget);
-        var container = this.popup && this.popup.container;
-        if (el != text && el.parentNode != container && !fromTooltip
-            && el != this.tooltipNode && e.relatedTarget != text) {
-            this.detach();
-        }
-    };
-    this.mousedownListener = function (e) {
-        this.detach();
-    };
-    this.mousewheelListener = function (e) {
-        this.detach();
-    };
-    this.goTo = function (where) {
-        this.popup.goTo(where);
-    };
-    this.insertMatch = function (data, options) {
-        if (!data)
-            data = this.popup.getData(this.popup.getRow());
-        if (!data)
-            return false;
-        var completions = this.completions;
-        this.editor.startOperation({ command: { name: "insertMatch" } });
-        if (data.completer && data.completer.insertMatch) {
-            data.completer.insertMatch(this.editor, data);
-        }
-        else {
-            if (!completions)
-                return false;
-            if (completions.filterText) {
-                var ranges = this.editor.selection.getAllRanges();
-                for (var i = 0, range; range = ranges[i]; i++) {
-                    range.start.column -= completions.filterText.length;
-                    this.editor.session.remove(range);
-                }
-            }
-            if (data.snippet)
-                snippetManager.insertSnippet(this.editor, data.snippet);
-            else
-                this.editor.execCommand("insertstring", data.value || data);
-        }
-        if (this.completions == completions)
-            this.detach();
-        this.editor.endOperation();
-    };
-    this.commands = {
-        "Up": function (editor) { editor.completer.goTo("up"); },
-        "Down": function (editor) { editor.completer.goTo("down"); },
-        "Ctrl-Up|Ctrl-Home": function (editor) { editor.completer.goTo("start"); },
-        "Ctrl-Down|Ctrl-End": function (editor) { editor.completer.goTo("end"); },
-        "Esc": function (editor) { editor.completer.detach(); },
-        "Return": function (editor) { return editor.completer.insertMatch(); },
-        "Shift-Return": function (editor) { editor.completer.insertMatch(null, { deleteSuffix: true }); },
-        "Tab": function (editor) {
-            var result = editor.completer.insertMatch();
-            if (!result && !editor.tabstopManager)
-                editor.completer.goTo("down");
-            else
-                return result;
-        },
-        "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
-        "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }
-    };
-    this.gatherCompletions = function (editor, callback) {
-        var session = editor.getSession();
-        var pos = editor.getCursorPosition();
-        var prefix = util.getCompletionPrefix(editor);
-        this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
-        this.base.$insertRight = true;
-        var matches = [];
-        var total = editor.completers.length;
-        editor.completers.forEach(function (completer, i) {
-            completer.getCompletions(editor, session, pos, prefix, function (err, results) {
-                if (!err && results)
-                    matches = matches.concat(results);
-                callback(null, {
-                    prefix: util.getCompletionPrefix(editor),
-                    matches: matches,
-                    finished: (--total === 0)
-                });
-            });
-        });
-        return true;
-    };
-    this.showPopup = function (editor, options) {
-        if (this.editor)
-            this.detach();
-        this.activated = true;
-        this.editor = editor;
-        if (editor.completer != this) {
-            if (editor.completer)
-                editor.completer.detach();
-            editor.completer = this;
-        }
-        editor.on("changeSelection", this.changeListener);
-        editor.on("blur", this.blurListener);
-        editor.on("mousedown", this.mousedownListener);
-        editor.on("mousewheel", this.mousewheelListener);
-        this.updateCompletions(false, options);
-    };
-    this.updateCompletions = function (keepPopupPosition, options) {
-        if (keepPopupPosition && this.base && this.completions) {
-            var pos = this.editor.getCursorPosition();
-            var prefix = this.editor.session.getTextRange({ start: this.base, end: pos });
-            if (prefix == this.completions.filterText)
-                return;
-            this.completions.setFilter(prefix);
-            if (!this.completions.filtered.length)
-                return this.detach();
-            if (this.completions.filtered.length == 1
-                && this.completions.filtered[0].value == prefix
-                && !this.completions.filtered[0].snippet)
-                return this.detach();
-            this.openPopup(this.editor, prefix, keepPopupPosition);
-            return;
-        }
-        if (options && options.matches) {
-            var pos = this.editor.getSelectionRange().start;
-            this.base = this.editor.session.doc.createAnchor(pos.row, pos.column);
-            this.base.$insertRight = true;
-            this.completions = new FilteredList(options.matches);
-            return this.openPopup(this.editor, "", keepPopupPosition);
-        }
-        var _id = this.gatherCompletionsId;
-        var detachIfFinished = function (results) {
-            if (!results.finished)
-                return;
-            return this.detach();
-        }.bind(this);
-        var processResults = function (results) {
-            var prefix = results.prefix;
-            var matches = results.matches;
-            this.completions = new FilteredList(matches);
-            if (this.exactMatch)
-                this.completions.exactMatch = true;
-            this.completions.setFilter(prefix);
-            var filtered = this.completions.filtered;
-            if (!filtered.length)
-                return detachIfFinished(results);
-            if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
-                return detachIfFinished(results);
-            if (this.autoInsert && filtered.length == 1 && results.finished)
-                return this.insertMatch(filtered[0]);
-            this.openPopup(this.editor, prefix, keepPopupPosition);
-        }.bind(this);
-        var isImmediate = true;
-        var immediateResults = null;
-        this.gatherCompletions(this.editor, function (err, results) {
-            var prefix = results.prefix;
-            var matches = results && results.matches;
-            if (!matches || !matches.length)
-                return detachIfFinished(results);
-            if (prefix.indexOf(results.prefix) !== 0 || _id != this.gatherCompletionsId)
-                return;
-            if (isImmediate) {
-                immediateResults = results;
-                return;
-            }
-            processResults(results);
-        }.bind(this));
-        isImmediate = false;
-        if (immediateResults) {
-            var results = immediateResults;
-            immediateResults = null;
-            processResults(results);
-        }
-    };
-    this.cancelContextMenu = function () {
-        this.editor.$mouseHandler.cancelContextMenu();
-    };
-    this.updateDocTooltip = function () {
-        var popup = this.popup;
-        var all = popup.data;
-        var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);
-        var doc = null;
-        if (!selected || !this.editor || !this.popup.isOpen)
-            return this.hideDocTooltip();
-        this.editor.completers.some(function (completer) {
-            if (completer.getDocTooltip)
-                doc = completer.getDocTooltip(selected);
-            return doc;
-        });
-        if (!doc && typeof selected != "string")
-            doc = selected;
-        if (typeof doc == "string")
-            doc = { docText: doc };
-        if (!doc || !(doc.docHTML || doc.docText))
-            return this.hideDocTooltip();
-        this.showDocTooltip(doc);
-    };
-    this.showDocTooltip = function (item) {
-        if (!this.tooltipNode) {
-            this.tooltipNode = dom.createElement("div");
-            this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
-            this.tooltipNode.style.margin = 0;
-            this.tooltipNode.style.pointerEvents = "auto";
-            this.tooltipNode.tabIndex = -1;
-            this.tooltipNode.onblur = this.blurListener.bind(this);
-            this.tooltipNode.onclick = this.onTooltipClick.bind(this);
-        }
-        var tooltipNode = this.tooltipNode;
-        if (item.docHTML) {
-            tooltipNode.innerHTML = item.docHTML;
-        }
-        else if (item.docText) {
-            tooltipNode.textContent = item.docText;
-        }
-        if (!tooltipNode.parentNode)
-            document.body.appendChild(tooltipNode);
-        var popup = this.popup;
-        var rect = popup.container.getBoundingClientRect();
-        tooltipNode.style.top = popup.container.style.top;
-        tooltipNode.style.bottom = popup.container.style.bottom;
-        tooltipNode.style.display = "block";
-        if (window.innerWidth - rect.right < 320) {
-            if (rect.left < 320) {
-                if (popup.isTopdown) {
-                    tooltipNode.style.top = rect.bottom + "px";
-                    tooltipNode.style.left = rect.left + "px";
-                    tooltipNode.style.right = "";
-                    tooltipNode.style.bottom = "";
-                }
-                else {
-                    tooltipNode.style.top = popup.container.offsetTop - tooltipNode.offsetHeight + "px";
-                    tooltipNode.style.left = rect.left + "px";
-                    tooltipNode.style.right = "";
-                    tooltipNode.style.bottom = "";
-                }
-            }
-            else {
-                tooltipNode.style.right = window.innerWidth - rect.left + "px";
-                tooltipNode.style.left = "";
-            }
-        }
-        else {
-            tooltipNode.style.left = (rect.right + 1) + "px";
-            tooltipNode.style.right = "";
-        }
-    };
-    this.hideDocTooltip = function () {
-        this.tooltipTimer.cancel();
-        if (!this.tooltipNode)
-            return;
-        var el = this.tooltipNode;
-        if (!this.editor.isFocused() && document.activeElement == el)
-            this.editor.focus();
-        this.tooltipNode = null;
-        if (el.parentNode)
-            el.parentNode.removeChild(el);
-    };
-    this.onTooltipClick = function (e) {
-        var a = e.target;
-        while (a && a != this.tooltipNode) {
-            if (a.nodeName == "A" && a.href) {
-                a.rel = "noreferrer";
-                a.target = "_blank";
-                break;
-            }
-            a = a.parentNode;
-        }
-    };
-    this.destroy = function () {
-        this.detach();
-        if (this.popup) {
-            this.popup.destroy();
-            var el = this.popup.container;
-            if (el && el.parentNode)
-                el.parentNode.removeChild(el);
-        }
-        if (this.editor && this.editor.completer == this)
-            this.editor.completer == null;
-        this.popup = null;
-    };
-}).call(Autocomplete.prototype);
-Autocomplete.for = function (editor) {
-    if (editor.completer) {
-        return editor.completer;
-    }
-    if (config.get("sharedPopups")) {
-        if (!Autocomplete.$shared)
-            Autocomplete.$sharedInstance = new Autocomplete();
-        editor.completer = Autocomplete.$sharedInstance;
-    }
-    else {
-        editor.completer = new Autocomplete();
-        editor.once("destroy", function (e, editor) {
-            editor.completer.destroy();
-        });
-    }
-    return editor.completer;
-};
-Autocomplete.startCommand = {
-    name: "startAutocomplete",
-    exec: function (editor, options) {
-        var completer = Autocomplete.for(editor);
-        completer.autoInsert = false;
-        completer.autoSelect = true;
-        completer.showPopup(editor, options);
-        completer.cancelContextMenu();
-    },
-    bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
-};
-var FilteredList = function (array, filterText) {
-    this.all = array;
-    this.filtered = array;
-    this.filterText = filterText || "";
-    this.exactMatch = false;
-};
-(function () {
-    this.setFilter = function (str) {
-        if (str.length > this.filterText && str.lastIndexOf(this.filterText, 0) === 0)
-            var matches = this.filtered;
-        else
-            var matches = this.all;
-        this.filterText = str;
-        matches = this.filterCompletions(matches, this.filterText);
-        matches = matches.sort(function (a, b) {
-            return b.exactMatch - a.exactMatch || b.$score - a.$score
-                || (a.caption || a.value).localeCompare(b.caption || b.value);
-        });
-        var prev = null;
-        matches = matches.filter(function (item) {
-            var caption = item.snippet || item.caption || item.value;
-            if (caption === prev)
-                return false;
-            prev = caption;
-            return true;
-        });
-        this.filtered = matches;
-    };
-    this.filterCompletions = function (items, needle) {
-        var results = [];
-        var upper = needle.toUpperCase();
-        var lower = needle.toLowerCase();
-        loop: for (var i = 0, item; item = items[i]; i++) {
-            var caption = item.caption || item.value || item.snippet;
-            if (!caption)
-                continue;
-            var lastIndex = -1;
-            var matchMask = 0;
-            var penalty = 0;
-            var index, distance;
-            if (this.exactMatch) {
-                if (needle !== caption.substr(0, needle.length))
-                    continue loop;
-            }
-            else {
-                var fullMatchIndex = caption.toLowerCase().indexOf(lower);
-                if (fullMatchIndex > -1) {
-                    penalty = fullMatchIndex;
-                }
-                else {
-                    for (var j = 0; j < needle.length; j++) {
-                        var i1 = caption.indexOf(lower[j], lastIndex + 1);
-                        var i2 = caption.indexOf(upper[j], lastIndex + 1);
-                        index = (i1 >= 0) ? ((i2 < 0 || i1 < i2) ? i1 : i2) : i2;
-                        if (index < 0)
-                            continue loop;
-                        distance = index - lastIndex - 1;
-                        if (distance > 0) {
-                            if (lastIndex === -1)
-                                penalty += 10;
-                            penalty += distance;
-                            matchMask = matchMask | (1 << j);
-                        }
-                        lastIndex = index;
-                    }
-                }
-            }
-            item.matchMask = matchMask;
-            item.exactMatch = penalty ? 0 : 1;
-            item.$score = (item.score || 0) - penalty;
-            results.push(item);
-        }
-        return results;
-    };
-}).call(FilteredList.prototype);
-exports.Autocomplete = Autocomplete;
-exports.FilteredList = FilteredList;
-
-});
-
 define("ace/autocomplete/text_completer",["require","exports","module","ace/range"], function(require, exports, module){var Range = require("../range").Range;
 var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
 function getWordIndex(doc, pos) {
@@ -6400,6 +6619,485 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
+
+});
+
+define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/lib/useragent","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){"use strict";
+var HashHandler = require("../keyboard/hash_handler").HashHandler;
+var AceInline = require("../autocomplete/inline").AceInline;
+var FilteredList = require("../autocomplete").FilteredList;
+var CompletionProvider = require("../autocomplete").CompletionProvider;
+var Editor = require("../editor").Editor;
+var util = require("../autocomplete/util");
+var lang = require("../lib/lang");
+var dom = require("../lib/dom");
+var useragent = require("../lib/useragent");
+var snippetCompleter = require("./language_tools").snippetCompleter;
+var textCompleter = require("./language_tools").textCompleter;
+var keyWordCompleter = require("./language_tools").keyWordCompleter;
+var destroyCompleter = function (e, editor) {
+    editor.completer && editor.completer.destroy();
+};
+var minPosition = function (posA, posB) {
+    if (posB.row > posA.row) {
+        return posA;
+    }
+    else if (posB.row === posA.row && posB.column > posA.column) {
+        return posA;
+    }
+    return posB;
+};
+var InlineAutocomplete = function (editor) {
+    this.editor = editor;
+    this.tooltipEnabled = true;
+    this.keyboardHandler = new HashHandler(this.commands);
+    this.$index = -1;
+    this.blurListener = this.blurListener.bind(this);
+    this.changeListener = this.changeListener.bind(this);
+    this.mousewheelListener = this.mousewheelListener.bind(this);
+    this.changeTimer = lang.delayedCall(function () {
+        this.updateCompletions();
+    }.bind(this));
+};
+(function () {
+    this.getInlineRenderer = function () {
+        if (!this.inlineRenderer)
+            this.inlineRenderer = new AceInline();
+        return this.inlineRenderer;
+    };
+    this.getInlineTooltip = function () {
+        if (!this.inlineTooltip) {
+            this.inlineTooltip = new InlineTooltip(this.editor, document.body || document.documentElement);
+            this.inlineTooltip.setCommands(this.commands);
+        }
+        return this.inlineTooltip;
+    };
+    this.show = function (options) {
+        this.activated = true;
+        if (this.editor.completer !== this) {
+            if (this.editor.completer)
+                this.editor.completer.detach();
+            this.editor.completer = this;
+        }
+        this.editor.on("changeSelection", this.changeListener);
+        this.editor.on("blur", this.blurListener);
+        this.editor.on("mousewheel", this.mousewheelListener);
+        this.updateCompletions(options);
+    };
+    this.$open = function () {
+        if (this.editor.textInput.setAriaOptions) {
+            this.editor.textInput.setAriaOptions({});
+        }
+        if (this.tooltipEnabled) {
+            this.getInlineTooltip().show(this.editor);
+        }
+        else if (this.tooltipEnabled === "hover") {
+        }
+        this.editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
+        if (this.$index === -1) {
+            this.setIndex(0);
+        }
+        else {
+            this.$showCompletion();
+        }
+        this.changeTimer.cancel();
+    };
+    this.insertMatch = function () {
+        var result = this.getCompletionProvider().insertByIndex(this.editor, this.$index);
+        this.detach();
+        return result;
+    };
+    this.commands = {
+        "Previous": {
+            bindKey: "Alt-[",
+            name: "Previous",
+            exec: function (editor) {
+                editor.completer.goTo("prev");
+            },
+            enabled: function (editor) {
+                return editor.completer.getIndex() > 0;
+            },
+            position: 10
+        },
+        "Next": {
+            bindKey: "Alt-]",
+            name: "Next",
+            exec: function (editor) {
+                editor.completer.goTo("next");
+            },
+            enabled: function (editor) {
+                return editor.completer.getIndex() < editor.completer.getLength() - 1;
+            },
+            position: 20
+        },
+        "Accept": {
+            bindKey: { win: "Tab|Ctrl-Right", mac: "Tab|Cmd-Right" },
+            name: "Accept",
+            exec: function (editor) {
+                return editor.completer.insertMatch();
+            },
+            enabled: function (editor) {
+                return editor.completer.getIndex() >= 0;
+            },
+            position: 30
+        },
+        "Close": {
+            bindKey: "Esc",
+            name: "Close",
+            exec: function (editor) {
+                editor.completer.detach();
+            },
+            enabled: true,
+            position: 40
+        }
+    };
+    this.changeListener = function (e) {
+        var cursor = this.editor.selection.lead;
+        if (cursor.row != this.base.row || cursor.column < this.base.column) {
+            this.detach();
+        }
+        if (this.activated)
+            this.changeTimer.schedule();
+        else
+            this.detach();
+    };
+    this.blurListener = function (e) {
+        this.detach();
+    };
+    this.mousewheelListener = function (e) {
+        if (this.inlineTooltip && this.inlineTooltip.isShown()) {
+            this.inlineTooltip.updatePosition();
+        }
+    };
+    this.goTo = function (where) {
+        if (!this.completions || !this.completions.filtered) {
+            return;
+        }
+        switch (where.toLowerCase()) {
+            case "prev":
+                this.setIndex(Math.max(0, this.$index - 1));
+                break;
+            case "next":
+                this.setIndex(this.$index + 1);
+                break;
+            case "first":
+                this.setIndex(0);
+                break;
+            case "last":
+                this.setIndex(this.completions.filtered.length - 1);
+                break;
+        }
+    };
+    this.getLength = function () {
+        if (!this.completions || !this.completions.filtered) {
+            return 0;
+        }
+        return this.completions.filtered.length;
+    };
+    this.getData = function (index) {
+        if (index == undefined || index === null) {
+            return this.completions.filtered[this.$index];
+        }
+        else {
+            return this.completions.filtered[index];
+        }
+    };
+    this.getIndex = function () {
+        return this.$index;
+    };
+    this.isOpen = function () {
+        return this.$index >= 0;
+    };
+    this.setIndex = function (value) {
+        if (!this.completions || !this.completions.filtered) {
+            return;
+        }
+        var newIndex = Math.max(-1, Math.min(this.completions.filtered.length - 1, value));
+        if (newIndex !== this.$index) {
+            this.$index = newIndex;
+            this.$showCompletion();
+        }
+    };
+    this.getCompletionProvider = function () {
+        if (!this.completionProvider)
+            this.completionProvider = new CompletionProvider();
+        return this.completionProvider;
+    };
+    this.$showCompletion = function () {
+        if (!this.getInlineRenderer().show(this.editor, this.completions.filtered[this.$index], this.completions.filterText)) {
+            this.getInlineRenderer().hide();
+        }
+        if (this.inlineTooltip && this.inlineTooltip.isShown()) {
+            this.inlineTooltip.updateButtons();
+        }
+    };
+    this.$updatePrefix = function () {
+        var pos = this.editor.getCursorPosition();
+        var prefix = this.editor.session.getTextRange({ start: this.base, end: pos });
+        this.completions.setFilter(prefix);
+        if (!this.completions.filtered.length)
+            return this.detach();
+        if (this.completions.filtered.length == 1
+            && this.completions.filtered[0].value == prefix
+            && !this.completions.filtered[0].snippet)
+            return this.detach();
+        this.$open(this.editor, prefix);
+        return prefix;
+    };
+    this.updateCompletions = function (options) {
+        var prefix = "";
+        if (options && options.matches) {
+            var pos = this.editor.getSelectionRange().start;
+            this.base = this.editor.session.doc.createAnchor(pos.row, pos.column);
+            this.base.$insertRight = true;
+            this.completions = new FilteredList(options.matches);
+            return this.$open(this.editor, "");
+        }
+        if (this.base && this.completions) {
+            prefix = this.$updatePrefix();
+        }
+        var session = this.editor.getSession();
+        var pos = this.editor.getCursorPosition();
+        var prefix = util.getCompletionPrefix(this.editor);
+        this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
+        this.base.$insertRight = true;
+        var options = {
+            exactMatch: true,
+            ignoreCaption: true
+        };
+        this.getCompletionProvider().provideCompletions(this.editor, options, function (err, completions, finished) {
+            var filtered = completions.filtered;
+            var prefix = util.getCompletionPrefix(this.editor);
+            if (finished) {
+                if (!filtered.length)
+                    return this.detach();
+                if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
+                    return this.detach();
+            }
+            this.completions = completions;
+            this.$open(this.editor, prefix);
+        }.bind(this));
+    };
+    this.detach = function () {
+        if (this.editor) {
+            this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
+            this.editor.off("changeSelection", this.changeListener);
+            this.editor.off("blur", this.blurListener);
+            this.editor.off("mousewheel", this.mousewheelListener);
+        }
+        this.changeTimer.cancel();
+        if (this.inlineTooltip) {
+            this.inlineTooltip.detach();
+        }
+        this.setIndex(-1);
+        if (this.completionProvider) {
+            this.completionProvider.detach();
+        }
+        if (this.inlineRenderer && this.inlineRenderer.isOpen()) {
+            this.inlineRenderer.hide();
+        }
+        if (this.base)
+            this.base.detach();
+        this.activated = false;
+        this.completionProvider = this.completions = this.base = null;
+    };
+    this.destroy = function () {
+        this.detach();
+        if (this.inlineRenderer)
+            this.inlineRenderer.destroy();
+        if (this.inlineTooltip)
+            this.inlineTooltip.destroy();
+        if (this.editor && this.editor.completer == this) {
+            this.editor.off("destroy", destroyCompleter);
+            this.editor.completer = null;
+        }
+        this.inlineTooltip = this.editor = this.inlineRenderer = null;
+    };
+}).call(InlineAutocomplete.prototype);
+InlineAutocomplete.for = function (editor) {
+    if (editor.completer instanceof InlineAutocomplete) {
+        return editor.completer;
+    }
+    if (editor.completer) {
+        editor.completer.destroy();
+        editor.completer = null;
+    }
+    editor.completer = new InlineAutocomplete(editor);
+    editor.once("destroy", destroyCompleter);
+    return editor.completer;
+};
+InlineAutocomplete.startCommand = {
+    name: "startInlineAutocomplete",
+    exec: function (editor, options) {
+        var completer = InlineAutocomplete.for(editor);
+        completer.show(options);
+    },
+    bindKey: { win: "Alt-C", mac: "Option-C" }
+};
+var completers = [snippetCompleter, textCompleter, keyWordCompleter];
+require("../config").defineOptions(Editor.prototype, "editor", {
+    enableInlineAutocompletion: {
+        set: function (val) {
+            if (val) {
+                if (!this.completers)
+                    this.completers = Array.isArray(val) ? val : completers;
+                this.commands.addCommand(InlineAutocomplete.startCommand);
+            }
+            else {
+                this.commands.removeCommand(InlineAutocomplete.startCommand);
+            }
+        },
+        value: false
+    }
+});
+var ENTRY_CLASS_NAME = 'inline_autocomplete_tooltip_entry';
+var BUTTON_CLASS_NAME = 'inline_autocomplete_tooltip_button';
+var TOOLTIP_CLASS_NAME = 'ace_tooltip ace_inline_autocomplete_tooltip';
+var TOOLTIP_ID = 'inline_autocomplete_tooltip';
+function InlineTooltip(editor, parentElement) {
+    this.editor = editor;
+    this.htmlElement = document.createElement('div');
+    var el = this.htmlElement;
+    el.style.display = 'none';
+    if (parentElement) {
+        parentElement.appendChild(el);
+    }
+    el.id = TOOLTIP_ID;
+    el.style['pointer-events'] = 'auto';
+    el.className = TOOLTIP_CLASS_NAME;
+    this.commands = {};
+    this.buttons = {};
+    this.eventListeners = {};
+}
+(function () {
+    var captureMousedown = function (e) {
+        e.preventDefault();
+    };
+    this.setCommands = function (commands) {
+        if (!commands || !this.htmlElement) {
+            return;
+        }
+        this.detach();
+        var el = this.htmlElement;
+        while (el.hasChildNodes()) {
+            el.removeChild(el.firstChild);
+        }
+        this.commands = commands;
+        this.buttons = {};
+        this.eventListeners = {};
+        Object.keys(commands)
+            .map(function (key) { return [key, commands[key]]; })
+            .filter(function (entry) { return entry[1].position > 0; })
+            .sort(function (a, b) { return a[1].position - b[1].position; })
+            .forEach(function (entry) {
+            var key = entry[0];
+            var command = entry[1];
+            dom.buildDom(["div", { class: ENTRY_CLASS_NAME }, [['div', { class: BUTTON_CLASS_NAME, ref: key }, this.buttons]]], el, this.buttons);
+            var bindKey = command.bindKey;
+            if (typeof bindKey === 'object') {
+                bindKey = useragent.isMac ? bindKey.mac : bindKey.win;
+            }
+            bindKey = bindKey.replace("|", " / ");
+            var buttonText = dom.createTextNode([command.name, "(", bindKey, ")"].join(" "));
+            this.buttons[key].appendChild(buttonText);
+        }.bind(this));
+    };
+    this.show = function () {
+        this.detach();
+        this.htmlElement.style.display = '';
+        this.htmlElement.addEventListener('mousedown', captureMousedown.bind(this));
+        this.updatePosition();
+        this.updateButtons(true);
+    };
+    this.isShown = function () {
+        return !!this.htmlElement && window.getComputedStyle(this.htmlElement).display !== "none";
+    };
+    this.updatePosition = function () {
+        if (!this.editor) {
+            return;
+        }
+        var renderer = this.editor.renderer;
+        var ranges;
+        if (this.editor.selection.getAllRanges) {
+            ranges = this.editor.selection.getAllRanges();
+        }
+        else {
+            ranges = [this.editor.getSelection()];
+        }
+        if (!ranges.length) {
+            return;
+        }
+        var minPos = minPosition(ranges[0].start, ranges[0].end);
+        for (var i = 0, range; range = ranges[i]; i++) {
+            minPos = minPosition(minPos, minPosition(range.start, range.end));
+        }
+        var pos = renderer.$cursorLayer.getPixelPosition(minPos, true);
+        var el = this.htmlElement;
+        var screenWidth = window.innerWidth;
+        var rect = this.editor.container.getBoundingClientRect();
+        pos.top += rect.top - renderer.layerConfig.offset;
+        pos.left += rect.left - this.editor.renderer.scrollLeft;
+        pos.left += renderer.gutterWidth;
+        var top = pos.top - el.offsetHeight;
+        el.style.top = top + "px";
+        el.style.bottom = "";
+        el.style.left = Math.min(screenWidth - el.offsetWidth, pos.left) + "px";
+    };
+    this.updateButtons = function (force) {
+        Object.keys(this.buttons).forEach(function (key) {
+            var commandEnabled = this.commands[key].enabled;
+            if (typeof commandEnabled === 'function') {
+                commandEnabled = commandEnabled(this.editor);
+            }
+            if (commandEnabled && (force || !this.eventListeners[key])) {
+                this.buttons[key].className = BUTTON_CLASS_NAME;
+                this.buttons[key].ariaDisabled = this.buttons[key].disabled = false;
+                this.buttons[key].removeAttribute("disabled");
+                var eventListener = function (e) {
+                    this.commands[key].exec(this.editor);
+                    e.preventDefault();
+                }.bind(this);
+                this.eventListeners[key] = eventListener;
+                this.buttons[key].addEventListener('mousedown', eventListener);
+            }
+            if (!commandEnabled && (force || this.eventListeners[key])) {
+                this.buttons[key].className = BUTTON_CLASS_NAME + "_disabled";
+                this.buttons[key].ariaDisabled = this.buttons[key].disabled = true;
+                this.buttons[key].setAttribute("disabled", "");
+                this.buttons[key].removeEventListener('mousedown', this.eventListeners[key]);
+                delete this.eventListeners[key];
+            }
+        }.bind(this));
+    };
+    this.detach = function () {
+        var listenerKeys = Object.keys(this.eventListeners);
+        if (this.eventListeners && listenerKeys.length) {
+            listenerKeys.forEach(function (key) {
+                this.buttons[key].removeEventListener('mousedown', this.eventListeners[key]);
+                delete this.eventListeners[key];
+            }.bind(this));
+        }
+        if (this.htmlElement) {
+            this.htmlElement.removeEventListener('mousedown', captureMousedown.bind(this));
+            this.htmlElement.style.display = 'none';
+        }
+    };
+    this.destroy = function () {
+        this.detach();
+        if (this.htmlElement) {
+            this.htmlElement.parentNode.removeChild(this.htmlElement);
+        }
+        this.editor = null;
+        this.buttons = null;
+        this.htmlElement = null;
+        this.controls = null;
+    };
+}).call(InlineTooltip.prototype);
+dom.importCssString("\n.ace_inline_autocomplete_tooltip {\n    display: inline-block;\n}\n.".concat(ENTRY_CLASS_NAME, " {\n    display: inline-block;\n    padding: 0 5px;\n}\n\n.").concat(BUTTON_CLASS_NAME, " {\n    display: inline-block;\n    cursor: pointer;\n    padding: 5px;\n}\n\n.").concat(BUTTON_CLASS_NAME, ":hover {\n    background-color: rgba(0, 0, 0, 0.1);\n}\n\ndiv.").concat(BUTTON_CLASS_NAME, "_disabled {\n    display: inline-block;\n    padding: 5px;\n    cursor: default;\n    color: #777;\n}"), "inlinetooltip.css", false);
+exports.InlineAutocomplete = InlineAutocomplete;
+exports.InlineTooltip = InlineTooltip;
+exports.TOOLTIP_ID = TOOLTIP_ID;
+exports.BUTTON_CLASS_NAME = BUTTON_CLASS_NAME;
 
 });
 
@@ -6727,7 +7425,7 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
+define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/autocomplete","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/inline_autocomplete","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
 
 require("ace/ext/rtl");
 
@@ -7028,6 +7726,8 @@ doclist.pickDocument = function(name) {
 var OptionPanel = require("ace/ext/options").OptionPanel;
 var optionsPanel = new OptionPanel(env.editor);
 
+var originalAutocompleteCommand = null;
+
 optionsPanel.add({
     Main: {
         Document: {
@@ -7083,6 +7783,29 @@ optionsPanel.add({
         "Show token info": {
             path: "showTokenInfo",
             position: 2000
+        },
+        "Inline preview for autocomplete": {
+            path: "inlineEnabledForAutocomplete",
+            position: 2000,
+            onchange: function(value) {
+                var Autocomplete = require("ace/autocomplete").Autocomplete;
+                if (value && !originalAutocompleteCommand) {
+                    originalAutocompleteCommand = Autocomplete.startCommand.exec;
+                    Autocomplete.startCommand.exec = function(editor) {
+                        var autocomplete = Autocomplete.for(editor);
+                        autocomplete.inlineEnabled = true;
+                        originalAutocompleteCommand(...arguments);
+                    }
+                } else if (!value) {
+                    var autocomplete = Autocomplete.for(editor);
+                    autocomplete.destroy();
+                    Autocomplete.startCommand.exec = originalAutocompleteCommand;
+                    originalAutocompleteCommand = null;
+                }
+            },
+            getValue: function() {
+                return !!originalAutocompleteCommand;
+            }
         },
         "Show Textarea Position": devUtil.textPositionDebugger,
         "Text Input Debugger": devUtil.textInputDebugger,
@@ -7184,8 +7907,10 @@ optionsPanelContainer.insertBefore(
 );
 
 require("ace/ext/language_tools");
+require("ace/ext/inline_autocomplete");
 env.editor.setOptions({
     enableBasicAutocompletion: true,
+    enableInlineAutocompletion: true,
     enableSnippets: true
 });
 
