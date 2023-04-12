@@ -337,7 +337,7 @@ var SnippetManager = function () {
         }
         return result;
     };
-    var processSnippetText = function (editor, snippetText) {
+    var processSnippetText = function (editor, snippetText, replaceRange) {
         var cursor = editor.getCursorPosition();
         var line = editor.session.getLine(cursor.row);
         var tabString = editor.session.getTabString();
@@ -455,20 +455,23 @@ var SnippetManager = function () {
         var processedSnippet = processSnippetText.call(this, editor, snippetText);
         return processedSnippet.text;
     };
-    this.insertSnippetForSelection = function (editor, snippetText) {
+    this.insertSnippetForSelection = function (editor, snippetText, replaceRange) {
         var processedSnippet = processSnippetText.call(this, editor, snippetText);
         var range = editor.getSelectionRange();
+        if (replaceRange && replaceRange.compareRange(range) === 0) {
+            range = replaceRange;
+        }
         var end = editor.session.replace(range, processedSnippet.text);
         var tabstopManager = new TabstopManager(editor);
         var selectionId = editor.inVirtualSelectionMode && editor.selection.index;
         tabstopManager.addTabstops(processedSnippet.tabstops, range.start, end, selectionId);
     };
-    this.insertSnippet = function (editor, snippetText) {
+    this.insertSnippet = function (editor, snippetText, replaceRange) {
         var self = this;
         if (editor.inVirtualSelectionMode)
-            return self.insertSnippetForSelection(editor, snippetText);
+            return self.insertSnippetForSelection(editor, snippetText, replaceRange);
         editor.forEachSelection(function () {
-            self.insertSnippetForSelection(editor, snippetText);
+            self.insertSnippetForSelection(editor, snippetText, replaceRange);
         }, null, { keepOrder: true });
         if (editor.tabstopManager)
             editor.tabstopManager.tabNext();
@@ -967,9 +970,10 @@ var snippetManager = require("../snippets").snippetManager;
 var Range = require("../range").Range;
 var config = require("../config");
 var emmet, emmetPath;
-function AceEmmetEditor() { }
-AceEmmetEditor.prototype = {
-    setupContext: function (editor) {
+var AceEmmetEditor = /** @class */ (function () {
+    function AceEmmetEditor() {
+    }
+    AceEmmetEditor.prototype.setupContext = function (editor) {
         this.ace = editor;
         this.indentation = editor.session.getTabString();
         if (!emmet)
@@ -978,23 +982,23 @@ AceEmmetEditor.prototype = {
         resources.setVariable("indentation", this.indentation);
         this.$syntax = null;
         this.$syntax = this.getSyntax();
-    },
-    getSelectionRange: function () {
+    };
+    AceEmmetEditor.prototype.getSelectionRange = function () {
         var range = this.ace.getSelectionRange();
         var doc = this.ace.session.doc;
         return {
             start: doc.positionToIndex(range.start),
             end: doc.positionToIndex(range.end)
         };
-    },
-    createSelection: function (start, end) {
+    };
+    AceEmmetEditor.prototype.createSelection = function (start, end) {
         var doc = this.ace.session.doc;
         this.ace.selection.setRange({
             start: doc.indexToPosition(start),
             end: doc.indexToPosition(end)
         });
-    },
-    getCurrentLineRange: function () {
+    };
+    AceEmmetEditor.prototype.getCurrentLineRange = function () {
         var ace = this.ace;
         var row = ace.getCursorPosition().row;
         var lineLength = ace.session.getLine(row).length;
@@ -1003,20 +1007,20 @@ AceEmmetEditor.prototype = {
             start: index,
             end: index + lineLength
         };
-    },
-    getCaretPos: function () {
+    };
+    AceEmmetEditor.prototype.getCaretPos = function () {
         var pos = this.ace.getCursorPosition();
         return this.ace.session.doc.positionToIndex(pos);
-    },
-    setCaretPos: function (index) {
+    };
+    AceEmmetEditor.prototype.setCaretPos = function (index) {
         var pos = this.ace.session.doc.indexToPosition(index);
         this.ace.selection.moveToPosition(pos);
-    },
-    getCurrentLine: function () {
+    };
+    AceEmmetEditor.prototype.getCurrentLine = function () {
         var row = this.ace.getCursorPosition().row;
         return this.ace.session.getLine(row);
-    },
-    replaceContent: function (value, start, end, noIndent) {
+    };
+    AceEmmetEditor.prototype.replaceContent = function (value, start, end, noIndent) {
         if (end == null)
             end = start == null ? this.getContent().length : start;
         if (start == null)
@@ -1028,11 +1032,11 @@ AceEmmetEditor.prototype = {
         range.end = range.start;
         value = this.$updateTabstops(value);
         snippetManager.insertSnippet(editor, value);
-    },
-    getContent: function () {
+    };
+    AceEmmetEditor.prototype.getContent = function () {
         return this.ace.getValue();
-    },
-    getSyntax: function () {
+    };
+    AceEmmetEditor.prototype.getSyntax = function () {
         if (this.$syntax)
             return this.$syntax;
         var syntax = this.ace.session.$modeId.split("/").pop();
@@ -1050,8 +1054,8 @@ AceEmmetEditor.prototype = {
             }
         }
         return syntax;
-    },
-    getProfileName: function () {
+    };
+    AceEmmetEditor.prototype.getProfileName = function () {
         var resources = emmet.resources || emmet.require("resources");
         switch (this.getSyntax()) {
             case "css": return "css";
@@ -1067,17 +1071,17 @@ AceEmmetEditor.prototype = {
                 var mode = this.ace.session.$mode;
                 return mode.emmetConfig && mode.emmetConfig.profile || "xhtml";
         }
-    },
-    prompt: function (title) {
+    };
+    AceEmmetEditor.prototype.prompt = function (title) {
         return prompt(title); // eslint-disable-line no-alert
-    },
-    getSelection: function () {
+    };
+    AceEmmetEditor.prototype.getSelection = function () {
         return this.ace.session.getTextRange();
-    },
-    getFilePath: function () {
+    };
+    AceEmmetEditor.prototype.getFilePath = function () {
         return "";
-    },
-    $updateTabstops: function (value) {
+    };
+    AceEmmetEditor.prototype.$updateTabstops = function (value) {
         var base = 1000;
         var zeroBase = 0;
         var lastZero = null;
@@ -1119,8 +1123,9 @@ AceEmmetEditor.prototype = {
             value = common.replaceSubstring(value, '${0}', lastZero[0], lastZero[1]);
         }
         return value;
-    }
-};
+    };
+    return AceEmmetEditor;
+}());
 var keymap = {
     expand_abbreviation: { "mac": "ctrl+alt+e", "win": "alt+e" },
     match_pair_outward: { "mac": "ctrl+d", "win": "ctrl+," },

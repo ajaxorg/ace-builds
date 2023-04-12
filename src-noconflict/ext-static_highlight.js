@@ -9,39 +9,42 @@ var baseStyles = require("./static.css");
 var config = require("../config");
 var dom = require("../lib/dom");
 var escapeHTML = require("../lib/lang").escapeHTML;
-function Element(type) {
-    this.type = type;
-    this.style = {};
-    this.textContent = "";
-}
-Element.prototype.cloneNode = function () {
-    return this;
-};
-Element.prototype.appendChild = function (child) {
-    this.textContent += child.toString();
-};
-Element.prototype.toString = function () {
-    var stringBuilder = [];
-    if (this.type != "fragment") {
-        stringBuilder.push("<", this.type);
-        if (this.className)
-            stringBuilder.push(" class='", this.className, "'");
-        var styleStr = [];
-        for (var key in this.style) {
-            styleStr.push(key, ":", this.style[key]);
+var Element = /** @class */ (function () {
+    function Element(type) {
+        this.type = type;
+        this.style = {};
+        this.textContent = "";
+    }
+    Element.prototype.cloneNode = function () {
+        return this;
+    };
+    Element.prototype.appendChild = function (child) {
+        this.textContent += child.toString();
+    };
+    Element.prototype.toString = function () {
+        var stringBuilder = [];
+        if (this.type != "fragment") {
+            stringBuilder.push("<", this.type);
+            if (this.className)
+                stringBuilder.push(" class='", this.className, "'");
+            var styleStr = [];
+            for (var key in this.style) {
+                styleStr.push(key, ":", this.style[key]);
+            }
+            if (styleStr.length)
+                stringBuilder.push(" style='", styleStr.join(""), "'");
+            stringBuilder.push(">");
         }
-        if (styleStr.length)
-            stringBuilder.push(" style='", styleStr.join(""), "'");
-        stringBuilder.push(">");
-    }
-    if (this.textContent) {
-        stringBuilder.push(this.textContent);
-    }
-    if (this.type != "fragment") {
-        stringBuilder.push("</", this.type, ">");
-    }
-    return stringBuilder.join("");
-};
+        if (this.textContent) {
+            stringBuilder.push(this.textContent);
+        }
+        if (this.type != "fragment") {
+            stringBuilder.push("</", this.type, ">");
+        }
+        return stringBuilder.join("");
+    };
+    return Element;
+}());
 var simpleDom = {
     createTextNode: function (textContent, element) {
         return escapeHTML(textContent);

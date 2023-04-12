@@ -72,25 +72,28 @@ function getModeForPath(path) {
     }
     return mode;
 }
-var Mode = function (name, caption, extensions) {
-    this.name = name;
-    this.caption = caption;
-    this.mode = "ace/mode/" + name;
-    this.extensions = extensions;
-    var re;
-    if (/\^/.test(extensions)) {
-        re = extensions.replace(/\|(\^)?/g, function (a, b) {
-            return "$|" + (b ? "^" : "^.*\\.");
-        }) + "$";
+var Mode = /** @class */ (function () {
+    function Mode(name, caption, extensions) {
+        this.name = name;
+        this.caption = caption;
+        this.mode = "ace/mode/" + name;
+        this.extensions = extensions;
+        var re;
+        if (/\^/.test(extensions)) {
+            re = extensions.replace(/\|(\^)?/g, function (a, b) {
+                return "$|" + (b ? "^" : "^.*\\.");
+            }) + "$";
+        }
+        else {
+            re = "^.*\\.(" + extensions + ")$";
+        }
+        this.extRe = new RegExp(re, "gi");
     }
-    else {
-        re = "^.*\\.(" + extensions + ")$";
-    }
-    this.extRe = new RegExp(re, "gi");
-};
-Mode.prototype.supportsFile = function (filename) {
-    return filename.match(this.extRe);
-};
+    Mode.prototype.supportsFile = function (filename) {
+        return filename.match(this.extRe);
+    };
+    return Mode;
+}());
 var supportedModes = {
     ABAP: ["abap"],
     ABC: ["abc"],
@@ -558,24 +561,29 @@ var optionGroups = {
         },
         "Custom scrollbar": {
             path: "customScrollbar"
+        },
+        "Use SVG gutter icons": {
+            path: "useSvgGutterIcons"
+        },
+        "Keyboard Accessibility Mode": {
+            path: "enableKeyboardAccessibility"
         }
     }
 };
-var OptionPanel = function (editor, element) {
-    this.editor = editor;
-    this.container = element || document.createElement("div");
-    this.groups = [];
-    this.options = {};
-};
-(function () {
-    oop.implement(this, EventEmitter);
-    this.add = function (config) {
+var OptionPanel = /** @class */ (function () {
+    function OptionPanel(editor, element) {
+        this.editor = editor;
+        this.container = element || document.createElement("div");
+        this.groups = [];
+        this.options = {};
+    }
+    OptionPanel.prototype.add = function (config) {
         if (config.Main)
             oop.mixin(optionGroups.Main, config.Main);
         if (config.More)
             oop.mixin(optionGroups.More, config.More);
     };
-    this.render = function () {
+    OptionPanel.prototype.render = function () {
         this.container.innerHTML = "";
         buildDom(["table", { role: "presentation", id: "controls" },
             this.renderOptionGroup(optionGroups.Main),
@@ -587,7 +595,7 @@ var OptionPanel = function (editor, element) {
             ["tr", null, ["td", { colspan: 2 }, "version " + config.version]]
         ], this.container);
     };
-    this.renderOptionGroup = function (group) {
+    OptionPanel.prototype.renderOptionGroup = function (group) {
         return Object.keys(group).map(function (key, i) {
             var item = group[key];
             if (!item.position)
@@ -601,7 +609,7 @@ var OptionPanel = function (editor, element) {
             return this.renderOption(item.label, item);
         }, this);
     };
-    this.renderOptionControl = function (key, option) {
+    OptionPanel.prototype.renderOptionControl = function (key, option) {
         var self = this;
         if (Array.isArray(option)) {
             return option.map(function (x) {
@@ -688,7 +696,7 @@ var OptionPanel = function (editor, element) {
         }
         return control;
     };
-    this.renderOption = function (key, option) {
+    OptionPanel.prototype.renderOption = function (key, option) {
         if (option.path && !option.onchange && !this.editor.$options[option.path])
             return;
         var path = Array.isArray(option) ? option[0].path : option.path;
@@ -700,7 +708,7 @@ var OptionPanel = function (editor, element) {
                 ["label", { for: safeKey, id: safeId }, key]
             ], ["td", control]];
     };
-    this.setOption = function (option, value) {
+    OptionPanel.prototype.setOption = function (option, value) {
         if (typeof option == "string")
             option = this.options[option];
         if (value == "false")
@@ -719,12 +727,14 @@ var OptionPanel = function (editor, element) {
             this.editor.setOption(option.path, value);
         this._signal("setOption", { name: option.path, value: value });
     };
-    this.getOption = function (option) {
+    OptionPanel.prototype.getOption = function (option) {
         if (option.getValue)
             return option.getValue();
         return this.editor.getOption(option.path);
     };
-}).call(OptionPanel.prototype);
+    return OptionPanel;
+}());
+oop.implement(OptionPanel.prototype, EventEmitter);
 exports.OptionPanel = OptionPanel;
 
 });

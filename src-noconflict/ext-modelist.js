@@ -11,25 +11,28 @@ function getModeForPath(path) {
     }
     return mode;
 }
-var Mode = function (name, caption, extensions) {
-    this.name = name;
-    this.caption = caption;
-    this.mode = "ace/mode/" + name;
-    this.extensions = extensions;
-    var re;
-    if (/\^/.test(extensions)) {
-        re = extensions.replace(/\|(\^)?/g, function (a, b) {
-            return "$|" + (b ? "^" : "^.*\\.");
-        }) + "$";
+var Mode = /** @class */ (function () {
+    function Mode(name, caption, extensions) {
+        this.name = name;
+        this.caption = caption;
+        this.mode = "ace/mode/" + name;
+        this.extensions = extensions;
+        var re;
+        if (/\^/.test(extensions)) {
+            re = extensions.replace(/\|(\^)?/g, function (a, b) {
+                return "$|" + (b ? "^" : "^.*\\.");
+            }) + "$";
+        }
+        else {
+            re = "^.*\\.(" + extensions + ")$";
+        }
+        this.extRe = new RegExp(re, "gi");
     }
-    else {
-        re = "^.*\\.(" + extensions + ")$";
-    }
-    this.extRe = new RegExp(re, "gi");
-};
-Mode.prototype.supportsFile = function (filename) {
-    return filename.match(this.extRe);
-};
+    Mode.prototype.supportsFile = function (filename) {
+        return filename.match(this.extRe);
+    };
+    return Mode;
+}());
 var supportedModes = {
     ABAP: ["abap"],
     ABC: ["abc"],

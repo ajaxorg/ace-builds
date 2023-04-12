@@ -1555,25 +1555,28 @@ function getModeForPath(path) {
     }
     return mode;
 }
-var Mode = function (name, caption, extensions) {
-    this.name = name;
-    this.caption = caption;
-    this.mode = "ace/mode/" + name;
-    this.extensions = extensions;
-    var re;
-    if (/\^/.test(extensions)) {
-        re = extensions.replace(/\|(\^)?/g, function (a, b) {
-            return "$|" + (b ? "^" : "^.*\\.");
-        }) + "$";
+var Mode = /** @class */ (function () {
+    function Mode(name, caption, extensions) {
+        this.name = name;
+        this.caption = caption;
+        this.mode = "ace/mode/" + name;
+        this.extensions = extensions;
+        var re;
+        if (/\^/.test(extensions)) {
+            re = extensions.replace(/\|(\^)?/g, function (a, b) {
+                return "$|" + (b ? "^" : "^.*\\.");
+            }) + "$";
+        }
+        else {
+            re = "^.*\\.(" + extensions + ")$";
+        }
+        this.extRe = new RegExp(re, "gi");
     }
-    else {
-        re = "^.*\\.(" + extensions + ")$";
-    }
-    this.extRe = new RegExp(re, "gi");
-};
-Mode.prototype.supportsFile = function (filename) {
-    return filename.match(this.extRe);
-};
+    Mode.prototype.supportsFile = function (filename) {
+        return filename.match(this.extRe);
+    };
+    return Mode;
+}());
 var supportedModes = {
     ABAP: ["abap"],
     ABC: ["abc"],
@@ -2549,30 +2552,30 @@ function dropdown(values) {
 });
 
 define("ace/ext/elastic_tabstops_lite",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){"use strict";
-var ElasticTabstopsLite = function (editor) {
-    this.$editor = editor;
-    var self = this;
-    var changedRows = [];
-    var recordChanges = false;
-    this.onAfterExec = function () {
-        recordChanges = false;
-        self.processRows(changedRows);
-        changedRows = [];
-    };
-    this.onExec = function () {
-        recordChanges = true;
-    };
-    this.onChange = function (delta) {
-        if (recordChanges) {
-            if (changedRows.indexOf(delta.start.row) == -1)
-                changedRows.push(delta.start.row);
-            if (delta.end.row != delta.start.row)
-                changedRows.push(delta.end.row);
-        }
-    };
-};
-(function () {
-    this.processRows = function (rows) {
+var ElasticTabstopsLite = /** @class */ (function () {
+    function ElasticTabstopsLite(editor) {
+        this.$editor = editor;
+        var self = this;
+        var changedRows = [];
+        var recordChanges = false;
+        this.onAfterExec = function () {
+            recordChanges = false;
+            self.processRows(changedRows);
+            changedRows = [];
+        };
+        this.onExec = function () {
+            recordChanges = true;
+        };
+        this.onChange = function (delta) {
+            if (recordChanges) {
+                if (changedRows.indexOf(delta.start.row) == -1)
+                    changedRows.push(delta.start.row);
+                if (delta.end.row != delta.start.row)
+                    changedRows.push(delta.end.row);
+            }
+        };
+    }
+    ElasticTabstopsLite.prototype.processRows = function (rows) {
         this.$inChange = true;
         var checkedRows = [];
         for (var r = 0, rowCount = rows.length; r < rowCount; r++) {
@@ -2591,7 +2594,7 @@ var ElasticTabstopsLite = function (editor) {
         }
         this.$inChange = false;
     };
-    this.$findCellWidthsForBlock = function (row) {
+    ElasticTabstopsLite.prototype.$findCellWidthsForBlock = function (row) {
         var cellWidths = [], widths;
         var rowIter = row;
         while (rowIter >= 0) {
@@ -2613,7 +2616,7 @@ var ElasticTabstopsLite = function (editor) {
         }
         return { cellWidths: cellWidths, firstRow: firstRow };
     };
-    this.$cellWidthsForRow = function (row) {
+    ElasticTabstopsLite.prototype.$cellWidthsForRow = function (row) {
         var selectionColumns = this.$selectionColumnsForRow(row);
         var tabs = [-1].concat(this.$tabsForRow(row));
         var widths = tabs.map(function (el) { return 0; }).slice(1);
@@ -2627,7 +2630,7 @@ var ElasticTabstopsLite = function (editor) {
         }
         return widths;
     };
-    this.$selectionColumnsForRow = function (row) {
+    ElasticTabstopsLite.prototype.$selectionColumnsForRow = function (row) {
         var selections = [], cursor = this.$editor.getCursorPosition();
         if (this.$editor.session.getSelection().isEmpty()) {
             if (row == cursor.row)
@@ -2635,7 +2638,7 @@ var ElasticTabstopsLite = function (editor) {
         }
         return selections;
     };
-    this.$setBlockCellWidthsToMax = function (cellWidths) {
+    ElasticTabstopsLite.prototype.$setBlockCellWidthsToMax = function (cellWidths) {
         var startingNewBlock = true, blockStartRow, blockEndRow, maxWidth;
         var columnInfo = this.$izip_longest(cellWidths);
         for (var c = 0, l = columnInfo.length; c < l; c++) {
@@ -2664,7 +2667,7 @@ var ElasticTabstopsLite = function (editor) {
         }
         return cellWidths;
     };
-    this.$rightmostSelectionInCell = function (selectionColumns, cellRightEdge) {
+    ElasticTabstopsLite.prototype.$rightmostSelectionInCell = function (selectionColumns, cellRightEdge) {
         var rightmost = 0;
         if (selectionColumns.length) {
             var lengths = [];
@@ -2678,14 +2681,14 @@ var ElasticTabstopsLite = function (editor) {
         }
         return rightmost;
     };
-    this.$tabsForRow = function (row) {
+    ElasticTabstopsLite.prototype.$tabsForRow = function (row) {
         var rowTabs = [], line = this.$editor.session.getLine(row), re = /\t/g, match;
         while ((match = re.exec(line)) != null) {
             rowTabs.push(match.index);
         }
         return rowTabs;
     };
-    this.$adjustRow = function (row, widths) {
+    ElasticTabstopsLite.prototype.$adjustRow = function (row, widths) {
         var rowTabs = this.$tabsForRow(row);
         if (rowTabs.length == 0)
             return;
@@ -2712,7 +2715,7 @@ var ElasticTabstopsLite = function (editor) {
             }
         }
     };
-    this.$izip_longest = function (iterables) {
+    ElasticTabstopsLite.prototype.$izip_longest = function (iterables) {
         if (!iterables[0])
             return [];
         var longest = iterables[0].length;
@@ -2735,7 +2738,7 @@ var ElasticTabstopsLite = function (editor) {
         }
         return expandedSet;
     };
-    this.$izip = function (widths, tabs) {
+    ElasticTabstopsLite.prototype.$izip = function (widths, tabs) {
         var size = widths.length >= tabs.length ? tabs.length : widths.length;
         var expandedSet = [];
         for (var i = 0; i < size; i++) {
@@ -2744,7 +2747,8 @@ var ElasticTabstopsLite = function (editor) {
         }
         return expandedSet;
     };
-}).call(ElasticTabstopsLite.prototype);
+    return ElasticTabstopsLite;
+}());
 exports.ElasticTabstopsLite = ElasticTabstopsLite;
 var Editor = require("../editor").Editor;
 require("../config").defineOptions(Editor.prototype, "editor", {
@@ -2768,16 +2772,32 @@ require("../config").defineOptions(Editor.prototype, "editor", {
 
 });
 
-define("ace/occur",["require","exports","module","ace/lib/oop","ace/range","ace/search","ace/edit_session","ace/search_highlight","ace/lib/dom"], function(require, exports, module){"use strict";
+define("ace/occur",["require","exports","module","ace/lib/oop","ace/search","ace/edit_session","ace/search_highlight","ace/lib/dom"], function(require, exports, module){"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var oop = require("./lib/oop");
-var Range = require("./range").Range;
 var Search = require("./search").Search;
 var EditSession = require("./edit_session").EditSession;
 var SearchHighlight = require("./search_highlight").SearchHighlight;
-function Occur() { }
-oop.inherits(Occur, Search);
-(function () {
-    this.enter = function (editor, options) {
+var Occur = /** @class */ (function (_super) {
+    __extends(Occur, _super);
+    function Occur() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    Occur.prototype.enter = function (editor, options) {
         if (!options.needle)
             return false;
         var pos = editor.getCursorPosition();
@@ -2786,7 +2806,7 @@ oop.inherits(Occur, Search);
         editor.moveCursorToPosition(translatedPos);
         return true;
     };
-    this.exit = function (editor, options) {
+    Occur.prototype.exit = function (editor, options) {
         var pos = options.translatePosition && editor.getCursorPosition();
         var translatedPos = pos && this.occurToOriginalPosition(editor.session, pos);
         this.displayOriginalContent(editor);
@@ -2794,12 +2814,12 @@ oop.inherits(Occur, Search);
             editor.moveCursorToPosition(translatedPos);
         return true;
     };
-    this.highlight = function (sess, regexp) {
+    Occur.prototype.highlight = function (sess, regexp) {
         var hl = sess.$occurHighlight = sess.$occurHighlight || sess.addDynamicMarker(new SearchHighlight(null, "ace_occur-highlight", "text"));
         hl.setRegexp(regexp);
         sess._emit("changeBackMarker"); // force highlight layer redraw
     };
-    this.displayOccurContent = function (editor, options) {
+    Occur.prototype.displayOccurContent = function (editor, options) {
         this.$originalSession = editor.session;
         var found = this.matchingLines(editor.session, options);
         var lines = found.map(function (foundLine) { return foundLine.content; });
@@ -2812,11 +2832,11 @@ oop.inherits(Occur, Search);
         this.highlight(occurSession, options.re);
         occurSession._emit('changeBackMarker');
     };
-    this.displayOriginalContent = function (editor) {
+    Occur.prototype.displayOriginalContent = function (editor) {
         editor.setSession(this.$originalSession);
         this.$originalSession.$useEmacsStyleLineStart = this.$useEmacsStyleLineStart;
     };
-    this.originalToOccurPosition = function (session, pos) {
+    Occur.prototype.originalToOccurPosition = function (session, pos) {
         var lines = session.$occurMatchingLines;
         var nullPos = { row: 0, column: 0 };
         if (!lines)
@@ -2827,13 +2847,13 @@ oop.inherits(Occur, Search);
         }
         return nullPos;
     };
-    this.occurToOriginalPosition = function (session, pos) {
+    Occur.prototype.occurToOriginalPosition = function (session, pos) {
         var lines = session.$occurMatchingLines;
         if (!lines || !lines[pos.row])
             return pos;
         return { row: lines[pos.row].row, column: pos.column };
     };
-    this.matchingLines = function (session, options) {
+    Occur.prototype.matchingLines = function (session, options) {
         options = oop.mixin({}, options);
         if (!session || !options.needle)
             return [];
@@ -2847,7 +2867,8 @@ oop.inherits(Occur, Search);
                 lines.concat({ row: row, content: session.getLine(row) });
         }, []);
     };
-}).call(Occur.prototype);
+    return Occur;
+}(Search));
 var dom = require('./lib/dom');
 dom.importCssString(".ace_occur-highlight {\n\
     border-radius: 4px;\n\
@@ -3104,18 +3125,27 @@ exports.IncrementalSearchKeyboardHandler = IncrementalSearchKeyboardHandler;
 
 });
 
-define("ace/incremental_search",["require","exports","module","ace/lib/oop","ace/range","ace/search","ace/search_highlight","ace/commands/incremental_search_commands","ace/lib/dom","ace/commands/command_manager","ace/editor","ace/config"], function(require, exports, module){"use strict";
-var oop = require("./lib/oop");
+define("ace/incremental_search",["require","exports","module","ace/range","ace/search","ace/search_highlight","ace/commands/incremental_search_commands","ace/lib/dom","ace/commands/command_manager","ace/editor","ace/config"], function(require, exports, module){"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var Range = require("./range").Range;
 var Search = require("./search").Search;
 var SearchHighlight = require("./search_highlight").SearchHighlight;
 var iSearchCommandModule = require("./commands/incremental_search_commands");
 var ISearchKbd = iSearchCommandModule.IncrementalSearchKeyboardHandler;
-function IncrementalSearch() {
-    this.$options = { wrap: false, skipCurrent: false };
-    this.$keyboardHandler = new ISearchKbd(this);
-}
-oop.inherits(IncrementalSearch, Search);
 function isRegExp(obj) {
     return obj instanceof RegExp;
 }
@@ -3137,8 +3167,15 @@ function stringToRegExp(string, flags) {
 function objectToRegExp(obj) {
     return stringToRegExp(obj.expression, obj.flags);
 }
-(function () {
-    this.activate = function (editor, backwards) {
+var IncrementalSearch = /** @class */ (function (_super) {
+    __extends(IncrementalSearch, _super);
+    function IncrementalSearch() {
+        var _this = _super.call(this) || this;
+        _this.$options = { wrap: false, skipCurrent: false };
+        _this.$keyboardHandler = new ISearchKbd(_this);
+        return _this;
+    }
+    IncrementalSearch.prototype.activate = function (editor, backwards) {
         this.$editor = editor;
         this.$startPos = this.$currentPos = editor.getCursorPosition();
         this.$options.needle = '';
@@ -3150,7 +3187,7 @@ function objectToRegExp(obj) {
         this.selectionFix(editor);
         this.statusMessage(true);
     };
-    this.deactivate = function (reset) {
+    IncrementalSearch.prototype.deactivate = function (reset) {
         this.cancelSearch(reset);
         var editor = this.$editor;
         editor.keyBinding.removeKeyboardHandler(this.$keyboardHandler);
@@ -3161,17 +3198,17 @@ function objectToRegExp(obj) {
         editor.onPaste = this.$originalEditorOnPaste;
         this.message('');
     };
-    this.selectionFix = function (editor) {
+    IncrementalSearch.prototype.selectionFix = function (editor) {
         if (editor.selection.isEmpty() && !editor.session.$emacsMark) {
             editor.clearSelection();
         }
     };
-    this.highlight = function (regexp) {
+    IncrementalSearch.prototype.highlight = function (regexp) {
         var sess = this.$editor.session, hl = sess.$isearchHighlight = sess.$isearchHighlight || sess.addDynamicMarker(new SearchHighlight(null, "ace_isearch-result", "text"));
         hl.setRegexp(regexp);
         sess._emit("changeBackMarker"); // force highlight layer redraw
     };
-    this.cancelSearch = function (reset) {
+    IncrementalSearch.prototype.cancelSearch = function (reset) {
         var e = this.$editor;
         this.$prevNeedle = this.$options.needle;
         this.$options.needle = '';
@@ -3185,7 +3222,7 @@ function objectToRegExp(obj) {
         this.highlight(null);
         return Range.fromPoints(this.$currentPos, this.$currentPos);
     };
-    this.highlightAndFindWithNeedle = function (moveToNext, needleUpdateFunc) {
+    IncrementalSearch.prototype.highlightAndFindWithNeedle = function (moveToNext, needleUpdateFunc) {
         if (!this.$editor)
             return null;
         var options = this.$options;
@@ -3210,7 +3247,7 @@ function objectToRegExp(obj) {
         this.statusMessage(found);
         return found;
     };
-    this.addString = function (s) {
+    IncrementalSearch.prototype.addString = function (s) {
         return this.highlightAndFindWithNeedle(false, function (needle) {
             if (!isRegExp(needle))
                 return needle + s;
@@ -3219,7 +3256,7 @@ function objectToRegExp(obj) {
             return objectToRegExp(reObj);
         });
     };
-    this.removeChar = function (c) {
+    IncrementalSearch.prototype.removeChar = function (c) {
         return this.highlightAndFindWithNeedle(false, function (needle) {
             if (!isRegExp(needle))
                 return needle.substring(0, needle.length - 1);
@@ -3228,7 +3265,7 @@ function objectToRegExp(obj) {
             return objectToRegExp(reObj);
         });
     };
-    this.next = function (options) {
+    IncrementalSearch.prototype.next = function (options) {
         options = options || {};
         this.$options.backwards = !!options.backwards;
         this.$currentPos = this.$editor.getCursorPosition();
@@ -3237,37 +3274,38 @@ function objectToRegExp(obj) {
                 this.$prevNeedle || '' : needle;
         });
     };
-    this.onMouseDown = function (evt) {
+    IncrementalSearch.prototype.onMouseDown = function (evt) {
         this.deactivate();
         return true;
     };
-    this.onPaste = function (text) {
+    IncrementalSearch.prototype.onPaste = function (text) {
         this.addString(text);
     };
-    this.convertNeedleToRegExp = function () {
+    IncrementalSearch.prototype.convertNeedleToRegExp = function () {
         return this.highlightAndFindWithNeedle(false, function (needle) {
             return isRegExp(needle) ? needle : stringToRegExp(needle, 'ig');
         });
     };
-    this.convertNeedleToString = function () {
+    IncrementalSearch.prototype.convertNeedleToString = function () {
         return this.highlightAndFindWithNeedle(false, function (needle) {
             return isRegExp(needle) ? regExpToObject(needle).expression : needle;
         });
     };
-    this.statusMessage = function (found) {
+    IncrementalSearch.prototype.statusMessage = function (found) {
         var options = this.$options, msg = '';
         msg += options.backwards ? 'reverse-' : '';
         msg += 'isearch: ' + options.needle;
         msg += found ? '' : ' (not found)';
         this.message(msg);
     };
-    this.message = function (msg) {
+    IncrementalSearch.prototype.message = function (msg) {
         if (this.$editor.showCommandLine) {
             this.$editor.showCommandLine(msg);
             this.$editor.focus();
         }
     };
-}).call(IncrementalSearch.prototype);
+    return IncrementalSearch;
+}(Search));
 exports.IncrementalSearch = IncrementalSearch;
 var dom = require('./lib/dom');
 dom.importCssString("\n.ace_marker-layer .ace_isearch-result {\n  position: absolute;\n  z-index: 6;\n  box-sizing: border-box;\n}\ndiv.ace_isearch-result {\n  border-radius: 4px;\n  background-color: rgba(255, 200, 0, 0.5);\n  box-shadow: 0 0 4px rgb(255, 200, 0);\n}\n.ace_dark div.ace_isearch-result {\n  background-color: rgb(100, 110, 160);\n  box-shadow: 0 0 4px rgb(80, 90, 140);\n}", "incremental-search-highlighting", false);
@@ -3306,27 +3344,25 @@ var event = require("ace/lib/event");
 var Range = require("ace/range").Range;
 var Tooltip = require("ace/tooltip").Tooltip;
 
-function TokenTooltip (editor) {
-    if (editor.tokenTooltip)
-        return;
-    Tooltip.call(this, editor.container);
-    editor.tokenTooltip = this;
-    this.editor = editor;
+class TokenTooltip extends Tooltip {
+    constructor(editor) {
+        if (editor.tokenTooltip)
+            return;
+        super(editor.container);
+        editor.tokenTooltip = this;
+        this.editor = editor;
 
-    this.update = this.update.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseOut = this.onMouseOut.bind(this);
-    event.addListener(editor.renderer.scroller, "mousemove", this.onMouseMove);
-    event.addListener(editor.renderer.content, "mouseout", this.onMouseOut);
-}
-
-oop.inherits(TokenTooltip, Tooltip);
-
-(function(){
-    this.token = {};
-    this.range = new Range();
+        this.update = this.update.bind(this);
+        this.onMouseMove = this.onMouseMove.bind(this);
+        this.onMouseOut = this.onMouseOut.bind(this);
+        event.addListener(editor.renderer.scroller, "mousemove", this.onMouseMove);
+        event.addListener(editor.renderer.content, "mouseout", this.onMouseOut);
+    }
+    token = {};
     
-    this.update = function() {
+    range = new Range();
+    
+    update() {
         this.$timer = null;
         
         var r = this.editor.renderer;
@@ -3383,7 +3419,7 @@ oop.inherits(TokenTooltip, Tooltip);
         this.marker = session.addMarker(this.range, "ace_bracket", "text");
     };
     
-    this.onMouseMove = function(e) {
+    onMouseMove(e) {
         this.x = e.clientX;
         this.y = e.clientY;
         if (this.isOpen) {
@@ -3394,7 +3430,7 @@ oop.inherits(TokenTooltip, Tooltip);
             this.$timer = setTimeout(this.update, 100);
     };
 
-    this.onMouseOut = function(e) {
+    onMouseOut(e) {
         if (e && e.currentTarget.contains(e.relatedTarget))
             return;
         this.hide();
@@ -3402,7 +3438,7 @@ oop.inherits(TokenTooltip, Tooltip);
         this.$timer = clearTimeout(this.$timer);
     };
 
-    this.setPosition = function(x, y) {
+    setPosition(x, y) {
         if (x + 10 + this.width > this.maxWidth)
             x = window.innerWidth - this.width - 10;
         if (y > window.innerHeight * 0.75 || y + 20 + this.height > this.maxHeight)
@@ -3411,14 +3447,14 @@ oop.inherits(TokenTooltip, Tooltip);
         Tooltip.prototype.setPosition.call(this, x + 10, y + 20);
     };
 
-    this.destroy = function() {
+    destroy() {
         this.onMouseOut();
         event.removeListener(this.editor.renderer.scroller, "mousemove", this.onMouseMove);
         event.removeListener(this.editor.renderer.content, "mouseout", this.onMouseOut);
         delete this.editor.tokenTooltip;
     };
 
-}).call(TokenTooltip.prototype);
+}
 
 exports.TokenTooltip = TokenTooltip;
 
@@ -3912,24 +3948,29 @@ var optionGroups = {
         },
         "Custom scrollbar": {
             path: "customScrollbar"
+        },
+        "Use SVG gutter icons": {
+            path: "useSvgGutterIcons"
+        },
+        "Keyboard Accessibility Mode": {
+            path: "enableKeyboardAccessibility"
         }
     }
 };
-var OptionPanel = function (editor, element) {
-    this.editor = editor;
-    this.container = element || document.createElement("div");
-    this.groups = [];
-    this.options = {};
-};
-(function () {
-    oop.implement(this, EventEmitter);
-    this.add = function (config) {
+var OptionPanel = /** @class */ (function () {
+    function OptionPanel(editor, element) {
+        this.editor = editor;
+        this.container = element || document.createElement("div");
+        this.groups = [];
+        this.options = {};
+    }
+    OptionPanel.prototype.add = function (config) {
         if (config.Main)
             oop.mixin(optionGroups.Main, config.Main);
         if (config.More)
             oop.mixin(optionGroups.More, config.More);
     };
-    this.render = function () {
+    OptionPanel.prototype.render = function () {
         this.container.innerHTML = "";
         buildDom(["table", { role: "presentation", id: "controls" },
             this.renderOptionGroup(optionGroups.Main),
@@ -3941,7 +3982,7 @@ var OptionPanel = function (editor, element) {
             ["tr", null, ["td", { colspan: 2 }, "version " + config.version]]
         ], this.container);
     };
-    this.renderOptionGroup = function (group) {
+    OptionPanel.prototype.renderOptionGroup = function (group) {
         return Object.keys(group).map(function (key, i) {
             var item = group[key];
             if (!item.position)
@@ -3955,7 +3996,7 @@ var OptionPanel = function (editor, element) {
             return this.renderOption(item.label, item);
         }, this);
     };
-    this.renderOptionControl = function (key, option) {
+    OptionPanel.prototype.renderOptionControl = function (key, option) {
         var self = this;
         if (Array.isArray(option)) {
             return option.map(function (x) {
@@ -4042,7 +4083,7 @@ var OptionPanel = function (editor, element) {
         }
         return control;
     };
-    this.renderOption = function (key, option) {
+    OptionPanel.prototype.renderOption = function (key, option) {
         if (option.path && !option.onchange && !this.editor.$options[option.path])
             return;
         var path = Array.isArray(option) ? option[0].path : option.path;
@@ -4054,7 +4095,7 @@ var OptionPanel = function (editor, element) {
                 ["label", { for: safeKey, id: safeId }, key]
             ], ["td", control]];
     };
-    this.setOption = function (option, value) {
+    OptionPanel.prototype.setOption = function (option, value) {
         if (typeof option == "string")
             option = this.options[option];
         if (value == "false")
@@ -4073,12 +4114,14 @@ var OptionPanel = function (editor, element) {
             this.editor.setOption(option.path, value);
         this._signal("setOption", { name: option.path, value: value });
     };
-    this.getOption = function (option) {
+    OptionPanel.prototype.getOption = function (option) {
         if (option.getValue)
             return option.getValue();
         return this.editor.getOption(option.path);
     };
-}).call(OptionPanel.prototype);
+    return OptionPanel;
+}());
+oop.implement(OptionPanel.prototype, EventEmitter);
 exports.OptionPanel = OptionPanel;
 
 });
@@ -4105,305 +4148,308 @@ var $singleLineEditor = function (el) {
     editor.$highlightTagPending = true;
     return editor;
 };
-var AcePopup = function (parentNode) {
-    var el = dom.createElement("div");
-    var popup = new $singleLineEditor(el);
-    if (parentNode)
-        parentNode.appendChild(el);
-    el.style.display = "none";
-    popup.renderer.content.style.cursor = "default";
-    popup.renderer.setStyle("ace_autocomplete");
-    popup.renderer.container.setAttribute("role", "listbox");
-    popup.renderer.container.setAttribute("aria-label", "Autocomplete suggestions");
-    popup.setOption("displayIndentGuides", false);
-    popup.setOption("dragDelay", 150);
-    var noop = function () { };
-    popup.focus = noop;
-    popup.$isFocused = true;
-    popup.renderer.$cursorLayer.restartTimer = noop;
-    popup.renderer.$cursorLayer.element.style.opacity = 0;
-    popup.renderer.$maxLines = 8;
-    popup.renderer.$keepTextAreaAtCursor = false;
-    popup.setHighlightActiveLine(false);
-    popup.session.highlight("");
-    popup.session.$searchHighlight.clazz = "ace_highlight-marker";
-    popup.on("mousedown", function (e) {
-        var pos = e.getDocumentPosition();
-        popup.selection.moveToPosition(pos);
-        selectionMarker.start.row = selectionMarker.end.row = pos.row;
-        e.stop();
-    });
-    var lastMouseEvent;
-    var hoverMarker = new Range(-1, 0, -1, Infinity);
-    var selectionMarker = new Range(-1, 0, -1, Infinity);
-    selectionMarker.id = popup.session.addMarker(selectionMarker, "ace_active-line", "fullLine");
-    popup.setSelectOnHover = function (val) {
-        if (!val) {
-            hoverMarker.id = popup.session.addMarker(hoverMarker, "ace_line-hover", "fullLine");
-        }
-        else if (hoverMarker.id) {
-            popup.session.removeMarker(hoverMarker.id);
-            hoverMarker.id = null;
-        }
-    };
-    popup.setSelectOnHover(false);
-    popup.on("mousemove", function (e) {
-        if (!lastMouseEvent) {
+var AcePopup = /** @class */ (function () {
+    function AcePopup(parentNode) {
+        var el = dom.createElement("div");
+        var popup = new $singleLineEditor(el);
+        if (parentNode)
+            parentNode.appendChild(el);
+        el.style.display = "none";
+        popup.renderer.content.style.cursor = "default";
+        popup.renderer.setStyle("ace_autocomplete");
+        popup.renderer.container.setAttribute("role", "listbox");
+        popup.renderer.container.setAttribute("aria-label", "Autocomplete suggestions");
+        popup.setOption("displayIndentGuides", false);
+        popup.setOption("dragDelay", 150);
+        var noop = function () { };
+        popup.focus = noop;
+        popup.$isFocused = true;
+        popup.renderer.$cursorLayer.restartTimer = noop;
+        popup.renderer.$cursorLayer.element.style.opacity = 0;
+        popup.renderer.$maxLines = 8;
+        popup.renderer.$keepTextAreaAtCursor = false;
+        popup.setHighlightActiveLine(false);
+        popup.session.highlight("");
+        popup.session.$searchHighlight.clazz = "ace_highlight-marker";
+        popup.on("mousedown", function (e) {
+            var pos = e.getDocumentPosition();
+            popup.selection.moveToPosition(pos);
+            selectionMarker.start.row = selectionMarker.end.row = pos.row;
+            e.stop();
+        });
+        var lastMouseEvent;
+        var hoverMarker = new Range(-1, 0, -1, Infinity);
+        var selectionMarker = new Range(-1, 0, -1, Infinity);
+        selectionMarker.id = popup.session.addMarker(selectionMarker, "ace_active-line", "fullLine");
+        popup.setSelectOnHover = function (val) {
+            if (!val) {
+                hoverMarker.id = popup.session.addMarker(hoverMarker, "ace_line-hover", "fullLine");
+            }
+            else if (hoverMarker.id) {
+                popup.session.removeMarker(hoverMarker.id);
+                hoverMarker.id = null;
+            }
+        };
+        popup.setSelectOnHover(false);
+        popup.on("mousemove", function (e) {
+            if (!lastMouseEvent) {
+                lastMouseEvent = e;
+                return;
+            }
+            if (lastMouseEvent.x == e.x && lastMouseEvent.y == e.y) {
+                return;
+            }
             lastMouseEvent = e;
-            return;
-        }
-        if (lastMouseEvent.x == e.x && lastMouseEvent.y == e.y) {
-            return;
-        }
-        lastMouseEvent = e;
-        lastMouseEvent.scrollTop = popup.renderer.scrollTop;
-        var row = lastMouseEvent.getDocumentPosition().row;
-        if (hoverMarker.start.row != row) {
-            if (!hoverMarker.id)
-                popup.setRow(row);
-            setHoverMarker(row);
-        }
-    });
-    popup.renderer.on("beforeRender", function () {
-        if (lastMouseEvent && hoverMarker.start.row != -1) {
-            lastMouseEvent.$pos = null;
+            lastMouseEvent.scrollTop = popup.renderer.scrollTop;
             var row = lastMouseEvent.getDocumentPosition().row;
-            if (!hoverMarker.id)
-                popup.setRow(row);
-            setHoverMarker(row, true);
-        }
-    });
-    popup.renderer.on("afterRender", function () {
-        var row = popup.getRow();
-        var t = popup.renderer.$textLayer;
-        var selected = t.element.childNodes[row - t.config.firstRow];
-        var el = document.activeElement; // Active element is textarea of main editor
-        if (selected !== t.selectedNode && t.selectedNode) {
-            dom.removeCssClass(t.selectedNode, "ace_selected");
-            el.removeAttribute("aria-activedescendant");
-            t.selectedNode.removeAttribute("id");
-        }
-        t.selectedNode = selected;
-        if (selected) {
-            dom.addCssClass(selected, "ace_selected");
-            var ariaId = getAriaId(row);
-            selected.id = ariaId;
-            popup.renderer.container.setAttribute("aria-activedescendant", ariaId);
-            el.setAttribute("aria-activedescendant", ariaId);
-            selected.setAttribute("role", "option");
-            selected.setAttribute("aria-label", popup.getData(row).value);
-            selected.setAttribute("aria-setsize", popup.data.length);
-            selected.setAttribute("aria-posinset", row);
-        }
-    });
-    var hideHoverMarker = function () { setHoverMarker(-1); };
-    var setHoverMarker = function (row, suppressRedraw) {
-        if (row !== hoverMarker.start.row) {
-            hoverMarker.start.row = hoverMarker.end.row = row;
-            if (!suppressRedraw)
-                popup.session._emit("changeBackMarker");
-            popup._emit("changeHoverMarker");
-        }
-    };
-    popup.getHoveredRow = function () {
-        return hoverMarker.start.row;
-    };
-    event.addListener(popup.container, "mouseout", hideHoverMarker);
-    popup.on("hide", hideHoverMarker);
-    popup.on("changeSelection", hideHoverMarker);
-    popup.session.doc.getLength = function () {
-        return popup.data.length;
-    };
-    popup.session.doc.getLine = function (i) {
-        var data = popup.data[i];
-        if (typeof data == "string")
-            return data;
-        return (data && data.value) || "";
-    };
-    var bgTokenizer = popup.session.bgTokenizer;
-    bgTokenizer.$tokenizeRow = function (row) {
-        var data = popup.data[row];
-        var tokens = [];
-        if (!data)
+            if (hoverMarker.start.row != row) {
+                if (!hoverMarker.id)
+                    popup.setRow(row);
+                setHoverMarker(row);
+            }
+        });
+        popup.renderer.on("beforeRender", function () {
+            if (lastMouseEvent && hoverMarker.start.row != -1) {
+                lastMouseEvent.$pos = null;
+                var row = lastMouseEvent.getDocumentPosition().row;
+                if (!hoverMarker.id)
+                    popup.setRow(row);
+                setHoverMarker(row, true);
+            }
+        });
+        popup.renderer.on("afterRender", function () {
+            var row = popup.getRow();
+            var t = popup.renderer.$textLayer;
+            var selected = t.element.childNodes[row - t.config.firstRow];
+            var el = document.activeElement; // Active element is textarea of main editor
+            if (selected !== t.selectedNode && t.selectedNode) {
+                dom.removeCssClass(t.selectedNode, "ace_selected");
+                el.removeAttribute("aria-activedescendant");
+                t.selectedNode.removeAttribute("id");
+            }
+            t.selectedNode = selected;
+            if (selected) {
+                dom.addCssClass(selected, "ace_selected");
+                var ariaId = getAriaId(row);
+                selected.id = ariaId;
+                popup.renderer.container.setAttribute("aria-activedescendant", ariaId);
+                el.setAttribute("aria-activedescendant", ariaId);
+                selected.setAttribute("role", "option");
+                selected.setAttribute("aria-label", popup.getData(row).value);
+                selected.setAttribute("aria-setsize", popup.data.length);
+                selected.setAttribute("aria-posinset", row);
+            }
+        });
+        var hideHoverMarker = function () { setHoverMarker(-1); };
+        var setHoverMarker = function (row, suppressRedraw) {
+            if (row !== hoverMarker.start.row) {
+                hoverMarker.start.row = hoverMarker.end.row = row;
+                if (!suppressRedraw)
+                    popup.session._emit("changeBackMarker");
+                popup._emit("changeHoverMarker");
+            }
+        };
+        popup.getHoveredRow = function () {
+            return hoverMarker.start.row;
+        };
+        event.addListener(popup.container, "mouseout", hideHoverMarker);
+        popup.on("hide", hideHoverMarker);
+        popup.on("changeSelection", hideHoverMarker);
+        popup.session.doc.getLength = function () {
+            return popup.data.length;
+        };
+        popup.session.doc.getLine = function (i) {
+            var data = popup.data[i];
+            if (typeof data == "string")
+                return data;
+            return (data && data.value) || "";
+        };
+        var bgTokenizer = popup.session.bgTokenizer;
+        bgTokenizer.$tokenizeRow = function (row) {
+            var data = popup.data[row];
+            var tokens = [];
+            if (!data)
+                return tokens;
+            if (typeof data == "string")
+                data = { value: data };
+            var caption = data.caption || data.value || data.name;
+            function addToken(value, className) {
+                value && tokens.push({
+                    type: (data.className || "") + (className || ""),
+                    value: value
+                });
+            }
+            var lower = caption.toLowerCase();
+            var filterText = (popup.filterText || "").toLowerCase();
+            var lastIndex = 0;
+            var lastI = 0;
+            for (var i = 0; i <= filterText.length; i++) {
+                if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {
+                    var sub = filterText.slice(lastI, i);
+                    lastI = i;
+                    var index = lower.indexOf(sub, lastIndex);
+                    if (index == -1)
+                        continue;
+                    addToken(caption.slice(lastIndex, index), "");
+                    lastIndex = index + sub.length;
+                    addToken(caption.slice(index, lastIndex), "completion-highlight");
+                }
+            }
+            addToken(caption.slice(lastIndex, caption.length), "");
+            if (data.meta)
+                tokens.push({ type: "completion-meta", value: data.meta });
+            if (data.message)
+                tokens.push({ type: "completion-message", value: data.message });
             return tokens;
-        if (typeof data == "string")
-            data = { value: data };
-        var caption = data.caption || data.value || data.name;
-        function addToken(value, className) {
-            value && tokens.push({
-                type: (data.className || "") + (className || ""),
-                value: value
-            });
-        }
-        var lower = caption.toLowerCase();
-        var filterText = (popup.filterText || "").toLowerCase();
-        var lastIndex = 0;
-        var lastI = 0;
-        for (var i = 0; i <= filterText.length; i++) {
-            if (i != lastI && (data.matchMask & (1 << i) || i == filterText.length)) {
-                var sub = filterText.slice(lastI, i);
-                lastI = i;
-                var index = lower.indexOf(sub, lastIndex);
-                if (index == -1)
-                    continue;
-                addToken(caption.slice(lastIndex, index), "");
-                lastIndex = index + sub.length;
-                addToken(caption.slice(index, lastIndex), "completion-highlight");
+        };
+        bgTokenizer.$updateOnChange = noop;
+        bgTokenizer.start = noop;
+        popup.session.$computeWidth = function () {
+            return this.screenWidth = 0;
+        };
+        popup.isOpen = false;
+        popup.isTopdown = false;
+        popup.autoSelect = true;
+        popup.filterText = "";
+        popup.data = [];
+        popup.setData = function (list, filterText) {
+            popup.filterText = filterText || "";
+            popup.setValue(lang.stringRepeat("\n", list.length), -1);
+            popup.data = list || [];
+            popup.setRow(0);
+        };
+        popup.getData = function (row) {
+            return popup.data[row];
+        };
+        popup.getRow = function () {
+            return selectionMarker.start.row;
+        };
+        popup.setRow = function (line) {
+            line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length, line));
+            if (selectionMarker.start.row != line) {
+                popup.selection.clearSelection();
+                selectionMarker.start.row = selectionMarker.end.row = line || 0;
+                popup.session._emit("changeBackMarker");
+                popup.moveCursorTo(line || 0, 0);
+                if (popup.isOpen)
+                    popup._signal("select");
             }
-        }
-        addToken(caption.slice(lastIndex, caption.length), "");
-        if (data.meta)
-            tokens.push({ type: "completion-meta", value: data.meta });
-        if (data.message)
-            tokens.push({ type: "completion-message", value: data.message });
-        return tokens;
-    };
-    bgTokenizer.$updateOnChange = noop;
-    bgTokenizer.start = noop;
-    popup.session.$computeWidth = function () {
-        return this.screenWidth = 0;
-    };
-    popup.isOpen = false;
-    popup.isTopdown = false;
-    popup.autoSelect = true;
-    popup.filterText = "";
-    popup.data = [];
-    popup.setData = function (list, filterText) {
-        popup.filterText = filterText || "";
-        popup.setValue(lang.stringRepeat("\n", list.length), -1);
-        popup.data = list || [];
-        popup.setRow(0);
-    };
-    popup.getData = function (row) {
-        return popup.data[row];
-    };
-    popup.getRow = function () {
-        return selectionMarker.start.row;
-    };
-    popup.setRow = function (line) {
-        line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length, line));
-        if (selectionMarker.start.row != line) {
-            popup.selection.clearSelection();
-            selectionMarker.start.row = selectionMarker.end.row = line || 0;
-            popup.session._emit("changeBackMarker");
-            popup.moveCursorTo(line || 0, 0);
+        };
+        popup.on("changeSelection", function () {
             if (popup.isOpen)
-                popup._signal("select");
-        }
-    };
-    popup.on("changeSelection", function () {
-        if (popup.isOpen)
-            popup.setRow(popup.selection.lead.row);
-        popup.renderer.scrollCursorIntoView();
-    });
-    popup.hide = function () {
-        this.container.style.display = "none";
-        popup.anchorPos = null;
-        popup.anchor = null;
-        if (popup.isOpen) {
-            popup.isOpen = false;
-            this._signal("hide");
-        }
-    };
-    popup.tryShow = function (pos, lineHeight, anchor, forceShow) {
-        if (!forceShow && popup.isOpen && popup.anchorPos && popup.anchor &&
-            popup.anchorPos.top === pos.top && popup.anchorPos.left === pos.left &&
-            popup.anchor === anchor) {
-            return true;
-        }
-        var el = this.container;
-        var screenHeight = window.innerHeight;
-        var screenWidth = window.innerWidth;
-        var renderer = this.renderer;
-        var maxH = renderer.$maxLines * lineHeight * 1.4;
-        var dims = { top: 0, bottom: 0, left: 0 };
-        var spaceBelow = screenHeight - pos.top - 3 * this.$borderSize - lineHeight;
-        var spaceAbove = pos.top - 3 * this.$borderSize;
-        if (!anchor) {
-            if (spaceAbove <= spaceBelow || spaceBelow >= maxH) {
-                anchor = "bottom";
+                popup.setRow(popup.selection.lead.row);
+            popup.renderer.scrollCursorIntoView();
+        });
+        popup.hide = function () {
+            this.container.style.display = "none";
+            popup.anchorPos = null;
+            popup.anchor = null;
+            if (popup.isOpen) {
+                popup.isOpen = false;
+                this._signal("hide");
             }
-            else {
-                anchor = "top";
+        };
+        popup.tryShow = function (pos, lineHeight, anchor, forceShow) {
+            if (!forceShow && popup.isOpen && popup.anchorPos && popup.anchor &&
+                popup.anchorPos.top === pos.top && popup.anchorPos.left === pos.left &&
+                popup.anchor === anchor) {
+                return true;
             }
-        }
-        if (anchor === "top") {
-            dims.bottom = pos.top - this.$borderSize;
-            dims.top = dims.bottom - maxH;
-        }
-        else if (anchor === "bottom") {
-            dims.top = pos.top + lineHeight + this.$borderSize;
-            dims.bottom = dims.top + maxH;
-        }
-        var fitsX = dims.top >= 0 && dims.bottom <= screenHeight;
-        if (!forceShow && !fitsX) {
-            return false;
-        }
-        if (!fitsX) {
+            var el = this.container;
+            var screenHeight = window.innerHeight;
+            var screenWidth = window.innerWidth;
+            var renderer = this.renderer;
+            var maxH = renderer.$maxLines * lineHeight * 1.4;
+            var dims = { top: 0, bottom: 0, left: 0 };
+            var spaceBelow = screenHeight - pos.top - 3 * this.$borderSize - lineHeight;
+            var spaceAbove = pos.top - 3 * this.$borderSize;
+            if (!anchor) {
+                if (spaceAbove <= spaceBelow || spaceBelow >= maxH) {
+                    anchor = "bottom";
+                }
+                else {
+                    anchor = "top";
+                }
+            }
             if (anchor === "top") {
-                renderer.$maxPixelHeight = spaceAbove;
+                dims.bottom = pos.top - this.$borderSize;
+                dims.top = dims.bottom - maxH;
+            }
+            else if (anchor === "bottom") {
+                dims.top = pos.top + lineHeight + this.$borderSize;
+                dims.bottom = dims.top + maxH;
+            }
+            var fitsX = dims.top >= 0 && dims.bottom <= screenHeight;
+            if (!forceShow && !fitsX) {
+                return false;
+            }
+            if (!fitsX) {
+                if (anchor === "top") {
+                    renderer.$maxPixelHeight = spaceAbove;
+                }
+                else {
+                    renderer.$maxPixelHeight = spaceBelow;
+                }
             }
             else {
-                renderer.$maxPixelHeight = spaceBelow;
+                renderer.$maxPixelHeight = null;
             }
-        }
-        else {
-            renderer.$maxPixelHeight = null;
-        }
-        if (anchor === "top") {
-            el.style.top = "";
-            el.style.bottom = (screenHeight - dims.bottom) + "px";
-            popup.isTopdown = false;
-        }
-        else {
-            el.style.top = dims.top + "px";
-            el.style.bottom = "";
-            popup.isTopdown = true;
-        }
-        el.style.display = "";
-        var left = pos.left;
-        if (left + el.offsetWidth > screenWidth)
-            left = screenWidth - el.offsetWidth;
-        el.style.left = left + "px";
-        el.style.right = "";
-        if (!popup.isOpen) {
-            popup.isOpen = true;
-            this._signal("show");
-            lastMouseEvent = null;
-        }
-        popup.anchorPos = pos;
-        popup.anchor = anchor;
-        return true;
-    };
-    popup.show = function (pos, lineHeight, topdownOnly) {
-        this.tryShow(pos, lineHeight, topdownOnly ? "bottom" : undefined, true);
-    };
-    popup.goTo = function (where) {
-        var row = this.getRow();
-        var max = this.session.getLength() - 1;
-        switch (where) {
-            case "up":
-                row = row <= 0 ? max : row - 1;
-                break;
-            case "down":
-                row = row >= max ? -1 : row + 1;
-                break;
-            case "start":
-                row = 0;
-                break;
-            case "end":
-                row = max;
-                break;
-        }
-        this.setRow(row);
-    };
-    popup.getTextLeftOffset = function () {
-        return this.$borderSize + this.renderer.$padding + this.$imageSize;
-    };
-    popup.$imageSize = 0;
-    popup.$borderSize = 1;
-    return popup;
-};
+            if (anchor === "top") {
+                el.style.top = "";
+                el.style.bottom = (screenHeight - dims.bottom) + "px";
+                popup.isTopdown = false;
+            }
+            else {
+                el.style.top = dims.top + "px";
+                el.style.bottom = "";
+                popup.isTopdown = true;
+            }
+            el.style.display = "";
+            var left = pos.left;
+            if (left + el.offsetWidth > screenWidth)
+                left = screenWidth - el.offsetWidth;
+            el.style.left = left + "px";
+            el.style.right = "";
+            if (!popup.isOpen) {
+                popup.isOpen = true;
+                this._signal("show");
+                lastMouseEvent = null;
+            }
+            popup.anchorPos = pos;
+            popup.anchor = anchor;
+            return true;
+        };
+        popup.show = function (pos, lineHeight, topdownOnly) {
+            this.tryShow(pos, lineHeight, topdownOnly ? "bottom" : undefined, true);
+        };
+        popup.goTo = function (where) {
+            var row = this.getRow();
+            var max = this.session.getLength() - 1;
+            switch (where) {
+                case "up":
+                    row = row <= 0 ? max : row - 1;
+                    break;
+                case "down":
+                    row = row >= max ? -1 : row + 1;
+                    break;
+                case "start":
+                    row = 0;
+                    break;
+                case "end":
+                    row = max;
+                    break;
+            }
+            this.setRow(row);
+        };
+        popup.getTextLeftOffset = function () {
+            return this.$borderSize + this.renderer.$padding + this.$imageSize;
+        };
+        popup.$imageSize = 0;
+        popup.$borderSize = 1;
+        return popup;
+    }
+    return AcePopup;
+}());
 dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}\n.ace_autocomplete_right .ace_text-layer  {\n    width: calc(100% - 8px);\n}\n.ace_autocomplete_right .ace_line {\n    display: flex;\n}\n.ace_autocomplete_right .ace_completion-meta {\n    flex: 1;\n    text-align: right;\n}\n", "autocompletion.css", false);
 exports.AcePopup = AcePopup;
 exports.$singleLineEditor = $singleLineEditor;
@@ -4750,7 +4796,7 @@ var SnippetManager = function () {
         }
         return result;
     };
-    var processSnippetText = function (editor, snippetText) {
+    var processSnippetText = function (editor, snippetText, replaceRange) {
         var cursor = editor.getCursorPosition();
         var line = editor.session.getLine(cursor.row);
         var tabString = editor.session.getTabString();
@@ -4868,20 +4914,23 @@ var SnippetManager = function () {
         var processedSnippet = processSnippetText.call(this, editor, snippetText);
         return processedSnippet.text;
     };
-    this.insertSnippetForSelection = function (editor, snippetText) {
+    this.insertSnippetForSelection = function (editor, snippetText, replaceRange) {
         var processedSnippet = processSnippetText.call(this, editor, snippetText);
         var range = editor.getSelectionRange();
+        if (replaceRange && replaceRange.compareRange(range) === 0) {
+            range = replaceRange;
+        }
         var end = editor.session.replace(range, processedSnippet.text);
         var tabstopManager = new TabstopManager(editor);
         var selectionId = editor.inVirtualSelectionMode && editor.selection.index;
         tabstopManager.addTabstops(processedSnippet.tabstops, range.start, end, selectionId);
     };
-    this.insertSnippet = function (editor, snippetText) {
+    this.insertSnippet = function (editor, snippetText, replaceRange) {
         var self = this;
         if (editor.inVirtualSelectionMode)
-            return self.insertSnippetForSelection(editor, snippetText);
+            return self.insertSnippetForSelection(editor, snippetText, replaceRange);
         editor.forEachSelection(function () {
-            self.insertSnippetForSelection(editor, snippetText);
+            self.insertSnippetForSelection(editor, snippetText, replaceRange);
         }, null, { keepOrder: true });
         if (editor.tabstopManager)
             editor.tabstopManager.tabNext();
@@ -5375,11 +5424,11 @@ var Editor = require("./editor").Editor;
 
 define("ace/autocomplete/inline",["require","exports","module","ace/snippets"], function(require, exports, module){"use strict";
 var snippetManager = require("../snippets").snippetManager;
-var AceInline = function () {
-    this.editor = null;
-};
-(function () {
-    this.show = function (editor, completion, prefix) {
+var AceInline = /** @class */ (function () {
+    function AceInline() {
+        this.editor = null;
+    }
+    AceInline.prototype.show = function (editor, completion, prefix) {
         prefix = prefix || "";
         if (editor && this.editor && this.editor !== editor) {
             this.hide();
@@ -5402,24 +5451,25 @@ var AceInline = function () {
         }
         return true;
     };
-    this.isOpen = function () {
+    AceInline.prototype.isOpen = function () {
         if (!this.editor) {
             return false;
         }
         return !!this.editor.renderer.$ghostText;
     };
-    this.hide = function () {
+    AceInline.prototype.hide = function () {
         if (!this.editor) {
             return false;
         }
         this.editor.removeGhostText();
         return true;
     };
-    this.destroy = function () {
+    AceInline.prototype.destroy = function () {
         this.hide();
         this.editor = null;
     };
-}).call(AceInline.prototype);
+    return AceInline;
+}());
 exports.AceInline = AceInline;
 
 });
@@ -5491,24 +5541,24 @@ var config = require("./config");
 var destroyCompleter = function (e, editor) {
     editor.completer && editor.completer.destroy();
 };
-var Autocomplete = function () {
-    this.autoInsert = false;
-    this.autoSelect = true;
-    this.exactMatch = false;
-    this.inlineEnabled = false;
-    this.keyboardHandler = new HashHandler();
-    this.keyboardHandler.bindKeys(this.commands);
-    this.blurListener = this.blurListener.bind(this);
-    this.changeListener = this.changeListener.bind(this);
-    this.mousedownListener = this.mousedownListener.bind(this);
-    this.mousewheelListener = this.mousewheelListener.bind(this);
-    this.changeTimer = lang.delayedCall(function () {
-        this.updateCompletions(true);
-    }.bind(this));
-    this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);
-};
-(function () {
-    this.$init = function () {
+var Autocomplete = /** @class */ (function () {
+    function Autocomplete() {
+        this.autoInsert = false;
+        this.autoSelect = true;
+        this.exactMatch = false;
+        this.inlineEnabled = false;
+        this.keyboardHandler = new HashHandler();
+        this.keyboardHandler.bindKeys(this.commands);
+        this.blurListener = this.blurListener.bind(this);
+        this.changeListener = this.changeListener.bind(this);
+        this.mousedownListener = this.mousedownListener.bind(this);
+        this.mousewheelListener = this.mousewheelListener.bind(this);
+        this.changeTimer = lang.delayedCall(function () {
+            this.updateCompletions(true);
+        }.bind(this));
+        this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);
+    }
+    Autocomplete.prototype.$init = function () {
         this.popup = new AcePopup(document.body || document.documentElement);
         this.popup.on("click", function (e) {
             this.insertMatch();
@@ -5521,22 +5571,22 @@ var Autocomplete = function () {
         this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
         return this.popup;
     };
-    this.$initInline = function () {
+    Autocomplete.prototype.$initInline = function () {
         if (!this.inlineEnabled || this.inlineRenderer)
             return;
         this.inlineRenderer = new AceInline();
         return this.inlineRenderer;
     };
-    this.getPopup = function () {
+    Autocomplete.prototype.getPopup = function () {
         return this.popup || this.$init();
     };
-    this.$onHidePopup = function () {
+    Autocomplete.prototype.$onHidePopup = function () {
         if (this.inlineRenderer) {
             this.inlineRenderer.hide();
         }
         this.hideDocTooltip();
     };
-    this.$onPopupChange = function (hide) {
+    Autocomplete.prototype.$onPopupChange = function (hide) {
         if (this.inlineRenderer && this.inlineEnabled) {
             var completion = hide ? null : this.popup.getData(this.popup.getRow());
             var prefix = util.getCompletionPrefix(this.editor);
@@ -5547,7 +5597,7 @@ var Autocomplete = function () {
         }
         this.tooltipTimer.call(null, null);
     };
-    this.$updatePopupPosition = function () {
+    Autocomplete.prototype.$updatePopupPosition = function () {
         var editor = this.editor;
         var renderer = editor.renderer;
         var lineHeight = renderer.layerConfig.lineHeight;
@@ -5574,7 +5624,7 @@ var Autocomplete = function () {
         }
         this.popup.show(pos, lineHeight);
     };
-    this.openPopup = function (editor, prefix, keepPopupPosition) {
+    Autocomplete.prototype.openPopup = function (editor, prefix, keepPopupPosition) {
         if (!this.popup)
             this.$init();
         if (this.inlineEnabled && !this.inlineRenderer)
@@ -5602,7 +5652,7 @@ var Autocomplete = function () {
         }
         this.changeTimer.cancel();
     };
-    this.detach = function () {
+    Autocomplete.prototype.detach = function () {
         if (this.editor) {
             this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
             this.editor.off("changeSelection", this.changeListener);
@@ -5622,7 +5672,7 @@ var Autocomplete = function () {
         this.activated = false;
         this.completionProvider = this.completions = this.base = null;
     };
-    this.changeListener = function (e) {
+    Autocomplete.prototype.changeListener = function (e) {
         var cursor = this.editor.selection.lead;
         if (cursor.row != this.base.row || cursor.column < this.base.column) {
             this.detach();
@@ -5632,7 +5682,7 @@ var Autocomplete = function () {
         else
             this.detach();
     };
-    this.blurListener = function (e) {
+    Autocomplete.prototype.blurListener = function (e) {
         var el = document.activeElement;
         var text = this.editor.textInput.getElement();
         var fromTooltip = e.relatedTarget && this.tooltipNode && this.tooltipNode.contains(e.relatedTarget);
@@ -5642,16 +5692,16 @@ var Autocomplete = function () {
             this.detach();
         }
     };
-    this.mousedownListener = function (e) {
+    Autocomplete.prototype.mousedownListener = function (e) {
         this.detach();
     };
-    this.mousewheelListener = function (e) {
+    Autocomplete.prototype.mousewheelListener = function (e) {
         this.detach();
     };
-    this.goTo = function (where) {
+    Autocomplete.prototype.goTo = function (where) {
         this.popup.goTo(where);
     };
-    this.insertMatch = function (data, options) {
+    Autocomplete.prototype.insertMatch = function (data, options) {
         if (!data)
             data = this.popup.getData(this.popup.getRow());
         if (!data)
@@ -5662,25 +5712,7 @@ var Autocomplete = function () {
             this.detach();
         return result;
     };
-    this.commands = {
-        "Up": function (editor) { editor.completer.goTo("up"); },
-        "Down": function (editor) { editor.completer.goTo("down"); },
-        "Ctrl-Up|Ctrl-Home": function (editor) { editor.completer.goTo("start"); },
-        "Ctrl-Down|Ctrl-End": function (editor) { editor.completer.goTo("end"); },
-        "Esc": function (editor) { editor.completer.detach(); },
-        "Return": function (editor) { return editor.completer.insertMatch(); },
-        "Shift-Return": function (editor) { editor.completer.insertMatch(null, { deleteSuffix: true }); },
-        "Tab": function (editor) {
-            var result = editor.completer.insertMatch();
-            if (!result && !editor.tabstopManager)
-                editor.completer.goTo("down");
-            else
-                return result;
-        },
-        "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
-        "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }
-    };
-    this.showPopup = function (editor, options) {
+    Autocomplete.prototype.showPopup = function (editor, options) {
         if (this.editor)
             this.detach();
         this.activated = true;
@@ -5696,15 +5728,15 @@ var Autocomplete = function () {
         editor.on("mousewheel", this.mousewheelListener);
         this.updateCompletions(false, options);
     };
-    this.getCompletionProvider = function () {
+    Autocomplete.prototype.getCompletionProvider = function () {
         if (!this.completionProvider)
             this.completionProvider = new CompletionProvider();
         return this.completionProvider;
     };
-    this.gatherCompletions = function (editor, callback) {
+    Autocomplete.prototype.gatherCompletions = function (editor, callback) {
         return this.getCompletionProvider().gatherCompletions(editor, callback);
     };
-    this.updateCompletions = function (keepPopupPosition, options) {
+    Autocomplete.prototype.updateCompletions = function (keepPopupPosition, options) {
         if (keepPopupPosition && this.base && this.completions) {
             var pos = this.editor.getCursorPosition();
             var prefix = this.editor.session.getTextRange({ start: this.base, end: pos });
@@ -5748,21 +5780,24 @@ var Autocomplete = function () {
             this.openPopup(this.editor, prefix, keepPopupPosition);
         }.bind(this));
     };
-    this.cancelContextMenu = function () {
+    Autocomplete.prototype.cancelContextMenu = function () {
         this.editor.$mouseHandler.cancelContextMenu();
     };
-    this.updateDocTooltip = function () {
+    Autocomplete.prototype.updateDocTooltip = function () {
         var popup = this.popup;
         var all = popup.data;
         var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);
         var doc = null;
         if (!selected || !this.editor || !this.popup.isOpen)
             return this.hideDocTooltip();
-        this.editor.completers.some(function (completer) {
-            if (completer.getDocTooltip)
+        var completersLength = this.editor.completers.length;
+        for (var i = 0; i < completersLength; i++) {
+            var completer = this.editor.completers[i];
+            if (completer.getDocTooltip && selected.completerId === completer.id) {
                 doc = completer.getDocTooltip(selected);
-            return doc;
-        });
+                break;
+            }
+        }
         if (!doc && typeof selected != "string")
             doc = selected;
         if (typeof doc == "string")
@@ -5771,7 +5806,7 @@ var Autocomplete = function () {
             return this.hideDocTooltip();
         this.showDocTooltip(doc);
     };
-    this.showDocTooltip = function (item) {
+    Autocomplete.prototype.showDocTooltip = function (item) {
         if (!this.tooltipNode) {
             this.tooltipNode = dom.createElement("div");
             this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
@@ -5820,7 +5855,7 @@ var Autocomplete = function () {
             tooltipNode.style.right = "";
         }
     };
-    this.hideDocTooltip = function () {
+    Autocomplete.prototype.hideDocTooltip = function () {
         this.tooltipTimer.cancel();
         if (!this.tooltipNode)
             return;
@@ -5831,7 +5866,7 @@ var Autocomplete = function () {
         if (el.parentNode)
             el.parentNode.removeChild(el);
     };
-    this.onTooltipClick = function (e) {
+    Autocomplete.prototype.onTooltipClick = function (e) {
         var a = e.target;
         while (a && a != this.tooltipNode) {
             if (a.nodeName == "A" && a.href) {
@@ -5842,7 +5877,7 @@ var Autocomplete = function () {
             a = a.parentNode;
         }
     };
-    this.destroy = function () {
+    Autocomplete.prototype.destroy = function () {
         this.detach();
         if (this.popup) {
             this.popup.destroy();
@@ -5856,7 +5891,26 @@ var Autocomplete = function () {
         }
         this.inlineRenderer = this.popup = this.editor = null;
     };
-}).call(Autocomplete.prototype);
+    return Autocomplete;
+}());
+Autocomplete.prototype.commands = {
+    "Up": function (editor) { editor.completer.goTo("up"); },
+    "Down": function (editor) { editor.completer.goTo("down"); },
+    "Ctrl-Up|Ctrl-Home": function (editor) { editor.completer.goTo("start"); },
+    "Ctrl-Down|Ctrl-End": function (editor) { editor.completer.goTo("end"); },
+    "Esc": function (editor) { editor.completer.detach(); },
+    "Return": function (editor) { return editor.completer.insertMatch(); },
+    "Shift-Return": function (editor) { editor.completer.insertMatch(null, { deleteSuffix: true }); },
+    "Tab": function (editor) {
+        var result = editor.completer.insertMatch();
+        if (!result && !editor.tabstopManager)
+            editor.completer.goTo("down");
+        else
+            return result;
+    },
+    "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
+    "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }
+};
 Autocomplete.for = function (editor) {
     if (editor.completer instanceof Autocomplete) {
         return editor.completer;
@@ -5887,17 +5941,17 @@ Autocomplete.startCommand = {
     },
     bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
 };
-var CompletionProvider = function () {
-    this.active = true;
-};
-(function () {
-    this.insertByIndex = function (editor, index, options) {
+var CompletionProvider = /** @class */ (function () {
+    function CompletionProvider() {
+        this.active = true;
+    }
+    CompletionProvider.prototype.insertByIndex = function (editor, index, options) {
         if (!this.completions || !this.completions.filtered) {
             return false;
         }
         return this.insertMatch(editor, this.completions.filtered[index], options);
     };
-    this.insertMatch = function (editor, data, options) {
+    CompletionProvider.prototype.insertMatch = function (editor, data, options) {
         if (!data)
             return false;
         editor.startOperation({ command: { name: "insertMatch" } });
@@ -5905,9 +5959,8 @@ var CompletionProvider = function () {
             data.completer.insertMatch(editor, data);
         }
         else {
-            if (!this.completions) {
+            if (!this.completions)
                 return false;
-            }
             if (this.completions.filterText) {
                 var ranges = editor.selection.getAllRanges();
                 for (var i = 0, range; range = ranges[i]; i++) {
@@ -5916,14 +5969,38 @@ var CompletionProvider = function () {
                 }
             }
             if (data.snippet)
-                snippetManager.insertSnippet(editor, data.snippet);
-            else
-                editor.execCommand("insertstring", data.value || data);
+                snippetManager.insertSnippet(editor, data.snippet, data.range);
+            else {
+                this.$insertString(editor, data);
+            }
+            if (data.command && data.command === "startAutocomplete") {
+                editor.execCommand(data.command);
+            }
         }
         editor.endOperation();
         return true;
     };
-    this.gatherCompletions = function (editor, callback) {
+    CompletionProvider.prototype.$insertString = function (editor, data) {
+        var text = data.value || data;
+        if (data.range) {
+            if (editor.inVirtualSelectionMode) {
+                return editor.session.replace(data.range, text);
+            }
+            editor.forEachSelection(function () {
+                var range = editor.getSelectionRange();
+                if (data.range.compareRange(range) === 0) {
+                    editor.session.replace(data.range, text);
+                }
+                else {
+                    editor.insert(text);
+                }
+            }, null, { keepOrder: true });
+        }
+        else {
+            editor.execCommand("insertstring", text);
+        }
+    };
+    CompletionProvider.prototype.gatherCompletions = function (editor, callback) {
         var session = editor.getSession();
         var pos = editor.getCursorPosition();
         var prefix = util.getCompletionPrefix(editor);
@@ -5942,7 +6019,7 @@ var CompletionProvider = function () {
         });
         return true;
     };
-    this.provideCompletions = function (editor, options, callback) {
+    CompletionProvider.prototype.provideCompletions = function (editor, options, callback) {
         var processResults = function (results) {
             var prefix = results.prefix;
             var matches = results.matches;
@@ -5952,7 +6029,8 @@ var CompletionProvider = function () {
             if (options.ignoreCaption)
                 this.completions.ignoreCaption = true;
             this.completions.setFilter(prefix);
-            callback(null, this.completions, results.finished);
+            if (results.finished || this.completions.filtered.length)
+                callback(null, this.completions, results.finished);
         }.bind(this);
         var isImmediate = true;
         var immediateResults = null;
@@ -5980,19 +6058,20 @@ var CompletionProvider = function () {
             processResults(results);
         }
     };
-    this.detach = function () {
+    CompletionProvider.prototype.detach = function () {
         this.active = false;
     };
-}).call(CompletionProvider.prototype);
-var FilteredList = function (array, filterText) {
-    this.all = array;
-    this.filtered = array;
-    this.filterText = filterText || "";
-    this.exactMatch = false;
-    this.ignoreCaption = false;
-};
-(function () {
-    this.setFilter = function (str) {
+    return CompletionProvider;
+}());
+var FilteredList = /** @class */ (function () {
+    function FilteredList(array, filterText) {
+        this.all = array;
+        this.filtered = array;
+        this.filterText = filterText || "";
+        this.exactMatch = false;
+        this.ignoreCaption = false;
+    }
+    FilteredList.prototype.setFilter = function (str) {
         if (str.length > this.filterText && str.lastIndexOf(this.filterText, 0) === 0)
             var matches = this.filtered;
         else
@@ -6013,7 +6092,7 @@ var FilteredList = function (array, filterText) {
         });
         this.filtered = matches;
     };
-    this.filterCompletions = function (items, needle) {
+    FilteredList.prototype.filterCompletions = function (items, needle) {
         var results = [];
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
@@ -6059,7 +6138,8 @@ var FilteredList = function (array, filterText) {
         }
         return results;
     };
-}).call(FilteredList.prototype);
+    return FilteredList;
+}());
 exports.Autocomplete = Autocomplete;
 exports.CompletionProvider = CompletionProvider;
 exports.FilteredList = FilteredList;
@@ -6069,20 +6149,20 @@ exports.FilteredList = FilteredList;
 define("ace/ext/statusbar",["require","exports","module","ace/lib/dom","ace/lib/lang"], function(require, exports, module){"use strict";
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
-var StatusBar = function (editor, parentNode) {
-    this.element = dom.createElement("div");
-    this.element.className = "ace_status-indicator";
-    this.element.style.cssText = "display: inline-block;";
-    parentNode.appendChild(this.element);
-    var statusUpdate = lang.delayedCall(function () {
-        this.updateStatus(editor);
-    }.bind(this)).schedule.bind(null, 100);
-    editor.on("changeStatus", statusUpdate);
-    editor.on("changeSelection", statusUpdate);
-    editor.on("keyboardActivity", statusUpdate);
-};
-(function () {
-    this.updateStatus = function (editor) {
+var StatusBar = /** @class */ (function () {
+    function StatusBar(editor, parentNode) {
+        this.element = dom.createElement("div");
+        this.element.className = "ace_status-indicator";
+        this.element.style.cssText = "display: inline-block;";
+        parentNode.appendChild(this.element);
+        var statusUpdate = lang.delayedCall(function () {
+            this.updateStatus(editor);
+        }.bind(this)).schedule.bind(null, 100);
+        editor.on("changeStatus", statusUpdate);
+        editor.on("changeSelection", statusUpdate);
+        editor.on("keyboardActivity", statusUpdate);
+    }
+    StatusBar.prototype.updateStatus = function (editor) {
         var status = [];
         function add(str, separator) {
             str && status.push(str, separator || "|");
@@ -6102,7 +6182,8 @@ var StatusBar = function (editor, parentNode) {
         status.pop();
         this.element.textContent = status.join("");
     };
-}).call(StatusBar.prototype);
+    return StatusBar;
+}());
 exports.StatusBar = StatusBar;
 
 });
@@ -6114,9 +6195,10 @@ var snippetManager = require("../snippets").snippetManager;
 var Range = require("../range").Range;
 var config = require("../config");
 var emmet, emmetPath;
-function AceEmmetEditor() { }
-AceEmmetEditor.prototype = {
-    setupContext: function (editor) {
+var AceEmmetEditor = /** @class */ (function () {
+    function AceEmmetEditor() {
+    }
+    AceEmmetEditor.prototype.setupContext = function (editor) {
         this.ace = editor;
         this.indentation = editor.session.getTabString();
         if (!emmet)
@@ -6125,23 +6207,23 @@ AceEmmetEditor.prototype = {
         resources.setVariable("indentation", this.indentation);
         this.$syntax = null;
         this.$syntax = this.getSyntax();
-    },
-    getSelectionRange: function () {
+    };
+    AceEmmetEditor.prototype.getSelectionRange = function () {
         var range = this.ace.getSelectionRange();
         var doc = this.ace.session.doc;
         return {
             start: doc.positionToIndex(range.start),
             end: doc.positionToIndex(range.end)
         };
-    },
-    createSelection: function (start, end) {
+    };
+    AceEmmetEditor.prototype.createSelection = function (start, end) {
         var doc = this.ace.session.doc;
         this.ace.selection.setRange({
             start: doc.indexToPosition(start),
             end: doc.indexToPosition(end)
         });
-    },
-    getCurrentLineRange: function () {
+    };
+    AceEmmetEditor.prototype.getCurrentLineRange = function () {
         var ace = this.ace;
         var row = ace.getCursorPosition().row;
         var lineLength = ace.session.getLine(row).length;
@@ -6150,20 +6232,20 @@ AceEmmetEditor.prototype = {
             start: index,
             end: index + lineLength
         };
-    },
-    getCaretPos: function () {
+    };
+    AceEmmetEditor.prototype.getCaretPos = function () {
         var pos = this.ace.getCursorPosition();
         return this.ace.session.doc.positionToIndex(pos);
-    },
-    setCaretPos: function (index) {
+    };
+    AceEmmetEditor.prototype.setCaretPos = function (index) {
         var pos = this.ace.session.doc.indexToPosition(index);
         this.ace.selection.moveToPosition(pos);
-    },
-    getCurrentLine: function () {
+    };
+    AceEmmetEditor.prototype.getCurrentLine = function () {
         var row = this.ace.getCursorPosition().row;
         return this.ace.session.getLine(row);
-    },
-    replaceContent: function (value, start, end, noIndent) {
+    };
+    AceEmmetEditor.prototype.replaceContent = function (value, start, end, noIndent) {
         if (end == null)
             end = start == null ? this.getContent().length : start;
         if (start == null)
@@ -6175,11 +6257,11 @@ AceEmmetEditor.prototype = {
         range.end = range.start;
         value = this.$updateTabstops(value);
         snippetManager.insertSnippet(editor, value);
-    },
-    getContent: function () {
+    };
+    AceEmmetEditor.prototype.getContent = function () {
         return this.ace.getValue();
-    },
-    getSyntax: function () {
+    };
+    AceEmmetEditor.prototype.getSyntax = function () {
         if (this.$syntax)
             return this.$syntax;
         var syntax = this.ace.session.$modeId.split("/").pop();
@@ -6197,8 +6279,8 @@ AceEmmetEditor.prototype = {
             }
         }
         return syntax;
-    },
-    getProfileName: function () {
+    };
+    AceEmmetEditor.prototype.getProfileName = function () {
         var resources = emmet.resources || emmet.require("resources");
         switch (this.getSyntax()) {
             case "css": return "css";
@@ -6214,17 +6296,17 @@ AceEmmetEditor.prototype = {
                 var mode = this.ace.session.$mode;
                 return mode.emmetConfig && mode.emmetConfig.profile || "xhtml";
         }
-    },
-    prompt: function (title) {
+    };
+    AceEmmetEditor.prototype.prompt = function (title) {
         return prompt(title); // eslint-disable-line no-alert
-    },
-    getSelection: function () {
+    };
+    AceEmmetEditor.prototype.getSelection = function () {
         return this.ace.session.getTextRange();
-    },
-    getFilePath: function () {
+    };
+    AceEmmetEditor.prototype.getFilePath = function () {
         return "";
-    },
-    $updateTabstops: function (value) {
+    };
+    AceEmmetEditor.prototype.$updateTabstops = function (value) {
         var base = 1000;
         var zeroBase = 0;
         var lastZero = null;
@@ -6266,8 +6348,9 @@ AceEmmetEditor.prototype = {
             value = common.replaceSubstring(value, '${0}', lastZero[0], lastZero[1]);
         }
         return value;
-    }
-};
+    };
+    return AceEmmetEditor;
+}());
 var keymap = {
     expand_abbreviation: { "mac": "ctrl+alt+e", "win": "alt+e" },
     match_pair_outward: { "mac": "ctrl+d", "win": "ctrl+," },
@@ -6410,7 +6493,10 @@ exports.setCore = function (e) {
 define("ace/autocomplete/text_completer",["require","exports","module","ace/range"], function(require, exports, module){var Range = require("../range").Range;
 var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
 function getWordIndex(doc, pos) {
-    var textBefore = doc.getTextRange(Range.fromPoints({ row: 0, column: 0 }, pos));
+    var textBefore = doc.getTextRange(Range.fromPoints({
+        row: 0,
+        column: 0
+    }, pos));
     return textBefore.split(splitRegex).length - 1;
 }
 function wordDistance(doc, pos) {
@@ -6461,8 +6547,13 @@ var keyWordCompleter = {
         }
         var state = editor.session.getState(pos.row);
         var completions = session.$mode.getCompletions(state, session, pos, prefix);
+        completions = completions.map(function (el) {
+            el.completerId = keyWordCompleter.id;
+            return el;
+        });
         callback(null, completions);
-    }
+    },
+    id: "keywordCompleter"
 };
 var transformSnippetTooltip = function (str) {
     var record = {};
@@ -6493,20 +6584,21 @@ var snippetCompleter = {
                     caption: caption,
                     snippet: s.content,
                     meta: s.tabTrigger && !s.name ? s.tabTrigger + "\u21E5 " : "snippet",
-                    type: "snippet"
+                    completerId: snippetCompleter.id
                 });
             }
         }, this);
         callback(null, completions);
     },
     getDocTooltip: function (item) {
-        if (item.type == "snippet" && !item.docHTML) {
+        if (item.snippet && !item.docHTML) {
             item.docHTML = [
                 "<b>", lang.escapeHTML(item.caption), "</b>", "<hr></hr>",
                 lang.escapeHTML(transformSnippetTooltip(item.snippet))
             ].join("");
         }
-    }
+    },
+    id: "snippetCompleter"
 };
 var completers = [snippetCompleter, textCompleter, keyWordCompleter];
 exports.setCompleters = function (val) {
@@ -6647,32 +6739,32 @@ var minPosition = function (posA, posB) {
     }
     return posB;
 };
-var InlineAutocomplete = function (editor) {
-    this.editor = editor;
-    this.tooltipEnabled = true;
-    this.keyboardHandler = new HashHandler(this.commands);
-    this.$index = -1;
-    this.blurListener = this.blurListener.bind(this);
-    this.changeListener = this.changeListener.bind(this);
-    this.mousewheelListener = this.mousewheelListener.bind(this);
-    this.changeTimer = lang.delayedCall(function () {
-        this.updateCompletions();
-    }.bind(this));
-};
-(function () {
-    this.getInlineRenderer = function () {
+var InlineAutocomplete = /** @class */ (function () {
+    function InlineAutocomplete(editor) {
+        this.editor = editor;
+        this.tooltipEnabled = true;
+        this.keyboardHandler = new HashHandler(this.commands);
+        this.$index = -1;
+        this.blurListener = this.blurListener.bind(this);
+        this.changeListener = this.changeListener.bind(this);
+        this.mousewheelListener = this.mousewheelListener.bind(this);
+        this.changeTimer = lang.delayedCall(function () {
+            this.updateCompletions();
+        }.bind(this));
+    }
+    InlineAutocomplete.prototype.getInlineRenderer = function () {
         if (!this.inlineRenderer)
             this.inlineRenderer = new AceInline();
         return this.inlineRenderer;
     };
-    this.getInlineTooltip = function () {
+    InlineAutocomplete.prototype.getInlineTooltip = function () {
         if (!this.inlineTooltip) {
             this.inlineTooltip = new InlineTooltip(this.editor, document.body || document.documentElement);
             this.inlineTooltip.setCommands(this.commands);
         }
         return this.inlineTooltip;
     };
-    this.show = function (options) {
+    InlineAutocomplete.prototype.show = function (options) {
         this.activated = true;
         if (this.editor.completer !== this) {
             if (this.editor.completer)
@@ -6684,7 +6776,7 @@ var InlineAutocomplete = function (editor) {
         this.editor.on("mousewheel", this.mousewheelListener);
         this.updateCompletions(options);
     };
-    this.$open = function () {
+    InlineAutocomplete.prototype.$open = function () {
         if (this.editor.textInput.setAriaOptions) {
             this.editor.textInput.setAriaOptions({});
         }
@@ -6702,56 +6794,12 @@ var InlineAutocomplete = function (editor) {
         }
         this.changeTimer.cancel();
     };
-    this.insertMatch = function () {
+    InlineAutocomplete.prototype.insertMatch = function () {
         var result = this.getCompletionProvider().insertByIndex(this.editor, this.$index);
         this.detach();
         return result;
     };
-    this.commands = {
-        "Previous": {
-            bindKey: "Alt-[",
-            name: "Previous",
-            exec: function (editor) {
-                editor.completer.goTo("prev");
-            },
-            enabled: function (editor) {
-                return editor.completer.getIndex() > 0;
-            },
-            position: 10
-        },
-        "Next": {
-            bindKey: "Alt-]",
-            name: "Next",
-            exec: function (editor) {
-                editor.completer.goTo("next");
-            },
-            enabled: function (editor) {
-                return editor.completer.getIndex() < editor.completer.getLength() - 1;
-            },
-            position: 20
-        },
-        "Accept": {
-            bindKey: { win: "Tab|Ctrl-Right", mac: "Tab|Cmd-Right" },
-            name: "Accept",
-            exec: function (editor) {
-                return editor.completer.insertMatch();
-            },
-            enabled: function (editor) {
-                return editor.completer.getIndex() >= 0;
-            },
-            position: 30
-        },
-        "Close": {
-            bindKey: "Esc",
-            name: "Close",
-            exec: function (editor) {
-                editor.completer.detach();
-            },
-            enabled: true,
-            position: 40
-        }
-    };
-    this.changeListener = function (e) {
+    InlineAutocomplete.prototype.changeListener = function (e) {
         var cursor = this.editor.selection.lead;
         if (cursor.row != this.base.row || cursor.column < this.base.column) {
             this.detach();
@@ -6761,15 +6809,15 @@ var InlineAutocomplete = function (editor) {
         else
             this.detach();
     };
-    this.blurListener = function (e) {
+    InlineAutocomplete.prototype.blurListener = function (e) {
         this.detach();
     };
-    this.mousewheelListener = function (e) {
+    InlineAutocomplete.prototype.mousewheelListener = function (e) {
         if (this.inlineTooltip && this.inlineTooltip.isShown()) {
             this.inlineTooltip.updatePosition();
         }
     };
-    this.goTo = function (where) {
+    InlineAutocomplete.prototype.goTo = function (where) {
         if (!this.completions || !this.completions.filtered) {
             return;
         }
@@ -6788,13 +6836,13 @@ var InlineAutocomplete = function (editor) {
                 break;
         }
     };
-    this.getLength = function () {
+    InlineAutocomplete.prototype.getLength = function () {
         if (!this.completions || !this.completions.filtered) {
             return 0;
         }
         return this.completions.filtered.length;
     };
-    this.getData = function (index) {
+    InlineAutocomplete.prototype.getData = function (index) {
         if (index == undefined || index === null) {
             return this.completions.filtered[this.$index];
         }
@@ -6802,13 +6850,13 @@ var InlineAutocomplete = function (editor) {
             return this.completions.filtered[index];
         }
     };
-    this.getIndex = function () {
+    InlineAutocomplete.prototype.getIndex = function () {
         return this.$index;
     };
-    this.isOpen = function () {
+    InlineAutocomplete.prototype.isOpen = function () {
         return this.$index >= 0;
     };
-    this.setIndex = function (value) {
+    InlineAutocomplete.prototype.setIndex = function (value) {
         if (!this.completions || !this.completions.filtered) {
             return;
         }
@@ -6818,12 +6866,12 @@ var InlineAutocomplete = function (editor) {
             this.$showCompletion();
         }
     };
-    this.getCompletionProvider = function () {
+    InlineAutocomplete.prototype.getCompletionProvider = function () {
         if (!this.completionProvider)
             this.completionProvider = new CompletionProvider();
         return this.completionProvider;
     };
-    this.$showCompletion = function () {
+    InlineAutocomplete.prototype.$showCompletion = function () {
         if (!this.getInlineRenderer().show(this.editor, this.completions.filtered[this.$index], this.completions.filterText)) {
             this.getInlineRenderer().hide();
         }
@@ -6831,7 +6879,7 @@ var InlineAutocomplete = function (editor) {
             this.inlineTooltip.updateButtons();
         }
     };
-    this.$updatePrefix = function () {
+    InlineAutocomplete.prototype.$updatePrefix = function () {
         var pos = this.editor.getCursorPosition();
         var prefix = this.editor.session.getTextRange({ start: this.base, end: pos });
         this.completions.setFilter(prefix);
@@ -6844,7 +6892,7 @@ var InlineAutocomplete = function (editor) {
         this.$open(this.editor, prefix);
         return prefix;
     };
-    this.updateCompletions = function (options) {
+    InlineAutocomplete.prototype.updateCompletions = function (options) {
         var prefix = "";
         if (options && options.matches) {
             var pos = this.editor.getSelectionRange().start;
@@ -6878,7 +6926,7 @@ var InlineAutocomplete = function (editor) {
             this.$open(this.editor, prefix);
         }.bind(this));
     };
-    this.detach = function () {
+    InlineAutocomplete.prototype.detach = function () {
         if (this.editor) {
             this.editor.keyBinding.removeKeyboardHandler(this.keyboardHandler);
             this.editor.off("changeSelection", this.changeListener);
@@ -6901,7 +6949,7 @@ var InlineAutocomplete = function (editor) {
         this.activated = false;
         this.completionProvider = this.completions = this.base = null;
     };
-    this.destroy = function () {
+    InlineAutocomplete.prototype.destroy = function () {
         this.detach();
         if (this.inlineRenderer)
             this.inlineRenderer.destroy();
@@ -6913,7 +6961,52 @@ var InlineAutocomplete = function (editor) {
         }
         this.inlineTooltip = this.editor = this.inlineRenderer = null;
     };
-}).call(InlineAutocomplete.prototype);
+    return InlineAutocomplete;
+}());
+InlineAutocomplete.prototype.commands = {
+    "Previous": {
+        bindKey: "Alt-[",
+        name: "Previous",
+        exec: function (editor) {
+            editor.completer.goTo("prev");
+        },
+        enabled: function (editor) {
+            return editor.completer.getIndex() > 0;
+        },
+        position: 10
+    },
+    "Next": {
+        bindKey: "Alt-]",
+        name: "Next",
+        exec: function (editor) {
+            editor.completer.goTo("next");
+        },
+        enabled: function (editor) {
+            return editor.completer.getIndex() < editor.completer.getLength() - 1;
+        },
+        position: 20
+    },
+    "Accept": {
+        bindKey: { win: "Tab|Ctrl-Right", mac: "Tab|Cmd-Right" },
+        name: "Accept",
+        exec: function (editor) {
+            return editor.completer.insertMatch();
+        },
+        enabled: function (editor) {
+            return editor.completer.getIndex() >= 0;
+        },
+        position: 30
+    },
+    "Close": {
+        bindKey: "Esc",
+        name: "Close",
+        exec: function (editor) {
+            editor.completer.detach();
+        },
+        enabled: true,
+        position: 40
+    }
+};
 InlineAutocomplete.for = function (editor) {
     if (editor.completer instanceof InlineAutocomplete) {
         return editor.completer;
@@ -6954,26 +7047,23 @@ var ENTRY_CLASS_NAME = 'inline_autocomplete_tooltip_entry';
 var BUTTON_CLASS_NAME = 'inline_autocomplete_tooltip_button';
 var TOOLTIP_CLASS_NAME = 'ace_tooltip ace_inline_autocomplete_tooltip';
 var TOOLTIP_ID = 'inline_autocomplete_tooltip';
-function InlineTooltip(editor, parentElement) {
-    this.editor = editor;
-    this.htmlElement = document.createElement('div');
-    var el = this.htmlElement;
-    el.style.display = 'none';
-    if (parentElement) {
-        parentElement.appendChild(el);
+var InlineTooltip = /** @class */ (function () {
+    function InlineTooltip(editor, parentElement) {
+        this.editor = editor;
+        this.htmlElement = document.createElement('div');
+        var el = this.htmlElement;
+        el.style.display = 'none';
+        if (parentElement) {
+            parentElement.appendChild(el);
+        }
+        el.id = TOOLTIP_ID;
+        el.style['pointer-events'] = 'auto';
+        el.className = TOOLTIP_CLASS_NAME;
+        this.commands = {};
+        this.buttons = {};
+        this.eventListeners = {};
     }
-    el.id = TOOLTIP_ID;
-    el.style['pointer-events'] = 'auto';
-    el.className = TOOLTIP_CLASS_NAME;
-    this.commands = {};
-    this.buttons = {};
-    this.eventListeners = {};
-}
-(function () {
-    var captureMousedown = function (e) {
-        e.preventDefault();
-    };
-    this.setCommands = function (commands) {
+    InlineTooltip.prototype.setCommands = function (commands) {
         if (!commands || !this.htmlElement) {
             return;
         }
@@ -7002,17 +7092,17 @@ function InlineTooltip(editor, parentElement) {
             this.buttons[key].appendChild(buttonText);
         }.bind(this));
     };
-    this.show = function () {
+    InlineTooltip.prototype.show = function () {
         this.detach();
         this.htmlElement.style.display = '';
         this.htmlElement.addEventListener('mousedown', captureMousedown.bind(this));
         this.updatePosition();
         this.updateButtons(true);
     };
-    this.isShown = function () {
+    InlineTooltip.prototype.isShown = function () {
         return !!this.htmlElement && window.getComputedStyle(this.htmlElement).display !== "none";
     };
-    this.updatePosition = function () {
+    InlineTooltip.prototype.updatePosition = function () {
         if (!this.editor) {
             return;
         }
@@ -7043,7 +7133,7 @@ function InlineTooltip(editor, parentElement) {
         el.style.bottom = "";
         el.style.left = Math.min(screenWidth - el.offsetWidth, pos.left) + "px";
     };
-    this.updateButtons = function (force) {
+    InlineTooltip.prototype.updateButtons = function (force) {
         Object.keys(this.buttons).forEach(function (key) {
             var commandEnabled = this.commands[key].enabled;
             if (typeof commandEnabled === 'function') {
@@ -7069,7 +7159,7 @@ function InlineTooltip(editor, parentElement) {
             }
         }.bind(this));
     };
-    this.detach = function () {
+    InlineTooltip.prototype.detach = function () {
         var listenerKeys = Object.keys(this.eventListeners);
         if (this.eventListeners && listenerKeys.length) {
             listenerKeys.forEach(function (key) {
@@ -7082,7 +7172,7 @@ function InlineTooltip(editor, parentElement) {
             this.htmlElement.style.display = 'none';
         }
     };
-    this.destroy = function () {
+    InlineTooltip.prototype.destroy = function () {
         this.detach();
         if (this.htmlElement) {
             this.htmlElement.parentNode.removeChild(this.htmlElement);
@@ -7092,7 +7182,11 @@ function InlineTooltip(editor, parentElement) {
         this.htmlElement = null;
         this.controls = null;
     };
-}).call(InlineTooltip.prototype);
+    return InlineTooltip;
+}());
+var captureMousedown = function (e) {
+    e.preventDefault();
+};
 dom.importCssString("\n.ace_inline_autocomplete_tooltip {\n    display: inline-block;\n}\n.".concat(ENTRY_CLASS_NAME, " {\n    display: inline-block;\n    padding: 0 5px;\n}\n\n.").concat(BUTTON_CLASS_NAME, " {\n    display: inline-block;\n    cursor: pointer;\n    padding: 5px;\n}\n\n.").concat(BUTTON_CLASS_NAME, ":hover {\n    background-color: rgba(0, 0, 0, 0.1);\n}\n\ndiv.").concat(BUTTON_CLASS_NAME, "_disabled {\n    display: inline-block;\n    padding: 5px;\n    cursor: default;\n    color: #777;\n}"), "inlinetooltip.css", false);
 exports.InlineAutocomplete = InlineAutocomplete;
 exports.InlineTooltip = InlineTooltip;
@@ -7815,6 +7909,7 @@ optionsPanel.add({
 var optionsPanelContainer = document.getElementById("optionsPanel");
 optionsPanel.render();
 optionsPanelContainer.insertBefore(optionsPanel.container, optionsPanelContainer.firstChild);
+optionsPanel.container.style.width = "80%";
 optionsPanel.on("setOption", function(e) {
     util.saveOption(e.name, e.value);
 });
@@ -7890,7 +7985,7 @@ env.editSnippets = function() {
 };
 
 optionsPanelContainer.insertBefore(
-    dom.buildDom(["div", {style: "text-align:right;margin-right: 60px"},
+    dom.buildDom(["div", {style: "text-align:right;width: 80%"},
         ["div", {}, 
             ["button", {onclick: env.editSnippets}, "Edit Snippets"]],
         ["div", {}, 
@@ -7901,10 +7996,77 @@ optionsPanelContainer.insertBefore(
                 env.editor.setValue(info, -1);
                 env.editor.setOption("wrap", 80);
             }}, "Show Browser Info"]],
-        devUtil.getUI()
+        devUtil.getUI(),
+        ["div", {},
+            "Open Dialog ",
+            ["button",  {onclick: openTestDialog.bind(null, false)}, "Scale"],
+            ["button",  {onclick: openTestDialog.bind(null, true)}, "Height"]
+        ]
     ]),
     optionsPanelContainer.children[1]
 );
+
+function openTestDialog(animateHeight) {
+    if (window.dialogEditor) 
+        window.dialogEditor.destroy();
+    var editor = ace.edit(null, {
+        value: "test editor", 
+        mode: "ace/mode/javascript"
+    });
+    window.dialogEditor = editor;
+
+    var dialog = dom.buildDom(["div", {
+        style: "transition: all 1s; position: fixed; z-index: 100000;"
+          + "background: darkblue; border: solid 1px black; display: flex; flex-direction: column"
+        }, 
+        ["div", {}, "test dialog"],
+        editor.container
+    ], document.body);
+    editor.container.style.flex = "1";
+    if (animateHeight) {
+        dialog.style.width = "0vw";
+        dialog.style.height = "0vh";
+        dialog.style.left = "20vw";
+        dialog.style.top = "20vh";
+        setTimeout(function() {            
+            dialog.style.width = "80vw";
+            dialog.style.height = "80vh";
+            dialog.style.left = "10vw";
+            dialog.style.top = "10vh";
+        }, 0);
+        
+    } else {
+        dialog.style.width = "80vw";
+        dialog.style.height = "80vh";
+        dialog.style.left = "10vw";
+        dialog.style.top = "10vh";
+        dialog.style.transform = "scale(0)";
+        setTimeout(function() {
+            dialog.style.transform = "scale(1)"
+        }, 0);
+    }
+    function close(e) {
+        if (!e || !dialog.contains(e.target)) {
+            if (animateHeight) {
+                dialog.style.width = "0vw";
+                dialog.style.height = "0vh";
+                dialog.style.left = "80vw";
+                dialog.style.top = "80vh";
+            } else {
+                dialog.style.transform = "scale(0)"
+            }
+            window.removeEventListener("mousedown", close);
+            dialog.addEventListener("transitionend", function() {
+                dialog.remove();
+                editor.destroy();
+            });
+        }
+    }
+    window.addEventListener("mousedown", close);
+    editor.focus()
+    editor.commands.bindKey("Esc", function() { close(); });
+}
+
 
 require("ace/ext/language_tools");
 require("ace/ext/inline_autocomplete");
