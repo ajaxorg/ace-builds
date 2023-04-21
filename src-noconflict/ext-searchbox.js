@@ -42,92 +42,6 @@ var SearchBox = /** @class */ (function () {
         this.$init();
         this.setEditor(editor);
         dom.importCssString(searchboxCss, "ace_searchbox", editor.container);
-        this.$searchBarKb = new HashHandler();
-        this.$searchBarKb.bindKeys({
-            "Ctrl-f|Command-f": function (sb) {
-                var isReplace = sb.isReplace = !sb.isReplace;
-                sb.replaceBox.style.display = isReplace ? "" : "none";
-                sb.replaceOption.checked = false;
-                sb.$syncOptions();
-                sb.searchInput.focus();
-            },
-            "Ctrl-H|Command-Option-F": function (sb) {
-                if (sb.editor.getReadOnly())
-                    return;
-                sb.replaceOption.checked = true;
-                sb.$syncOptions();
-                sb.replaceInput.focus();
-            },
-            "Ctrl-G|Command-G": function (sb) {
-                sb.findNext();
-            },
-            "Ctrl-Shift-G|Command-Shift-G": function (sb) {
-                sb.findPrev();
-            },
-            "esc": function (sb) {
-                setTimeout(function () { sb.hide(); });
-            },
-            "Return": function (sb) {
-                if (sb.activeInput == sb.replaceInput)
-                    sb.replace();
-                sb.findNext();
-            },
-            "Shift-Return": function (sb) {
-                if (sb.activeInput == sb.replaceInput)
-                    sb.replace();
-                sb.findPrev();
-            },
-            "Alt-Return": function (sb) {
-                if (sb.activeInput == sb.replaceInput)
-                    sb.replaceAll();
-                sb.findAll();
-            },
-            "Tab": function (sb) {
-                (sb.activeInput == sb.replaceInput ? sb.searchInput : sb.replaceInput).focus();
-            }
-        });
-        this.$searchBarKb.addCommands([{
-                name: "toggleRegexpMode",
-                bindKey: { win: "Alt-R|Alt-/", mac: "Ctrl-Alt-R|Ctrl-Alt-/" },
-                exec: function (sb) {
-                    sb.regExpOption.checked = !sb.regExpOption.checked;
-                    sb.$syncOptions();
-                }
-            }, {
-                name: "toggleCaseSensitive",
-                bindKey: { win: "Alt-C|Alt-I", mac: "Ctrl-Alt-R|Ctrl-Alt-I" },
-                exec: function (sb) {
-                    sb.caseSensitiveOption.checked = !sb.caseSensitiveOption.checked;
-                    sb.$syncOptions();
-                }
-            }, {
-                name: "toggleWholeWords",
-                bindKey: { win: "Alt-B|Alt-W", mac: "Ctrl-Alt-B|Ctrl-Alt-W" },
-                exec: function (sb) {
-                    sb.wholeWordOption.checked = !sb.wholeWordOption.checked;
-                    sb.$syncOptions();
-                }
-            }, {
-                name: "toggleReplace",
-                exec: function (sb) {
-                    sb.replaceOption.checked = !sb.replaceOption.checked;
-                    sb.$syncOptions();
-                }
-            }, {
-                name: "searchInSelection",
-                exec: function (sb) {
-                    sb.searchOption.checked = !sb.searchRange;
-                    sb.setSearchRange(sb.searchOption.checked && sb.editor.getSelectionRange());
-                    sb.$syncOptions();
-                }
-            }]);
-        this.$closeSearchBarKb = new HashHandler([{
-                bindKey: "Esc",
-                name: "closeSearchBar",
-                exec: function (editor) {
-                    editor.searchBox.hide();
-                }
-            }]);
     }
     SearchBox.prototype.setEditor = function (editor) {
         editor.searchBox = this;
@@ -323,6 +237,94 @@ var SearchBox = /** @class */ (function () {
     };
     return SearchBox;
 }());
+var $searchBarKb = new HashHandler();
+$searchBarKb.bindKeys({
+    "Ctrl-f|Command-f": function (sb) {
+        var isReplace = sb.isReplace = !sb.isReplace;
+        sb.replaceBox.style.display = isReplace ? "" : "none";
+        sb.replaceOption.checked = false;
+        sb.$syncOptions();
+        sb.searchInput.focus();
+    },
+    "Ctrl-H|Command-Option-F": function (sb) {
+        if (sb.editor.getReadOnly())
+            return;
+        sb.replaceOption.checked = true;
+        sb.$syncOptions();
+        sb.replaceInput.focus();
+    },
+    "Ctrl-G|Command-G": function (sb) {
+        sb.findNext();
+    },
+    "Ctrl-Shift-G|Command-Shift-G": function (sb) {
+        sb.findPrev();
+    },
+    "esc": function (sb) {
+        setTimeout(function () { sb.hide(); });
+    },
+    "Return": function (sb) {
+        if (sb.activeInput == sb.replaceInput)
+            sb.replace();
+        sb.findNext();
+    },
+    "Shift-Return": function (sb) {
+        if (sb.activeInput == sb.replaceInput)
+            sb.replace();
+        sb.findPrev();
+    },
+    "Alt-Return": function (sb) {
+        if (sb.activeInput == sb.replaceInput)
+            sb.replaceAll();
+        sb.findAll();
+    },
+    "Tab": function (sb) {
+        (sb.activeInput == sb.replaceInput ? sb.searchInput : sb.replaceInput).focus();
+    }
+});
+$searchBarKb.addCommands([{
+        name: "toggleRegexpMode",
+        bindKey: { win: "Alt-R|Alt-/", mac: "Ctrl-Alt-R|Ctrl-Alt-/" },
+        exec: function (sb) {
+            sb.regExpOption.checked = !sb.regExpOption.checked;
+            sb.$syncOptions();
+        }
+    }, {
+        name: "toggleCaseSensitive",
+        bindKey: { win: "Alt-C|Alt-I", mac: "Ctrl-Alt-R|Ctrl-Alt-I" },
+        exec: function (sb) {
+            sb.caseSensitiveOption.checked = !sb.caseSensitiveOption.checked;
+            sb.$syncOptions();
+        }
+    }, {
+        name: "toggleWholeWords",
+        bindKey: { win: "Alt-B|Alt-W", mac: "Ctrl-Alt-B|Ctrl-Alt-W" },
+        exec: function (sb) {
+            sb.wholeWordOption.checked = !sb.wholeWordOption.checked;
+            sb.$syncOptions();
+        }
+    }, {
+        name: "toggleReplace",
+        exec: function (sb) {
+            sb.replaceOption.checked = !sb.replaceOption.checked;
+            sb.$syncOptions();
+        }
+    }, {
+        name: "searchInSelection",
+        exec: function (sb) {
+            sb.searchOption.checked = !sb.searchRange;
+            sb.setSearchRange(sb.searchOption.checked && sb.editor.getSelectionRange());
+            sb.$syncOptions();
+        }
+    }]);
+var $closeSearchBarKb = new HashHandler([{
+        bindKey: "Esc",
+        name: "closeSearchBar",
+        exec: function (editor) {
+            editor.searchBox.hide();
+        }
+    }]);
+SearchBox.prototype.$searchBarKb = $searchBarKb;
+SearchBox.prototype.$closeSearchBarKb = $closeSearchBarKb;
 exports.SearchBox = SearchBox;
 exports.Search = function (editor, isReplace) {
     var sb = editor.searchBox || new SearchBox(editor);

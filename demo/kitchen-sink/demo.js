@@ -3410,6 +3410,9 @@ class TokenTooltip extends Tooltip {
             this.height = this.getHeight();
             this.tokenText = tokenText;
         }
+        if (!this.isOpen) {
+            this.setTheme(r.theme);
+        }
 
         this.show(null, this.x, this.y);
 
@@ -3457,6 +3460,76 @@ class TokenTooltip extends Tooltip {
 }
 
 exports.TokenTooltip = TokenTooltip;
+
+});
+
+define("ace/marker_group",["require","exports","module"], function(require, exports, module){"use strict";
+var MarkerGroup = /** @class */ (function () {
+    function MarkerGroup(session) {
+        this.markers = [];
+        this.session = session;
+        session.addDynamicMarker(this);
+    }
+    MarkerGroup.prototype.getMarkerAtPosition = function (pos) {
+        return this.markers.find(function (marker) {
+            return marker.range.contains(pos.row, pos.column);
+        });
+    };
+    MarkerGroup.prototype.markersComparator = function (a, b) {
+        return a.range.start.row - b.range.start.row;
+    };
+    MarkerGroup.prototype.setMarkers = function (markers) {
+        this.markers = markers.sort(this.markersComparator).slice(0, this.MAX_MARKERS);
+        this.session._signal("changeBackMarker");
+    };
+    MarkerGroup.prototype.update = function (html, markerLayer, session, config) {
+        if (!this.markers || !this.markers.length)
+            return;
+        var visibleRangeStartRow = config.firstRow, visibleRangeEndRow = config.lastRow;
+        var foldLine;
+        var markersOnOneLine = 0;
+        var lastRow = 0;
+        for (var i = 0; i < this.markers.length; i++) {
+            var marker = this.markers[i];
+            if (marker.range.end.row < visibleRangeStartRow)
+                continue;
+            if (marker.range.start.row > visibleRangeEndRow)
+                continue;
+            if (marker.range.start.row === lastRow) {
+                markersOnOneLine++;
+            }
+            else {
+                lastRow = marker.range.start.row;
+                markersOnOneLine = 0;
+            }
+            if (markersOnOneLine > 200) {
+                continue;
+            }
+            var markerVisibleRange = marker.range.clipRows(visibleRangeStartRow, visibleRangeEndRow);
+            if (markerVisibleRange.start.row === markerVisibleRange.end.row
+                && markerVisibleRange.start.column === markerVisibleRange.end.column) {
+                continue; // visible range is empty
+            }
+            var screenRange = markerVisibleRange.toScreenRange(session);
+            if (screenRange.isEmpty()) {
+                foldLine = session.getNextFoldLine(markerVisibleRange.end.row, foldLine);
+                if (foldLine && foldLine.end.row > markerVisibleRange.end.row) {
+                    visibleRangeStartRow = foldLine.end.row;
+                }
+                continue;
+            }
+            if (screenRange.isMultiLine()) {
+                markerLayer.drawTextMarker(html, screenRange, marker.className, config);
+            }
+            else {
+                markerLayer.drawSingleLineMarker(html, screenRange, marker.className, config);
+            }
+        }
+    };
+    return MarkerGroup;
+}());
+MarkerGroup.prototype.MAX_MARKERS = 10000;
+exports.MarkerGroup = MarkerGroup;
 
 });
 
@@ -3951,6 +4024,9 @@ var optionGroups = {
         },
         "Use SVG gutter icons": {
             path: "useSvgGutterIcons"
+        },
+        "Annotations for folded lines": {
+            path: "showFoldedAnnotations"
         },
         "Keyboard Accessibility Mode": {
             path: "enableKeyboardAccessibility"
@@ -5809,13 +5885,15 @@ var Autocomplete = /** @class */ (function () {
     Autocomplete.prototype.showDocTooltip = function (item) {
         if (!this.tooltipNode) {
             this.tooltipNode = dom.createElement("div");
-            this.tooltipNode.className = "ace_tooltip ace_doc-tooltip";
             this.tooltipNode.style.margin = 0;
             this.tooltipNode.style.pointerEvents = "auto";
             this.tooltipNode.tabIndex = -1;
             this.tooltipNode.onblur = this.blurListener.bind(this);
             this.tooltipNode.onclick = this.onTooltipClick.bind(this);
         }
+        var theme = this.editor.renderer.theme;
+        this.tooltipNode.className = "ace_tooltip ace_doc-tooltip " +
+            (theme.isDark ? "ace_dark " : "") + (theme.cssClass || "");
         var tooltipNode = this.tooltipNode;
         if (item.docHTML) {
             tooltipNode.innerHTML = item.docHTML;
@@ -7519,7 +7597,7 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/worker/worker_client","ace/split","ace/ext/options","ace/autocomplete","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/inline_autocomplete","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
+define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/range","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/config","ace/tooltip","ace/marker_group","ace/worker/worker_client","ace/split","ace/ext/options","ace/autocomplete","ace/ext/statusbar","ace/ext/emmet","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/inline_autocomplete","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
 
 require("ace/ext/rtl");
 
@@ -7550,6 +7628,7 @@ var HashHandler = require("ace/keyboard/hash_handler").HashHandler;
 
 var Renderer = require("ace/virtual_renderer").VirtualRenderer;
 var Editor = require("ace/editor").Editor;
+var Range = require("ace/range").Range;
 
 var whitespace = require("ace/ext/whitespace");
 
@@ -7564,7 +7643,6 @@ var saveOption = util.saveOption;
 var ElasticTabstopsLite = require("ace/ext/elastic_tabstops_lite").ElasticTabstopsLite;
 
 var IncrementalSearch = require("ace/incremental_search").IncrementalSearch;
-
 
 var TokenTooltip = require("./token_tooltip").TokenTooltip;
 require("ace/config").defineOptions(Editor.prototype, "editor", {
@@ -7584,6 +7662,127 @@ require("ace/config").defineOptions(Editor.prototype, "editor", {
         handlesSet: true
     }
 });
+
+require("ace/config").defineOptions(Editor.prototype, "editor", {
+    useAceLinters: {
+        set: function(val) {
+            if (val && !window.languageProvider) {
+                loadLanguageProvider(editor);
+            }
+            else if (val) {
+                window.languageProvider.registerEditor(this);
+            } else {
+            }
+        }
+    }
+});
+
+var {HoverTooltip} = require("ace/tooltip");
+var MarkerGroup = require("ace/marker_group").MarkerGroup;
+var docTooltip = new HoverTooltip();
+function loadLanguageProvider(editor) {
+    require([
+        "https://www.unpkg.com/ace-linters/build/ace-linters.js"
+    ], function(m) {
+        var languageProvider = m.LanguageProvider.fromCdn("https://www.unpkg.com/ace-linters/build", {
+            functionality: {
+                hover: true,
+                completion: {
+                    overwriteCompleters: true
+                },
+                completionResolve: true,
+                format: true,
+                documentHighlights: true,
+                signatureHelp: false
+            }
+        });
+        window.languageProvider = languageProvider;
+        languageProvider.registerEditor(editor);
+        if (languageProvider.$descriptionTooltip)
+            editor.off("mousemove", languageProvider.$descriptionTooltip.onMouseMove);
+        languageProvider.$messageController.$worker.addEventListener("message", function(e) {
+            var id = e.data.sessionId.split(".")[0];
+            var session = languageProvider.$getSessionLanguageProvider({id: id})?.session;
+            if (e.data.type == 6) {
+                e.stopPropagation();
+                if (session) {
+                    showAnnotations(session, e.data.value);
+                }
+            } else if (e.data.type == 13) {
+                if (session) showOccurrenceMarkers(session, e.data.value);
+            }
+        }, true);
+        function showOccurrenceMarkers(session, positions) {
+            if (!session.state.occurrenceMarkers) {
+                session.state.occurrenceMarkers = new MarkerGroup(session);
+            }
+            session.state.occurrenceMarkers.setMarkers(positions.map(function(el) {
+                var r = el.range;
+                return {
+                    range: new Range(r.start.line, r.start.character, r.end.line, r.end.character),
+                    className: el.kind == 2
+                        ? "language_highlight_read"
+                        : el.kind == 3
+                        ? "language_highlight_write"
+                        : "language_highlight_text"
+                };
+            }));
+        }
+        function showAnnotations(session, diagnostics) {
+            session.clearAnnotations();
+            let annotations = diagnostics.map((el) => {
+                console.log(el.severity, el)
+                return {
+                    row: el.range.start.line,
+                    column: el.range.start.character,
+                    text: el.message,
+                    type: el.severity === 1 ? "error" : el.severity === 2 ? "warning" : "info"
+                };
+            });
+            if (annotations && annotations.length > 0) {
+                session.setAnnotations(annotations);
+            }
+            
+            if (!session.state) session.state = {}
+            if (!session.state.diagnosticMarkers) {
+                session.state.diagnosticMarkers = new MarkerGroup(session);
+            }
+            session.state.diagnosticMarkers.setMarkers(diagnostics.map(function(el) {
+                var r = el.range;
+                return {
+                    range: new Range(r.start.line, r.start.character, r.end.line, r.end.character),
+                    tooltipText: el.message,
+                    className:  "language_highlight_error"
+                };
+            }));
+        };
+        
+        docTooltip.setDataProvider(function(e, editor) {
+            let session = editor.session;
+            let docPos = e.getDocumentPosition();
+
+            languageProvider.doHover(session, docPos, function(hover) {
+                var errorMarker = session.state?.diagnosticMarkers.getMarkerAtPosition(docPos);
+                var range = hover?.range || errorMarker?.range;
+                if (!range) return;
+                var hoverNode = hover && dom.buildDom(["div", {}])
+                if (hoverNode) {
+                    hover.content.text = hover.content.text.replace(/(?!^)`{3}/gm, "\n$&");
+                    hoverNode.innerHTML = languageProvider.getTooltipText(hover);
+                };
+                
+                var domNode = dom.buildDom(["div", {},
+                    errorMarker && ["div", {}, errorMarker.tooltipText.trim()],
+                    hoverNode
+                ]);
+                docTooltip.showForRange(editor, range, domNode, e);
+            });
+        });
+        
+        docTooltip.addToEditor(editor)
+    });
+}
+
 
 
 var workerModule = require("ace/worker/worker_client");
@@ -7900,6 +8099,10 @@ optionsPanel.add({
             getValue: function() {
                 return !!originalAutocompleteCommand;
             }
+        },
+        "Use Ace Linters": {
+            position: 3000,
+            path: "useAceLinters"
         },
         "Show Textarea Position": devUtil.textPositionDebugger,
         "Text Input Debugger": devUtil.textInputDebugger,

@@ -1996,7 +1996,9 @@ RegisterController.prototype = {
         else {
             register.setText(text, linewise, blockwise);
         }
-        if (registerName === '+') {
+        if (registerName === '+' && typeof navigator !== 'undefined' &&
+            typeof navigator.clipboard !== 'undefined' &&
+            typeof navigator.clipboard.readText === 'function') {
             navigator.clipboard.writeText(text);
         }
         this.unnamedRegister.setText(register.toString(), linewise);
@@ -3431,14 +3433,20 @@ var actions = {
     paste: function (cm, actionArgs, vim) {
         var _this = this;
         var register = vimGlobalState.registerController.getRegister(actionArgs.registerName);
-        if (actionArgs.registerName === '+') {
+        var fallback = function () {
+            var text = register.toString();
+            _this.continuePaste(cm, actionArgs, vim, text, register);
+        };
+        if (actionArgs.registerName === '+' &&
+            typeof navigator !== 'undefined' &&
+            typeof navigator.clipboard !== 'undefined' &&
+            typeof navigator.clipboard.readText === 'function') {
             navigator.clipboard.readText().then(function (value) {
                 _this.continuePaste(cm, actionArgs, vim, value, register);
-            });
+            }, function () { fallback(); });
         }
         else {
-            var text = register.toString();
-            this.continuePaste(cm, actionArgs, vim, text, register);
+            fallback();
         }
     },
     continuePaste: function (cm, actionArgs, vim, text, register) {

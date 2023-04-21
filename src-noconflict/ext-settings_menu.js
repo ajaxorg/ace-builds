@@ -565,6 +565,9 @@ var optionGroups = {
         "Use SVG gutter icons": {
             path: "useSvgGutterIcons"
         },
+        "Annotations for folded lines": {
+            path: "showFoldedAnnotations"
+        },
         "Keyboard Accessibility Mode": {
             path: "enableKeyboardAccessibility"
         }
