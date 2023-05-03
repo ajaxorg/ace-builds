@@ -1199,7 +1199,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.18.0";
+exports.version = "1.18.1";
 
 });
 
@@ -3166,7 +3166,7 @@ var HoverTooltip = /** @class */ (function (_super) {
     HoverTooltip.prototype.hide = function (e) {
         if (!e && document.activeElement == this.getElement())
             return;
-        if (e && e.target && e.type != "keydown" && this.$element.contains(e.target))
+        if (e && e.target && (e.type != "keydown" || e.ctrlKey || e.metaKey) && this.$element.contains(e.target))
             return;
         this.lastEvent = null;
         if (this.timeout)
@@ -3444,11 +3444,6 @@ var MouseEvent = /** @class */ (function () {
         this.$inSelection = null;
         this.propagationStopped = false;
         this.defaultPrevented = false;
-        this.getAccelKey = useragent.isMac ? function () {
-            return this.domEvent.metaKey;
-        } : function () {
-            return this.domEvent.ctrlKey;
-        };
     }
     MouseEvent.prototype.stopPropagation = function () {
         event.stopPropagation(this.domEvent);
@@ -3486,6 +3481,9 @@ var MouseEvent = /** @class */ (function () {
     };
     MouseEvent.prototype.getShiftKey = function () {
         return this.domEvent.shiftKey;
+    };
+    MouseEvent.prototype.getAccelKey = function () {
+        return useragent.isMac ? this.domEvent.metaKey : this.domEvent.ctrlKey;
     };
     return MouseEvent;
 }());
@@ -7381,13 +7379,11 @@ var Document = /** @class */ (function () {
             index += lines[i].length + newlineLength;
         return index + pos.column;
     };
+    Document.prototype.$split = function (text) {
+        return text.split(/\r\n|\r|\n/);
+    };
     return Document;
 }());
-Document.prototype.$split = ("aaa".split(/a/).length === 0) ? function (text) {
-    return text.replace(/\r\n|\r/g, "\n").split("\n");
-} : function (text) {
-    return text.split(/\r\n|\r|\n/);
-};
 Document.prototype.$autoNewLine = "";
 Document.prototype.$newLineMode = "auto";
 oop.implement(Document.prototype, EventEmitter);

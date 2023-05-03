@@ -1078,13 +1078,11 @@ var Document = /** @class */ (function () {
             index += lines[i].length + newlineLength;
         return index + pos.column;
     };
+    Document.prototype.$split = function (text) {
+        return text.split(/\r\n|\r|\n/);
+    };
     return Document;
 }());
-Document.prototype.$split = ("aaa".split(/a/).length === 0) ? function (text) {
-    return text.replace(/\r\n|\r/g, "\n").split("\n");
-} : function (text) {
-    return text.split(/\r\n|\r|\n/);
-};
 Document.prototype.$autoNewLine = "";
 Document.prototype.$newLineMode = "auto";
 oop.implement(Document.prototype, EventEmitter);

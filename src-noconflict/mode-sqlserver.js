@@ -142,7 +142,7 @@ var SqlServerHighlightRules = function () {
             DocCommentHighlightRules.getTagRule(), {
                 token: "comment",
                 regex: "\\*\\/",
-                next: "no_regex"
+                next: "start"
             }, {
                 defaultToken: "comment",
                 caseInsensitive: true
