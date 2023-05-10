@@ -138,12 +138,12 @@ padding-left: 19px;
 padding-right: 6px;
 background-repeat: no-repeat;
 }
-.ace_gutter-cell_svg-icons .ace_icon_svg {
+.ace_gutter-cell_svg-icons .ace_gutter_annotation {
 margin-left: -14px;
 float: left;
 }
-.ace_gutter-cell .ace_icon {
-margin-left: -18px;
+.ace_gutter-cell .ace_gutter_annotation {
+margin-left: -19px;
 float: left;
 }
 .ace_gutter-cell.ace_error, .ace_icon.ace_error, .ace_icon.ace_error_fold {
@@ -773,6 +773,98 @@ text-decoration: underline;
 .ace_dark > .ace_codeLens > a:hover {
 color: #4e94ce;
 }
+/*commandbar.css*/
+.ace_tooltip.command_bar_tooltip_wrapper {
+padding: 0;
+}
+.ace_tooltip .command_bar_tooltip {
+padding: 1px 5px;
+display: flex;
+pointer-events: auto;
+}
+.ace_tooltip .command_bar_tooltip.tooltip_more_options {
+padding: 1px;
+flex-direction: column;
+}
+div.command_bar_tooltip_button {
+display: inline-flex;
+cursor: pointer;
+margin: 1px;
+border-radius: 2px;
+padding: 2px 5px;
+align-items: center;
+}
+div.command_bar_tooltip_button.ace_selected,
+div.command_bar_tooltip_button:hover:not(.ace_disabled) {
+background-color: rgba(0, 0, 0, 0.1);
+}
+div.command_bar_tooltip_button.ace_disabled {
+color: #777;
+pointer-events: none;
+}
+div.command_bar_tooltip_button .ace_icon_svg {
+height: 12px;
+background-color: #000;
+}
+div.command_bar_tooltip_button.ace_disabled .ace_icon_svg {
+background-color: #777;
+}
+.command_bar_tooltip.tooltip_more_options .command_bar_tooltip_button {
+display: flex;
+}
+.command_bar_tooltip.command_bar_button_value {
+display: none;
+}
+.command_bar_tooltip.tooltip_more_options .command_bar_button_value {
+display: inline-block;
+width: 12px;
+}
+.command_bar_button_caption {
+display: inline-block;
+}
+.command_bar_keybinding {
+margin: 0 2px;
+display: inline-block;
+font-size: 8px;
+}
+.command_bar_tooltip.tooltip_more_options .command_bar_keybinding {
+margin-left: auto;
+}
+.command_bar_keybinding div {
+display: inline-block;
+min-width: 8px;
+padding: 2px;
+margin: 0 1px;
+border-radius: 2px;
+background-color: #ccc;
+text-align: center;
+}
+.ace_dark.ace_tooltip .command_bar_tooltip {
+background-color: #373737;
+color: #eee;
+}
+.ace_dark div.command_bar_tooltip_button.ace_disabled {
+color: #979797;
+}
+.ace_dark div.command_bar_tooltip_button.ace_selected,
+.ace_dark div.command_bar_tooltip_button:hover:not(.ace_disabled) {
+background-color: rgba(255, 255, 255, 0.1);
+}
+.ace_dark div.command_bar_tooltip_button .ace_icon_svg {
+background-color: #eee;
+}
+.ace_dark div.command_bar_tooltip_button.ace_disabled .ace_icon_svg {
+background-color: #979797;
+}
+.ace_dark .command_bar_tooltip_button.ace_disabled {
+color: #979797;
+}
+.ace_dark .command_bar_keybinding div {
+background-color: #575757;
+}
+.ace_checkmark::before {
+content: '✓';
+}
 /*snippets.css*/
 .ace_snippet-marker {
 -moz-box-sizing: border-box;
@@ -840,27 +932,16 @@ display: flex;
 flex: 1;
 text-align: right;
 }
-/*inlinetooltip.css*/
-.ace_inline_autocomplete_tooltip {
-display: inline-block;
+/*inlineautocomplete.css*/
+.ace_icon_svg.ace_arrow,
+.ace_icon_svg.ace_arrow_rotated {
+-webkit-mask-image: url("./main-22.svg");
 }
-.inline_autocomplete_tooltip_entry {
-display: inline-block;
-padding: 0 5px;
+.ace_icon_svg.ace_arrow_rotated {
+transform: rotate(180deg);
 }
-.inline_autocomplete_tooltip_button {
-display: inline-block;
-cursor: pointer;
-padding: 5px;
-}
-.inline_autocomplete_tooltip_button:hover {
-background-color: rgba(0, 0, 0, 0.1);
-}
-div.inline_autocomplete_tooltip_button_disabled {
-display: inline-block;
-padding: 5px;
-cursor: default;
-color: #777;
+div.command_bar_tooltip_button.completion_position {
+padding: 0;
 }
 /*settings_menu.css*/
 #ace_settingsmenu, #kbshortcutmenu {
@@ -1028,7 +1109,7 @@ transform: rotate(-45deg);
 border-width: 0 2px 2px 0 ;
 }
 .ace_searchbtn_close {
-background: url("./main-22.png") no-repeat 50% 0;
+background: url("./main-23.png") no-repeat 50% 0;
 border-radius: 50%;
 border: 0 none;
 color: #656565;

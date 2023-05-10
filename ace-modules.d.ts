@@ -2,6 +2,7 @@ declare module 'ace-builds/webpack-resolver';
 declare module 'ace-builds/src-noconflict/ace';
 declare module 'ace-builds/src-noconflict/ext-beautify';
 declare module 'ace-builds/src-noconflict/ext-code_lens';
+declare module 'ace-builds/src-noconflict/ext-command_bar';
 declare module 'ace-builds/src-noconflict/ext-elastic_tabstops_lite';
 declare module 'ace-builds/src-noconflict/ext-emmet';
 declare module 'ace-builds/src-noconflict/ext-error_marker';

@@ -150,9 +150,7 @@ var RakuHighlightRules = function () {
     }, "identifier");
     var moduleName = "[a-zA-Z_][a-zA-Z_0-9:-]*\\b";
     var hex = { token: "constant.numeric", regex: "0x[0-9a-fA-F]+\\b" };
-    var num_rat = { token: "constant.numeric", regex: "[+-.]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b" };
-    var num_with_ = { token: "constant.numeric", regex: "(?:\\d+_?\\d+)+\\b" };
-    var complex_numbers = { token: "constant.numeric", regex: "\\+?\\d+i\\b" };
+    var num_rat = { token: "constant.numeric", regex: "[+-.]?\\d[\\d_]*(?:(?:\\.\\d[\\d_]*)?(?:[eE][+-]?\\d[\\d_]*)?)?i?\\b" };
     var booleans = { token: "constant.language.boolean", regex: "(?:True|False)\\b" };
     var versions = { token: "constant.other", regex: "v[0-9](?:\\.[a-zA-Z0-9*])*\\b" };
     var lang_keywords = { token: keywordMapper, regex: "[a-zA-Z][\\:a-zA-Z0-9_-]*\\b" };
@@ -202,8 +200,6 @@ var RakuHighlightRules = function () {
             },
             hex,
             num_rat,
-            num_with_,
-            complex_numbers,
             booleans,
             versions,
             lang_keywords,
@@ -247,8 +243,6 @@ var RakuHighlightRules = function () {
         "qqinterpolation": [
             hex,
             num_rat,
-            num_with_,
-            complex_numbers,
             booleans,
             versions,
             lang_keywords,
@@ -301,8 +295,6 @@ var RakuHighlightRules = function () {
         "qqheredocinterpolation": [
             hex,
             num_rat,
-            num_with_,
-            complex_numbers,
             booleans,
             versions,
             lang_keywords,

@@ -255,7 +255,7 @@ var IonHighlightRules = function () {
                     "variable.language.annotation.ion",
                     "punctuation.definition.annotation.ion"
                 ],
-                "regex": "('(?:[^']|\\\\\\\\|\\\\')*')\\s*(::)"
+                "regex": /('(?:[^'\\]|\\.)*')\s*(::)/
             },
             {
                 "token": [

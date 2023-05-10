@@ -1,5 +1,6 @@
 ace.config.setModuleLoader('ace/ext/beautify', () => import('./src-noconflict/ext-beautify.js'));
 ace.config.setModuleLoader('ace/ext/code_lens', () => import('./src-noconflict/ext-code_lens.js'));
+ace.config.setModuleLoader('ace/ext/command_bar', () => import('./src-noconflict/ext-command_bar.js'));
 ace.config.setModuleLoader('ace/ext/elastic_tabstops_lite', () => import('./src-noconflict/ext-elastic_tabstops_lite.js'));
 ace.config.setModuleLoader('ace/ext/emmet', () => import('./src-noconflict/ext-emmet.js'));
 ace.config.setModuleLoader('ace/ext/error_marker', () => import('./src-noconflict/ext-error_marker.js'));

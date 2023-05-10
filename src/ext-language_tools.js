@@ -337,7 +337,8 @@ var SnippetManager = function () {
         }
         return result;
     };
-    var processSnippetText = function (editor, snippetText, replaceRange) {
+    var processSnippetText = function (editor, snippetText, options) {
+        if (options === void 0) { options = {}; }
         var cursor = editor.getCursorPosition();
         var line = editor.session.getLine(cursor.row);
         var tabString = editor.session.getTabString();
@@ -348,7 +349,7 @@ var SnippetManager = function () {
         var tokens = this.tokenizeTmSnippet(snippetText);
         tokens = this.resolveVariables(tokens, editor);
         tokens = tokens.map(function (x) {
-            if (x == "\n")
+            if (x == "\n" && !options.excludeExtraIndent)
                 return x + indentString;
             if (typeof x == "string")
                 return x.replace(/\t/g, tabString);
@@ -455,25 +456,27 @@ var SnippetManager = function () {
         var processedSnippet = processSnippetText.call(this, editor, snippetText);
         return processedSnippet.text;
     };
-    this.insertSnippetForSelection = function (editor, snippetText, replaceRange) {
-        var processedSnippet = processSnippetText.call(this, editor, snippetText);
+    this.insertSnippetForSelection = function (editor, snippetText, options) {
+        if (options === void 0) { options = {}; }
+        var processedSnippet = processSnippetText.call(this, editor, snippetText, options);
         var range = editor.getSelectionRange();
-        if (replaceRange && replaceRange.compareRange(range) === 0) {
-            range = replaceRange;
+        if (options.range && options.range.compareRange(range) === 0) {
+            range = options.range;
         }
         var end = editor.session.replace(range, processedSnippet.text);
         var tabstopManager = new TabstopManager(editor);
         var selectionId = editor.inVirtualSelectionMode && editor.selection.index;
         tabstopManager.addTabstops(processedSnippet.tabstops, range.start, end, selectionId);
     };
-    this.insertSnippet = function (editor, snippetText, replaceRange) {
+    this.insertSnippet = function (editor, snippetText, options) {
+        if (options === void 0) { options = {}; }
         var self = this;
-        if (replaceRange && !(replaceRange instanceof Range))
-            replaceRange = Range.fromPoints(replaceRange.start, replaceRange.end);
+        if (options.range && !(options.range instanceof Range))
+            options.range = Range.fromPoints(options.range.start, options.range.end);
         if (editor.inVirtualSelectionMode)
-            return self.insertSnippetForSelection(editor, snippetText, replaceRange);
+            return self.insertSnippetForSelection(editor, snippetText, options);
         editor.forEachSelection(function () {
-            self.insertSnippetForSelection(editor, snippetText, replaceRange);
+            self.insertSnippetForSelection(editor, snippetText, options);
         }, null, { keepOrder: true });
         if (editor.tabstopManager)
             editor.tabstopManager.tabNext();
@@ -965,13 +968,14 @@ var Editor = require("./editor").Editor;
 
 });
 
-define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom"], function(require, exports, module){"use strict";
+define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/config"], function(require, exports, module){"use strict";
 var Renderer = require("../virtual_renderer").VirtualRenderer;
 var Editor = require("../editor").Editor;
 var Range = require("../range").Range;
 var event = require("../lib/event");
 var lang = require("../lib/lang");
 var dom = require("../lib/dom");
+var nls = require("../config").nls;
 var getAriaId = function (index) {
     return "suggest-aria-id:".concat(index);
 };
@@ -997,7 +1001,7 @@ var AcePopup = /** @class */ (function () {
         popup.renderer.content.style.cursor = "default";
         popup.renderer.setStyle("ace_autocomplete");
         popup.renderer.container.setAttribute("role", "listbox");
-        popup.renderer.container.setAttribute("aria-label", "Autocomplete suggestions");
+        popup.renderer.container.setAttribute("aria-label", nls("Autocomplete suggestions"));
         popup.setOption("displayIndentGuides", false);
         popup.setOption("dragDelay", 150);
         var noop = function () { };
@@ -1838,14 +1842,20 @@ var CompletionProvider = /** @class */ (function () {
             if (!this.completions)
                 return false;
             if (this.completions.filterText) {
-                var ranges = editor.selection.getAllRanges();
+                var ranges;
+                if (editor.selection.getAllRanges) {
+                    ranges = editor.selection.getAllRanges();
+                }
+                else {
+                    ranges = [editor.getSelectionRange()];
+                }
                 for (var i = 0, range; range = ranges[i]; i++) {
                     range.start.column -= this.completions.filterText.length;
                     editor.session.remove(range);
                 }
             }
             if (data.snippet)
-                snippetManager.insertSnippet(editor, data.snippet, data.range);
+                snippetManager.insertSnippet(editor, data.snippet, { range: data.range });
             else {
                 this.$insertString(editor, data);
             }
