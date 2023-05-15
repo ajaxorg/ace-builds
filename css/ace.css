@@ -928,9 +928,8 @@ width: calc(100% - 8px);
 .ace_autocomplete_right .ace_line {
 display: flex;
 }
-.ace_autocomplete_right .ace_completion-meta {
+.ace_autocomplete_right .ace_completion-spacer {
 flex: 1;
-text-align: right;
 }
 /*inlineautocomplete.css*/
 .ace_icon_svg.ace_arrow,

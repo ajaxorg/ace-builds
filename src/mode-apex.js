@@ -3,15 +3,15 @@ var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var DocCommentHighlightRules = function () {
     this.$rules = {
-        "start": [{
-                token: "comment.doc.tag",
-                regex: "@[\\w\\d_]+" // TODO: fix email addresses
-            },
-            DocCommentHighlightRules.getTagRule(),
+        "start": [
             {
+                token: "comment.doc.tag",
+                regex: "@\\w+(?=\\s|$)"
+            }, DocCommentHighlightRules.getTagRule(), {
                 defaultToken: "comment.doc",
                 caseInsensitive: true
-            }]
+            }
+        ]
     };
 };
 oop.inherits(DocCommentHighlightRules, TextHighlightRules);
@@ -372,18 +372,17 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-define("ace/mode/apex",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/apex_highlight_rules","ace/mode/folding/cstyle","ace/mode/behaviour/cstyle"], function(require, exports, module){/* caption: Apex; extensions: apex,cls,trigger,tgr */
+define("ace/mode/apex",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/apex_highlight_rules","ace/mode/folding/cstyle"], function(require, exports, module){/* caption: Apex; extensions: apex,cls,trigger,tgr */
 "use strict";
 var oop = require("../lib/oop");
 var TextMode = require("../mode/text").Mode;
 var ApexHighlightRules = require("./apex_highlight_rules").ApexHighlightRules;
 var FoldMode = require("../mode/folding/cstyle").FoldMode;
-var CstyleBehaviour = require("../mode/behaviour/cstyle").CstyleBehaviour;
 function ApexMode() {
     TextMode.call(this);
     this.HighlightRules = ApexHighlightRules;
     this.foldingRules = new FoldMode();
-    this.$behaviour = new CstyleBehaviour();
+    this.$behaviour = this.$defaultBehaviour;
 }
 oop.inherits(ApexMode, TextMode);
 ApexMode.prototype.lineCommentStart = "//";

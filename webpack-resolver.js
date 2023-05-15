@@ -225,6 +225,7 @@ ace.config.setModuleUrl('ace/theme/dracula', require('file-loader?esModule=false
 ace.config.setModuleUrl('ace/theme/dreamweaver', require('file-loader?esModule=false!./src-noconflict/theme-dreamweaver.js'));
 ace.config.setModuleUrl('ace/theme/eclipse', require('file-loader?esModule=false!./src-noconflict/theme-eclipse.js'));
 ace.config.setModuleUrl('ace/theme/github', require('file-loader?esModule=false!./src-noconflict/theme-github.js'));
+ace.config.setModuleUrl('ace/theme/github_dark', require('file-loader?esModule=false!./src-noconflict/theme-github_dark.js'));
 ace.config.setModuleUrl('ace/theme/gob', require('file-loader?esModule=false!./src-noconflict/theme-gob.js'));
 ace.config.setModuleUrl('ace/theme/gruvbox', require('file-loader?esModule=false!./src-noconflict/theme-gruvbox.js'));
 ace.config.setModuleUrl('ace/theme/gruvbox_dark_hard', require('file-loader?esModule=false!./src-noconflict/theme-gruvbox_dark_hard.js'));

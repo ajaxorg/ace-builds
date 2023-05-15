@@ -1214,7 +1214,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.20.0";
+exports.version = "1.21.0";
 
 });
 
@@ -3359,6 +3359,7 @@ function GutterHandler(mouseHandler) {
         }, 50);
     }, editor);
     editor.on("changeSession", hideTooltip);
+    editor.on("input", hideTooltip);
 }
 exports.GutterHandler = GutterHandler;
 var GutterTooltip = /** @class */ (function (_super) {
@@ -6284,6 +6285,7 @@ var getWrapped = function (selection, selected, opening, closing) {
     };
 };
 var CstyleBehaviour = function (options) {
+    options = options || {};
     this.add("braces", "insertion", function (state, action, editor, session, text) {
         var cursor = editor.getCursorPosition();
         var line = session.doc.getLine(cursor.row);
@@ -6295,7 +6297,7 @@ var CstyleBehaviour = function (options) {
                 return getWrapped(selection, selected, '{', '}');
             }
             else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
-                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode || options && options.braces) {
+                if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode || options.braces) {
                     CstyleBehaviour.recordAutoInsert(editor, session, "}");
                     return {
                         text: '{}',
@@ -6531,6 +6533,36 @@ var CstyleBehaviour = function (options) {
             }
         }
     });
+    if (options.closeDocComment !== false) {
+        this.add("doc comment end", "insertion", function (state, action, editor, session, text) {
+            if (state === "doc-start" && (text === "\n" || text === "\r\n") && editor.selection.isEmpty()) {
+                var cursor = editor.getCursorPosition();
+                var line = session.doc.getLine(cursor.row);
+                var nextLine = session.doc.getLine(cursor.row + 1);
+                var indent = this.$getIndent(line);
+                if (/\s*\*/.test(nextLine)) {
+                    if (/^\s*\*/.test(line)) {
+                        return {
+                            text: text + indent + "* ",
+                            selection: [1, 3 + indent.length, 1, 3 + indent.length]
+                        };
+                    }
+                    else {
+                        return {
+                            text: text + indent + " * ",
+                            selection: [1, 3 + indent.length, 1, 3 + indent.length]
+                        };
+                    }
+                }
+                if (/\/\*\*/.test(line.substring(0, cursor.column))) {
+                    return {
+                        text: text + indent + " * " + text + " " + indent + "*/",
+                        selection: [1, 4 + indent.length, 1, 4 + indent.length]
+                    };
+                }
+            }
+        });
+    }
 };
 CstyleBehaviour.isSaneInsertion = function (editor, session) {
     var cursor = editor.getCursorPosition();
@@ -14784,14 +14816,15 @@ config.defineOptions(Editor.prototype, "editor", {
         set: function (message) {
             if (!this.$updatePlaceholder) {
                 this.$updatePlaceholder = function () {
-                    var value = this.session && (this.renderer.$composition || this.getValue());
-                    if (value && this.renderer.placeholderNode) {
+                    var hasValue = this.session && (this.renderer.$composition ||
+                        this.session.getLength() > 1 || this.session.getLine(0).length > 0);
+                    if (hasValue && this.renderer.placeholderNode) {
                         this.renderer.off("afterRender", this.$updatePlaceholder);
                         dom.removeCssClass(this.container, "ace_hasPlaceholder");
                         this.renderer.placeholderNode.remove();
                         this.renderer.placeholderNode = null;
                     }
-                    else if (!value && !this.renderer.placeholderNode) {
+                    else if (!hasValue && !this.renderer.placeholderNode) {
                         this.renderer.on("afterRender", this.$updatePlaceholder);
                         dom.addCssClass(this.container, "ace_hasPlaceholder");
                         var el = dom.createElement("div");
@@ -14800,7 +14833,7 @@ config.defineOptions(Editor.prototype, "editor", {
                         this.renderer.placeholderNode = el;
                         this.renderer.content.appendChild(this.renderer.placeholderNode);
                     }
-                    else if (!value && this.renderer.placeholderNode) {
+                    else if (!hasValue && this.renderer.placeholderNode) {
                         this.renderer.placeholderNode.textContent = this.$placeholder || "";
                     }
                 }.bind(this);
@@ -20458,11 +20491,9 @@ require("./config").defineOptions(Editor.prototype, "editor", {
         set: function (val) {
             MultiSelect(this);
             if (val) {
-                this.on("changeSession", this.$multiselectOnSessionChange);
                 this.on("mousedown", onMouseDown);
             }
             else {
-                this.off("changeSession", this.$multiselectOnSessionChange);
                 this.off("mousedown", onMouseDown);
             }
         },

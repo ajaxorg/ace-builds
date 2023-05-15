@@ -225,6 +225,7 @@ declare module 'ace-builds/src-noconflict/theme-dracula';
 declare module 'ace-builds/src-noconflict/theme-dreamweaver';
 declare module 'ace-builds/src-noconflict/theme-eclipse';
 declare module 'ace-builds/src-noconflict/theme-github';
+declare module 'ace-builds/src-noconflict/theme-github_dark';
 declare module 'ace-builds/src-noconflict/theme-gob';
 declare module 'ace-builds/src-noconflict/theme-gruvbox';
 declare module 'ace-builds/src-noconflict/theme-gruvbox_dark_hard';

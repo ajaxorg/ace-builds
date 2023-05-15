@@ -3815,7 +3815,8 @@ var themeData = [
     ["Tomorrow Night Bright", "tomorrow_night_bright", "dark"],
     ["Tomorrow Night 80s", "tomorrow_night_eighties", "dark"],
     ["Twilight", "twilight", "dark"],
-    ["Vibrant Ink", "vibrant_ink", "dark"]
+    ["Vibrant Ink", "vibrant_ink", "dark"],
+    ["GitHub Dark", "github_dark", "dark"]
 ];
 exports.themesByName = {};
 exports.themes = themeData.map(function (data) {
@@ -4229,8 +4230,9 @@ var AcePopup = /** @class */ (function () {
     function AcePopup(parentNode) {
         var el = dom.createElement("div");
         var popup = new $singleLineEditor(el);
-        if (parentNode)
+        if (parentNode) {
             parentNode.appendChild(el);
+        }
         el.style.display = "none";
         popup.renderer.content.style.cursor = "default";
         popup.renderer.setStyle("ace_autocomplete");
@@ -4373,6 +4375,7 @@ var AcePopup = /** @class */ (function () {
                 }
             }
             addToken(caption.slice(lastIndex, caption.length), "");
+            tokens.push({ type: "completion-spacer", value: " " });
             if (data.meta)
                 tokens.push({ type: "completion-meta", value: data.meta });
             if (data.message)
@@ -4402,7 +4405,7 @@ var AcePopup = /** @class */ (function () {
             return selectionMarker.start.row;
         };
         popup.setRow = function (line) {
-            line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length, line));
+            line = Math.max(this.autoSelect ? 0 : -1, Math.min(this.data.length - 1, line));
             if (selectionMarker.start.row != line) {
                 popup.selection.clearSelection();
                 selectionMarker.start.row = selectionMarker.end.row = line || 0;
@@ -4527,7 +4530,7 @@ var AcePopup = /** @class */ (function () {
     }
     return AcePopup;
 }());
-dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}\n.ace_autocomplete_right .ace_text-layer  {\n    width: calc(100% - 8px);\n}\n.ace_autocomplete_right .ace_line {\n    display: flex;\n}\n.ace_autocomplete_right .ace_completion-meta {\n    flex: 1;\n    text-align: right;\n}\n", "autocompletion.css", false);
+dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}\n.ace_autocomplete_right .ace_text-layer  {\n    width: calc(100% - 8px);\n}\n.ace_autocomplete_right .ace_line {\n    display: flex;\n}\n.ace_autocomplete_right .ace_completion-spacer {\n    flex: 1;\n}\n", "autocompletion.css", false);
 exports.AcePopup = AcePopup;
 exports.$singleLineEditor = $singleLineEditor;
 exports.getAriaId = getAriaId;
@@ -5607,6 +5610,17 @@ exports.getCompletionPrefix = function (editor) {
     }.bind(this));
     return prefix || this.retrievePrecedingIdentifier(line, pos.column);
 };
+exports.triggerAutocomplete = function (editor) {
+    var pos = editor.getCursorPosition();
+    var line = editor.session.getLine(pos.row);
+    var column = (pos.column === 0) ? 0 : pos.column - 1;
+    var previousChar = line[column];
+    return editor.completers.some(function (el) {
+        if (el.triggerCharacters && Array.isArray(el.triggerCharacters)) {
+            return el.triggerCharacters.includes(previousChar);
+        }
+    });
+};
 
 });
 
@@ -5627,10 +5641,12 @@ var Autocomplete = /** @class */ (function () {
     function Autocomplete() {
         this.autoInsert = false;
         this.autoSelect = true;
+        this.autoShown = false;
         this.exactMatch = false;
         this.inlineEnabled = false;
         this.keyboardHandler = new HashHandler();
         this.keyboardHandler.bindKeys(this.commands);
+        this.parentNode = null;
         this.blurListener = this.blurListener.bind(this);
         this.changeListener = this.changeListener.bind(this);
         this.mousedownListener = this.mousedownListener.bind(this);
@@ -5641,7 +5657,7 @@ var Autocomplete = /** @class */ (function () {
         this.tooltipTimer = lang.delayedCall(this.updateDocTooltip.bind(this), 50);
     }
     Autocomplete.prototype.$init = function () {
-        this.popup = new AcePopup(document.body || document.documentElement);
+        this.popup = new AcePopup(this.parentNode || document.body || document.documentElement);
         this.popup.on("click", function (e) {
             this.insertMatch();
             e.stop();
@@ -5788,6 +5804,8 @@ var Autocomplete = /** @class */ (function () {
             data = this.popup.getData(this.popup.getRow());
         if (!data)
             return false;
+        if (data.value === "") // Explicitly given nothing to insert, e.g. "No suggestion state"
+            return this.detach();
         var completions = this.completions;
         var result = this.getCompletionProvider().insertMatch(this.editor, data, completions.filterText, options);
         if (this.completions == completions)
@@ -5851,11 +5869,24 @@ var Autocomplete = /** @class */ (function () {
             var filtered = completions.filtered;
             var prefix = util.getCompletionPrefix(this.editor);
             if (finished) {
-                if (!filtered.length)
+                if (!filtered.length) {
+                    var emptyMessage = !this.autoShown && this.emptyMessage;
+                    if (typeof emptyMessage == "function")
+                        emptyMessage = this.emptyMessage(prefix);
+                    if (emptyMessage) {
+                        var completionsForEmpty = [{
+                                caption: this.emptyMessage(prefix),
+                                value: ""
+                            }];
+                        this.completions = new FilteredList(completionsForEmpty);
+                        this.openPopup(this.editor, prefix, keepPopupPosition);
+                        return;
+                    }
                     return this.detach();
+                }
                 if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
                     return this.detach();
-                if (this.autoInsert && filtered.length == 1)
+                if (this.autoInsert && !this.autoShown && filtered.length == 1)
                     return this.insertMatch(filtered[0]);
             }
             this.completions = completions;
@@ -5908,7 +5939,7 @@ var Autocomplete = /** @class */ (function () {
             tooltipNode.textContent = item.docText;
         }
         if (!tooltipNode.parentNode)
-            document.body.appendChild(tooltipNode);
+            this.popup.container.appendChild(this.tooltipNode);
         var popup = this.popup;
         var rect = popup.container.getBoundingClientRect();
         tooltipNode.style.top = popup.container.style.top;
@@ -6020,6 +6051,7 @@ Autocomplete.startCommand = {
         var completer = Autocomplete.for(editor);
         completer.autoInsert = false;
         completer.autoSelect = true;
+        completer.autoShown = false;
         completer.showPopup(editor, options);
         completer.cancelContextMenu();
     },
@@ -6751,9 +6783,10 @@ var doLiveAutocomplete = function (e) {
     }
     else if (e.command.name === "insertstring") {
         var prefix = util.getCompletionPrefix(editor);
-        if (prefix && !hasCompleter) {
+        var triggerAutocomplete = util.triggerAutocomplete(editor);
+        if ((prefix || triggerAutocomplete) && !hasCompleter) {
             var completer = Autocomplete.for(editor);
-            completer.autoInsert = false;
+            completer.autoShown = true;
             completer.showPopup(editor);
         }
     }
@@ -7959,10 +7992,8 @@ var layout = require("./layout");
 var util = require("./util");
 var saveOption = util.saveOption;
 
-
-var ElasticTabstopsLite = require("ace/ext/elastic_tabstops_lite").ElasticTabstopsLite;
-
-var IncrementalSearch = require("ace/incremental_search").IncrementalSearch;
+require("ace/ext/elastic_tabstops_lite");
+require("ace/incremental_search");
 
 var TokenTooltip = require("./token_tooltip").TokenTooltip;
 require("ace/config").defineOptions(Editor.prototype, "editor", {
@@ -8002,9 +8033,9 @@ var MarkerGroup = require("ace/marker_group").MarkerGroup;
 var docTooltip = new HoverTooltip();
 function loadLanguageProvider(editor) {
     require([
-        "https://www.unpkg.com/ace-linters/build/ace-linters.js"
+        "https://mkslanc.github.io/ace-linters/build/ace-linters.js"
     ], function(m) {
-        var languageProvider = m.LanguageProvider.fromCdn("https://www.unpkg.com/ace-linters/build", {
+        var languageProvider = m.LanguageProvider.fromCdn("https://mkslanc.github.io/ace-linters/build", {
             functionality: {
                 hover: true,
                 completion: {
@@ -8051,7 +8082,6 @@ function loadLanguageProvider(editor) {
         function showAnnotations(session, diagnostics) {
             session.clearAnnotations();
             let annotations = diagnostics.map((el) => {
-                console.log(el.severity, el)
                 return {
                     row: el.range.start.line,
                     column: el.range.start.character,
@@ -8083,11 +8113,13 @@ function loadLanguageProvider(editor) {
 
             languageProvider.doHover(session, docPos, function(hover) {
                 var errorMarker = session.state?.diagnosticMarkers.getMarkerAtPosition(docPos);
+
+                if (!errorMarker && !hover.content) return;
+
                 var range = hover?.range || errorMarker?.range;
-                if (!range) return;
-                var hoverNode = hover && dom.buildDom(["div", {}])
+                range = range ? Range.fromPoints(range.start, range.end) : session.getWordRange(docPos.row, docPos.column);
+                var hoverNode = hover && dom.buildDom(["div", {}]);
                 if (hoverNode) {
-                    hover.content.text = hover.content.text.replace(/(?!^)`{3}/gm, "\n$&");
                     hoverNode.innerHTML = languageProvider.getTooltipText(hover);
                 };
                 

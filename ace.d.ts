@@ -1009,6 +1009,7 @@ export namespace Ace {
       callback: CompleterCallback): void;
     getDocTooltip?(item: Completion): undefined | string | Completion;
     id?: string;
+    triggerCharacters?: string[]
   }
 
   export class AceInline {
@@ -1055,8 +1056,11 @@ export namespace Ace {
     constructor();
     autoInsert?: boolean;
     autoSelect?: boolean;
+    autoShown?: boolean;
     exactMatch?: boolean;
     inlineEnabled?: boolean;
+    parentNode?: HTMLElement;
+    emptyMessage?(prefix: String): String;
     getPopup(): AcePopup;
     showPopup(editor: Editor, options: CompletionOptions): void;
     detach(): void;

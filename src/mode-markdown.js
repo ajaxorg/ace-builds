@@ -178,50 +178,132 @@ exports.CssHighlightRules = CssHighlightRules;
 
 });
 
-define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+define("ace/mode/jsdoc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
-var DocCommentHighlightRules = function () {
+var JsDocCommentHighlightRules = function () {
     this.$rules = {
-        "start": [{
+        "start": [
+            {
+                token: ["comment.doc.tag", "text", "lparen.doc"],
+                regex: "(@(?:param|member|typedef|property|namespace|var|const|callback))(\\s*)({)",
+                push: [
+                    {
+                        token: "lparen.doc",
+                        regex: "{",
+                        push: [
+                            {
+                                include: "doc-syntax"
+                            }, {
+                                token: "rparen.doc",
+                                regex: "}|(?=$)",
+                                next: "pop"
+                            }
+                        ]
+                    }, {
+                        token: ["rparen.doc", "text", "variable.parameter.doc", "lparen.doc", "variable.parameter.doc", "rparen.doc"],
+                        regex: /(})(\s*)(?:([\w=:\/\.]+)|(?:(\[)([\w=:\/\.]+)(\])))/,
+                        next: "pop"
+                    }, {
+                        token: "rparen.doc",
+                        regex: "}|(?=$)",
+                        next: "pop"
+                    }, {
+                        include: "doc-syntax"
+                    }, {
+                        defaultToken: "text"
+                    }
+                ]
+            }, {
+                token: ["comment.doc.tag", "text", "lparen.doc"],
+                regex: "(@(?:returns?|yields|type|this|suppress|public|protected|private|package|modifies|"
+                    + "implements|external|exception|throws|enum|define|extends))(\\s*)({)",
+                push: [
+                    {
+                        token: "lparen.doc",
+                        regex: "{",
+                        push: [
+                            {
+                                include: "doc-syntax"
+                            }, {
+                                token: "rparen.doc",
+                                regex: "}|(?=$)",
+                                next: "pop"
+                            }
+                        ]
+                    }, {
+                        token: "rparen.doc",
+                        regex: "}|(?=$)",
+                        next: "pop"
+                    }, {
+                        include: "doc-syntax"
+                    }, {
+                        defaultToken: "text"
+                    }
+                ]
+            }, {
+                token: ["comment.doc.tag", "text", "variable.parameter.doc"],
+                regex: "(@(?:alias|memberof|instance|module|name|lends|namespace|external|this|template|"
+                    + "requires|param|implements|function|extends|typedef|mixes|constructor|var|"
+                    + "memberof\\!|event|listens|exports|class|constructs|interface|emits|fires|"
+                    + "throws|const|callback|borrows|augments))(\\s+)(\\w[\\w#\.:\/~\"\\-]*)?"
+            }, {
+                token: ["comment.doc.tag", "text", "variable.parameter.doc"],
+                regex: "(@method)(\\s+)(\\w[\\w\.\\(\\)]*)"
+            }, {
                 token: "comment.doc.tag",
-                regex: "@[\\w\\d_]+" // TODO: fix email addresses
+                regex: "@access\\s+(?:private|public|protected)"
+            }, {
+                token: "comment.doc.tag",
+                regex: "@kind\\s+(?:class|constant|event|external|file|function|member|mixin|module|namespace|typedef)"
+            }, {
+                token: "comment.doc.tag",
+                regex: "@\\w+(?=\\s|$)"
             },
-            DocCommentHighlightRules.getTagRule(),
+            JsDocCommentHighlightRules.getTagRule(),
             {
                 defaultToken: "comment.doc",
                 caseInsensitive: true
+            }
+        ],
+        "doc-syntax": [{
+                token: "operator.doc",
+                regex: /[|:]/
+            }, {
+                token: "paren.doc",
+                regex: /[\[\]]/
             }]
     };
+    this.normalizeRules();
 };
-oop.inherits(DocCommentHighlightRules, TextHighlightRules);
-DocCommentHighlightRules.getTagRule = function (start) {
+oop.inherits(JsDocCommentHighlightRules, TextHighlightRules);
+JsDocCommentHighlightRules.getTagRule = function (start) {
     return {
         token: "comment.doc.tag.storage.type",
         regex: "\\b(?:TODO|FIXME|XXX|HACK)\\b"
     };
 };
-DocCommentHighlightRules.getStartRule = function (start) {
+JsDocCommentHighlightRules.getStartRule = function (start) {
     return {
         token: "comment.doc",
         regex: "\\/\\*(?=\\*)",
         next: start
     };
 };
-DocCommentHighlightRules.getEndRule = function (start) {
+JsDocCommentHighlightRules.getEndRule = function (start) {
     return {
         token: "comment.doc",
         regex: "\\*\\/",
         next: start
     };
 };
-exports.DocCommentHighlightRules = DocCommentHighlightRules;
+exports.JsDocCommentHighlightRules = JsDocCommentHighlightRules;
 
 });
 
-define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/jsdoc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
-var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
+var DocCommentHighlightRules = require("./jsdoc_comment_highlight_rules").JsDocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*";
 var JavaScriptHighlightRules = function (options) {
@@ -2643,17 +2725,16 @@ exports.ShHighlightRules = ShHighlightRules;
 
 });
 
-define("ace/mode/sh",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/sh_highlight_rules","ace/range","ace/mode/folding/cstyle","ace/mode/behaviour/cstyle"], function(require, exports, module){"use strict";
+define("ace/mode/sh",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/sh_highlight_rules","ace/range","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var ShHighlightRules = require("./sh_highlight_rules").ShHighlightRules;
 var Range = require("../range").Range;
 var CStyleFoldMode = require("./folding/cstyle").FoldMode;
-var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
 var Mode = function () {
     this.HighlightRules = ShHighlightRules;
     this.foldingRules = new CStyleFoldMode();
-    this.$behaviour = new CstyleBehaviour();
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, TextMode);
 (function () {
