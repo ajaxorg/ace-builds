@@ -1214,7 +1214,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.21.0";
+exports.version = "1.21.1";
 
 });
 
@@ -3308,6 +3308,8 @@ function GutterHandler(mouseHandler) {
                 return hideTooltip();
         }
         tooltip.showTooltip(row);
+        if (!tooltip.isOpen)
+            return;
         editor.on("mousewheel", hideTooltip);
         if (mouseHandler.$tooltipFollowsMouse) {
             moveTooltip(mouseEvent);
