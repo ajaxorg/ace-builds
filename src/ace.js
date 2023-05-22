@@ -1214,7 +1214,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.21.1";
+exports.version = "1.22.0";
 
 });
 
@@ -15880,6 +15880,7 @@ var Gutter = /** @class */ (function () {
             dom.setStyle(annotationNode.style, "height", lineHeight);
             annotationNode.setAttribute("aria-label", nls("Read annotations row $0", [rowText]));
             annotationNode.setAttribute("tabindex", "-1");
+            annotationNode.setAttribute("role", "button");
         }
         else if (this.$annotations[row]) {
             annotationNode.className = "ace_gutter_annotation";
@@ -15893,10 +15894,12 @@ var Gutter = /** @class */ (function () {
             dom.setStyle(annotationNode.style, "height", lineHeight);
             annotationNode.setAttribute("aria-label", nls("Read annotations row $0", [rowText]));
             annotationNode.setAttribute("tabindex", "-1");
+            annotationNode.setAttribute("role", "button");
         }
         else {
             dom.setStyle(annotationNode.style, "display", "none");
             annotationNode.removeAttribute("aria-label");
+            annotationNode.removeAttribute("role");
             annotationNode.setAttribute("tabindex", "0");
         }
         if (rowText !== textNode.data) {
@@ -16159,12 +16162,13 @@ exports.Marker = Marker;
 
 });
 
-define("ace/layer/text",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/layer/lines","ace/lib/event_emitter"], function(require, exports, module){"use strict";
+define("ace/layer/text",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/layer/lines","ace/lib/event_emitter","ace/config"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
 var Lines = require("./lines").Lines;
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
+var nls = require("../config").nls;
 var Text = /** @class */ (function () {
     function Text(parentEl) {
         this.dom = dom;
@@ -16465,7 +16469,7 @@ var Text = /** @class */ (function () {
             var span = this.dom.createElement("span");
             if (token.type == "fold") {
                 span.style.width = (token.value.length * this.config.characterWidth) + "px";
-                span.setAttribute("title", "Unfold code");
+                span.setAttribute("title", nls("Unfold code"));
             }
             span.className = classes;
             span.appendChild(valueFragment);

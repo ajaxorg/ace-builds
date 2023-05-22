@@ -2269,6 +2269,7 @@ var supportedModes = {
     Nunjucks: ["nunjucks|nunjs|nj|njk"],
     ObjectiveC: ["m|mm"],
     OCaml: ["ml|mli"],
+    Odin: ["odin"],
     PartiQL: ["partiql|pql"],
     Pascal: ["pas|p"],
     Perl: ["pl|pm"],
