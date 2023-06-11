@@ -5,7 +5,7 @@ var JsDocCommentHighlightRules = function () {
     this.$rules = {
         "start": [
             {
-                token: ["comment.doc.tag", "text", "lparen.doc"],
+                token: ["comment.doc.tag", "comment.doc.text", "lparen.doc"],
                 regex: "(@(?:param|member|typedef|property|namespace|var|const|callback))(\\s*)({)",
                 push: [
                     {
@@ -21,7 +21,7 @@ var JsDocCommentHighlightRules = function () {
                             }
                         ]
                     }, {
-                        token: ["rparen.doc", "text", "variable.parameter.doc", "lparen.doc", "variable.parameter.doc", "rparen.doc"],
+                        token: ["rparen.doc", "text.doc", "variable.parameter.doc", "lparen.doc", "variable.parameter.doc", "rparen.doc"],
                         regex: /(})(\s*)(?:([\w=:\/\.]+)|(?:(\[)([\w=:\/\.]+)(\])))/,
                         next: "pop"
                     }, {
@@ -31,11 +31,11 @@ var JsDocCommentHighlightRules = function () {
                     }, {
                         include: "doc-syntax"
                     }, {
-                        defaultToken: "text"
+                        defaultToken: "text.doc"
                     }
                 ]
             }, {
-                token: ["comment.doc.tag", "text", "lparen.doc"],
+                token: ["comment.doc.tag", "text.doc", "lparen.doc"],
                 regex: "(@(?:returns?|yields|type|this|suppress|public|protected|private|package|modifies|"
                     + "implements|external|exception|throws|enum|define|extends))(\\s*)({)",
                 push: [
@@ -58,17 +58,17 @@ var JsDocCommentHighlightRules = function () {
                     }, {
                         include: "doc-syntax"
                     }, {
-                        defaultToken: "text"
+                        defaultToken: "text.doc"
                     }
                 ]
             }, {
-                token: ["comment.doc.tag", "text", "variable.parameter.doc"],
+                token: ["comment.doc.tag", "text.doc", "variable.parameter.doc"],
                 regex: "(@(?:alias|memberof|instance|module|name|lends|namespace|external|this|template|"
                     + "requires|param|implements|function|extends|typedef|mixes|constructor|var|"
                     + "memberof\\!|event|listens|exports|class|constructs|interface|emits|fires|"
                     + "throws|const|callback|borrows|augments))(\\s+)(\\w[\\w#\.:\/~\"\\-]*)?"
             }, {
-                token: ["comment.doc.tag", "text", "variable.parameter.doc"],
+                token: ["comment.doc.tag", "text.doc", "variable.parameter.doc"],
                 regex: "(@method)(\\s+)(\\w[\\w\.\\(\\)]*)"
             }, {
                 token: "comment.doc.tag",

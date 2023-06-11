@@ -1214,7 +1214,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.22.0";
+exports.version = "1.22.1";
 
 });
 
@@ -8654,7 +8654,7 @@ function Folding() {
         if (token && /^comment|string/.test(type)) {
             type = type.match(/comment|string/)[0];
             if (type == "comment")
-                type += "|doc-start";
+                type += "|doc-start|\\.doc";
             var re = new RegExp(type);
             var range = new Range();
             if (dir != 1) {
@@ -11119,30 +11119,43 @@ exports.Search = Search;
 });
 
 ace.define("ace/keyboard/hash_handler",["require","exports","module","ace/lib/keys","ace/lib/useragent"], function(require, exports, module){"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 var keyUtil = require("../lib/keys");
 var useragent = require("../lib/useragent");
 var KEY_MODS = keyUtil.KEY_MODS;
-function HashHandler(config, platform) {
-    this.platform = platform || (useragent.isMac ? "mac" : "win");
-    this.commands = {};
-    this.commandKeyBinding = {};
-    this.addCommands(config);
-    this.$singleCommand = true;
-}
-function MultiHashHandler(config, platform) {
-    HashHandler.call(this, config, platform);
-    this.$singleCommand = false;
-}
-MultiHashHandler.prototype = HashHandler.prototype;
-(function () {
-    this.addCommand = function (command) {
+var MultiHashHandler = /** @class */ (function () {
+    function MultiHashHandler(config, platform) {
+        this.$init(config, platform, false);
+    }
+    MultiHashHandler.prototype.$init = function (config, platform, $singleCommand) {
+        this.platform = platform || (useragent.isMac ? "mac" : "win");
+        this.commands = {};
+        this.commandKeyBinding = {};
+        this.addCommands(config);
+        this.$singleCommand = $singleCommand;
+    };
+    MultiHashHandler.prototype.addCommand = function (command) {
         if (this.commands[command.name])
             this.removeCommand(command);
         this.commands[command.name] = command;
         if (command.bindKey)
             this._buildKeyHash(command);
     };
-    this.removeCommand = function (command, keepCommand) {
+    MultiHashHandler.prototype.removeCommand = function (command, keepCommand) {
         var name = command && (typeof command === 'string' ? command : command.name);
         command = this.commands[name];
         if (!keepCommand)
@@ -11163,7 +11176,7 @@ MultiHashHandler.prototype = HashHandler.prototype;
             }
         }
     };
-    this.bindKey = function (key, command, position) {
+    MultiHashHandler.prototype.bindKey = function (key, command, position) {
         if (typeof key == "object" && key) {
             if (position == undefined)
                 position = key.position;
@@ -11191,12 +11204,7 @@ MultiHashHandler.prototype = HashHandler.prototype;
             this._addCommandToBinding(chain + id, command, position);
         }, this);
     };
-    function getPosition(command) {
-        return typeof command == "object" && command.bindKey
-            && command.bindKey.position
-            || (command.isDefault ? -100 : 0);
-    }
-    this._addCommandToBinding = function (keyId, command, position) {
+    MultiHashHandler.prototype._addCommandToBinding = function (keyId, command, position) {
         var ckb = this.commandKeyBinding, i;
         if (!command) {
             delete ckb[keyId];
@@ -11224,7 +11232,7 @@ MultiHashHandler.prototype = HashHandler.prototype;
             commands.splice(i, 0, command);
         }
     };
-    this.addCommands = function (commands) {
+    MultiHashHandler.prototype.addCommands = function (commands) {
         commands && Object.keys(commands).forEach(function (name) {
             var command = commands[name];
             if (!command)
@@ -11240,20 +11248,20 @@ MultiHashHandler.prototype = HashHandler.prototype;
             this.addCommand(command);
         }, this);
     };
-    this.removeCommands = function (commands) {
+    MultiHashHandler.prototype.removeCommands = function (commands) {
         Object.keys(commands).forEach(function (name) {
             this.removeCommand(commands[name]);
         }, this);
     };
-    this.bindKeys = function (keyList) {
+    MultiHashHandler.prototype.bindKeys = function (keyList) {
         Object.keys(keyList).forEach(function (key) {
             this.bindKey(key, keyList[key]);
         }, this);
     };
-    this._buildKeyHash = function (command) {
+    MultiHashHandler.prototype._buildKeyHash = function (command) {
         this.bindKey(command.bindKey, command);
     };
-    this.parseKeys = function (keys) {
+    MultiHashHandler.prototype.parseKeys = function (keys) {
         var parts = keys.toLowerCase().split(/[\-\+]([\-\+])?/).filter(function (x) { return x; });
         var key = parts.pop();
         var keyCode = keyUtil[key];
@@ -11275,11 +11283,11 @@ MultiHashHandler.prototype = HashHandler.prototype;
         }
         return { key: key, hashId: hashId };
     };
-    this.findKeyCommand = function findKeyCommand(hashId, keyString) {
+    MultiHashHandler.prototype.findKeyCommand = function (hashId, keyString) {
         var key = KEY_MODS[hashId] + keyString;
         return this.commandKeyBinding[key];
     };
-    this.handleKeyboard = function (data, hashId, keyString, keyCode) {
+    MultiHashHandler.prototype.handleKeyboard = function (data, hashId, keyString, keyCode) {
         if (keyCode < 0)
             return;
         var key = KEY_MODS[hashId] + keyString;
@@ -11302,10 +11310,31 @@ MultiHashHandler.prototype = HashHandler.prototype;
         }
         return { command: command };
     };
-    this.getStatusText = function (editor, data) {
+    MultiHashHandler.prototype.getStatusText = function (editor, data) {
         return data.$keyChain || "";
     };
-}).call(HashHandler.prototype);
+    return MultiHashHandler;
+}());
+function getPosition(command) {
+    return typeof command == "object" && command.bindKey
+        && command.bindKey.position
+        || (command.isDefault ? -100 : 0);
+}
+var HashHandler = /** @class */ (function (_super) {
+    __extends(HashHandler, _super);
+    function HashHandler(config, platform) {
+        var _this = _super.call(this, config, platform) || this;
+        _this.$singleCommand = true;
+        return _this;
+    }
+    return HashHandler;
+}(MultiHashHandler));
+HashHandler.call = function (thisArg, config, platform) {
+    MultiHashHandler.prototype.$init.call(thisArg, config, platform, true);
+};
+MultiHashHandler.call = function (thisArg, config, platform) {
+    MultiHashHandler.prototype.$init.call(thisArg, config, platform, false);
+};
 exports.HashHandler = HashHandler;
 exports.MultiHashHandler = MultiHashHandler;
 
@@ -19274,6 +19303,9 @@ var WorkerClient = function(worker) {
         this._signal("terminate", {});
         this.deltaQueue = null;
         this.$worker.terminate();
+        this.$worker.onerror = function(e) {
+            e.preventDefault();
+        };
         this.$worker = null;
         if (this.$doc)
             this.$doc.off("change", this.changeListener);
