@@ -1051,6 +1051,9 @@ var AppConfig = /** @class */ (function () {
         messages = value;
     };
     AppConfig.prototype.nls = function (string, params) {
+        if (messages && !messages[string]) {
+            warn("No message found for '" + string + "' in the provided messages, falling back to default English message.");
+        }
         var translated = messages && messages[string] || string;
         if (params) {
             translated = translated.replace(/\$(\$|[\d]+)/g, function (_, name) {
@@ -1070,14 +1073,14 @@ exports.AppConfig = AppConfig;
 
 });
 
-ace.define("ace/theme/textmate.css",["require","exports","module"], function(require, exports, module){module.exports = ".ace-tm .ace_gutter {\n  background: #f0f0f0;\n  color: #333;\n}\n\n.ace-tm .ace_print-margin {\n  width: 1px;\n  background: #e8e8e8;\n}\n\n.ace-tm .ace_fold {\n    background-color: #6B72E6;\n}\n\n.ace-tm {\n  background-color: #FFFFFF;\n  color: black;\n}\n\n.ace-tm .ace_cursor {\n  color: black;\n}\n        \n.ace-tm .ace_invisible {\n  color: rgb(191, 191, 191);\n}\n\n.ace-tm .ace_storage,\n.ace-tm .ace_keyword {\n  color: blue;\n}\n\n.ace-tm .ace_constant {\n  color: rgb(197, 6, 11);\n}\n\n.ace-tm .ace_constant.ace_buildin {\n  color: rgb(88, 72, 246);\n}\n\n.ace-tm .ace_constant.ace_language {\n  color: rgb(88, 92, 246);\n}\n\n.ace-tm .ace_constant.ace_library {\n  color: rgb(6, 150, 14);\n}\n\n.ace-tm .ace_invalid {\n  background-color: rgba(255, 0, 0, 0.1);\n  color: red;\n}\n\n.ace-tm .ace_support.ace_function {\n  color: rgb(60, 76, 114);\n}\n\n.ace-tm .ace_support.ace_constant {\n  color: rgb(6, 150, 14);\n}\n\n.ace-tm .ace_support.ace_type,\n.ace-tm .ace_support.ace_class {\n  color: rgb(109, 121, 222);\n}\n\n.ace-tm .ace_keyword.ace_operator {\n  color: rgb(104, 118, 135);\n}\n\n.ace-tm .ace_string {\n  color: rgb(3, 106, 7);\n}\n\n.ace-tm .ace_comment {\n  color: rgb(76, 136, 107);\n}\n\n.ace-tm .ace_comment.ace_doc {\n  color: rgb(0, 102, 255);\n}\n\n.ace-tm .ace_comment.ace_doc.ace_tag {\n  color: rgb(128, 159, 191);\n}\n\n.ace-tm .ace_constant.ace_numeric {\n  color: rgb(0, 0, 205);\n}\n\n.ace-tm .ace_variable {\n  color: rgb(49, 132, 149);\n}\n\n.ace-tm .ace_xml-pe {\n  color: rgb(104, 104, 91);\n}\n\n.ace-tm .ace_entity.ace_name.ace_function {\n  color: #0000A2;\n}\n\n\n.ace-tm .ace_heading {\n  color: rgb(12, 7, 255);\n}\n\n.ace-tm .ace_list {\n  color:rgb(185, 6, 144);\n}\n\n.ace-tm .ace_meta.ace_tag {\n  color:rgb(0, 22, 142);\n}\n\n.ace-tm .ace_string.ace_regex {\n  color: rgb(255, 0, 0)\n}\n\n.ace-tm .ace_marker-layer .ace_selection {\n  background: rgb(181, 213, 255);\n}\n.ace-tm.ace_multiselect .ace_selection.ace_start {\n  box-shadow: 0 0 3px 0px white;\n}\n.ace-tm .ace_marker-layer .ace_step {\n  background: rgb(252, 255, 0);\n}\n\n.ace-tm .ace_marker-layer .ace_stack {\n  background: rgb(164, 229, 101);\n}\n\n.ace-tm .ace_marker-layer .ace_bracket {\n  margin: -1px 0 0 -1px;\n  border: 1px solid rgb(192, 192, 192);\n}\n\n.ace-tm .ace_marker-layer .ace_active-line {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.ace-tm .ace_gutter-active-line {\n    background-color : #dcdcdc;\n}\n\n.ace-tm .ace_marker-layer .ace_selected-word {\n  background: rgb(250, 250, 255);\n  border: 1px solid rgb(200, 200, 250);\n}\n\n.ace-tm .ace_indent-guide {\n  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\n}\n\n.ace-tm .ace_indent-guide-active {\n  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAAAZSURBVHjaYvj///9/hivKyv8BAAAA//8DACLqBhbvk+/eAAAAAElFTkSuQmCC\") right repeat-y;\n}\n";
+ace.define("ace/theme/textmate-css",["require","exports","module"], function(require, exports, module){module.exports = ".ace-tm .ace_gutter {\n  background: #f0f0f0;\n  color: #333;\n}\n\n.ace-tm .ace_print-margin {\n  width: 1px;\n  background: #e8e8e8;\n}\n\n.ace-tm .ace_fold {\n    background-color: #6B72E6;\n}\n\n.ace-tm {\n  background-color: #FFFFFF;\n  color: black;\n}\n\n.ace-tm .ace_cursor {\n  color: black;\n}\n        \n.ace-tm .ace_invisible {\n  color: rgb(191, 191, 191);\n}\n\n.ace-tm .ace_storage,\n.ace-tm .ace_keyword {\n  color: blue;\n}\n\n.ace-tm .ace_constant {\n  color: rgb(197, 6, 11);\n}\n\n.ace-tm .ace_constant.ace_buildin {\n  color: rgb(88, 72, 246);\n}\n\n.ace-tm .ace_constant.ace_language {\n  color: rgb(88, 92, 246);\n}\n\n.ace-tm .ace_constant.ace_library {\n  color: rgb(6, 150, 14);\n}\n\n.ace-tm .ace_invalid {\n  background-color: rgba(255, 0, 0, 0.1);\n  color: red;\n}\n\n.ace-tm .ace_support.ace_function {\n  color: rgb(60, 76, 114);\n}\n\n.ace-tm .ace_support.ace_constant {\n  color: rgb(6, 150, 14);\n}\n\n.ace-tm .ace_support.ace_type,\n.ace-tm .ace_support.ace_class {\n  color: rgb(109, 121, 222);\n}\n\n.ace-tm .ace_keyword.ace_operator {\n  color: rgb(104, 118, 135);\n}\n\n.ace-tm .ace_string {\n  color: rgb(3, 106, 7);\n}\n\n.ace-tm .ace_comment {\n  color: rgb(76, 136, 107);\n}\n\n.ace-tm .ace_comment.ace_doc {\n  color: rgb(0, 102, 255);\n}\n\n.ace-tm .ace_comment.ace_doc.ace_tag {\n  color: rgb(128, 159, 191);\n}\n\n.ace-tm .ace_constant.ace_numeric {\n  color: rgb(0, 0, 205);\n}\n\n.ace-tm .ace_variable {\n  color: rgb(49, 132, 149);\n}\n\n.ace-tm .ace_xml-pe {\n  color: rgb(104, 104, 91);\n}\n\n.ace-tm .ace_entity.ace_name.ace_function {\n  color: #0000A2;\n}\n\n\n.ace-tm .ace_heading {\n  color: rgb(12, 7, 255);\n}\n\n.ace-tm .ace_list {\n  color:rgb(185, 6, 144);\n}\n\n.ace-tm .ace_meta.ace_tag {\n  color:rgb(0, 22, 142);\n}\n\n.ace-tm .ace_string.ace_regex {\n  color: rgb(255, 0, 0)\n}\n\n.ace-tm .ace_marker-layer .ace_selection {\n  background: rgb(181, 213, 255);\n}\n.ace-tm.ace_multiselect .ace_selection.ace_start {\n  box-shadow: 0 0 3px 0px white;\n}\n.ace-tm .ace_marker-layer .ace_step {\n  background: rgb(252, 255, 0);\n}\n\n.ace-tm .ace_marker-layer .ace_stack {\n  background: rgb(164, 229, 101);\n}\n\n.ace-tm .ace_marker-layer .ace_bracket {\n  margin: -1px 0 0 -1px;\n  border: 1px solid rgb(192, 192, 192);\n}\n\n.ace-tm .ace_marker-layer .ace_active-line {\n  background: rgba(0, 0, 0, 0.07);\n}\n\n.ace-tm .ace_gutter-active-line {\n    background-color : #dcdcdc;\n}\n\n.ace-tm .ace_marker-layer .ace_selected-word {\n  background: rgb(250, 250, 255);\n  border: 1px solid rgb(200, 200, 250);\n}\n\n.ace-tm .ace_indent-guide {\n  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAAE0lEQVQImWP4////f4bLly//BwAmVgd1/w11/gAAAABJRU5ErkJggg==\") right repeat-y;\n}\n\n.ace-tm .ace_indent-guide-active {\n  background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAACCAYAAACZgbYnAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAIGNIUk0AAHolAACAgwAA+f8AAIDpAAB1MAAA6mAAADqYAAAXb5JfxUYAAAAZSURBVHjaYvj///9/hivKyv8BAAAA//8DACLqBhbvk+/eAAAAAElFTkSuQmCC\") right repeat-y;\n}\n";
 
 });
 
-ace.define("ace/theme/textmate",["require","exports","module","ace/theme/textmate.css","ace/lib/dom"], function(require, exports, module){"use strict";
+ace.define("ace/theme/textmate",["require","exports","module","ace/theme/textmate-css","ace/lib/dom"], function(require, exports, module){"use strict";
 exports.isDark = false;
 exports.cssClass = "ace-tm";
-exports.cssText = require("./textmate.css");
+exports.cssText = require("./textmate-css");
 exports.$id = "ace/theme/textmate";
 var dom = require("../lib/dom");
 dom.importCssString(exports.cssText, exports.cssClass, false);
@@ -1149,13 +1152,25 @@ exports.setModuleUrl = function (name, subst) {
 var loader = function (moduleName, cb) {
     if (moduleName === "ace/theme/textmate" || moduleName === "./theme/textmate")
         return cb(null, require("./theme/textmate"));
-    return console.error("loader is not configured");
+    if (typeof module.require == "function") {
+        try {
+            var req = "require";
+            return cb(null, module[req](moduleName));
+        }
+        catch (e) {
+        }
+    }
+    if (customLoader)
+        return customLoader(moduleName, cb);
+    console.error("loader is not configured");
 };
+var customLoader;
 exports.setLoader = function (cb) {
-    loader = cb;
+    customLoader = cb;
 };
 exports.dynamicModules = Object.create(null);
 exports.$loading = {};
+exports.$loaded = {};
 exports.loadModule = function (moduleName, onLoad) {
     var module, moduleType;
     if (Array.isArray(moduleName)) {
@@ -1172,6 +1187,8 @@ exports.loadModule = function (moduleName, onLoad) {
             return;
         var afterLoad = function () {
             loader(moduleName, function (err, module) {
+                if (module)
+                    exports.$loaded[moduleName] = module;
                 exports._emit("load.module", { name: moduleName, module: module });
                 var listeners = exports.$loading[moduleName];
                 exports.$loading[moduleName] = null;
@@ -1196,11 +1213,7 @@ exports.loadModule = function (moduleName, onLoad) {
         });
     }
     else {
-        try {
-            module = require(moduleName);
-        }
-        catch (e) { }
-        load(module);
+        load(module || exports.$loaded[moduleName]);
     }
 };
 exports.setModuleLoader = function (moduleName, onLoad) {
@@ -1214,7 +1227,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.22.1";
+exports.version = "1.23.0";
 
 });
 
@@ -1656,6 +1669,7 @@ var Keys = (function () {
     return ret;
 })();
 oop.mixin(exports, Keys);
+exports.default = exports;
 exports.keyCodeToString = function (keyCode) {
     var keyString = Keys[keyCode];
     if (typeof keyString != "string")
@@ -3326,8 +3340,7 @@ function GutterHandler(mouseHandler) {
         if (tooltipTimeout)
             tooltipTimeout = clearTimeout(tooltipTimeout);
         if (tooltip.isOpen) {
-            tooltip.hide();
-            editor._signal("hideGutterTooltip", tooltip);
+            tooltip.hideTooltip();
             editor.off("mousewheel", hideTooltip);
         }
     }
@@ -3441,13 +3454,18 @@ var GutterTooltip = /** @class */ (function (_super) {
         }
         var tooltipContent = [].concat(annotationMessages.error, annotationMessages.warning, annotationMessages.info).join("<br>");
         this.setHtml(tooltipContent);
-        this.setClassName("ace_gutter-tooltip");
         this.$element.setAttribute("aria-live", "polite");
         if (!this.isOpen) {
             this.setTheme(this.editor.renderer.theme);
+            this.setClassName("ace_gutter-tooltip");
         }
-        this.editor._signal("showGutterTooltip", this);
         this.show();
+        this.editor._signal("showGutterTooltip", this);
+    };
+    GutterTooltip.prototype.hideTooltip = function () {
+        this.$element.removeAttribute("aria-live");
+        this.hide();
+        this.editor._signal("hideGutterTooltip", this);
     };
     GutterTooltip.annotationsToSummaryString = function (annotations) {
         var e_1, _a;
@@ -12672,7 +12690,7 @@ var GutterKeyboardHandler = /** @class */ (function () {
         if (this.annotationTooltip.isOpen) {
             e.preventDefault();
             if (e.keyCode === keys["escape"])
-                this.annotationTooltip.hide();
+                this.annotationTooltip.hideTooltip();
             return;
         }
         if (e.target === this.element) {
@@ -12716,6 +12734,12 @@ var GutterKeyboardHandler = /** @class */ (function () {
             }.bind(this), 10);
             return;
         }
+        this.$handleGutterKeyboardInteraction(e);
+        setTimeout(function () {
+            this.editor._signal("gutterkeydown", new GutterKeyboardEvent(e, this));
+        }.bind(this), 10);
+    };
+    GutterKeyboardHandler.prototype.$handleGutterKeyboardInteraction = function (e) {
         if (e.keyCode === keys["tab"]) {
             e.preventDefault();
             return;
@@ -12754,10 +12778,12 @@ var GutterKeyboardHandler = /** @class */ (function () {
         if (e.keyCode === keys["left"]) {
             e.preventDefault();
             this.$switchLane("annotation");
+            return;
         }
         if (e.keyCode === keys["right"]) {
             e.preventDefault();
             this.$switchLane("fold");
+            return;
         }
         if (e.keyCode === keys["enter"] || e.keyCode === keys["space"]) {
             e.preventDefault();
@@ -12803,7 +12829,7 @@ var GutterKeyboardHandler = /** @class */ (function () {
             }
         }
         if (this.annotationTooltip.isOpen)
-            this.annotationTooltip.hide();
+            this.annotationTooltip.hideTooltip();
         return;
     };
     GutterKeyboardHandler.prototype.$isFoldWidgetVisible = function (index) {
@@ -12864,7 +12890,6 @@ var GutterKeyboardHandler = /** @class */ (function () {
             return;
         var annotation = this.$getAnnotation(index);
         annotation.classList.add(this.editor.renderer.keyboardFocusClassName);
-        annotation.setAttribute("role", "button");
         annotation.focus();
     };
     GutterKeyboardHandler.prototype.$blurFoldWidget = function (index) {
@@ -12875,7 +12900,6 @@ var GutterKeyboardHandler = /** @class */ (function () {
     GutterKeyboardHandler.prototype.$blurAnnotation = function (index) {
         var annotation = this.$getAnnotation(index);
         annotation.classList.remove(this.editor.renderer.keyboardFocusClassName);
-        annotation.removeAttribute("role");
         annotation.blur();
     };
     GutterKeyboardHandler.prototype.$moveFoldWidgetUp = function () {
@@ -12978,6 +13002,26 @@ var GutterKeyboardHandler = /** @class */ (function () {
     return GutterKeyboardHandler;
 }());
 exports.GutterKeyboardHandler = GutterKeyboardHandler;
+var GutterKeyboardEvent = /** @class */ (function () {
+    function GutterKeyboardEvent(domEvent, gutterKeyboardHandler) {
+        this.gutterKeyboardHandler = gutterKeyboardHandler;
+        this.domEvent = domEvent;
+    }
+    GutterKeyboardEvent.prototype.getKey = function () {
+        return keys.keyCodeToString(this.domEvent.keyCode);
+    };
+    GutterKeyboardEvent.prototype.getRow = function () {
+        return this.gutterKeyboardHandler.$rowIndexToRow(this.gutterKeyboardHandler.activeRowIndex);
+    };
+    GutterKeyboardEvent.prototype.isInAnnotationLane = function () {
+        return this.gutterKeyboardHandler.activeLane === "annotation";
+    };
+    GutterKeyboardEvent.prototype.isInFoldLane = function () {
+        return this.gutterKeyboardHandler.activeLane === "fold";
+    };
+    return GutterKeyboardEvent;
+}());
+exports.GutterKeyboardEvent = GutterKeyboardEvent;
 
 });
 
@@ -15845,18 +15889,17 @@ var Gutter = /** @class */ (function () {
             className += decorations[row];
         if (this.$annotations[row] && row !== foldStart)
             className += this.$annotations[row].className;
-        if (element.className != className)
-            element.className = className;
         if (foldWidgets) {
             var c = foldWidgets[row];
             if (c == null)
                 c = foldWidgets[row] = session.getFoldWidget(row);
         }
         if (c) {
-            var className = "ace_fold-widget ace_" + c;
-            if (c == "start" && row == foldStart && row < fold.end.row) {
-                className += " ace_closed";
-                var foldAnnotationClass;
+            var foldClass = "ace_fold-widget ace_" + c;
+            var isClosedFold = c == "start" && row == foldStart && row < fold.end.row;
+            if (isClosedFold) {
+                foldClass += " ace_closed";
+                var foldAnnotationClass = '';
                 var annotationInFold = false;
                 for (var i = row + 1; i <= fold.end.row; i++) {
                     if (!this.$annotations[i])
@@ -15872,23 +15915,31 @@ var Gutter = /** @class */ (function () {
                         continue;
                     }
                 }
-                element.className += foldAnnotationClass;
+                className += foldAnnotationClass;
             }
             else
-                className += " ace_open";
-            if (foldWidget.className != className)
-                foldWidget.className = className;
+                foldClass += " ace_open";
+            if (foldWidget.className != foldClass)
+                foldWidget.className = foldClass;
             dom.setStyle(foldWidget.style, "height", lineHeight);
             dom.setStyle(foldWidget.style, "display", "inline-block");
             foldWidget.setAttribute("role", "button");
             foldWidget.setAttribute("tabindex", "-1");
-            var fold = session.getFoldLine(rowText - 1);
-            if (fold) {
-                foldWidget.setAttribute("aria-label", nls("Unfold rows $0 to $1", [rowText, fold.end.row + 1]));
+            var foldRange = session.getFoldWidgetRange(row);
+            if (foldRange)
+                foldWidget.setAttribute("aria-label", nls("Toggle code folding, rows $0 through $1", [foldRange.start.row + 1, foldRange.end.row + 1]));
+            else {
+                if (fold)
+                    foldWidget.setAttribute("aria-label", nls("Toggle code folding, rows $0 through $1", [fold.start.row + 1, fold.end.row + 1]));
+                else
+                    foldWidget.setAttribute("aria-label", nls("Toggle code folding, row $0", [row + 1]));
+            }
+            if (isClosedFold) {
+                foldWidget.setAttribute("aria-expanded", "false");
                 foldWidget.setAttribute("title", nls("Unfold code"));
             }
             else {
-                foldWidget.setAttribute("aria-label", nls("Fold at row $0", [rowText]));
+                foldWidget.setAttribute("aria-expanded", "true");
                 foldWidget.setAttribute("title", nls("Fold code"));
             }
         }
@@ -15934,6 +15985,8 @@ var Gutter = /** @class */ (function () {
         if (rowText !== textNode.data) {
             textNode.data = rowText;
         }
+        if (element.className != className)
+            element.className = className;
         dom.setStyle(cell.element.style, "height", this.$lines.computeLineHeight(row, config, session) + "px");
         dom.setStyle(cell.element.style, "top", this.$lines.computeLineTop(row, config, session) + "px");
         cell.text = rowText;
@@ -17618,7 +17671,7 @@ exports.FontMetrics = FontMetrics;
 
 });
 
-ace.define("ace/css/editor.css",["require","exports","module"], function(require, exports, module){/*
+ace.define("ace/css/editor-css",["require","exports","module"], function(require, exports, module){/*
 styles = []
 for (var i = 1; i < 16; i++) {
     styles.push(".ace_br" + i + "{" + (
@@ -17754,7 +17807,7 @@ exports.Decorator = Decorator;
 
 });
 
-ace.define("ace/virtual_renderer",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/config","ace/layer/gutter","ace/layer/marker","ace/layer/text","ace/layer/cursor","ace/scrollbar","ace/scrollbar","ace/scrollbar_custom","ace/scrollbar_custom","ace/renderloop","ace/layer/font_metrics","ace/lib/event_emitter","ace/css/editor.css","ace/layer/decorators","ace/lib/useragent"], function(require, exports, module){"use strict";
+ace.define("ace/virtual_renderer",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/config","ace/layer/gutter","ace/layer/marker","ace/layer/text","ace/layer/cursor","ace/scrollbar","ace/scrollbar","ace/scrollbar_custom","ace/scrollbar_custom","ace/renderloop","ace/layer/font_metrics","ace/lib/event_emitter","ace/css/editor-css","ace/layer/decorators","ace/lib/useragent"], function(require, exports, module){"use strict";
 var oop = require("./lib/oop");
 var dom = require("./lib/dom");
 var lang = require("./lib/lang");
@@ -17770,7 +17823,7 @@ var VScrollBarCustom = require("./scrollbar_custom").VScrollBar;
 var RenderLoop = require("./renderloop").RenderLoop;
 var FontMetrics = require("./layer/font_metrics").FontMetrics;
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
-var editorCss = require("./css/editor.css");
+var editorCss = require("./css/editor-css");
 var Decorator = require("./layer/decorators").Decorator;
 var useragent = require("./lib/useragent");
 dom.importCssString(editorCss, "ace_editor.css", false);

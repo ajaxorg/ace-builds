@@ -1298,7 +1298,7 @@ var AcePopup = /** @class */ (function () {
     }
     return AcePopup;
 }());
-dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin: 0 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}\n.ace_autocomplete_right .ace_text-layer  {\n    width: calc(100% - 8px);\n}\n.ace_autocomplete_right .ace_line {\n    display: flex;\n}\n.ace_autocomplete_right .ace_completion-spacer {\n    flex: 1;\n}\n", "autocompletion.css", false);
+dom.importCssString("\n.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #CAD6FA;\n    z-index: 1;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line {\n    background-color: #3a674e;\n}\n.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid #abbffe;\n    margin-top: -1px;\n    background: rgba(233,233,253,0.4);\n    position: absolute;\n    z-index: 2;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_line-hover {\n    border: 1px solid rgba(109, 150, 13, 0.8);\n    background: rgba(58, 103, 78, 0.62);\n}\n.ace_completion-meta {\n    opacity: 0.5;\n    margin-left: 0.9em;\n}\n.ace_completion-message {\n    color: blue;\n}\n.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #2d69c7;\n}\n.ace_dark.ace_editor.ace_autocomplete .ace_completion-highlight{\n    color: #93ca12;\n}\n.ace_editor.ace_autocomplete {\n    width: 300px;\n    z-index: 200000;\n    border: 1px lightgray solid;\n    position: fixed;\n    box-shadow: 2px 3px 5px rgba(0,0,0,.2);\n    line-height: 1.4;\n    background: #fefefe;\n    color: #111;\n}\n.ace_dark.ace_editor.ace_autocomplete {\n    border: 1px #484747 solid;\n    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.51);\n    line-height: 1.4;\n    background: #25282c;\n    color: #c1c1c1;\n}\n.ace_autocomplete .ace_text-layer  {\n    width: calc(100% - 8px);\n}\n.ace_autocomplete .ace_line {\n    display: flex;\n    align-items: center;\n}\n.ace_autocomplete .ace_line > * {\n    min-width: 0;\n    flex: 0 0 auto;\n}\n.ace_autocomplete .ace_line .ace_ {\n    flex: 0 1 auto;\n    overflow: hidden;\n    white-space: nowrap;\n    text-overflow: ellipsis;\n}\n.ace_autocomplete .ace_completion-spacer {\n    flex: 1;\n}\n", "autocompletion.css", false);
 exports.AcePopup = AcePopup;
 exports.$singleLineEditor = $singleLineEditor;
 exports.getAriaId = getAriaId;
@@ -1449,6 +1449,7 @@ var Autocomplete = /** @class */ (function () {
         this.changeListener = this.changeListener.bind(this);
         this.mousedownListener = this.mousedownListener.bind(this);
         this.mousewheelListener = this.mousewheelListener.bind(this);
+        this.onLayoutChange = this.onLayoutChange.bind(this);
         this.changeTimer = lang.delayedCall(function () {
             this.updateCompletions(true);
         }.bind(this));
@@ -1492,6 +1493,35 @@ var Autocomplete = /** @class */ (function () {
             this.$updatePopupPosition();
         }
         this.tooltipTimer.call(null, null);
+    };
+    Autocomplete.prototype.observeLayoutChanges = function () {
+        if (this.$elements || !this.editor)
+            return;
+        window.addEventListener("resize", this.onLayoutChange, { passive: true });
+        window.addEventListener("wheel", this.mousewheelListener);
+        var el = this.editor.container.parentNode;
+        var elements = [];
+        while (el) {
+            elements.push(el);
+            el.addEventListener("scroll", this.onLayoutChange, { passive: true });
+            el = el.parentNode;
+        }
+        this.$elements = elements;
+    };
+    Autocomplete.prototype.unObserveLayoutChanges = function () {
+        var _this = this;
+        window.removeEventListener("resize", this.onLayoutChange, { passive: true });
+        window.removeEventListener("wheel", this.mousewheelListener);
+        this.$elements && this.$elements.forEach(function (el) {
+            el.removeEventListener("scroll", _this.onLayoutChange, { passive: true });
+        });
+        this.$elements = null;
+    };
+    Autocomplete.prototype.onLayoutChange = function () {
+        if (!this.popup.isOpen)
+            return this.unObserveLayoutChanges();
+        this.$updatePopupPosition();
+        this.updateDocTooltip();
     };
     Autocomplete.prototype.$updatePopupPosition = function () {
         var editor = this.editor;
@@ -1547,6 +1577,7 @@ var Autocomplete = /** @class */ (function () {
             this.detach();
         }
         this.changeTimer.cancel();
+        this.observeLayoutChanges();
     };
     Autocomplete.prototype.detach = function () {
         if (this.editor) {
@@ -1567,6 +1598,7 @@ var Autocomplete = /** @class */ (function () {
             this.base.detach();
         this.activated = false;
         this.completionProvider = this.completions = this.base = null;
+        this.unObserveLayoutChanges();
     };
     Autocomplete.prototype.changeListener = function (e) {
         var cursor = this.editor.selection.lead;
@@ -1927,6 +1959,7 @@ var CompletionProvider = /** @class */ (function () {
         var pos = editor.getCursorPosition();
         var prefix = util.getCompletionPrefix(editor);
         var matches = [];
+        this.completers = editor.completers;
         var total = editor.completers.length;
         editor.completers.forEach(function (completer, i) {
             completer.getCompletions(editor, session, pos, prefix, function (err, results) {
@@ -1982,6 +2015,11 @@ var CompletionProvider = /** @class */ (function () {
     };
     CompletionProvider.prototype.detach = function () {
         this.active = false;
+        this.completers && this.completers.forEach(function (completer) {
+            if (typeof completer.cancel === "function") {
+                completer.cancel();
+            }
+        });
     };
     return CompletionProvider;
 }());
@@ -2237,14 +2275,29 @@ var doLiveAutocomplete = function (e) {
         if (hasCompleter && !util.getCompletionPrefix(editor))
             editor.completer.detach();
     }
-    else if (e.command.name === "insertstring") {
-        var prefix = util.getCompletionPrefix(editor);
-        var triggerAutocomplete = util.triggerAutocomplete(editor);
-        if ((prefix || triggerAutocomplete) && !hasCompleter) {
-            var completer = Autocomplete.for(editor);
-            completer.autoShown = true;
-            completer.showPopup(editor);
+    else if (e.command.name === "insertstring" && !hasCompleter) {
+        lastExecEvent = e;
+        var delay = e.editor.$liveAutocompletionDelay;
+        if (delay) {
+            liveAutocompleteTimer.delay(delay);
         }
+        else {
+            showLiveAutocomplete(e);
+        }
+    }
+};
+var lastExecEvent;
+var liveAutocompleteTimer = lang.delayedCall(function () {
+    showLiveAutocomplete(lastExecEvent);
+}, 0);
+var showLiveAutocomplete = function (e) {
+    var editor = e.editor;
+    var prefix = util.getCompletionPrefix(editor);
+    var triggerAutocomplete = util.triggerAutocomplete(editor);
+    if ((prefix || triggerAutocomplete) && prefix.length >= editor.$liveAutocompletionThreshold) {
+        var completer = Autocomplete.for(editor);
+        completer.autoShown = true;
+        completer.showPopup(editor);
     }
 };
 var Editor = require("../editor").Editor;
@@ -2270,10 +2323,16 @@ require("../config").defineOptions(Editor.prototype, "editor", {
                 this.commands.on('afterExec', doLiveAutocomplete);
             }
             else {
-                this.commands.removeListener('afterExec', doLiveAutocomplete);
+                this.commands.off('afterExec', doLiveAutocomplete);
             }
         },
         value: false
+    },
+    liveAutocompletionDelay: {
+        initialValue: 0
+    },
+    liveAutocompletionThreshold: {
+        initialValue: 0
     },
     enableSnippets: {
         set: function (val) {

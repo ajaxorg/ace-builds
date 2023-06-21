@@ -14,7 +14,9 @@
 	}
 	.scrollmargin {
 		height: 80px;
-        text-align: center;
+	}
+	.scrollmargin2 {
+		height: 180px;
 	}
     </style>
 </head>
@@ -26,13 +28,18 @@
 <pre id="editor3" style="width: 40%;"></pre>
 <div class="scrollmargin"></div>
 <pre id="editor"></pre>
+<div class="scrollmargin2"></div>
+<pre id="editor4" style="width: 40%;transform:scale(1.5)"></pre>
+<div class="scrollmargin2"></div>
 
 <!-- load ace -->
 <script src="../src/ace.js"></script>
+<!-- load ace language_tools extension -->
+<script src="../src/ext-language_tools.js"></script>
 <script>
     var editor1 = ace.edit("editor1", {
         theme: "ace/theme/tomorrow_night_eighties",
-        mode: "ace/mode/html",
+        mode: "ace/mode/javascript",
         maxLines: 30,
         wrap: true,
         autoScrollEditorIntoView: true
@@ -40,7 +47,7 @@
 
     var editor2 = ace.edit("editor2", {
         theme: "ace/theme/tomorrow_night_blue",
-        mode: "ace/mode/html",
+        mode: "ace/mode/css",
         autoScrollEditorIntoView: true,
         maxLines: 30,
         minLines: 2
@@ -57,7 +64,18 @@
     editor.setTheme("ace/theme/tomorrow");
     editor.session.setMode("ace/mode/html");
     editor.setAutoScrollEditorIntoView(true);
-    editor.setOption("maxLines", 100);
+    editor.setOption("maxLines", 100); 
+    window.editor = editor;
+    
+    var editor4 = ace.edit("editor4", {
+        theme: "ace/theme/tomorrow_night_blue",
+        mode: "ace/mode/javascript",
+        autoScrollEditorIntoView: true,
+        maxLines: 30,
+        minLines: 100,
+        hasCssTransforms: true,
+        value: "transformed editor" + "\n".repeat(100)
+    });
 </script>
 
 <script src="./show_own_source.js"></script>

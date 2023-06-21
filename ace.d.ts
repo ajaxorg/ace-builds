@@ -222,9 +222,11 @@ export namespace Ace {
     behavioursEnabled: boolean;
     wrapBehavioursEnabled: boolean;
     enableAutoIndent: boolean;
-    enableBasicAutocompletion: boolean | Completer[],
-    enableLiveAutocompletion: boolean | Completer[],
-    enableSnippets: boolean,
+    enableBasicAutocompletion: boolean | Completer[];
+    enableLiveAutocompletion: boolean | Completer[];
+    liveAutocompletionDelay: number;
+    liveAutocompletionThreshold: number;
+    enableSnippets: boolean;
     autoScrollEditorIntoView: boolean;
     keyboardHandler: string | null;
     placeholder: string;
@@ -864,6 +866,7 @@ export namespace Ace {
     on(name: 'mousewheel', callback: (e: any) => void): void;
     on(name: 'click', callback: (e: any) => void): void;
     on(name: 'guttermousedown', callback: (e: any) => void): void;
+    on(name: 'gutterkeydown', callback: (e: any) => void): void;
 
     onPaste(text: string, event: any): void;
 
@@ -884,7 +887,7 @@ export namespace Ace {
     setStyle(style: string): void;
     unsetStyle(style: string): void;
     getFontSize(): string;
-    setFontSize(size: number): void;
+    setFontSize(size: number|string): void;
     focus(): void;
     isFocused(): boolean;
     blur(): void;
@@ -1008,6 +1011,7 @@ export namespace Ace {
       prefix: string,
       callback: CompleterCallback): void;
     getDocTooltip?(item: Completion): undefined | string | Completion;
+    cancel?(): void;
     id?: string;
     triggerCharacters?: string[]
   }
@@ -1096,6 +1100,9 @@ export const EditSession: {
 };
 export const UndoManager: {
   new(): Ace.UndoManager;
+};
+export const Editor: {
+  new(): Ace.Editor;
 };
 export const Range: {
   new(startRow: number, startColumn: number, endRow: number, endColumn: number): Ace.Range;
