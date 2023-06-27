@@ -1152,14 +1152,6 @@ exports.setModuleUrl = function (name, subst) {
 var loader = function (moduleName, cb) {
     if (moduleName === "ace/theme/textmate" || moduleName === "./theme/textmate")
         return cb(null, require("./theme/textmate"));
-    if (typeof module.require == "function") {
-        try {
-            var req = "require";
-            return cb(null, module[req](moduleName));
-        }
-        catch (e) {
-        }
-    }
     if (customLoader)
         return customLoader(moduleName, cb);
     console.error("loader is not configured");
@@ -1172,7 +1164,7 @@ exports.dynamicModules = Object.create(null);
 exports.$loading = {};
 exports.$loaded = {};
 exports.loadModule = function (moduleName, onLoad) {
-    var module, moduleType;
+    var loadedModule, moduleType;
     if (Array.isArray(moduleName)) {
         moduleType = moduleName[0];
         moduleName = moduleName[1];
@@ -1213,7 +1205,17 @@ exports.loadModule = function (moduleName, onLoad) {
         });
     }
     else {
-        load(module || exports.$loaded[moduleName]);
+        try {
+            loadedModule = this.$require(moduleName);
+        }
+        catch (e) { }
+        load(loadedModule || exports.$loaded[moduleName]);
+    }
+};
+exports.$require = function (moduleName) {
+    if (typeof module.require == "function") {
+        var req = "require";
+        return module[req](moduleName);
     }
 };
 exports.setModuleLoader = function (moduleName, onLoad) {
@@ -1227,7 +1229,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.23.0";
+exports.version = "1.23.1";
 
 });
 
@@ -1248,6 +1250,7 @@ var global = (function() {
 
 module.exports = function(ace) {
     config.init = init;
+    config.$require = require;
     ace.require = require;
 
     if (typeof define === "function")
