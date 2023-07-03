@@ -18,6 +18,17 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
     - run: node -p "json=require('./package.json');if (json.dependencies || json.devDependencies) throw new Error()"
     - run: node -p "window={}; require('./src-noconflict/ace.js').config.all"
+    - run: | 
+        # echo testing themes
+        for dir in src*; do 
+            for theme in $dir/theme-*; do 
+                node -e 'window = global;require("./'$dir'/ace.js");
+                var theme = require("'./$theme'");
+                if (!theme.cssClass || !theme.cssText) {
+                    throw new Error("Broken theme ./'$theme'")
+                } '
+            done
+        done
     - run: npm publish
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
