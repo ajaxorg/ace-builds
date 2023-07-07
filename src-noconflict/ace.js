@@ -1229,7 +1229,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.23.1";
+exports.version = "1.23.2";
 
 });
 
@@ -3332,11 +3332,18 @@ function GutterHandler(mouseHandler) {
             moveTooltip(mouseEvent);
         }
         else {
-            var gutterElement = gutter.$lines.cells[row].element.querySelector("[class*=ace_icon]");
-            var rect = gutterElement.getBoundingClientRect();
-            var style = tooltip.getElement().style;
-            style.left = rect.right + "px";
-            style.top = rect.bottom + "px";
+            var gutterRow = mouseEvent.getGutterRow();
+            var gutterCell = gutter.$lines.get(gutterRow);
+            if (gutterCell) {
+                var gutterElement = gutterCell.element.querySelector(".ace_gutter_annotation");
+                var rect = gutterElement.getBoundingClientRect();
+                var style = tooltip.getElement().style;
+                style.left = rect.right + "px";
+                style.top = rect.bottom + "px";
+            }
+            else {
+                moveTooltip(mouseEvent);
+            }
         }
     }
     function hideTooltip() {
@@ -3529,6 +3536,12 @@ var MouseEvent = /** @class */ (function () {
             return this.$pos;
         this.$pos = this.editor.renderer.screenToTextCoordinates(this.clientX, this.clientY);
         return this.$pos;
+    };
+    MouseEvent.prototype.getGutterRow = function () {
+        var documentRow = this.getDocumentPosition().row;
+        var screenRow = this.editor.session.documentToScreenRow(documentRow, 0);
+        var screenTopRow = this.editor.session.documentToScreenRow(this.editor.renderer.$gutterLayer.$lines.get(0).row, 0);
+        return screenRow - screenTopRow;
     };
     MouseEvent.prototype.inSelection = function () {
         if (this.$inSelection !== null)
@@ -18119,7 +18132,7 @@ var VirtualRenderer = /** @class */ (function () {
     VirtualRenderer.prototype.getShowInvisibles = function () {
         return this.getOption("showInvisibles");
     };
-    VirtualRenderer.prototype.getDisplayIndentGuide = function () {
+    VirtualRenderer.prototype.getDisplayIndentGuides = function () {
         return this.getOption("displayIndentGuides");
     };
     VirtualRenderer.prototype.setDisplayIndentGuides = function (display) {
