@@ -2315,7 +2315,7 @@ module.exports = slice;
     exports.noConflict = function () { global._ = current; return exports; };
   }()));
 }(this, (function () {
-  var VERSION = '1.13.4';
+  var VERSION = '1.13.6';
   var root = (typeof self == 'object' && self.self === self && self) ||
             (typeof global == 'object' && global.global === global && global) ||
             Function('return this')() ||
@@ -3805,7 +3805,7 @@ module.exports = slice;
 },{}],"/../../../jshint/src/jshint.js":[function(_dereq_,module,exports){
 
 var _            = _dereq_("underscore");
-_.clone          = _dereq_("lodash.clone");
+_.clone = _dereq_("lodash.clone");
 var events       = _dereq_("events");
 var vars         = _dereq_("./vars.js");
 var messages     = _dereq_("./messages.js");
@@ -7376,7 +7376,7 @@ var JSHINT = (function() {
         var id = state.tokens.prev;
         value = expression(context, 10);
         if (value) {
-          if (value.identifier && value.value === "undefined") {
+          if (!isConst && value.identifier && value.value === "undefined") {
             warning("W080", id, id.value);
           }
           if (!lone) {
@@ -11314,7 +11314,7 @@ var errors = {
   E009: "Option 'validthis' can't be used in a global scope.",
   E010: "'with' is not allowed in strict mode.",
   E011: "'{a}' has already been declared.",
-  E012: "const '{a}' is initialized to 'undefined'.",
+  E012: "Missing initializer for constant '{a}'.",
   E013: "Attempting to override '{a}' which is a constant.",
   E014: "A regular expression literal can be confused with '/='.",
   E015: "Unclosed regular expression.",
@@ -11803,7 +11803,7 @@ exports.regexpDot = /(^|[^\\])(\\\\)*\./;
 "use strict";
 
 var _      = _dereq_("underscore");
-_.slice    = _dereq_("lodash.slice");
+_.slice = _dereq_("lodash.slice");
 var events = _dereq_("events");
 var marker = {};
 var scopeManager = function(state, predefined, exported, declared) {
@@ -15304,7 +15304,7 @@ oop.inherits(JavaScriptWorker, Mirror);
 (function() {
     this.setOptions = function(options) {
         this.options = options || {
-            esnext: true,
+            esversion: 11,
             moz: true,
             devel: true,
             browser: true,
