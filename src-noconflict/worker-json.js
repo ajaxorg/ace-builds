@@ -1242,6 +1242,24 @@ exports.delayedCall = function (fcn, defaultTimeout) {
     };
     return _self;
 };
+exports.supportsLookbehind = function () {
+    try {
+        new RegExp('(?<=.)');
+    }
+    catch (e) {
+        return false;
+    }
+    return true;
+};
+exports.supportsUnicodeFlag = function () {
+    try {
+        new RegExp('^.$', 'u');
+    }
+    catch (error) {
+        return false;
+    }
+    return true;
+};
 
 });
 

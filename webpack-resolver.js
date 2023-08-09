@@ -57,6 +57,7 @@ ace.config.setModuleUrl('ace/mode/csound_score', require('file-loader?esModule=f
 ace.config.setModuleUrl('ace/mode/csp', require('file-loader?esModule=false!./src-noconflict/mode-csp.js'));
 ace.config.setModuleUrl('ace/mode/css', require('file-loader?esModule=false!./src-noconflict/mode-css.js'));
 ace.config.setModuleUrl('ace/mode/curly', require('file-loader?esModule=false!./src-noconflict/mode-curly.js'));
+ace.config.setModuleUrl('ace/mode/cuttlefish', require('file-loader?esModule=false!./src-noconflict/mode-cuttlefish.js'));
 ace.config.setModuleUrl('ace/mode/d', require('file-loader?esModule=false!./src-noconflict/mode-d.js'));
 ace.config.setModuleUrl('ace/mode/dart', require('file-loader?esModule=false!./src-noconflict/mode-dart.js'));
 ace.config.setModuleUrl('ace/mode/diff', require('file-loader?esModule=false!./src-noconflict/mode-diff.js'));
@@ -297,6 +298,7 @@ ace.config.setModuleUrl('ace/snippets/csound_score', require('file-loader?esModu
 ace.config.setModuleUrl('ace/snippets/csp', require('file-loader?esModule=false!./src-noconflict/snippets/csp.js'));
 ace.config.setModuleUrl('ace/snippets/css', require('file-loader?esModule=false!./src-noconflict/snippets/css.js'));
 ace.config.setModuleUrl('ace/snippets/curly', require('file-loader?esModule=false!./src-noconflict/snippets/curly.js'));
+ace.config.setModuleUrl('ace/snippets/cuttlefish', require('file-loader?esModule=false!./src-noconflict/snippets/cuttlefish.js'));
 ace.config.setModuleUrl('ace/snippets/d', require('file-loader?esModule=false!./src-noconflict/snippets/d.js'));
 ace.config.setModuleUrl('ace/snippets/dart', require('file-loader?esModule=false!./src-noconflict/snippets/dart.js'));
 ace.config.setModuleUrl('ace/snippets/diff', require('file-loader?esModule=false!./src-noconflict/snippets/diff.js'));

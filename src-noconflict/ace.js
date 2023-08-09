@@ -456,6 +456,24 @@ exports.delayedCall = function (fcn, defaultTimeout) {
     };
     return _self;
 };
+exports.supportsLookbehind = function () {
+    try {
+        new RegExp('(?<=.)');
+    }
+    catch (e) {
+        return false;
+    }
+    return true;
+};
+exports.supportsUnicodeFlag = function () {
+    try {
+        new RegExp('^.$', 'u');
+    }
+    catch (error) {
+        return false;
+    }
+    return true;
+};
 
 });
 
@@ -1229,7 +1247,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.23.4";
+exports.version = "1.24.0";
 
 });
 
@@ -2017,10 +2035,22 @@ var TextInput = function (parentNode, host) {
     var lastSelectionStart = 0;
     var lastSelectionEnd = 0;
     var lastRestoreEnd = 0;
+    var rowStart = Number.MAX_SAFE_INTEGER;
+    var rowEnd = Number.MIN_SAFE_INTEGER;
+    var numberOfExtraLines = 0;
     try {
         var isFocused = document.activeElement === text;
     }
     catch (e) { }
+    this.setNumberOfExtraLines = function (number) {
+        rowStart = Number.MAX_SAFE_INTEGER;
+        rowEnd = Number.MIN_SAFE_INTEGER;
+        if (number < 0) {
+            numberOfExtraLines = 0;
+            return;
+        }
+        numberOfExtraLines = number;
+    };
     this.setAriaOptions = function (options) {
         if (options.activeDescendant) {
             text.setAttribute("aria-haspopup", "true");
@@ -2035,20 +2065,15 @@ var TextInput = function (parentNode, host) {
         if (options.role) {
             text.setAttribute("role", options.role);
         }
-    };
-    this.setAriaLabel = function () {
-        if (host.session && host.renderer.enableKeyboardAccessibility) {
-            var row = host.session.selection.cursor.row;
+        if (options.setLabel) {
             text.setAttribute("aria-roledescription", nls("editor"));
-            text.setAttribute("aria-label", nls("Cursor at row $0", [row + 1]));
-        }
-        else {
-            text.removeAttribute("aria-roledescription");
-            text.removeAttribute("aria-label");
+            if (host.session) {
+                var row = host.session.selection.cursor.row;
+                text.setAttribute("aria-label", nls("Cursor at row $0", [row + 1]));
+            }
         }
     };
     this.setAriaOptions({ role: "textbox" });
-    this.setAriaLabel();
     event.addListener(text, "blur", function (e) {
         if (ignoreFocusEvents)
             return;
@@ -2074,7 +2099,9 @@ var TextInput = function (parentNode, host) {
     }, host);
     this.$focusScroll = false;
     this.focus = function () {
-        this.setAriaLabel();
+        this.setAriaOptions({
+            setLabel: host.renderer.enableKeyboardAccessibility
+        });
         if (tempStyle || HAS_FOCUS_ARGS || this.$focusScroll == "browser")
             return text.focus({ preventScroll: true });
         var top = text.style.top;
@@ -2128,6 +2155,13 @@ var TextInput = function (parentNode, host) {
         }
         resetSelection();
     });
+    var positionToSelection = function (row, column) {
+        var selection = column;
+        for (var i = 1; i <= row - rowStart && i < 2 * numberOfExtraLines + 1; i++) {
+            selection += host.session.getLine(row - i).length + 1;
+        }
+        return selection;
+    };
     var resetSelection = isIOS
         ? function (value) {
             if (!isFocused || (copied && !value) || sendingText)
@@ -2158,18 +2192,34 @@ var TextInput = function (parentNode, host) {
                 var selection = host.selection;
                 var range = selection.getRange();
                 var row = selection.cursor.row;
-                selectionStart = range.start.column;
-                selectionEnd = range.end.column;
-                line = host.session.getLine(row);
-                if (range.start.row != row) {
-                    var prevLine = host.session.getLine(row - 1);
-                    selectionStart = range.start.row < row - 1 ? 0 : selectionStart;
+                if (row === rowEnd + 1) {
+                    rowStart = rowEnd + 1;
+                    rowEnd = rowStart + 2 * numberOfExtraLines;
+                }
+                else if (row === rowStart - 1) {
+                    rowEnd = rowStart - 1;
+                    rowStart = rowEnd - 2 * numberOfExtraLines;
+                }
+                else if (row < rowStart - 1 || row > rowEnd + 1) {
+                    rowStart = row > numberOfExtraLines ? row - numberOfExtraLines : 0;
+                    rowEnd = row > numberOfExtraLines ? row + numberOfExtraLines : 2 * numberOfExtraLines;
+                }
+                var lines = [];
+                for (var i = rowStart; i <= rowEnd; i++) {
+                    lines.push(host.session.getLine(i));
+                }
+                line = lines.join('\n');
+                selectionStart = positionToSelection(range.start.row, range.start.column);
+                selectionEnd = positionToSelection(range.end.row, range.end.column);
+                if (range.start.row < rowStart) {
+                    var prevLine = host.session.getLine(rowStart - 1);
+                    selectionStart = range.start.row < rowStart - 1 ? 0 : selectionStart;
                     selectionEnd += prevLine.length + 1;
                     line = prevLine + "\n" + line;
                 }
-                else if (range.end.row != row) {
-                    var nextLine = host.session.getLine(row + 1);
-                    selectionEnd = range.end.row > row + 1 ? nextLine.length : selectionEnd;
+                else if (range.end.row > rowEnd) {
+                    var nextLine = host.session.getLine(rowEnd + 1);
+                    selectionEnd = range.end.row > rowEnd + 1 ? nextLine.length : range.end.column;
                     selectionEnd += line.length + 1;
                     line = line + "\n" + nextLine;
                 }
@@ -2193,11 +2243,11 @@ var TextInput = function (parentNode, host) {
                         }
                     }
                 }
-            }
-            var newValue = line + "\n\n";
-            if (newValue != lastValue) {
-                text.value = lastValue = newValue;
-                lastSelectionStart = lastSelectionEnd = newValue.length;
+                var newValue = line + "\n\n";
+                if (newValue != lastValue) {
+                    text.value = lastValue = newValue;
+                    lastSelectionStart = lastSelectionEnd = newValue.length;
+                }
             }
             if (afterContextMenu) {
                 lastSelectionStart = text.selectionStart;
@@ -10971,11 +11021,23 @@ var Search = /** @class */ (function () {
         var needle = options.needle;
         if (!options.needle)
             return options.re = false;
+        if (options.$supportsUnicodeFlag === undefined) {
+            options.$supportsUnicodeFlag = lang.supportsUnicodeFlag();
+        }
+        try {
+            new RegExp(needle, "u");
+        }
+        catch (e) {
+            options.$supportsUnicodeFlag = false; //left for backward compatibility with previous versions for cases like /ab\{2}/gu
+        }
         if (!options.regExp)
             needle = lang.escapeRegExp(needle);
         if (options.wholeWord)
             needle = addWordBoundary(needle, options);
         var modifier = options.caseSensitive ? "gm" : "gmi";
+        if (options.$supportsUnicodeFlag) {
+            modifier += "u";
+        }
         options.$isMultiLine = !$disableFakeMultiline && /[\n\r]/.test(needle);
         if (options.$isMultiLine)
             return options.re = this.$assembleMultilineRegExp(needle, modifier);
@@ -11115,13 +11177,24 @@ var Search = /** @class */ (function () {
     return Search;
 }());
 function addWordBoundary(needle, options) {
-    function wordBoundary(c) {
-        if (/\w/.test(c) || options.regExp)
+    var supportsLookbehind = lang.supportsLookbehind();
+    function wordBoundary(c, firstChar) {
+        if (firstChar === void 0) { firstChar = true; }
+        var wordRegExp = supportsLookbehind && options.$supportsUnicodeFlag ? new RegExp("[\\p{L}\\p{N}_]", "u") : new RegExp("\\w");
+        if (wordRegExp.test(c) || options.regExp) {
+            if (supportsLookbehind && options.$supportsUnicodeFlag) {
+                if (firstChar)
+                    return "(?<=^|[^\\p{L}\\p{N}_])";
+                return "(?=[^\\p{L}\\p{N}_]|$)";
+            }
             return "\\b";
+        }
         return "";
     }
-    return wordBoundary(needle[0]) + needle
-        + wordBoundary(needle[needle.length - 1]);
+    var needleArray = Array.from(needle);
+    var firstChar = needleArray[0];
+    var lastChar = needleArray[needleArray.length - 1];
+    return wordBoundary(firstChar) + needle + wordBoundary(lastChar, false);
 }
 exports.Search = Search;
 
@@ -14934,6 +15007,7 @@ config.defineOptions(Editor.prototype, "editor", {
                 this.renderer.enableKeyboardAccessibility = true;
                 this.renderer.keyboardFocusClassName = "ace_keyboard-focus";
                 this.textInput.getElement().setAttribute("tabindex", -1);
+                this.textInput.setNumberOfExtraLines(useragent.isWin ? 3 : 0);
                 this.renderer.scroller.setAttribute("tabindex", 0);
                 this.renderer.scroller.setAttribute("role", "group");
                 this.renderer.scroller.setAttribute("aria-roledescription", nls("editor"));
@@ -14955,6 +15029,7 @@ config.defineOptions(Editor.prototype, "editor", {
             else {
                 this.renderer.enableKeyboardAccessibility = false;
                 this.textInput.getElement().setAttribute("tabindex", 0);
+                this.textInput.setNumberOfExtraLines(0);
                 this.renderer.scroller.setAttribute("tabindex", -1);
                 this.renderer.scroller.removeAttribute("role");
                 this.renderer.scroller.removeAttribute("aria-roledescription");
@@ -20870,13 +20945,19 @@ exports.version = exports.config.version;
                         a.config.init(true);
                         a.define = ace.define;
                     }
-                    if (!window.ace)
-                        window.ace = a;
+                    var global = (function () {
+                        return this;
+                    })();
+                    if (!global && typeof window != "undefined") global = window; // can happen in strict mode
+                    if (!global && typeof self != "undefined") global = self; // can happen in webworker
+                    
+                    if (!global.ace)
+                        global.ace = a;
                     for (var key in a) if (a.hasOwnProperty(key))
-                        window.ace[key] = a[key];
-                    window.ace["default"] = window.ace;
+                        global.ace[key] = a[key];
+                    global.ace["default"] = global.ace;
                     if (typeof module == "object" && typeof exports == "object" && module) {
-                        module.exports = window.ace;
+                        module.exports = global.ace;
                     }
                 });
             })();

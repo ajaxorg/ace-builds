@@ -1606,6 +1606,7 @@ var supportedModes = {
     Csound_Score: ["sco"],
     CSS: ["css"],
     Curly: ["curly"],
+    Cuttlefish: ["conf"],
     D: ["d|di"],
     Dart: ["dart"],
     Diff: ["diff|patch"],
@@ -6120,7 +6121,7 @@ var CompletionProvider = /** @class */ (function () {
         else {
             if (!this.completions)
                 return false;
-            if (this.completions.filterText && !data.range) {
+            if (this.completions.filterText) {
                 var ranges;
                 if (editor.selection.getAllRanges) {
                     ranges = editor.selection.getAllRanges();

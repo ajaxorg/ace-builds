@@ -62,6 +62,7 @@ var supportedModes = {
     Csound_Score: ["sco"],
     CSS: ["css"],
     Curly: ["curly"],
+    Cuttlefish: ["conf"],
     D: ["d|di"],
     Dart: ["dart"],
     Diff: ["diff|patch"],
