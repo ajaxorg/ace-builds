@@ -680,9 +680,6 @@ var SnippetManager = /** @class */ (function () {
         if (options === void 0) { options = {}; }
         var processedSnippet = processSnippetText.call(this, editor, snippetText, options);
         var range = editor.getSelectionRange();
-        if (options.range && options.range.compareRange(range) === 0) {
-            range = options.range;
-        }
         var end = editor.session.replace(range, processedSnippet.text);
         var tabstopManager = new TabstopManager(editor);
         var selectionId = editor.inVirtualSelectionMode && editor.selection.index;
@@ -691,8 +688,6 @@ var SnippetManager = /** @class */ (function () {
     SnippetManager.prototype.insertSnippet = function (editor, snippetText, options) {
         if (options === void 0) { options = {}; }
         var self = this;
-        if (options.range && !(options.range instanceof Range))
-            options.range = Range.fromPoints(options.range.start, options.range.end);
         if (editor.inVirtualSelectionMode)
             return self.insertSnippetForSelection(editor, snippetText, options);
         editor.forEachSelection(function () {
@@ -1659,9 +1654,9 @@ var Autocomplete = /** @class */ (function () {
         editor.on("mousewheel", this.mousewheelListener);
         this.updateCompletions(false, options);
     };
-    Autocomplete.prototype.getCompletionProvider = function () {
+    Autocomplete.prototype.getCompletionProvider = function (initialPosition) {
         if (!this.completionProvider)
-            this.completionProvider = new CompletionProvider();
+            this.completionProvider = new CompletionProvider(initialPosition);
         return this.completionProvider;
     };
     Autocomplete.prototype.gatherCompletions = function (editor, callback) {
@@ -1696,7 +1691,10 @@ var Autocomplete = /** @class */ (function () {
         this.base = session.doc.createAnchor(pos.row, pos.column - prefix.length);
         this.base.$insertRight = true;
         var completionOptions = { exactMatch: this.exactMatch };
-        this.getCompletionProvider().provideCompletions(this.editor, completionOptions, function (err, completions, finished) {
+        this.getCompletionProvider({
+            prefix: prefix,
+            pos: pos
+        }).provideCompletions(this.editor, completionOptions, function (err, completions, finished) {
             var filtered = completions.filtered;
             var prefix = util.getCompletionPrefix(this.editor);
             if (finished) {
@@ -1891,7 +1889,8 @@ Autocomplete.startCommand = {
     bindKey: "Ctrl-Space|Ctrl-Shift-Space|Alt-Space"
 };
 var CompletionProvider = /** @class */ (function () {
-    function CompletionProvider() {
+    function CompletionProvider(initialPosition) {
+        this.initialPosition = initialPosition;
         this.active = true;
     }
     CompletionProvider.prototype.insertByIndex = function (editor, index, options) {
@@ -1910,7 +1909,14 @@ var CompletionProvider = /** @class */ (function () {
         else {
             if (!this.completions)
                 return false;
-            if (this.completions.filterText) {
+            var replaceBefore = this.completions.filterText.length;
+            var replaceAfter = 0;
+            if (data.range && data.range.start.row === data.range.end.row) {
+                replaceBefore -= this.initialPosition.prefix.length;
+                replaceBefore += this.initialPosition.pos.column - data.range.start.column;
+                replaceAfter += data.range.end.column - this.initialPosition.pos.column;
+            }
+            if (replaceBefore || replaceAfter) {
                 var ranges;
                 if (editor.selection.getAllRanges) {
                     ranges = editor.selection.getAllRanges();
@@ -1919,12 +1925,14 @@ var CompletionProvider = /** @class */ (function () {
                     ranges = [editor.getSelectionRange()];
                 }
                 for (var i = 0, range; range = ranges[i]; i++) {
-                    range.start.column -= this.completions.filterText.length;
+                    range.start.column -= replaceBefore;
+                    range.end.column += replaceAfter;
                     editor.session.remove(range);
                 }
             }
-            if (data.snippet)
-                snippetManager.insertSnippet(editor, data.snippet, { range: data.range });
+            if (data.snippet) {
+                snippetManager.insertSnippet(editor, data.snippet);
+            }
             else {
                 this.$insertString(editor, data);
             }
@@ -1937,23 +1945,7 @@ var CompletionProvider = /** @class */ (function () {
     };
     CompletionProvider.prototype.$insertString = function (editor, data) {
         var text = data.value || data;
-        if (data.range) {
-            if (editor.inVirtualSelectionMode) {
-                return editor.session.replace(data.range, text);
-            }
-            editor.forEachSelection(function () {
-                var range = editor.getSelectionRange();
-                if (data.range.compareRange(range) === 0) {
-                    editor.session.replace(data.range, text);
-                }
-                else {
-                    editor.insert(text);
-                }
-            }, null, { keepOrder: true });
-        }
-        else {
-            editor.execCommand("insertstring", text);
-        }
+        editor.execCommand("insertstring", text);
     };
     CompletionProvider.prototype.gatherCompletions = function (editor, callback) {
         var session = editor.getSession();
