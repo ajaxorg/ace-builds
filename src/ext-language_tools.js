@@ -2287,7 +2287,7 @@ var showLiveAutocomplete = function (e) {
     var editor = e.editor;
     var prefix = util.getCompletionPrefix(editor);
     var triggerAutocomplete = util.triggerAutocomplete(editor);
-    if ((prefix || triggerAutocomplete) && prefix.length >= editor.$liveAutocompletionThreshold) {
+    if (prefix && prefix.length >= editor.$liveAutocompletionThreshold || triggerAutocomplete) {
         var completer = Autocomplete.for(editor);
         completer.autoShown = true;
         completer.showPopup(editor);
