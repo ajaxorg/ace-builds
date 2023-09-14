@@ -304,7 +304,28 @@ require("./es6-shim");
 
 });
 
-define("ace/lib/lang",["require","exports","module"], function(require, exports, module){"use strict";
+define("ace/lib/deep_copy",["require","exports","module"], function(require, exports, module){exports.deepCopy = function deepCopy(obj) {
+    if (typeof obj !== "object" || !obj)
+        return obj;
+    var copy;
+    if (Array.isArray(obj)) {
+        copy = [];
+        for (var key = 0; key < obj.length; key++) {
+            copy[key] = deepCopy(obj[key]);
+        }
+        return copy;
+    }
+    if (Object.prototype.toString.call(obj) !== "[object Object]")
+        return obj;
+    copy = {};
+    for (var key in obj)
+        copy[key] = deepCopy(obj[key]);
+    return copy;
+};
+
+});
+
+define("ace/lib/lang",["require","exports","module","ace/lib/deep_copy"], function(require, exports, module){"use strict";
 exports.last = function (a) {
     return a[a.length - 1];
 };
@@ -346,24 +367,7 @@ exports.copyArray = function (array) {
     }
     return copy;
 };
-exports.deepCopy = function deepCopy(obj) {
-    if (typeof obj !== "object" || !obj)
-        return obj;
-    var copy;
-    if (Array.isArray(obj)) {
-        copy = [];
-        for (var key = 0; key < obj.length; key++) {
-            copy[key] = deepCopy(obj[key]);
-        }
-        return copy;
-    }
-    if (Object.prototype.toString.call(obj) !== "[object Object]")
-        return obj;
-    copy = {};
-    for (var key in obj)
-        copy[key] = deepCopy(obj[key]);
-    return copy;
-};
+exports.deepCopy = require("./deep_copy").deepCopy;
 exports.arrayToMap = function (arr) {
     var map = {};
     for (var i = 0; i < arr.length; i++) {
@@ -956,9 +960,20 @@ exports.EventEmitter = EventEmitter;
 
 });
 
-define("ace/lib/app_config",["require","exports","module","ace/lib/oop","ace/lib/event_emitter"], function(require, exports, module){"no use strict";
+define("ace/lib/report_error",["require","exports","module"], function(require, exports, module){exports.reportError = function reportError(msg, data) {
+    var e = new Error(msg);
+    e.data = data;
+    if (typeof console == "object" && console.error)
+        console.error(e);
+    setTimeout(function () { throw e; });
+};
+
+});
+
+define("ace/lib/app_config",["require","exports","module","ace/lib/oop","ace/lib/event_emitter","ace/lib/report_error"], function(require, exports, module){"no use strict";
 var oop = require("./oop");
 var EventEmitter = require("./event_emitter").EventEmitter;
+var reportError = require("./report_error").reportError;
 var optionsProvider = {
     setOptions: function (optList) {
         Object.keys(optList).forEach(function (key) {
@@ -1009,13 +1024,6 @@ var optionsProvider = {
 function warn(message) {
     if (typeof console != "undefined" && console.warn)
         console.warn.apply(console, arguments);
-}
-function reportError(msg, data) {
-    var e = new Error(msg);
-    e.data = data;
-    if (typeof console == "object" && console.error)
-        console.error(e);
-    setTimeout(function () { throw e; });
 }
 var messages;
 var AppConfig = /** @class */ (function () {
@@ -1247,7 +1255,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.24.2";
+exports.version = "1.25.0";
 
 });
 
@@ -5708,8 +5716,8 @@ exports.Selection = Selection;
 
 });
 
-define("ace/tokenizer",["require","exports","module","ace/config"], function(require, exports, module){"use strict";
-var config = require("./config");
+define("ace/tokenizer",["require","exports","module","ace/lib/report_error"], function(require, exports, module){"use strict";
+var reportError = require("./lib/report_error").reportError;
 var MAX_TOKEN_COUNT = 2000;
 var Tokenizer = /** @class */ (function () {
     function Tokenizer(rules) {
@@ -5990,13 +5998,13 @@ var Tokenizer = /** @class */ (function () {
     };
     return Tokenizer;
 }());
-Tokenizer.prototype.reportError = config.reportError;
+Tokenizer.prototype.reportError = reportError;
 exports.Tokenizer = Tokenizer;
 
 });
 
-define("ace/mode/text_highlight_rules",["require","exports","module","ace/lib/lang"], function(require, exports, module){"use strict";
-var lang = require("../lib/lang");
+define("ace/mode/text_highlight_rules",["require","exports","module","ace/lib/deep_copy"], function(require, exports, module){"use strict";
+var deepCopy = require("../lib/deep_copy").deepCopy;
 var TextHighlightRules = function () {
     this.$rules = {
         "start": [{
@@ -6050,7 +6058,7 @@ var TextHighlightRules = function () {
         if (escapeRules) {
             var addRules = Array.prototype[append ? "push" : "unshift"];
             for (var i = 0; i < states.length; i++)
-                addRules.apply(this.$rules[states[i]], lang.deepCopy(escapeRules));
+                addRules.apply(this.$rules[states[i]], deepCopy(escapeRules));
         }
         if (!this.$embeds)
             this.$embeds = [];
@@ -16311,13 +16319,22 @@ exports.Marker = Marker;
 
 });
 
-define("ace/layer/text",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/layer/lines","ace/lib/event_emitter","ace/config"], function(require, exports, module){"use strict";
+define("ace/layer/text_util",["require","exports","module"], function(require, exports, module){// Tokens for which Ace just uses a simple TextNode and does not add any special className.
+var textTokens = new Set(["text", "rparen", "lparen"]);
+exports.isTextToken = function (tokenType) {
+    return textTokens.has(tokenType);
+};
+
+});
+
+define("ace/layer/text",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/layer/lines","ace/lib/event_emitter","ace/config","ace/layer/text_util"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
 var Lines = require("./lines").Lines;
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var nls = require("../config").nls;
+var isTextToken = require("./text_util").isTextToken;
 var Text = /** @class */ (function () {
     function Text(parentEl) {
         this.dom = dom;
@@ -16586,7 +16603,7 @@ var Text = /** @class */ (function () {
                     valueFragment.appendChild(span);
                 }
                 else {
-                    valueFragment.appendChild(this.com.createTextNode(simpleSpace, this.element));
+                    valueFragment.appendChild(this.dom.createTextNode(simpleSpace, this.element));
                 }
             }
             else if (controlCharacter) {
@@ -16613,7 +16630,7 @@ var Text = /** @class */ (function () {
             }
         }
         valueFragment.appendChild(this.dom.createTextNode(i ? value.slice(i) : value, this.element));
-        if (!this.$textToken[token.type]) {
+        if (!isTextToken(token.type)) {
             var classes = "ace_" + token.type.replace(/\./g, " ace_");
             var span = this.dom.createElement("span");
             if (token.type == "fold") {
@@ -16923,11 +16940,6 @@ var Text = /** @class */ (function () {
     };
     return Text;
 }());
-Text.prototype.$textToken = {
-    "text": true,
-    "rparen": true,
-    "lparen": true
-};
 Text.prototype.EOF_CHAR = "\xB6";
 Text.prototype.EOL_CHAR_LF = "\xAC";
 Text.prototype.EOL_CHAR_CRLF = "\xa4";

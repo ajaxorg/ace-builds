@@ -1,6 +1,7 @@
 /// <reference path="./ace-modules.d.ts" />
 
 
+
 export namespace Ace {
   export type NewLineMode = 'auto' | 'unix' | 'windows';
 

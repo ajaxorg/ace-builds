@@ -1090,6 +1090,27 @@ exports.Document = Document;
 
 });
 
+define("ace/lib/deep_copy",[], function(require, exports, module){exports.deepCopy = function deepCopy(obj) {
+    if (typeof obj !== "object" || !obj)
+        return obj;
+    var copy;
+    if (Array.isArray(obj)) {
+        copy = [];
+        for (var key = 0; key < obj.length; key++) {
+            copy[key] = deepCopy(obj[key]);
+        }
+        return copy;
+    }
+    if (Object.prototype.toString.call(obj) !== "[object Object]")
+        return obj;
+    copy = {};
+    for (var key in obj)
+        copy[key] = deepCopy(obj[key]);
+    return copy;
+};
+
+});
+
 define("ace/lib/lang",[], function(require, exports, module){"use strict";
 exports.last = function (a) {
     return a[a.length - 1];
@@ -1132,24 +1153,7 @@ exports.copyArray = function (array) {
     }
     return copy;
 };
-exports.deepCopy = function deepCopy(obj) {
-    if (typeof obj !== "object" || !obj)
-        return obj;
-    var copy;
-    if (Array.isArray(obj)) {
-        copy = [];
-        for (var key = 0; key < obj.length; key++) {
-            copy[key] = deepCopy(obj[key]);
-        }
-        return copy;
-    }
-    if (Object.prototype.toString.call(obj) !== "[object Object]")
-        return obj;
-    copy = {};
-    for (var key in obj)
-        copy[key] = deepCopy(obj[key]);
-    return copy;
-};
+exports.deepCopy = require("./deep_copy").deepCopy;
 exports.arrayToMap = function (arr) {
     var map = {};
     for (var i = 0; i < arr.length; i++) {

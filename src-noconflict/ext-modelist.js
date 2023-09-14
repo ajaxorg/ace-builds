@@ -159,6 +159,7 @@ var supportedModes = {
     Prolog: ["plg|prolog"],
     Properties: ["properties"],
     Protobuf: ["proto"],
+    PRQL: ["prql"],
     Puppet: ["epp|pp"],
     Python: ["py"],
     QML: ["qml"],
