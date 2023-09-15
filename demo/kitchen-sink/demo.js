@@ -5653,6 +5653,7 @@ var Autocomplete = /** @class */ (function () {
         this.keyboardHandler = new HashHandler();
         this.keyboardHandler.bindKeys(this.commands);
         this.parentNode = null;
+        this.setSelectOnHover = false;
         this.blurListener = this.blurListener.bind(this);
         this.changeListener = this.changeListener.bind(this);
         this.mousedownListener = this.mousedownListener.bind(this);
@@ -5764,6 +5765,7 @@ var Autocomplete = /** @class */ (function () {
         if (this.inlineEnabled && !this.inlineRenderer)
             this.$initInline();
         this.popup.autoSelect = this.autoSelect;
+        this.popup.setSelectOnHover(this.setSelectOnHover);
         this.popup.setData(this.completions.filtered, this.completions.filterText);
         if (this.editor.textInput.setAriaOptions) {
             this.editor.textInput.setAriaOptions({
