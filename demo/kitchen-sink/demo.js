@@ -5529,7 +5529,7 @@ var AceInline = /** @class */ (function () {
             return false;
         }
         var displayText = completion.snippet ? snippetManager.getDisplayTextForSnippet(editor, completion.snippet) : completion.value;
-        if (!displayText || !displayText.startsWith(prefix)) {
+        if (completion.hideInlinePreview || !displayText || !displayText.startsWith(prefix)) {
             return false;
         }
         this.editor = editor;
@@ -6170,6 +6170,10 @@ var CompletionProvider = /** @class */ (function () {
         var total = editor.completers.length;
         editor.completers.forEach(function (completer, i) {
             completer.getCompletions(editor, session, pos, prefix, function (err, results) {
+                if (completer.hideInlinePreview)
+                    results = results.map(function (result) {
+                        return Object.assign(result, { hideInlinePreview: completer.hideInlinePreview });
+                    });
                 if (!err && results)
                     matches = matches.concat(results);
                 callback(null, {
