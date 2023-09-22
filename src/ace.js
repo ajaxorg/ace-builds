@@ -1255,7 +1255,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.27.0";
+exports.version = "1.28.0";
 
 });
 
@@ -3211,23 +3211,13 @@ var HoverTooltip = /** @class */ (function (_super) {
         element.appendChild(domNode);
         element.style.display = "block";
         var position = renderer.textToScreenCoordinates(range.start.row, range.start.column);
-        var cursorPos = editor.getCursorPosition();
         var labelHeight = element.clientHeight;
         var rect = renderer.scroller.getBoundingClientRect();
-        var isTopdown = true;
-        if (this.row > cursorPos.row) {
-            isTopdown = true;
+        var isAbove = true;
+        if (position.pageY - labelHeight < 0) {
+            isAbove = false;
         }
-        else if (this.row < cursorPos.row) {
-            isTopdown = false;
-        }
-        if (position.pageY - labelHeight + renderer.lineHeight < rect.top) {
-            isTopdown = true;
-        }
-        else if (position.pageY + labelHeight > rect.bottom) {
-            isTopdown = false;
-        }
-        if (!isTopdown) {
+        if (isAbove) {
             position.pageY -= labelHeight;
         }
         else {
