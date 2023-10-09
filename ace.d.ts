@@ -1068,6 +1068,7 @@ export namespace Ace {
     parentNode?: HTMLElement;
     setSelectOnHover?: Boolean;
     stickySelectionDelay?: Number;
+    ignoreCaption?: Boolean;
     emptyMessage?(prefix: String): String;
     getPopup(): AcePopup;
     showPopup(editor: Editor, options: CompletionOptions): void;
