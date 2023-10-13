@@ -106,6 +106,7 @@ var supportedModes = {
     AsciiDoc: ["asciidoc|adoc"],
     ASL: ["dsl|asl|asl.json"],
     Assembly_x86: ["asm|a"],
+    Astro: ["astro"],
     AutoHotKey: ["ahk"],
     BatchFile: ["bat|cmd"],
     BibTeX: ["bib"],
@@ -127,6 +128,7 @@ var supportedModes = {
     D: ["d|di"],
     Dart: ["dart"],
     Diff: ["diff|patch"],
+    Django: ["html"],
     Dockerfile: ["^Dockerfile"],
     Dot: ["dot"],
     Drools: ["drl"],
@@ -275,8 +277,7 @@ var supportedModes = {
     XML: ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery: ["xq"],
     YAML: ["yaml|yml"],
-    Zeek: ["zeek|bro"],
-    Django: ["html"]
+    Zeek: ["zeek|bro"]
 };
 var nameOverrides = {
     ObjectiveC: "Objective-C",

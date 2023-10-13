@@ -1043,6 +1043,7 @@ var AcePopup = /** @class */ (function () {
             }
             lastMouseEvent = e;
             lastMouseEvent.scrollTop = popup.renderer.scrollTop;
+            popup.isMouseOver = true;
             var row = lastMouseEvent.getDocumentPosition().row;
             if (hoverMarker.start.row != row) {
                 if (!hoverMarker.id)
@@ -1095,7 +1096,10 @@ var AcePopup = /** @class */ (function () {
         popup.getHoveredRow = function () {
             return hoverMarker.start.row;
         };
-        event.addListener(popup.container, "mouseout", hideHoverMarker);
+        event.addListener(popup.container, "mouseout", function () {
+            popup.isMouseOver = false;
+            hideHoverMarker();
+        });
         popup.on("hide", hideHoverMarker);
         popup.on("changeSelection", hideHoverMarker);
         popup.session.doc.getLength = function () {
@@ -1155,6 +1159,7 @@ var AcePopup = /** @class */ (function () {
         popup.isTopdown = false;
         popup.autoSelect = true;
         popup.filterText = "";
+        popup.isMouseOver = false;
         popup.data = [];
         popup.setData = function (list, filterText) {
             popup.filterText = filterText || "";
@@ -1301,8 +1306,61 @@ exports.getAriaId = getAriaId;
 
 });
 
-ace.define("ace/autocomplete/inline",["require","exports","module","ace/snippets"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete/inline_screenreader",["require","exports","module"], function(require, exports, module){"use strict";
+var AceInlineScreenReader = /** @class */ (function () {
+    function AceInlineScreenReader(editor) {
+        this.editor = editor;
+        this.screenReaderDiv = document.createElement("div");
+        this.screenReaderDiv.classList.add("ace_screenreader-only");
+        this.editor.container.appendChild(this.screenReaderDiv);
+    }
+    AceInlineScreenReader.prototype.setScreenReaderContent = function (content) {
+        if (!this.popup && this.editor.completer && this.editor.completer.popup) {
+            this.popup = this.editor.completer.popup;
+            this.popup.renderer.on("afterRender", function () {
+                var row = this.popup.getRow();
+                var t = this.popup.renderer.$textLayer;
+                var selected = t.element.childNodes[row - t.config.firstRow];
+                if (selected) {
+                    var idString = "doc-tooltip ";
+                    for (var lineIndex = 0; lineIndex < this._lines.length; lineIndex++) {
+                        idString += "ace-inline-screenreader-line-".concat(lineIndex, " ");
+                    }
+                    selected.setAttribute("aria-describedby", idString);
+                }
+            }.bind(this));
+        }
+        while (this.screenReaderDiv.firstChild) {
+            this.screenReaderDiv.removeChild(this.screenReaderDiv.firstChild);
+        }
+        this._lines = content.split(/\r\n|\r|\n/);
+        var codeElement = this.createCodeBlock();
+        this.screenReaderDiv.appendChild(codeElement);
+    };
+    AceInlineScreenReader.prototype.destroy = function () {
+        this.screenReaderDiv.remove();
+    };
+    AceInlineScreenReader.prototype.createCodeBlock = function () {
+        var container = document.createElement("pre");
+        container.setAttribute("id", "ace-inline-screenreader");
+        for (var lineIndex = 0; lineIndex < this._lines.length; lineIndex++) {
+            var codeElement = document.createElement("code");
+            codeElement.setAttribute("id", "ace-inline-screenreader-line-".concat(lineIndex));
+            var line = document.createTextNode(this._lines[lineIndex]);
+            codeElement.appendChild(line);
+            container.appendChild(codeElement);
+        }
+        return container;
+    };
+    return AceInlineScreenReader;
+}());
+exports.AceInlineScreenReader = AceInlineScreenReader;
+
+});
+
+ace.define("ace/autocomplete/inline",["require","exports","module","ace/snippets","ace/autocomplete/inline_screenreader"], function(require, exports, module){"use strict";
 var snippetManager = require("../snippets").snippetManager;
+var AceInlineScreenReader = require("./inline_screenreader").AceInlineScreenReader;
 var AceInline = /** @class */ (function () {
     function AceInline() {
         this.editor = null;
@@ -1312,15 +1370,20 @@ var AceInline = /** @class */ (function () {
         if (editor && this.editor && this.editor !== editor) {
             this.hide();
             this.editor = null;
+            this.inlineScreenReader = null;
         }
         if (!editor || !completion) {
             return false;
+        }
+        if (!this.inlineScreenReader) {
+            this.inlineScreenReader = new AceInlineScreenReader(editor);
         }
         var displayText = completion.snippet ? snippetManager.getDisplayTextForSnippet(editor, completion.snippet) : completion.value;
         if (completion.hideInlinePreview || !displayText || !displayText.startsWith(prefix)) {
             return false;
         }
         this.editor = editor;
+        this.inlineScreenReader.setScreenReaderContent(displayText);
         displayText = displayText.slice(prefix.length);
         if (displayText === "") {
             editor.removeGhostText();
@@ -1346,6 +1409,10 @@ var AceInline = /** @class */ (function () {
     AceInline.prototype.destroy = function () {
         this.hide();
         this.editor = null;
+        if (this.inlineScreenReader) {
+            this.inlineScreenReader.destroy();
+            this.inlineScreenReader = null;
+        }
     };
     return AceInline;
 }());
@@ -1418,7 +1485,7 @@ exports.triggerAutocomplete = function (editor) {
 
 });
 
-ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/inline","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/inline","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config","ace/lib/event"], function(require, exports, module){"use strict";
 var HashHandler = require("./keyboard/hash_handler").HashHandler;
 var AcePopup = require("./autocomplete/popup").AcePopup;
 var AceInline = require("./autocomplete/inline").AceInline;
@@ -1428,6 +1495,7 @@ var lang = require("./lib/lang");
 var dom = require("./lib/dom");
 var snippetManager = require("./snippets").snippetManager;
 var config = require("./config");
+var event = require("./lib/event");
 var destroyCompleter = function (e, editor) {
     editor.completer && editor.completer.destroy();
 };
@@ -1466,6 +1534,7 @@ var Autocomplete = /** @class */ (function () {
         this.popup.on("show", this.$onPopupShow.bind(this));
         this.popup.on("hide", this.$onHidePopup.bind(this));
         this.popup.on("select", this.$onPopupChange.bind(this));
+        event.addListener(this.popup.container, "mouseout", this.mouseOutListener.bind(this));
         this.popup.on("changeHoverMarker", this.tooltipTimer.bind(null, null));
         return this.popup;
     };
@@ -1493,8 +1562,12 @@ var Autocomplete = /** @class */ (function () {
             if (!this.inlineRenderer.show(this.editor, completion, prefix)) {
                 this.inlineRenderer.hide();
             }
-            this.$updatePopupPosition();
+            if (this.popup.isMouseOver && this.setSelectOnHover) {
+                this.tooltipTimer.call(null, null);
+                return;
+            }
         }
+        this.$updatePopupPosition();
         this.tooltipTimer.call(null, null);
     };
     Autocomplete.prototype.$onPopupShow = function (hide) {
@@ -1639,7 +1712,12 @@ var Autocomplete = /** @class */ (function () {
         this.detach();
     };
     Autocomplete.prototype.mousewheelListener = function (e) {
-        this.detach();
+        if (!this.popup.isMouseOver)
+            this.detach();
+    };
+    Autocomplete.prototype.mouseOutListener = function (e) {
+        if (this.popup.isOpen)
+            this.$updatePopupPosition();
     };
     Autocomplete.prototype.goTo = function (where) {
         this.popup.goTo(where);
