@@ -1827,7 +1827,7 @@ var Autocomplete = /** @class */ (function () {
     };
     Autocomplete.prototype.updateDocTooltip = function () {
         var popup = this.popup;
-        var all = popup.data;
+        var all = this.completions.filtered;
         var selected = all && (all[popup.getHoveredRow()] || all[popup.getRow()]);
         var doc = null;
         if (!selected || !this.editor || !this.popup.isOpen)
@@ -2333,7 +2333,7 @@ var supportedModes = {
     D: ["d|di"],
     Dart: ["dart"],
     Diff: ["diff|patch"],
-    Django: ["html"],
+    Django: ["djt|html.djt|dj.html|djhtml"],
     Dockerfile: ["^Dockerfile"],
     Dot: ["dot"],
     Drools: ["drl"],
@@ -2343,6 +2343,7 @@ var supportedModes = {
     Elixir: ["ex|exs"],
     Elm: ["elm"],
     Erlang: ["erl|hrl"],
+    Flix: ["flix"],
     Forth: ["frt|fs|ldr|fth|4th"],
     Fortran: ["f|f90"],
     FSharp: ["fsi|fs|ml|mli|fsx|fsscript"],
@@ -2405,6 +2406,7 @@ var supportedModes = {
     MIXAL: ["mixal"],
     MUSHCode: ["mc|mush"],
     MySQL: ["mysql"],
+    Nasal: ["nas"],
     Nginx: ["nginx|conf"],
     Nim: ["nim"],
     Nix: ["nix"],
