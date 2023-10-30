@@ -23,7 +23,7 @@
 <!-- load ace language_tools extension -->
 <script src="../src/ext-language_tools.js"></script>
 <script>
-    var buildDom = require("ace/lib/dom").buildDom;
+    var buildDom = ace.require("ace/lib/dom").buildDom;
     var editor = ace.edit();
     editor.setOptions({
         theme: "ace/theme/tomorrow_night_eighties",

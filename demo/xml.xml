@@ -20,7 +20,7 @@
 <!-- load ace language_tools extension -->
 <script src="../src/ext-language_tools.js"></script>
 <script>
-        var langagueTools = require("ace/ext/language_tools");
+        var langagueTools = ace.require("ace/ext/language_tools");
         var editor = ace.edit("editor");
         editor.session.setMode("ace/mode/xml");
         editor.setTheme("ace/theme/tomorrow");

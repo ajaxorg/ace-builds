@@ -1255,7 +1255,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.31.0";
+exports.version = "1.31.1";
 
 });
 
@@ -3965,7 +3965,7 @@ exports.addTouchListeners = function (el, editor) {
                 clipboard && ["span", { class: "ace_mobile-button", action: "paste" }, "Paste"],
                 hasUndo && ["span", { class: "ace_mobile-button", action: "undo" }, "Undo"],
                 ["span", { class: "ace_mobile-button", action: "find" }, "Find"],
-                ["span", { class: "ace_mobile-button", action: "openCommandPallete" }, "Palette"]
+                ["span", { class: "ace_mobile-button", action: "openCommandPalette" }, "Palette"]
             ] : ["span"]), contextMenu.firstChild);
         };
         var handleClick = function (e) {
@@ -3990,7 +3990,7 @@ exports.addTouchListeners = function (el, editor) {
             }
             contextMenu.firstChild.style.display = "none";
             isOpen = false;
-            if (action != "openCommandPallete")
+            if (action != "openCommandPalette")
                 editor.focus();
         };
         contextMenu = dom.buildDom(["div",
@@ -12875,6 +12875,13 @@ exports.commands = [{
         scrollIntoView: "cursor"
     }, {
         name: "openCommandPallete",
+        exec: function (editor) {
+            console.warn("This is an obsolete command. Please use `openCommandPalette` instead.");
+            editor.prompt({ $type: "commands" });
+        },
+        readOnly: true
+    }, {
+        name: "openCommandPalette",
         description: "Open command palette",
         bindKey: bindKey("F1", "F1"),
         exec: function (editor) {

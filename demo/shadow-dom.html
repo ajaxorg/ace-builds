@@ -39,7 +39,7 @@
 <script src="../src/ace.js"></script>
 <script>
 
-var dom = require("ace/lib/dom");
+var dom = ace.require("ace/lib/dom");
 
 
 class AcePlayground extends HTMLElement {
@@ -48,7 +48,7 @@ class AcePlayground extends HTMLElement {
         
         var shadow = this.attachShadow({mode: "open"});
         
-        var dom = require("ace/lib/dom");
+        var dom = ace.require("ace/lib/dom");
         dom.buildDom(["div", {id: "host"},
             ["div", {id: "html"}],
             ["div", {id: "css"}], 
@@ -116,6 +116,8 @@ window.add = function() {
     document.body.appendChild(el);
 };
 </script>
+
+<script src="./show_own_source.js"></script>
 
 </body>
 </html>
