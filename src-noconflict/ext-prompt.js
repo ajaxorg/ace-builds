@@ -1510,6 +1510,7 @@ var Autocomplete = /** @class */ (function () {
         this.keyboardHandler.bindKeys(this.commands);
         this.parentNode = null;
         this.setSelectOnHover = false;
+        this.showLoadingState = false;
         this.stickySelectionDelay = 500;
         this.blurListener = this.blurListener.bind(this);
         this.changeListener = this.changeListener.bind(this);
@@ -1527,15 +1528,21 @@ var Autocomplete = /** @class */ (function () {
             var initialPosition = this.completionProvider && this.completionProvider.initialPosition;
             if (this.autoShown || (this.popup && this.popup.isOpen) || !initialPosition)
                 return;
-            var completionsForEmpty = [{
-                    caption: config.nls("Loading..."),
-                    value: ""
-                }];
-            this.completions = new FilteredList(completionsForEmpty);
+            this.completions = new FilteredList(Autocomplete.completionsForLoading);
             this.openPopup(this.editor, initialPosition.prefix, false);
             this.popup.renderer.setStyle("ace_loading", true);
         }.bind(this), this.stickySelectionDelay);
     }
+    Object.defineProperty(Autocomplete, "completionsForLoading", {
+        get: function () {
+            return [{
+                    caption: config.nls("Loading..."),
+                    value: ""
+                }];
+        },
+        enumerable: false,
+        configurable: true
+    });
     Autocomplete.prototype.$init = function () {
         this.popup = new AcePopup(this.parentNode || document.body || document.documentElement);
         this.popup.on("click", function (e) {
@@ -1652,7 +1659,8 @@ var Autocomplete = /** @class */ (function () {
             this.$initInline();
         this.popup.autoSelect = this.autoSelect;
         this.popup.setSelectOnHover(this.setSelectOnHover);
-        var previousSelectedItem = this.popup.data[this.popup.getRow()];
+        var oldRow = this.popup.getRow();
+        var previousSelectedItem = this.popup.data[oldRow];
         this.popup.setData(this.completions.filtered, this.completions.filterText);
         if (this.editor.textInput.setAriaOptions) {
             this.editor.textInput.setAriaOptions({
@@ -1661,11 +1669,14 @@ var Autocomplete = /** @class */ (function () {
             });
         }
         editor.keyBinding.addKeyboardHandler(this.keyboardHandler);
-        var newRow = this.popup.data.indexOf(previousSelectedItem);
-        if (newRow && this.stickySelection)
-            this.popup.setRow(this.autoSelect ? newRow : -1);
-        else
-            this.popup.setRow(this.autoSelect ? 0 : -1);
+        var newRow;
+        if (this.stickySelection)
+            newRow = this.popup.data.indexOf(previousSelectedItem);
+        if (!newRow || newRow === -1)
+            newRow = 0;
+        this.popup.setRow(this.autoSelect ? newRow : -1);
+        if (newRow === oldRow && previousSelectedItem !== this.completions.filtered[newRow])
+            this.$onPopupChange();
         if (!keepPopupPosition) {
             this.popup.setTheme(editor.getTheme());
             this.popup.setFontSize(editor.getFontSize());
@@ -1824,6 +1835,7 @@ var Autocomplete = /** @class */ (function () {
                             }];
                         this.completions = new FilteredList(completionsForEmpty);
                         this.openPopup(this.editor, prefix, keepPopupPosition);
+                        this.popup.renderer.setStyle("ace_loading", false);
                         return;
                     }
                     return this.detach();
@@ -1833,11 +1845,13 @@ var Autocomplete = /** @class */ (function () {
                 if (this.autoInsert && !this.autoShown && filtered.length == 1)
                     return this.insertMatch(filtered[0]);
             }
-            this.completions = completions;
+            this.completions = !finished && this.showLoadingState ?
+                new FilteredList(Autocomplete.completionsForLoading.concat(filtered), completions.filterText) :
+                completions;
             this.openPopup(this.editor, prefix, keepPopupPosition);
             this.popup.renderer.setStyle("ace_loading", !finished);
         }.bind(this));
-        if (!this.autoShown && !(this.popup && this.popup.isOpen)) {
+        if (this.showLoadingState && !this.autoShown && !(this.popup && this.popup.isOpen)) {
             this.$firstOpenTimer.delay(this.stickySelectionDelay / 2);
         }
     };

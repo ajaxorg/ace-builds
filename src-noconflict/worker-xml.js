@@ -1481,7 +1481,7 @@ function parse(source,defaultNSMapCopy,entityMap,domBuilder,errorHandler){
 						errorHandler.warning('unclosed xml attribute');
 					}
 				}
-				appendElement(el,domBuilder,parseStack);
+				appendElement(el,domBuilder,parseStack,errorHandler);
 				
 				
 				if(el.uri === 'http://www.w3.org/1999/xhtml' && !el.closed){
@@ -1645,7 +1645,7 @@ function parseElementStartPart(source,start,el,entityReplacer,errorHandler){
 		p++;
 	}
 }
-function appendElement(el,domBuilder,parseStack){
+function appendElement(el,domBuilder,parseStack,errorHandler){
 	var tagName = el.tagName;
 	var localNSMap = null;
 	var currentNSMap = parseStack[parseStack.length-1].currentNSMap;
@@ -1696,6 +1696,9 @@ function appendElement(el,domBuilder,parseStack){
 		localName = el.localName = tagName;
 	}
 	var ns = el.uri = currentNSMap[prefix || ''];
+	if (prefix && !ns) {
+		errorHandler.error('unexpected namespace ' + prefix);
+	}
 	domBuilder.startElement(ns,localName,tagName,el);
 	if(el.closed){
 		domBuilder.endElement(ns,localName,tagName);
