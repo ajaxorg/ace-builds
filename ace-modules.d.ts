@@ -224,6 +224,8 @@ declare module 'ace-builds/src-noconflict/theme-chrome';
 declare module 'ace-builds/src-noconflict/theme-cloud9_day';
 declare module 'ace-builds/src-noconflict/theme-cloud9_night';
 declare module 'ace-builds/src-noconflict/theme-cloud9_night_low_color';
+declare module 'ace-builds/src-noconflict/theme-cloud_editor';
+declare module 'ace-builds/src-noconflict/theme-cloud_editor_dark';
 declare module 'ace-builds/src-noconflict/theme-clouds';
 declare module 'ace-builds/src-noconflict/theme-clouds_midnight';
 declare module 'ace-builds/src-noconflict/theme-cobalt';
