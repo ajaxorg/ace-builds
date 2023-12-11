@@ -14,6 +14,7 @@ var MAX_COUNT = 999;
 dom.importCssString(searchboxCss, "ace_searchbox", false);
 var SearchBox = /** @class */ (function () {
     function SearchBox(editor, range, showReplaceForm) {
+        this.activeInput;
         var div = dom.createElement("div");
         dom.buildDom(["div", { class: "ace_search right" },
             ["span", { action: "hide", class: "ace_searchbtn_close" }],

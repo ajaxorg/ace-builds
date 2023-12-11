@@ -10,6 +10,9 @@ var userAgent = require("./../lib/useragent");
 var getAriaId = function (index) {
     return "suggest-aria-id:".concat(index);
 };
+var popupAriaRole = userAgent.isSafari ? "menu" : "listbox";
+var optionAriaRole = userAgent.isSafari ? "menuitem" : "option";
+var ariaActiveState = userAgent.isSafari ? "aria-current" : "aria-selected";
 var $singleLineEditor = function (el) {
     var renderer = new Renderer(el);
     renderer.$maxLines = 4;
@@ -25,14 +28,14 @@ var $singleLineEditor = function (el) {
 var AcePopup = /** @class */ (function () {
     function AcePopup(parentNode) {
         var el = dom.createElement("div");
-        var popup = new $singleLineEditor(el);
+        var popup = $singleLineEditor(el);
         if (parentNode) {
             parentNode.appendChild(el);
         }
         el.style.display = "none";
         popup.renderer.content.style.cursor = "default";
         popup.renderer.setStyle("ace_autocomplete");
-        popup.renderer.$textLayer.element.setAttribute("role", userAgent.isSafari ? "menu" : "listbox");
+        popup.renderer.$textLayer.element.setAttribute("role", popupAriaRole);
         popup.renderer.$textLayer.element.setAttribute("aria-roledescription", nls("Autocomplete suggestions"));
         popup.renderer.$textLayer.element.setAttribute("aria-label", nls("Autocomplete suggestions"));
         popup.renderer.textarea.setAttribute("aria-hidden", "true");
@@ -42,7 +45,7 @@ var AcePopup = /** @class */ (function () {
         popup.focus = noop;
         popup.$isFocused = true;
         popup.renderer.$cursorLayer.restartTimer = noop;
-        popup.renderer.$cursorLayer.element.style.opacity = 0;
+        popup.renderer.$cursorLayer.element.style.opacity = "0";
         popup.renderer.$maxLines = 8;
         popup.renderer.$keepTextAreaAtCursor = false;
         popup.setHighlightActiveLine(false);
@@ -103,7 +106,7 @@ var AcePopup = /** @class */ (function () {
             if (selected !== t.selectedNode && t.selectedNode) {
                 dom.removeCssClass(t.selectedNode, "ace_selected");
                 el.removeAttribute("aria-activedescendant");
-                selected.removeAttribute("aria-selected");
+                selected.removeAttribute(ariaActiveState);
                 t.selectedNode.removeAttribute("id");
             }
             t.selectedNode = selected;
@@ -113,13 +116,13 @@ var AcePopup = /** @class */ (function () {
                 selected.id = ariaId;
                 t.element.setAttribute("aria-activedescendant", ariaId);
                 el.setAttribute("aria-activedescendant", ariaId);
-                selected.setAttribute("role", userAgent.isSafari ? "menuitem" : "option");
+                selected.setAttribute("role", optionAriaRole);
                 selected.setAttribute("aria-roledescription", nls("item"));
                 selected.setAttribute("aria-label", popup.getData(row).value);
                 selected.setAttribute("aria-setsize", popup.data.length);
                 selected.setAttribute("aria-posinset", row + 1);
                 selected.setAttribute("aria-describedby", "doc-tooltip");
-                selected.setAttribute("aria-selected", "true");
+                selected.setAttribute(ariaActiveState, "true");
             }
         });
         var hideHoverMarker = function () { setHoverMarker(-1); };
@@ -433,7 +436,7 @@ var SnippetManager = /** @class */ (function () {
         this.variables = VARIABLES;
     }
     SnippetManager.prototype.getTokenizer = function () {
-        return SnippetManager.$tokenizer || this.createTokenizer();
+        return SnippetManager["$tokenizer"] || this.createTokenizer();
     };
     SnippetManager.prototype.createTokenizer = function () {
         function TabstopToken(str) {
@@ -456,7 +459,7 @@ var SnippetManager = /** @class */ (function () {
             },
             next: "formatString"
         };
-        SnippetManager.$tokenizer = new Tokenizer({
+        SnippetManager["$tokenizer"] = new Tokenizer({
             start: [
                 { regex: /\\./, onMatch: function (val, state, stack) {
                         var ch = val[1];
@@ -553,7 +556,7 @@ var SnippetManager = /** @class */ (function () {
                 { regex: "([^:}\\\\]|\\\\.)*:?", token: "", next: "formatString" }
             ]
         });
-        return SnippetManager.$tokenizer;
+        return SnippetManager["$tokenizer"];
     };
     SnippetManager.prototype.tokenizeTmSnippet = function (str, startState) {
         return this.getTokenizer().getLineTokens(str, startState).tokens.map(function (x) {
@@ -875,7 +878,7 @@ var SnippetManager = /** @class */ (function () {
     };
     SnippetManager.prototype.parseSnippetFile = function (str) {
         str = str.replace(/\r/g, "");
-        var list = [], snippet = {};
+        var list = [], /**@type{Snippet}*/ snippet = {};
         var re = /^#.*|^({[\s\S]*})\s*$|^(\S+) (.*)$|^((?:\n*\t.*)+)/gm;
         var m;
         while (m = re.exec(str)) {
@@ -1320,8 +1323,8 @@ var AceInlineScreenReader = /** @class */ (function () {
         this.editor.container.appendChild(this.screenReaderDiv);
     }
     AceInlineScreenReader.prototype.setScreenReaderContent = function (content) {
-        if (!this.popup && this.editor.completer && this.editor.completer.popup) {
-            this.popup = this.editor.completer.popup;
+        if (!this.popup && this.editor.completer && /**@type{import("../autocomplete").Autocomplete}*/ (this.editor.completer).popup) {
+            this.popup = /**@type{import("../autocomplete").Autocomplete}*/ (this.editor.completer).popup;
             this.popup.renderer.on("afterRender", function () {
                 var row = this.popup.getRow();
                 var t = this.popup.renderer.$textLayer;
@@ -1490,7 +1493,7 @@ exports.triggerAutocomplete = function (editor) {
 
 });
 
-ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/inline","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config","ace/lib/event"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/inline","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config","ace/lib/event","ace/lib/scroll"], function(require, exports, module){"use strict";
 var HashHandler = require("./keyboard/hash_handler").HashHandler;
 var AcePopup = require("./autocomplete/popup").AcePopup;
 var AceInline = require("./autocomplete/inline").AceInline;
@@ -1501,6 +1504,7 @@ var dom = require("./lib/dom");
 var snippetManager = require("./snippets").snippetManager;
 var config = require("./config");
 var event = require("./lib/event");
+var preventParentScroll = require("./lib/scroll").preventParentScroll;
 var destroyCompleter = function (e, editor) {
     editor.completer && editor.completer.destroy();
 };
@@ -1531,9 +1535,9 @@ var Autocomplete = /** @class */ (function () {
         this.stickySelectionTimer = lang.delayedCall(function () {
             this.stickySelection = true;
         }.bind(this), this.stickySelectionDelay);
-        this.$firstOpenTimer = lang.delayedCall(function () {
+        this.$firstOpenTimer = lang.delayedCall(/**@this{Autocomplete}*/ function () {
             var initialPosition = this.completionProvider && this.completionProvider.initialPosition;
-            if (this.autoShown || (this.popup && this.popup.isOpen) || !initialPosition)
+            if (this.autoShown || (this.popup && this.popup.isOpen) || !initialPosition || this.editor.completers.length === 0)
                 return;
             this.completions = new FilteredList(Autocomplete.completionsForLoading);
             this.openPopup(this.editor, initialPosition.prefix, false);
@@ -1859,7 +1863,8 @@ var Autocomplete = /** @class */ (function () {
         this.getCompletionProvider({
             prefix: prefix,
             pos: pos
-        }).provideCompletions(this.editor, completionOptions, function (err, completions, finished) {
+        }).provideCompletions(this.editor, completionOptions, 
+        function (err, completions, finished) {
             var filtered = completions.filtered;
             var prefix = util.getCompletionPrefix(this.editor);
             this.$firstOpenTimer.cancel();
@@ -1872,7 +1877,8 @@ var Autocomplete = /** @class */ (function () {
                         var completionsForEmpty = [{
                                 caption: emptyMessage,
                                 value: ""
-                            }];
+                            }
+                        ];
                         this.completions = new FilteredList(completionsForEmpty);
                         this.openPopup(this.editor, prefix, keepPopupPosition);
                         this.popup.renderer.setStyle("ace_loading", false);
@@ -1880,7 +1886,8 @@ var Autocomplete = /** @class */ (function () {
                     }
                     return this.detach();
                 }
-                if (filtered.length == 1 && filtered[0].value == prefix && !filtered[0].snippet)
+                if (filtered.length == 1 && filtered[0].value == prefix
+                    && !filtered[0].snippet)
                     return this.detach();
                 if (this.autoInsert && !this.autoShown && filtered.length == 1)
                     return this.insertMatch(filtered[0]);
@@ -1924,14 +1931,15 @@ var Autocomplete = /** @class */ (function () {
     Autocomplete.prototype.showDocTooltip = function (item) {
         if (!this.tooltipNode) {
             this.tooltipNode = dom.createElement("div");
-            this.tooltipNode.style.margin = 0;
+            this.tooltipNode.style.margin = "0";
             this.tooltipNode.style.pointerEvents = "auto";
+            this.tooltipNode.style.overscrollBehavior = "contain";
             this.tooltipNode.tabIndex = -1;
             this.tooltipNode.onblur = this.blurListener.bind(this);
             this.tooltipNode.onclick = this.onTooltipClick.bind(this);
             this.tooltipNode.id = "doc-tooltip";
             this.tooltipNode.setAttribute("role", "tooltip");
-            this.tooltipNode.addEventListener("wheel", event.stopPropagation);
+            this.tooltipNode.addEventListener("wheel", preventParentScroll);
         }
         var theme = this.editor.renderer.theme;
         this.tooltipNode.className = "ace_tooltip ace_doc-tooltip " +
@@ -2040,9 +2048,9 @@ Autocomplete.for = function (editor) {
         editor.completer = null;
     }
     if (config.get("sharedPopups")) {
-        if (!Autocomplete.$sharedInstance)
-            Autocomplete.$sharedInstance = new Autocomplete();
-        editor.completer = Autocomplete.$sharedInstance;
+        if (!Autocomplete["$sharedInstance"])
+            Autocomplete["$sharedInstance"] = new Autocomplete();
+        editor.completer = Autocomplete["$sharedInstance"];
     }
     else {
         editor.completer = new Autocomplete();
@@ -2597,26 +2605,8 @@ module.exports = {
 });
 
 ace.define("ace/ext/prompt",["require","exports","module","ace/config","ace/range","ace/lib/dom","ace/autocomplete","ace/autocomplete/popup","ace/autocomplete/popup","ace/undomanager","ace/tokenizer","ace/ext/menu_tools/overlay_page","ace/ext/modelist"], function(require, exports, module){/**
- * Prompt plugin is used for getting input from user.
- *
- * @param {Object} editor                   Ouside editor related to this prompt. Will be blurred when prompt is open.
- * @param {String} message                  Predefined value of prompt input box.
- * @param {Object} options                  Cusomizable options for this prompt.
- * @param {String} options.name             Prompt name.
- * @param {String} options.$type            Use prompt of specific type (gotoLine|commands|modes or default if empty).
- * @param {[start, end]} options.selection  Defines which part of the predefined value should be highlited.
- * @param {Boolean} options.hasDescription  Set to true if prompt has description below input box.
- * @param {String} options.prompt           Description below input box.
- * @param {String} options.placeholder      Placeholder for value.
- * @param {Object} options.$rules           Specific rules for input like password or regexp.
- * @param {Boolean} options.ignoreFocusOut  Set to true to keep the prompt open when focus moves to another part of the editor.
- * @param {Function} options.getCompletions Function for defining list of options for value.
- * @param {Function} options.getPrefix      Function for defining current value prefix.
- * @param {Function} options.onAccept       Function called when Enter is pressed.
- * @param {Function} options.onInput        Function called when input is added to prompt input box.
- * @param {Function} options.onCancel       Function called when Esc|Shift-Esc is pressed.
- * @param {Function} callback               Function called after done.
- * */
+ * @typedef {import("../editor").Editor} Editor
+ */
 "use strict";
 var nls = require("../config").nls;
 var Range = require("../range").Range;
@@ -2673,8 +2663,8 @@ function prompt(editor, message, options, callback) {
         popup.setRow(-1);
         popup.on("click", function (e) {
             var data = popup.getData(popup.getRow());
-            if (!data.error) {
-                cmdLine.setValue(data.value || data.name || data);
+            if (!data["error"]) {
+                cmdLine.setValue(data.value || data["name"] || data);
                 accept();
                 e.stop();
             }
@@ -2704,7 +2694,7 @@ function prompt(editor, message, options, callback) {
             val = cmdLine.getValue();
         }
         var curData = popup ? popup.getData(popup.getRow()) : val;
-        if (curData && !curData.error) {
+        if (curData && !curData["error"]) {
             done();
             options.onAccept && options.onAccept({
                 value: val,
@@ -2756,7 +2746,7 @@ function prompt(editor, message, options, callback) {
     }
     function valueFromRecentList() {
         var current = popup.getData(popup.getRow());
-        if (current && !current.error)
+        if (current && !current["error"])
             return current.value || current.caption || current;
     }
     cmdLine.resize(true);
@@ -2794,9 +2784,9 @@ prompt.gotoLine = function (editor, callback) {
         selection: [1, Number.MAX_VALUE],
         onAccept: function (data) {
             var value = data.value;
-            var _history = prompt.gotoLine._history;
+            var _history = prompt.gotoLine["_history"];
             if (!_history)
-                prompt.gotoLine._history = _history = [];
+                prompt.gotoLine["_history"] = _history = [];
             if (_history.indexOf(value) != -1)
                 _history.splice(_history.indexOf(value), 1);
             _history.unshift(value);
@@ -2847,9 +2837,9 @@ prompt.gotoLine = function (editor, callback) {
             editor.renderer.animateScrolling(scrollTop);
         },
         history: function () {
-            if (!prompt.gotoLine._history)
+            if (!prompt.gotoLine["_history"])
                 return [];
-            return prompt.gotoLine._history;
+            return prompt.gotoLine["_history"];
         },
         getCompletions: function (cmdLine) {
             var value = cmdLine.getValue();
@@ -2882,8 +2872,8 @@ prompt.commands = function (editor, callback) {
         var commandsByName = [];
         var commandMap = {};
         editor.keyBinding.$handlers.forEach(function (handler) {
-            var platform = handler.platform;
-            var cbn = handler.byName;
+            var platform = handler["platform"];
+            var cbn = handler["byName"];
             for (var i in cbn) {
                 var key = cbn[i].bindKey;
                 if (typeof key !== "string") {
@@ -2942,10 +2932,10 @@ prompt.commands = function (editor, callback) {
             if (this.maxHistoryCount > 0 && history.length > this.maxHistoryCount) {
                 history.splice(history.length - 1, 1);
             }
-            prompt.commands.history = history;
+            prompt.commands["history"] = history;
         },
         history: function () {
-            return prompt.commands.history || [];
+            return prompt.commands["history"] || [];
         },
         getPrefix: function (cmdLine) {
             var currentPos = cmdLine.getCursorPosition();

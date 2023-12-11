@@ -25,16 +25,16 @@ var SqlHighlightRules = function () {
                 start: "/\\*",
                 end: "\\*/"
             }, {
-                token: "string",
+                token: "string", // " string
                 regex: '".*?"'
             }, {
-                token: "string",
+                token: "string", // ' string
                 regex: "'.*?'"
             }, {
-                token: "string",
+                token: "string", // ` string (apache drill)
                 regex: "`.*?`"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // float
                 regex: "[+-]?\\d+(?:(?:\\.\\d*)?(?:[eE][+-]?\\d+)?)?\\b"
             }, {
                 token: keywordMapper,

@@ -10,7 +10,7 @@ var config = require("../config");
 var dom = require("../lib/dom");
 var escapeHTML = require("../lib/lang").escapeHTML;
 var Element = /** @class */ (function () {
-    function Element(type) {
+    function Element(type) { this.className;
         this.type = type;
         this.style = {};
         this.textContent = "";
@@ -46,10 +46,10 @@ var Element = /** @class */ (function () {
     return Element;
 }());
 var simpleDom = {
-    createTextNode: function (textContent, element) {
+    createTextNode: function (/** @type {string} */ textContent, /** @type {any} */ element) {
         return escapeHTML(textContent);
     },
-    createElement: function (type) {
+    createElement: function (/** @type {string} */ type) {
         return new Element(type);
     },
     createFragment: function () {
@@ -118,9 +118,9 @@ highlight.render = function (input, mode, theme, lineStart, disableGutter, callb
     if (typeof mode == "string") {
         waiting++;
         config.loadModule(['mode', mode], function (m) {
-            if (!modeCache[mode] || modeOptions)
-                modeCache[mode] = new m.Mode(modeOptions);
-            mode = modeCache[mode];
+            if (!modeCache[ /**@type{string}*/(mode)] || modeOptions)
+                modeCache[ /**@type{string}*/(mode)] = new m.Mode(modeOptions);
+            mode = modeCache[ /**@type{string}*/(mode)];
             --waiting || done();
         });
     }

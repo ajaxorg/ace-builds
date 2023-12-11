@@ -62,10 +62,10 @@ var PrqlHighlightRules = function () {
                 token: ["constant.numeric", "keyword"],
                 regex: "(" + numRe + ")(years|months|weeks|days|hours|minutes|seconds|milliseconds|microseconds)"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // hexadecimal, octal and binary
                 regex: /0(?:[xX][0-9a-fA-F]+|[oO][0-7]+|[bB][01]+)\b/
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // decimal integers and floats
                 regex: numRe
             }, {
                 token: "comment.block.documentation",

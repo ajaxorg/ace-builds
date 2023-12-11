@@ -1031,7 +1031,7 @@ var defaultKeymap = [
     { keys: '<C-c>', type: 'keyToKey', toKeys: '<Esc>' },
     { keys: '<C-[>', type: 'keyToKey', toKeys: '<Esc>', context: 'insert' },
     { keys: '<C-c>', type: 'keyToKey', toKeys: '<Esc>', context: 'insert' },
-    { keys: '<C-Esc>', type: 'keyToKey', toKeys: '<Esc>' },
+    { keys: '<C-Esc>', type: 'keyToKey', toKeys: '<Esc>' }, // ipad keyboard sends C-Esc instead of C-[
     { keys: '<C-Esc>', type: 'keyToKey', toKeys: '<Esc>', context: 'insert' },
     { keys: 's', type: 'keyToKey', toKeys: 'cl', context: 'normal' },
     { keys: 's', type: 'keyToKey', toKeys: 'c', context: 'visual' },
@@ -1516,7 +1516,7 @@ var createCircularJumpList = function () {
         return mark && mark.find();
     }
     return {
-        cachedCursor: undefined,
+        cachedCursor: undefined, //used for # and * jumps
         add: add,
         find: find,
         move: move

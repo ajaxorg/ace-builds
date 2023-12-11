@@ -104,16 +104,16 @@ var LuaHighlightRules = function () {
                 ]
             },
             {
-                token: "string",
+                token: "string", // " string
                 regex: '"(?:[^\\\\]|\\\\.)*?"'
             }, {
-                token: "string",
+                token: "string", // ' string
                 regex: "'(?:[^\\\\]|\\\\.)*?'"
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // float
                 regex: floatNumber
             }, {
-                token: "constant.numeric",
+                token: "constant.numeric", // integer
                 regex: integer + "\\b"
             }, {
                 token: keywordMapper,

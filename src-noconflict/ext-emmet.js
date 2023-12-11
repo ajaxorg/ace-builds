@@ -87,7 +87,7 @@ var SnippetManager = /** @class */ (function () {
         this.variables = VARIABLES;
     }
     SnippetManager.prototype.getTokenizer = function () {
-        return SnippetManager.$tokenizer || this.createTokenizer();
+        return SnippetManager["$tokenizer"] || this.createTokenizer();
     };
     SnippetManager.prototype.createTokenizer = function () {
         function TabstopToken(str) {
@@ -110,7 +110,7 @@ var SnippetManager = /** @class */ (function () {
             },
             next: "formatString"
         };
-        SnippetManager.$tokenizer = new Tokenizer({
+        SnippetManager["$tokenizer"] = new Tokenizer({
             start: [
                 { regex: /\\./, onMatch: function (val, state, stack) {
                         var ch = val[1];
@@ -207,7 +207,7 @@ var SnippetManager = /** @class */ (function () {
                 { regex: "([^:}\\\\]|\\\\.)*:?", token: "", next: "formatString" }
             ]
         });
-        return SnippetManager.$tokenizer;
+        return SnippetManager["$tokenizer"];
     };
     SnippetManager.prototype.tokenizeTmSnippet = function (str, startState) {
         return this.getTokenizer().getLineTokens(str, startState).tokens.map(function (x) {
@@ -529,7 +529,7 @@ var SnippetManager = /** @class */ (function () {
     };
     SnippetManager.prototype.parseSnippetFile = function (str) {
         str = str.replace(/\r/g, "");
-        var list = [], snippet = {};
+        var list = [], /**@type{Snippet}*/ snippet = {};
         var re = /^#.*|^({[\s\S]*})\s*$|^(\S+) (.*)$|^((?:\n*\t.*)+)/gm;
         var m;
         while (m = re.exec(str)) {
@@ -979,7 +979,7 @@ var AceEmmetEditor = /** @class */ (function () {
         this.ace = editor;
         this.indentation = editor.session.getTabString();
         if (!emmet)
-            emmet = window.emmet;
+            emmet = window["emmet"];
         var resources = emmet.resources || emmet.require("resources");
         resources.setVariable("indentation", this.indentation);
         this.$syntax = null;

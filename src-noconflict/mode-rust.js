@@ -23,14 +23,14 @@ DocCommentHighlightRules.getTagRule = function (start) {
 };
 DocCommentHighlightRules.getStartRule = function (start) {
     return {
-        token: "comment.doc",
+        token: "comment.doc", // doc comment
         regex: "\\/\\*(?=\\*)",
         next: start
     };
 };
 DocCommentHighlightRules.getEndRule = function (start) {
     return {
-        token: "comment.doc",
+        token: "comment.doc", // closing comment
         regex: "\\*\\/",
         next: start
     };
@@ -67,7 +67,7 @@ var RustHighlightRules = function () {
     this.$rules = {
         start: [
             {
-                token: 'variable.other.source.rust',
+                token: 'variable.other.source.rust', // `(?![\\\'])` to keep a lifetime name highlighting from continuing one character
                 regex: '\'' + wordPattern + '(?![\\\'])'
             }, {
                 token: 'string.quoted.single.source.rust',
@@ -168,7 +168,7 @@ var RustHighlightRules = function () {
                         regex: "<",
                         push: "generics"
                     }, {
-                        token: 'variable.other.source.rust',
+                        token: 'variable.other.source.rust', // `(?![\\\'])` to keep a lifetime name highlighting from continuing one character
                         regex: '\'' + wordPattern + '(?![\\\'])'
                     }, {
                         token: "storage.type.source.rust",
@@ -201,7 +201,7 @@ var RustHighlightRules = function () {
                 token: keywordMapper,
                 regex: wordPattern
             }, {
-                token: 'keyword.operator',
+                token: 'keyword.operator', // `[*/](?![*/])=?` is separated because `//` and `/* */` become comments and must be
                 regex: /\$|[-=]>|[-+%^=!&|<>]=?|[*/](?![*/])=?/
             }, {
                 token: "punctuation.operator",
