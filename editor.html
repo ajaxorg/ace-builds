@@ -11,24 +11,17 @@
         }
 
         #editor {
-            margin: 0;
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            border: 1px solid lightgray;
+            margin: auto;
+            height: 200px;
+            width: 80%;
         }
     </style>
 </head>
 
 <body>
 
-    <pre id="editor">
-
-
-
-
-
+    <pre id="editor" style="width: 60%;">
 
 
 
@@ -40,6 +33,12 @@
         var editor = ace.edit("editor");
         editor.setTheme("ace/theme/dracula");
         editor.session.setMode("ace/mode/python");
+        editor.session.setTabSize(4);
+        document.getElementById('editor').style.fontSize='16px';
+        editor.session.setUseWrapMode(false);
+        editor.setShowPrintMargin(false);
+        editor.setAutoScrollEditorIntoView(true);
+        editor.renderer.setScrollMargin(10, 10, 10, 10);
     </script>
 
 </body>
