@@ -28,6 +28,8 @@
 
 </pre>
 
+    <button type="button" onclick="consoleLog()">Console</button>
+
     <script src="src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
     <script>
         var editor = ace.edit("editor");
@@ -39,6 +41,11 @@
         editor.setShowPrintMargin(false);
         editor.setAutoScrollEditorIntoView(true);
         editor.renderer.setScrollMargin(10, 10, 10, 10);
+    </script>
+    <script>
+        function consoleLog() {
+            console.log(editor.getValue());
+        }
     </script>
 
 </body>
