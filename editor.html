@@ -5,30 +5,25 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>Editor</title>
-    <style type="text/css" media="screen">
-        body {
-            overflow: hidden;
-        }
-
-        #editor {
-            border: 1px solid lightgray;
-            margin: auto;
-            height: 200px;
-            width: 80%;
-        }
-    </style>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <link rel="stylesheet" href="https://pyscript.net/releases/2023.12.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2023.12.1/core.js"></script>
 </head>
 
 <body>
 
-    <pre id="editor" style="width: 60%;">
+    <pre id="editor">
 
 
 
 
 </pre>
 
-    <button type="button" onclick="consoleLog()">Console</button>
+    <div class="controls">
+        <button class="run-btn" py-click="print_to_terminal">Run</button>
+    </div>
+
+    <div id="output"></div>
 
     <script src="src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
     <script>
@@ -42,9 +37,10 @@
         editor.setAutoScrollEditorIntoView(true);
         editor.renderer.setScrollMargin(10, 10, 10, 10);
     </script>
+    <script type="py" src="./main.py" config="./pyscript.json"></script>
     <script>
-        function consoleLog() {
-            console.log(editor.getValue());
+        function get_editor_text() {
+            return editor.getValue();
         }
     </script>
 

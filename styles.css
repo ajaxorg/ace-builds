@@ -1,0 +1,30 @@
+
+body {
+    overflow: hidden;
+}
+
+#editor {
+    border: 1px solid lightgray;
+    margin: auto;
+    height: 450px;
+    width: 80%;
+}
+
+.controls {
+    margin: auto;
+    width: 80%;
+    padding: 5px 0px;
+}
+
+.run-btn {
+    display: block;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+#output {
+    border: 1px solid lightgray;
+    margin: auto;
+    height: 300px;
+    width: 80%;
+}
