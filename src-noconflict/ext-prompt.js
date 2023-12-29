@@ -1596,13 +1596,7 @@ var Autocomplete = /** @class */ (function () {
     Autocomplete.prototype.$onPopupChange = function (hide) {
         if (this.inlineRenderer && this.inlineEnabled) {
             var completion = hide ? null : this.popup.getData(this.popup.getRow());
-            var prefix = util.getCompletionPrefix(this.editor);
-            if (!this.inlineRenderer.show(this.editor, completion, prefix)) {
-                this.inlineRenderer.hide();
-            }
-            else {
-                this.$seen(completion);
-            }
+            this.$updateGhostText(completion);
             if (this.popup.isMouseOver && this.setSelectOnHover) {
                 this.tooltipTimer.call(null, null);
                 return;
@@ -1613,6 +1607,18 @@ var Autocomplete = /** @class */ (function () {
         else {
             this.popupTimer.call(null, null);
             this.tooltipTimer.call(null, null);
+        }
+    };
+    Autocomplete.prototype.$updateGhostText = function (completion) {
+        var row = this.base.row;
+        var column = this.base.column;
+        var cursorColumn = this.editor.getCursorPosition().column;
+        var prefix = this.editor.session.getLine(row).slice(column, cursorColumn);
+        if (!this.inlineRenderer.show(this.editor, completion, prefix)) {
+            this.inlineRenderer.hide();
+        }
+        else {
+            this.$seen(completion);
         }
     };
     Autocomplete.prototype.$onPopupRender = function () {
@@ -1718,6 +1724,11 @@ var Autocomplete = /** @class */ (function () {
         this.popup.setRow(this.autoSelect ? newRow : -1);
         if (newRow === oldRow && previousSelectedItem !== this.completions.filtered[newRow])
             this.$onPopupChange();
+        var inlineEnabled = this.inlineRenderer && this.inlineEnabled;
+        if (newRow === oldRow && inlineEnabled) {
+            var completion = this.popup.getData(this.popup.getRow());
+            this.$updateGhostText(completion);
+        }
         if (!keepPopupPosition) {
             this.popup.setTheme(editor.getTheme());
             this.popup.setFontSize(editor.getFontSize());
