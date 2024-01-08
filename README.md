@@ -7,7 +7,7 @@ Ace is a code editor written in JavaScript.
 
 ---
 
-### <span style="color:red">ISSUES ARE DISABLED IN THIS REPOSITORY</span>
+### ❗<span style="color:red">ISSUES ARE DISABLED IN THIS REPOSITORY</span>❗
 
 This repository has only generated files. To report your issues, suggest features, ask questions, or work on Ace editor itself please go to Ace repository https://github.com/ajaxorg/ace.
 
