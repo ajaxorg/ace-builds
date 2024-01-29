@@ -20,6 +20,7 @@ var PrqlHighlightRules = function () {
         "int128",
         "float",
         "text",
+        "timestamp",
         "set"
     ].join("|");
     var keywordMapper = this.createKeywordMapper({
@@ -28,7 +29,8 @@ var PrqlHighlightRules = function () {
         "keyword": "let|into|case|prql|type|module|internal",
         "storage.type": "let|func",
         "support.function": builtinFunctions,
-        "support.type": builtinTypes
+        "support.type": builtinTypes,
+        "variable.language": "date|math"
     }, "identifier");
     var escapeRe = /\\(\d+|['"\\&bfnrt]|u\{[0-9a-fA-F]{1,6}\}|x[0-9a-fA-F]{2})/;
     var identifierRe = /[A-Za-z_][a-z_A-Z0-9]/.source;

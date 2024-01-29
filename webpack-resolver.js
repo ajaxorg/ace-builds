@@ -216,6 +216,7 @@ ace.config.setModuleUrl('ace/mode/xml', require('file-loader?esModule=false!./sr
 ace.config.setModuleUrl('ace/mode/xquery', require('file-loader?esModule=false!./src-noconflict/mode-xquery.js'));
 ace.config.setModuleUrl('ace/mode/yaml', require('file-loader?esModule=false!./src-noconflict/mode-yaml.js'));
 ace.config.setModuleUrl('ace/mode/zeek', require('file-loader?esModule=false!./src-noconflict/mode-zeek.js'));
+ace.config.setModuleUrl('ace/mode/zig', require('file-loader?esModule=false!./src-noconflict/mode-zig.js'));
 
 ace.config.setModuleUrl('ace/theme/ambiance', require('file-loader?esModule=false!./src-noconflict/theme-ambiance.js'));
 ace.config.setModuleUrl('ace/theme/chaos', require('file-loader?esModule=false!./src-noconflict/theme-chaos.js'));
@@ -463,3 +464,4 @@ ace.config.setModuleUrl('ace/snippets/xml', require('file-loader?esModule=false!
 ace.config.setModuleUrl('ace/snippets/xquery', require('file-loader?esModule=false!./src-noconflict/snippets/xquery.js'));
 ace.config.setModuleUrl('ace/snippets/yaml', require('file-loader?esModule=false!./src-noconflict/snippets/yaml.js'));
 ace.config.setModuleUrl('ace/snippets/zeek', require('file-loader?esModule=false!./src-noconflict/snippets/zeek.js'));
+ace.config.setModuleUrl('ace/snippets/zig', require('file-loader?esModule=false!./src-noconflict/snippets/zig.js'));

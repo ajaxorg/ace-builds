@@ -167,7 +167,7 @@ var supportedModes = {
     Jack: ["jack"],
     Jade: ["jade|pug"],
     Java: ["java"],
-    JavaScript: ["js|jsm|jsx|cjs|mjs"],
+    JavaScript: ["js|jsm|cjs|mjs"],
     JEXL: ["jexl"],
     JSON: ["json"],
     JSON5: ["json5"],
@@ -279,7 +279,8 @@ var supportedModes = {
     XML: ["xml|rdf|rss|wsdl|xslt|atom|mathml|mml|xul|xbl|xaml"],
     XQuery: ["xq"],
     YAML: ["yaml|yml"],
-    Zeek: ["zeek|bro"]
+    Zeek: ["zeek|bro"],
+    Zig: ["zig"]
 };
 var nameOverrides = {
     ObjectiveC: "Objective-C",

@@ -1860,6 +1860,7 @@ var Autocomplete = /** @class */ (function () {
             this.base = this.editor.session.doc.createAnchor(pos.row, pos.column);
             this.base.$insertRight = true;
             this.completions = new FilteredList(options.matches);
+            this.getCompletionProvider().completions = this.completions;
             return this.openPopup(this.editor, "", keepPopupPosition);
         }
         var session = this.editor.getSession();
