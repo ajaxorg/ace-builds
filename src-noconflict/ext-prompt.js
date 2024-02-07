@@ -1155,8 +1155,10 @@ var TabstopManager = /** @class */ (function () {
         if (index == max)
             index = 0;
         this.selectTabstop(index);
-        if (index === 0)
+        this.updateTabstopMarkers();
+        if (index === 0) {
             this.detach();
+        }
     };
     TabstopManager.prototype.selectTabstop = function (index) {
         this.$openTabstops = null;
@@ -1201,8 +1203,10 @@ var TabstopManager = /** @class */ (function () {
         var i = this.index;
         var arg = [i + 1, 0];
         var ranges = this.ranges;
+        var snippetId = this.snippetId = (this.snippetId || 0) + 1;
         tabstops.forEach(function (ts, index) {
             var dest = this.$openTabstops[index] || ts;
+            dest.snippetId = snippetId;
             for (var i = 0; i < ts.length; i++) {
                 var p = ts[i];
                 var range = Range.fromPoints(p.start, p.end || p.start);
@@ -1252,6 +1256,20 @@ var TabstopManager = /** @class */ (function () {
             session.removeMarker(range.markerId);
             range.markerId = null;
         });
+    };
+    TabstopManager.prototype.updateTabstopMarkers = function () {
+        if (!this.selectedTabstop)
+            return;
+        var currentSnippetId = this.selectedTabstop.snippetId;
+        if (this.selectedTabstop.index === 0) {
+            currentSnippetId--;
+        }
+        this.tabstops.forEach(function (ts) {
+            if (ts.snippetId === currentSnippetId)
+                this.addTabstopMarkers(ts);
+            else
+                this.removeTabstopMarkers(ts);
+        }, this);
     };
     TabstopManager.prototype.removeRange = function (range) {
         var i = range.tabstop.indexOf(range);
