@@ -1253,7 +1253,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.32.6";
+exports.version = "1.32.7";
 
 });
 
@@ -11532,6 +11532,9 @@ var Search = /** @class */ (function () {
         var match = re.exec(input);
         if (!match || match[0].length != input.length)
             return null;
+        if (!options.regExp) {
+            replacement = replacement.replace(/\$/g, "$$$$");
+        }
         replacement = input.replace(re, replacement);
         if (options.preserveCase) {
             replacement = replacement.split("");
