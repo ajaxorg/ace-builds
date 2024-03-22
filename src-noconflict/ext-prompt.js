@@ -1497,14 +1497,13 @@ exports.getCompletionPrefix = function (editor) {
     }.bind(this));
     return prefix || this.retrievePrecedingIdentifier(line, pos.column);
 };
-exports.triggerAutocomplete = function (editor) {
-    var pos = editor.getCursorPosition();
-    var line = editor.session.getLine(pos.row);
-    var column = (pos.column === 0) ? 0 : pos.column - 1;
-    var previousChar = line[column];
-    return editor.completers.some(function (el) {
-        if (el.triggerCharacters && Array.isArray(el.triggerCharacters)) {
-            return el.triggerCharacters.includes(previousChar);
+exports.triggerAutocomplete = function (editor, previousChar) {
+    var previousChar = previousChar == null
+        ? editor.session.getPrecedingCharacter()
+        : previousChar;
+    return editor.completers.some(function (completer) {
+        if (completer.triggerCharacters && Array.isArray(completer.triggerCharacters)) {
+            return completer.triggerCharacters.includes(previousChar);
         }
     });
 };
@@ -1754,9 +1753,6 @@ var Autocomplete = /** @class */ (function () {
             if (this.tooltipNode) {
                 this.updateDocTooltip();
             }
-        }
-        else if (keepPopupPosition && !prefix) {
-            this.detach();
         }
         this.changeTimer.cancel();
         this.observeLayoutChanges();
@@ -2065,6 +2061,12 @@ Autocomplete.prototype.commands = {
             editor.completer.goTo("down");
         else
             return result;
+    },
+    "Backspace": function (editor) {
+        editor.execCommand("backspace");
+        var prefix = util.getCompletionPrefix(editor);
+        if (!prefix && editor.completer)
+            editor.completer.detach();
     },
     "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
     "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }

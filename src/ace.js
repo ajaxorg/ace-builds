@@ -1253,7 +1253,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.32.7";
+exports.version = "1.32.8";
 
 });
 
@@ -11237,6 +11237,14 @@ var EditSession = /** @class */ (function () {
             return [screenColumn, column];
         };
     };
+    EditSession.prototype.getPrecedingCharacter = function () {
+        var pos = this.selection.getCursor();
+        if (pos.column === 0) {
+            return pos.row === 0 ? "" : this.doc.getNewLineCharacter();
+        }
+        var currentLine = this.getLine(pos.row);
+        return currentLine[pos.column - 1];
+    };
     EditSession.prototype.destroy = function () {
         if (!this.destroyed) {
             this.bgTokenizer.setDocument(null);
@@ -19012,14 +19020,14 @@ var VirtualRenderer = /** @class */ (function () {
             var el = this.container;
             var height = el.getBoundingClientRect().height;
             var ghostTextHeight = textLines.length * this.lineHeight;
-            var fitsY = ghostTextHeight < height - pixelPosition.top;
+            var fitsY = ghostTextHeight < (height - pixelPosition.top);
             if (fitsY)
                 return;
             if (ghostTextHeight < height) {
                 this.scrollBy(0, (textLines.length - 1) * this.lineHeight);
             }
             else {
-                this.scrollBy(0, pixelPosition.top);
+                this.scrollToRow(insertPosition.row);
             }
         }
     };
