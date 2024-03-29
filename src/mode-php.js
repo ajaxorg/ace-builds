@@ -12629,6 +12629,45 @@ exports.PhpCompletions = PhpCompletions;
 
 });
 
+define("ace/mode/folding/mixed",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var BaseFoldMode = require("./fold_mode").FoldMode;
+var FoldMode = exports.FoldMode = function (defaultMode, subModes) {
+    this.defaultMode = defaultMode;
+    this.subModes = subModes;
+};
+oop.inherits(FoldMode, BaseFoldMode);
+(function () {
+    this.$getMode = function (state) {
+        if (typeof state != "string")
+            state = state[0];
+        for (var key in this.subModes) {
+            if (state.indexOf(key) === 0)
+                return this.subModes[key];
+        }
+        return null;
+    };
+    this.$tryMode = function (state, session, foldStyle, row) {
+        var mode = this.$getMode(state);
+        return (mode ? mode.getFoldWidget(session, foldStyle, row) : "");
+    };
+    this.getFoldWidget = function (session, foldStyle, row) {
+        return (this.$tryMode(session.getState(row - 1), session, foldStyle, row) ||
+            this.$tryMode(session.getState(row), session, foldStyle, row) ||
+            this.defaultMode.getFoldWidget(session, foldStyle, row));
+    };
+    this.getFoldWidgetRange = function (session, foldStyle, row) {
+        var mode = this.$getMode(session.getState(row - 1));
+        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
+            mode = this.$getMode(session.getState(row));
+        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
+            mode = this.defaultMode;
+        return mode.getFoldWidgetRange(session, foldStyle, row);
+    };
+}).call(FoldMode.prototype);
+
+});
+
 define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
@@ -12740,6 +12779,121 @@ oop.inherits(FoldMode, BaseFoldMode);
         if (endRow > startRow) {
             return new Range(startRow, startColumn, endRow, line.length);
         }
+    };
+}).call(FoldMode.prototype);
+
+});
+
+define("ace/mode/folding/php",["require","exports","module","ace/lib/oop","ace/mode/folding/mixed","ace/mode/folding/cstyle","ace/range","ace/token_iterator"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var MixedFoldMode = require("./mixed").FoldMode;
+var CstyleFoldMode = require("./cstyle").FoldMode;
+var Range = require("../../range").Range;
+var TokenIterator = require("../../token_iterator").TokenIterator;
+var FoldMode = exports.FoldMode = function () {
+    this.cstyleFoldMode = new CstyleFoldMode();
+    MixedFoldMode.call(this, this, {
+        "js-": new CstyleFoldMode(),
+        "css-": new CstyleFoldMode(),
+        "php-": this
+    });
+};
+oop.inherits(FoldMode, MixedFoldMode);
+(function () {
+    this.indentKeywords = {
+        "if": 1,
+        "while": 1,
+        "for": 1,
+        "foreach": 1,
+        "switch": 1,
+        "else": 0,
+        "elseif": 0,
+        "endif": -1,
+        "endwhile": -1,
+        "endfor": -1,
+        "endforeach": -1,
+        "endswitch": -1
+    };
+    this.foldingStartMarker = /(?:\s|^)(if|else|elseif|while|for|foreach|switch).*\:/i;
+    this.foldingStopMarker = /(?:\s|^)(endif|endwhile|endfor|endforeach|endswitch)\;/i;
+    this.getFoldWidgetRange = function (session, foldStyle, row) {
+        var line = session.doc.getLine(row);
+        var match = this.foldingStartMarker.exec(line);
+        if (match) {
+            return this.phpBlock(session, row, match.index + 2);
+        }
+        var match = this.foldingStopMarker.exec(line);
+        if (match) {
+            return this.phpBlock(session, row, match.index + 2);
+        }
+        return this.cstyleFoldMode.getFoldWidgetRange(session, foldStyle, row);
+    };
+    this.getFoldWidget = function (session, foldStyle, row) {
+        var line = session.getLine(row);
+        var isStart = this.foldingStartMarker.test(line);
+        var isEnd = this.foldingStopMarker.test(line);
+        if (isStart && !isEnd) {
+            var match = this.foldingStartMarker.exec(line);
+            var keyword = match && match[1].toLowerCase();
+            if (keyword) {
+                var type = session.getTokenAt(row, match.index + 2).type;
+                if (type == "keyword") {
+                    return "start";
+                }
+            }
+        }
+        if (isEnd && foldStyle === "markbeginend") {
+            var match = this.foldingStopMarker.exec(line);
+            var keyword = match && match[1].toLowerCase();
+            if (keyword) {
+                var type = session.getTokenAt(row, match.index + 2).type;
+                if (type == "keyword") {
+                    return "end";
+                }
+            }
+        }
+        return this.cstyleFoldMode.getFoldWidget(session, foldStyle, row);
+    };
+    this.phpBlock = function (session, row, column, tokenRange) {
+        var stream = new TokenIterator(session, row, column);
+        var token = stream.getCurrentToken();
+        if (!token || token.type != "keyword")
+            return;
+        var val = token.value;
+        var stack = [val];
+        var dir = this.indentKeywords[val];
+        if (val === "else" || val === "elseif") {
+            dir = 1;
+        }
+        if (!dir)
+            return;
+        var startColumn = dir === -1 ? stream.getCurrentTokenColumn() : session.getLine(row).length;
+        var startRow = row;
+        stream.step = dir === -1 ? stream.stepBackward : stream.stepForward;
+        while (token = stream.step()) {
+            if (token.type !== "keyword")
+                continue;
+            var level = dir * this.indentKeywords[token.value];
+            if (level > 0) {
+                stack.unshift(token.value);
+            }
+            else if (level <= 0) {
+                stack.shift();
+                if (!stack.length)
+                    break;
+                if (level === 0)
+                    stack.unshift(token.value);
+            }
+        }
+        if (!token)
+            return null;
+        if (tokenRange)
+            return stream.getCurrentTokenRange();
+        var row = stream.getCurrentTokenRow();
+        if (dir === -1)
+            return new Range(row, session.getLine(row).length, startRow, startColumn);
+        else
+            return new Range(startRow, startColumn, row, stream.getCurrentTokenColumn());
     };
 }).call(FoldMode.prototype);
 
@@ -13265,45 +13419,6 @@ exports.XmlBehaviour = XmlBehaviour;
 
 });
 
-define("ace/mode/folding/mixed",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
-var oop = require("../../lib/oop");
-var BaseFoldMode = require("./fold_mode").FoldMode;
-var FoldMode = exports.FoldMode = function (defaultMode, subModes) {
-    this.defaultMode = defaultMode;
-    this.subModes = subModes;
-};
-oop.inherits(FoldMode, BaseFoldMode);
-(function () {
-    this.$getMode = function (state) {
-        if (typeof state != "string")
-            state = state[0];
-        for (var key in this.subModes) {
-            if (state.indexOf(key) === 0)
-                return this.subModes[key];
-        }
-        return null;
-    };
-    this.$tryMode = function (state, session, foldStyle, row) {
-        var mode = this.$getMode(state);
-        return (mode ? mode.getFoldWidget(session, foldStyle, row) : "");
-    };
-    this.getFoldWidget = function (session, foldStyle, row) {
-        return (this.$tryMode(session.getState(row - 1), session, foldStyle, row) ||
-            this.$tryMode(session.getState(row), session, foldStyle, row) ||
-            this.defaultMode.getFoldWidget(session, foldStyle, row));
-    };
-    this.getFoldWidgetRange = function (session, foldStyle, row) {
-        var mode = this.$getMode(session.getState(row - 1));
-        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
-            mode = this.$getMode(session.getState(row));
-        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
-            mode = this.defaultMode;
-        return mode.getFoldWidgetRange(session, foldStyle, row);
-    };
-}).call(FoldMode.prototype);
-
-});
-
 define("ace/mode/folding/xml",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
@@ -13779,7 +13894,7 @@ exports.Mode = Mode;
 
 });
 
-define("ace/mode/php",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/php_highlight_rules","ace/mode/php_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/php_completions","ace/mode/folding/cstyle","ace/unicode","ace/mode/html","ace/mode/javascript","ace/mode/css"], function(require, exports, module){"use strict";
+define("ace/mode/php",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/php_highlight_rules","ace/mode/php_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/php_completions","ace/mode/folding/php","ace/unicode","ace/mode/html","ace/mode/javascript","ace/mode/css"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var PhpHighlightRules = require("./php_highlight_rules").PhpHighlightRules;
@@ -13787,7 +13902,7 @@ var PhpLangHighlightRules = require("./php_highlight_rules").PhpLangHighlightRul
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var WorkerClient = require("../worker/worker_client").WorkerClient;
 var PhpCompletions = require("./php_completions").PhpCompletions;
-var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+var PhpFoldMode = require("./folding/php").FoldMode;
 var unicode = require("../unicode");
 var HtmlMode = require("./html").Mode;
 var JavaScriptMode = require("./javascript").Mode;
@@ -13797,7 +13912,7 @@ var PhpMode = function (opts) {
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = this.$defaultBehaviour;
     this.$completer = new PhpCompletions();
-    this.foldingRules = new CStyleFoldMode();
+    this.foldingRules = new PhpFoldMode();
 };
 oop.inherits(PhpMode, TextMode);
 (function () {
@@ -13858,7 +13973,7 @@ var Mode = function (opts) {
         "css-": CssMode,
         "php-": PhpMode
     });
-    this.foldingRules.subModes["php-"] = new CStyleFoldMode();
+    this.foldingRules = new PhpFoldMode();
 };
 oop.inherits(Mode, HtmlMode);
 (function () {

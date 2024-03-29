@@ -1908,6 +1908,7 @@ var Autocomplete = /** @class */ (function () {
                         this.completions = new FilteredList(completionsForEmpty);
                         this.openPopup(this.editor, prefix, keepPopupPosition);
                         this.popup.renderer.setStyle("ace_loading", false);
+                        this.popup.renderer.setStyle("ace_empty-message", true);
                         return;
                     }
                     return this.detach();
@@ -1922,6 +1923,7 @@ var Autocomplete = /** @class */ (function () {
                 new FilteredList(Autocomplete.completionsForLoading.concat(filtered), completions.filterText) :
                 completions;
             this.openPopup(this.editor, prefix, keepPopupPosition);
+            this.popup.renderer.setStyle("ace_empty-message", false);
             this.popup.renderer.setStyle("ace_loading", !finished);
         }.bind(this));
         if (this.showLoadingState && !this.autoShown && !(this.popup && this.popup.isOpen)) {
