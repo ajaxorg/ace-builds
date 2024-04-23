@@ -1304,7 +1304,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.33.0";
+exports.version = "1.33.1";
 
 });
 
@@ -6420,8 +6420,22 @@ CstyleBehaviour = function (options) {
             initContext(editor);
             var selection = editor.getSelectionRange();
             var selected = session.doc.getTextRange(selection);
+            var token = session.getTokenAt(cursor.row, cursor.column);
             if (selected !== "" && selected !== "{" && editor.getWrapBehavioursEnabled()) {
                 return getWrapped(selection, selected, '{', '}');
+            }
+            else if (token && /(?:string)\.quasi|\.xml/.test(token.type)) {
+                var excludeTokens = [
+                    /tag\-(?:open|name)/, /attribute\-name/
+                ];
+                if (excludeTokens.some(function (el) { return el.test(token.type); }) || /(string)\.quasi/.test(token.type)
+                    && token.value[cursor.column - token.start - 1] !== '$')
+                    return;
+                CstyleBehaviour.recordAutoInsert(editor, session, "}");
+                return {
+                    text: '{}',
+                    selection: [1, 1]
+                };
             }
             else if (CstyleBehaviour.isSaneInsertion(editor, session)) {
                 if (/[\]\}\)]/.test(line[cursor.column]) || editor.inMultiSelectMode || options.braces) {
@@ -9730,6 +9744,10 @@ function BracketMatch() {
         var foundOpenTagEnd = false;
         do {
             prevToken = token;
+            if (prevToken.type.indexOf('tag-close') !== -1 && !foundOpenTagEnd) {
+                var openTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for `>`
+                foundOpenTagEnd = true;
+            }
             token = iterator.stepForward();
             if (token) {
                 if (token.value === '>' && !foundOpenTagEnd) {
@@ -9749,7 +9767,9 @@ function BracketMatch() {
                                 var closeTagStart = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 2); //Range for </
                                 token = iterator.stepForward();
                                 var closeTagName = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + token.value.length);
-                                token = iterator.stepForward();
+                                if (token.type.indexOf('tag-close') === -1) {
+                                    token = iterator.stepForward();
+                                }
                                 if (token && token.value === '>') {
                                     var closeTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for >
                                 }
@@ -9790,7 +9810,9 @@ function BracketMatch() {
         var closeTagStart = new Range(startRow, startColumn, startRow, endColumn); //Range for </
         iterator.stepForward();
         var closeTagName = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + token.value.length);
-        token = iterator.stepForward();
+        if (token.type.indexOf('tag-close') === -1) {
+            token = iterator.stepForward();
+        }
         if (!token || token.value !== ">")
             return;
         var closeTagEnd = new Range(iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn(), iterator.getCurrentTokenRow(), iterator.getCurrentTokenColumn() + 1); //Range for >
@@ -14043,8 +14065,12 @@ var Editor = /** @class */ (function () {
                 var token = iterator.getCurrentToken();
                 if (token && /\b(?:tag-open|tag-name)/.test(token.type)) {
                     var tagNamesRanges = session.getMatchingTags(pos);
-                    if (tagNamesRanges)
-                        ranges = [tagNamesRanges.openTagName, tagNamesRanges.closeTagName];
+                    if (tagNamesRanges) {
+                        ranges = [
+                            tagNamesRanges.openTagName.isEmpty() ? tagNamesRanges.openTag : tagNamesRanges.openTagName,
+                            tagNamesRanges.closeTagName.isEmpty() ? tagNamesRanges.closeTag : tagNamesRanges.closeTagName
+                        ];
+                    }
                 }
             }
             if (!ranges && session.$mode.getMatching)

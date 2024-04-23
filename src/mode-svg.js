@@ -178,11 +178,10 @@ exports.XmlHighlightRules = XmlHighlightRules;
 
 });
 
-define("ace/mode/behaviour/xml",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/token_iterator","ace/lib/lang"], function(require, exports, module){"use strict";
+define("ace/mode/behaviour/xml",["require","exports","module","ace/lib/oop","ace/mode/behaviour","ace/token_iterator"], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Behaviour = require("../behaviour").Behaviour;
 var TokenIterator = require("../../token_iterator").TokenIterator;
-var lang = require("../../lib/lang");
 function is(token, type) {
     return token && token.type.lastIndexOf(type + ".xml") > -1;
 }
@@ -271,7 +270,7 @@ var XmlBehaviour = function () {
             var element = token.value;
             if (tokenRow == position.row)
                 element = element.substring(0, position.column - tokenColumn);
-            if (this.voidElements.hasOwnProperty(element.toLowerCase()))
+            if (this.voidElements && this.voidElements.hasOwnProperty(element.toLowerCase()))
                 return;
             return {
                 text: ">" + "</" + element + ">",
@@ -285,7 +284,7 @@ var XmlBehaviour = function () {
             var line = session.getLine(cursor.row);
             var iterator = new TokenIterator(session, cursor.row, cursor.column);
             var token = iterator.getCurrentToken();
-            if (token && token.type.indexOf("tag-close") !== -1) {
+            if (is(token, "") && token.type.indexOf("tag-close") !== -1) {
                 if (token.value == "/>")
                     return;
                 while (token && token.type.indexOf("tag-name") === -1) {
@@ -300,7 +299,7 @@ var XmlBehaviour = function () {
                 if (!token || token.type.indexOf("end-tag") !== -1) {
                     return;
                 }
-                if (this.voidElements && !this.voidElements[tag]) {
+                if (this.voidElements && !this.voidElements[tag] || !this.voidElements) {
                     var nextToken = session.getTokenAt(cursor.row, cursor.column + 1);
                     var line = session.getLine(row);
                     var nextIndent = this.$getIndent(line);
@@ -378,6 +377,12 @@ function is(token, type) {
                 if (!token)
                     return null;
                 tag.tagName = token.value;
+                if (token.value === "") { //skip empty tag name token for fragment
+                    token = tokens[++i];
+                    if (!token)
+                        return null;
+                    tag.tagName = token.value;
+                }
                 tag.end.column += token.value.length;
                 for (i++; i < tokens.length; i++) {
                     token = tokens[i];
@@ -403,10 +408,13 @@ function is(token, type) {
         for (var i = 0; i < tokens.length; i++) {
             var token = tokens[i];
             column += token.value.length;
-            if (column < startColumn)
+            if (column < startColumn - 1)
                 continue;
             if (is(token, "end-tag-open")) {
                 token = tokens[i + 1];
+                if (is(token, "tag-name") && token.value === "") {
+                    token = tokens[i + 2];
+                }
                 if (token && token.value == tagName)
                     return true;
             }
@@ -1025,7 +1033,7 @@ function JSX() {
                     value: val.substr(offset)
                 }];
         },
-        regex: "</?" + tagRegex + "",
+        regex: "</?(?:" + tagRegex + "|(?=>))",
         next: "jsxAttributes",
         nextState: "jsx"
     };
@@ -1038,8 +1046,7 @@ function JSX() {
     this.$rules.jsx = [
         jsxJsRule,
         jsxTag,
-        { include: "reference" },
-        { defaultToken: "string" }
+        { include: "reference" }, { defaultToken: "string.xml" }
     ];
     this.$rules.jsxAttributes = [{
             token: "meta.tag.punctuation.tag-close.xml",
@@ -1147,6 +1154,36 @@ var MatchingBraceOutdent = function () { };
     };
 }).call(MatchingBraceOutdent.prototype);
 exports.MatchingBraceOutdent = MatchingBraceOutdent;
+
+});
+
+define("ace/mode/behaviour/javascript",["require","exports","module","ace/lib/oop","ace/token_iterator","ace/mode/behaviour/cstyle","ace/mode/behaviour/xml"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var TokenIterator = require("../../token_iterator").TokenIterator;
+var CstyleBehaviour = require("../behaviour/cstyle").CstyleBehaviour;
+var XmlBehaviour = require("../behaviour/xml").XmlBehaviour;
+var JavaScriptBehaviour = function () {
+    var xmlBehaviours = new XmlBehaviour({ closeCurlyBraces: true }).getBehaviours();
+    this.addBehaviours(xmlBehaviours);
+    this.inherit(CstyleBehaviour);
+    this.add("autoclosing-fragment", "insertion", function (state, action, editor, session, text) {
+        if (text == '>') {
+            var position = editor.getSelectionRange().start;
+            var iterator = new TokenIterator(session, position.row, position.column);
+            var token = iterator.getCurrentToken() || iterator.stepBackward();
+            if (!token)
+                return;
+            if (token.value == '<') {
+                return {
+                    text: "></>",
+                    selection: [1, 1]
+                };
+            }
+        }
+    });
+};
+oop.inherits(JavaScriptBehaviour, CstyleBehaviour);
+exports.JavaScriptBehaviour = JavaScriptBehaviour;
 
 });
 
@@ -1266,19 +1303,51 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-define("ace/mode/javascript",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/javascript_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/behaviour/cstyle","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+define("ace/mode/folding/javascript",["require","exports","module","ace/lib/oop","ace/mode/folding/xml","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var XmlFoldMode = require("./xml").FoldMode;
+var CFoldMode = require("./cstyle").FoldMode;
+var FoldMode = exports.FoldMode = function (commentRegex) {
+    if (commentRegex) {
+        this.foldingStartMarker = new RegExp(this.foldingStartMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.start));
+        this.foldingStopMarker = new RegExp(this.foldingStopMarker.source.replace(/\|[^|]*?$/, "|" + commentRegex.end));
+    }
+    this.xmlFoldMode = new XmlFoldMode();
+};
+oop.inherits(FoldMode, CFoldMode);
+(function () {
+    this.getFoldWidgetRangeBase = this.getFoldWidgetRange;
+    this.getFoldWidgetBase = this.getFoldWidget;
+    this.getFoldWidget = function (session, foldStyle, row) {
+        var fw = this.getFoldWidgetBase(session, foldStyle, row);
+        if (!fw) {
+            return this.xmlFoldMode.getFoldWidget(session, foldStyle, row);
+        }
+        return fw;
+    };
+    this.getFoldWidgetRange = function (session, foldStyle, row, forceMultiline) {
+        var range = this.getFoldWidgetRangeBase(session, foldStyle, row, forceMultiline);
+        if (range)
+            return range;
+        return this.xmlFoldMode.getFoldWidgetRange(session, foldStyle, row);
+    };
+}).call(FoldMode.prototype);
+
+});
+
+define("ace/mode/javascript",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/javascript_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/behaviour/javascript","ace/mode/folding/javascript"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var WorkerClient = require("../worker/worker_client").WorkerClient;
-var CstyleBehaviour = require("./behaviour/cstyle").CstyleBehaviour;
-var CStyleFoldMode = require("./folding/cstyle").FoldMode;
+var JavaScriptBehaviour = require("./behaviour/javascript").JavaScriptBehaviour;
+var JavaScriptFoldMode = require("./folding/javascript").FoldMode;
 var Mode = function () {
     this.HighlightRules = JavaScriptHighlightRules;
     this.$outdent = new MatchingBraceOutdent();
-    this.$behaviour = new CstyleBehaviour();
-    this.foldingRules = new CStyleFoldMode();
+    this.$behaviour = new JavaScriptBehaviour();
+    this.foldingRules = new JavaScriptFoldMode();
 };
 oop.inherits(Mode, TextMode);
 (function () {

@@ -1806,7 +1806,7 @@ var Autocomplete = /** @class */ (function () {
         this.detach();
     };
     Autocomplete.prototype.mousewheelListener = function (e) {
-        if (!this.popup.isMouseOver)
+        if (this.popup && !this.popup.isMouseOver)
             this.detach();
     };
     Autocomplete.prototype.mouseOutListener = function (e) {
