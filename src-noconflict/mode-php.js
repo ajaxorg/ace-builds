@@ -348,7 +348,7 @@ var DocCommentHighlightRules = require("./jsdoc_comment_highlight_rules").JsDocC
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var identifierRe = "[a-zA-Z\\$_\u00a1-\uffff][a-zA-Z\\d\\$_\u00a1-\uffff]*";
 var JavaScriptHighlightRules = function (options) {
-    var keywordMapper = this.createKeywordMapper({
+    var keywords = {
         "variable.language": "Array|Boolean|Date|Function|Iterator|Number|Object|RegExp|String|Proxy|Symbol|" + // Constructors
             "Namespace|QName|XML|XMLList|" + // E4X
             "ArrayBuffer|Float32Array|Float64Array|Int16Array|Int32Array|Int8Array|" +
@@ -360,7 +360,7 @@ var JavaScriptHighlightRules = function (options) {
             "JSON|Math|" + // Other
             "this|arguments|prototype|window|document", // Pseudo
         "keyword": "const|yield|import|get|set|async|await|" +
-            "break|case|catch|continue|default|delete|do|else|finally|for|function|" +
+            "break|case|catch|continue|default|delete|do|else|finally|for|" +
             "if|in|of|instanceof|new|return|switch|throw|try|typeof|let|var|while|with|debugger|" +
             "__parent__|__count__|escape|unescape|with|__proto__|" +
             "class|enum|extends|super|export|implements|private|public|interface|package|protected|static|constructor",
@@ -368,7 +368,8 @@ var JavaScriptHighlightRules = function (options) {
         "constant.language": "null|Infinity|NaN|undefined",
         "support.function": "alert",
         "constant.language.boolean": "true|false"
-    }, "identifier");
+    };
+    var keywordMapper = this.createKeywordMapper(keywords, "identifier");
     var kwBeforeRe = "case|do|else|finally|in|instanceof|return|throw|try|typeof|yield|void";
     var escapedRe = "\\\\(?:x[0-9a-fA-F]{2}|" + // hex
         "u[0-9a-fA-F]{4}|" + // unicode
@@ -377,10 +378,16 @@ var JavaScriptHighlightRules = function (options) {
         "3[0-7][0-7]?|" + // oct
         "[4-7][0-7]?|" + //oct
         ".)";
+    var anonymousFunctionRe = "(function)(\\s*)(\\*?)";
+    var functionCallStartRule = {
+        token: ["identifier", "text", "paren.lparen"],
+        regex: "(\\b(?!" + Object.values(keywords).join("|") + "\\b)" + identifierRe + ")(\\s*)(\\()"
+    };
     this.$rules = {
         "no_regex": [
             DocCommentHighlightRules.getStartRule("doc-start"),
             comments("no_regex"),
+            functionCallStartRule,
             {
                 token: "string",
                 regex: "'(?=.)",
@@ -397,51 +404,29 @@ var JavaScriptHighlightRules = function (options) {
                 regex: /(?:\d\d*(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+\b)?/
             }, {
                 token: [
-                    "storage.type", "punctuation.operator", "support.function",
-                    "punctuation.operator", "entity.name.function", "text", "keyword.operator"
-                ],
-                regex: "(" + identifierRe + ")(\\.)(prototype)(\\.)(" + identifierRe + ")(\\s*)(=)",
-                next: "function_arguments"
-            }, {
-                token: [
-                    "storage.type", "punctuation.operator", "entity.name.function", "text",
-                    "keyword.operator", "text", "storage.type", "text", "paren.lparen"
-                ],
-                regex: "(" + identifierRe + ")(\\.)(" + identifierRe + ")(\\s*)(=)(\\s*)(function\\*?)(\\s*)(\\()",
-                next: "function_arguments"
-            }, {
-                token: [
                     "entity.name.function", "text", "keyword.operator", "text", "storage.type",
-                    "text", "paren.lparen"
+                    "text", "storage.type", "text", "paren.lparen"
                 ],
-                regex: "(" + identifierRe + ")(\\s*)(=)(\\s*)(function\\*?)(\\s*)(\\()",
+                regex: "(" + identifierRe + ")(\\s*)(=)(\\s*)" + anonymousFunctionRe + "(\\s*)(\\()",
                 next: "function_arguments"
             }, {
                 token: [
-                    "storage.type", "punctuation.operator", "entity.name.function", "text",
-                    "keyword.operator", "text",
-                    "storage.type", "text", "entity.name.function", "text", "paren.lparen"
+                    "storage.type", "text", "storage.type", "text", "text", "entity.name.function", "text", "paren.lparen"
                 ],
-                regex: "(" + identifierRe + ")(\\.)(" + identifierRe + ")(\\s*)(=)(\\s*)(function\\*?)(\\s+)(\\w+)(\\s*)(\\()",
-                next: "function_arguments"
-            }, {
-                token: [
-                    "storage.type", "text", "entity.name.function", "text", "paren.lparen"
-                ],
-                regex: "(function\\*?)(\\s+)(" + identifierRe + ")(\\s*)(\\()",
+                regex: "(function)(?:(?:(\\s*)(\\*)(\\s*))|(\\s+))(" + identifierRe + ")(\\s*)(\\()",
                 next: "function_arguments"
             }, {
                 token: [
                     "entity.name.function", "text", "punctuation.operator",
-                    "text", "storage.type", "text", "paren.lparen"
+                    "text", "storage.type", "text", "storage.type", "text", "paren.lparen"
                 ],
-                regex: "(" + identifierRe + ")(\\s*)(:)(\\s*)(function\\*?)(\\s*)(\\()",
+                regex: "(" + identifierRe + ")(\\s*)(:)(\\s*)" + anonymousFunctionRe + "(\\s*)(\\()",
                 next: "function_arguments"
             }, {
                 token: [
-                    "text", "text", "storage.type", "text", "paren.lparen"
+                    "text", "text", "storage.type", "text", "storage.type", "text", "paren.lparen"
                 ],
-                regex: "(:)(\\s*)(function\\*?)(\\s*)(\\()",
+                regex: "(:)(\\s*)" + anonymousFunctionRe + "(\\s*)(\\()",
                 next: "function_arguments"
             }, {
                 token: "keyword",
@@ -491,16 +476,26 @@ var JavaScriptHighlightRules = function (options) {
                 token: "text",
                 regex: "\\s+"
             }, {
+                token: "keyword.operator",
+                regex: /=/
+            }, {
                 token: [
-                    "storage.type", "punctuation.operator", "entity.name.function", "text",
-                    "keyword.operator", "text",
-                    "storage.type", "text", "entity.name.function", "text", "paren.lparen"
+                    "storage.type", "text", "storage.type", "text", "paren.lparen"
                 ],
-                regex: "(" + identifierRe + ")(\\.)(" + identifierRe + ")(\\s*)(=)(\\s*)(function\\*?)(?:(\\s+)(\\w+))?(\\s*)(\\()",
+                regex: anonymousFunctionRe + "(\\s*)(\\()",
+                next: "function_arguments"
+            }, {
+                token: [
+                    "storage.type", "text", "storage.type", "text", "text", "entity.name.function", "text", "paren.lparen"
+                ],
+                regex: "(function)(?:(?:(\\s*)(\\*)(\\s*))|(\\s+))(\\w+)(\\s*)(\\()",
                 next: "function_arguments"
             }, {
                 token: "punctuation.operator",
                 regex: /[.](?![.])/
+            }, {
+                token: "support.function",
+                regex: "prototype"
             }, {
                 token: "support.function",
                 regex: /(s(?:h(?:ift|ow(?:Mod(?:elessDialog|alDialog)|Help))|croll(?:X|By(?:Pages|Lines)?|Y|To)?|t(?:op|rike)|i(?:n|zeToContent|debar|gnText)|ort|u(?:p|b(?:str(?:ing)?)?)|pli(?:ce|t)|e(?:nd|t(?:Re(?:sizable|questHeader)|M(?:i(?:nutes|lliseconds)|onth)|Seconds|Ho(?:tKeys|urs)|Year|Cursor|Time(?:out)?|Interval|ZOptions|Date|UTC(?:M(?:i(?:nutes|lliseconds)|onth)|Seconds|Hours|Date|FullYear)|FullYear|Active)|arch)|qrt|lice|avePreferences|mall)|h(?:ome|andleEvent)|navigate|c(?:har(?:CodeAt|At)|o(?:s|n(?:cat|textual|firm)|mpile)|eil|lear(?:Timeout|Interval)?|a(?:ptureEvents|ll)|reate(?:StyleSheet|Popup|EventObject))|t(?:o(?:GMTString|S(?:tring|ource)|U(?:TCString|pperCase)|Lo(?:caleString|werCase))|est|a(?:n|int(?:Enabled)?))|i(?:s(?:NaN|Finite)|ndexOf|talics)|d(?:isableExternalCapture|ump|etachEvent)|u(?:n(?:shift|taint|escape|watch)|pdateCommands)|j(?:oin|avaEnabled)|p(?:o(?:p|w)|ush|lugins.refresh|a(?:ddings|rse(?:Int|Float)?)|r(?:int|ompt|eference))|e(?:scape|nableExternalCapture|val|lementFromPoint|x(?:p|ec(?:Script|Command)?))|valueOf|UTC|queryCommand(?:State|Indeterm|Enabled|Value)|f(?:i(?:nd|lter|le(?:ModifiedDate|Size|CreatedDate|UpdatedDate)|xed)|o(?:nt(?:size|color)|rward|rEach)|loor|romCharCode)|watch|l(?:ink|o(?:ad|g)|astIndexOf)|a(?:sin|nchor|cos|t(?:tachEvent|ob|an(?:2)?)|pply|lert|b(?:s|ort))|r(?:ou(?:nd|teEvents)|e(?:size(?:By|To)|calc|turnValue|place|verse|l(?:oad|ease(?:Capture|Events)))|andom)|g(?:o|et(?:ResponseHeader|M(?:i(?:nutes|lliseconds)|onth)|Se(?:conds|lection)|Hours|Year|Time(?:zoneOffset)?|Da(?:y|te)|UTC(?:M(?:i(?:nutes|lliseconds)|onth)|Seconds|Hours|Da(?:y|te)|FullYear)|FullYear|A(?:ttention|llResponseHeaders)))|m(?:in|ove(?:B(?:y|elow)|To(?:Absolute)?|Above)|ergeAttributes|a(?:tch|rgins|x))|b(?:toa|ig|o(?:ld|rderWidths)|link|ack))\b(?=\()/
@@ -725,7 +720,7 @@ var JavaScriptHighlightRules = function (options) {
             regex: "(" + identifierRe + ")(\\s*)(?=\\=>)"
         }, {
             token: "paren.lparen",
-            regex: "(\\()(?=.+\\s*=>)",
+            regex: "(\\()(?=[^\\(]+\\s*=>)",
             next: "function_arguments"
         }, {
             token: "variable.language",
@@ -12628,45 +12623,6 @@ exports.PhpCompletions = PhpCompletions;
 
 });
 
-ace.define("ace/mode/folding/mixed",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
-var oop = require("../../lib/oop");
-var BaseFoldMode = require("./fold_mode").FoldMode;
-var FoldMode = exports.FoldMode = function (defaultMode, subModes) {
-    this.defaultMode = defaultMode;
-    this.subModes = subModes;
-};
-oop.inherits(FoldMode, BaseFoldMode);
-(function () {
-    this.$getMode = function (state) {
-        if (typeof state != "string")
-            state = state[0];
-        for (var key in this.subModes) {
-            if (state.indexOf(key) === 0)
-                return this.subModes[key];
-        }
-        return null;
-    };
-    this.$tryMode = function (state, session, foldStyle, row) {
-        var mode = this.$getMode(state);
-        return (mode ? mode.getFoldWidget(session, foldStyle, row) : "");
-    };
-    this.getFoldWidget = function (session, foldStyle, row) {
-        return (this.$tryMode(session.getState(row - 1), session, foldStyle, row) ||
-            this.$tryMode(session.getState(row), session, foldStyle, row) ||
-            this.defaultMode.getFoldWidget(session, foldStyle, row));
-    };
-    this.getFoldWidgetRange = function (session, foldStyle, row) {
-        var mode = this.$getMode(session.getState(row - 1));
-        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
-            mode = this.$getMode(session.getState(row));
-        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
-            mode = this.defaultMode;
-        return mode.getFoldWidgetRange(session, foldStyle, row);
-    };
-}).call(FoldMode.prototype);
-
-});
-
 ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
@@ -12783,22 +12739,17 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/folding/php",["require","exports","module","ace/lib/oop","ace/mode/folding/mixed","ace/mode/folding/cstyle","ace/range","ace/token_iterator"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/php",["require","exports","module","ace/lib/oop","ace/mode/folding/cstyle","ace/range","ace/token_iterator"], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
-var MixedFoldMode = require("./mixed").FoldMode;
 var CstyleFoldMode = require("./cstyle").FoldMode;
 var Range = require("../../range").Range;
 var TokenIterator = require("../../token_iterator").TokenIterator;
 var FoldMode = exports.FoldMode = function () {
-    this.cstyleFoldMode = new CstyleFoldMode();
-    MixedFoldMode.call(this, this, {
-        "js-": new CstyleFoldMode(),
-        "css-": new CstyleFoldMode(),
-        "php-": this
-    });
 };
-oop.inherits(FoldMode, MixedFoldMode);
+oop.inherits(FoldMode, CstyleFoldMode);
 (function () {
+    this.getFoldWidgetRangeBase = this.getFoldWidgetRange;
+    this.getFoldWidgetBase = this.getFoldWidget;
     this.indentKeywords = {
         "if": 1,
         "while": 1,
@@ -12813,26 +12764,26 @@ oop.inherits(FoldMode, MixedFoldMode);
         "endforeach": -1,
         "endswitch": -1
     };
-    this.foldingStartMarker = /(?:\s|^)(if|else|elseif|while|for|foreach|switch).*\:/i;
-    this.foldingStopMarker = /(?:\s|^)(endif|endwhile|endfor|endforeach|endswitch)\;/i;
+    this.foldingStartMarkerPhp = /(?:\s|^)(if|else|elseif|while|for|foreach|switch).*\:/i;
+    this.foldingStopMarkerPhp = /(?:\s|^)(endif|endwhile|endfor|endforeach|endswitch)\;/i;
     this.getFoldWidgetRange = function (session, foldStyle, row) {
         var line = session.doc.getLine(row);
-        var match = this.foldingStartMarker.exec(line);
+        var match = this.foldingStartMarkerPhp.exec(line);
         if (match) {
             return this.phpBlock(session, row, match.index + 2);
         }
-        var match = this.foldingStopMarker.exec(line);
+        var match = this.foldingStopMarkerPhp.exec(line);
         if (match) {
             return this.phpBlock(session, row, match.index + 2);
         }
-        return this.cstyleFoldMode.getFoldWidgetRange(session, foldStyle, row);
+        return this.getFoldWidgetRangeBase(session, foldStyle, row);
     };
     this.getFoldWidget = function (session, foldStyle, row) {
         var line = session.getLine(row);
-        var isStart = this.foldingStartMarker.test(line);
-        var isEnd = this.foldingStopMarker.test(line);
+        var isStart = this.foldingStartMarkerPhp.test(line);
+        var isEnd = this.foldingStopMarkerPhp.test(line);
         if (isStart && !isEnd) {
-            var match = this.foldingStartMarker.exec(line);
+            var match = this.foldingStartMarkerPhp.exec(line);
             var keyword = match && match[1].toLowerCase();
             if (keyword) {
                 var type = session.getTokenAt(row, match.index + 2).type;
@@ -12842,7 +12793,7 @@ oop.inherits(FoldMode, MixedFoldMode);
             }
         }
         if (isEnd && foldStyle === "markbeginend") {
-            var match = this.foldingStopMarker.exec(line);
+            var match = this.foldingStopMarkerPhp.exec(line);
             var keyword = match && match[1].toLowerCase();
             if (keyword) {
                 var type = session.getTokenAt(row, match.index + 2).type;
@@ -12851,7 +12802,7 @@ oop.inherits(FoldMode, MixedFoldMode);
                 }
             }
         }
-        return this.cstyleFoldMode.getFoldWidget(session, foldStyle, row);
+        return this.getFoldWidgetBase(session, foldStyle, row);
     };
     this.phpBlock = function (session, row, column, tokenRange) {
         var stream = new TokenIterator(session, row, column);
@@ -12895,6 +12846,170 @@ oop.inherits(FoldMode, MixedFoldMode);
             return new Range(startRow, startColumn, row, stream.getCurrentTokenColumn());
     };
 }).call(FoldMode.prototype);
+
+});
+
+ace.define("ace/mode/folding/mixed",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var BaseFoldMode = require("./fold_mode").FoldMode;
+var FoldMode = exports.FoldMode = function (defaultMode, subModes) {
+    this.defaultMode = defaultMode;
+    this.subModes = subModes;
+};
+oop.inherits(FoldMode, BaseFoldMode);
+(function () {
+    this.$getMode = function (state) {
+        if (typeof state != "string")
+            state = state[0];
+        for (var key in this.subModes) {
+            if (state.indexOf(key) === 0)
+                return this.subModes[key];
+        }
+        return null;
+    };
+    this.$tryMode = function (state, session, foldStyle, row) {
+        var mode = this.$getMode(state);
+        return (mode ? mode.getFoldWidget(session, foldStyle, row) : "");
+    };
+    this.getFoldWidget = function (session, foldStyle, row) {
+        return (this.$tryMode(session.getState(row - 1), session, foldStyle, row) ||
+            this.$tryMode(session.getState(row), session, foldStyle, row) ||
+            this.defaultMode.getFoldWidget(session, foldStyle, row));
+    };
+    this.getFoldWidgetRange = function (session, foldStyle, row) {
+        var mode = this.$getMode(session.getState(row - 1));
+        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
+            mode = this.$getMode(session.getState(row));
+        if (!mode || !mode.getFoldWidget(session, foldStyle, row))
+            mode = this.defaultMode;
+        return mode.getFoldWidgetRange(session, foldStyle, row);
+    };
+}).call(FoldMode.prototype);
+
+});
+
+ace.define("ace/mode/folding/xml",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var Range = require("../../range").Range;
+var BaseFoldMode = require("./fold_mode").FoldMode;
+var FoldMode = exports.FoldMode = function (voidElements, optionalEndTags) {
+    BaseFoldMode.call(this);
+    this.voidElements = voidElements || {};
+    this.optionalEndTags = oop.mixin({}, this.voidElements);
+    if (optionalEndTags)
+        oop.mixin(this.optionalEndTags, optionalEndTags);
+};
+oop.inherits(FoldMode, BaseFoldMode);
+var Tag = function () {
+    this.tagName = "";
+    this.closing = false;
+    this.selfClosing = false;
+    this.start = { row: 0, column: 0 };
+    this.end = { row: 0, column: 0 };
+};
+function is(token, type) {
+    return token.type.lastIndexOf(type + ".xml") > -1;
+}
+(function () {
+    this.getFoldWidget = function (session, foldStyle, row) {
+        var tag = this._getFirstTagInLine(session, row);
+        if (!tag)
+            return this.getCommentFoldWidget(session, row);
+        if (tag.closing || (!tag.tagName && tag.selfClosing))
+            return foldStyle === "markbeginend" ? "end" : "";
+        if (!tag.tagName || tag.selfClosing || this.voidElements.hasOwnProperty(tag.tagName.toLowerCase()))
+            return "";
+        if (this._findEndTagInLine(session, row, tag.tagName, tag.end.column))
+            return "";
+        return "start";
+    };
+    this.getCommentFoldWidget = function (session, row) {
+        if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
+            return "start";
+        return "";
+    };
+    this._getFirstTagInLine = function (session, row) {
+        var tokens = session.getTokens(row);
+        var tag = new Tag();
+        for (var i = 0; i < tokens.length; i++) {
+            var token = tokens[i];
+            if (is(token, "tag-open")) {
+                tag.end.column = tag.start.column + token.value.length;
+                tag.closing = is(token, "end-tag-open");
+                token = tokens[++i];
+                if (!token)
+                    return null;
+                tag.tagName = token.value;
+                if (token.value === "") { //skip empty tag name token for fragment
+                    token = tokens[++i];
+                    if (!token)
+                        return null;
+                    tag.tagName = token.value;
+                }
+                tag.end.column += token.value.length;
+                for (i++; i < tokens.length; i++) {
+                    token = tokens[i];
+                    tag.end.column += token.value.length;
+                    if (is(token, "tag-close")) {
+                        tag.selfClosing = token.value == '/>';
+                        break;
+                    }
+                }
+                return tag;
+            }
+            else if (is(token, "tag-close")) {
+                tag.selfClosing = token.value == '/>';
+                return tag;
+            }
+            tag.start.column += token.value.length;
+        }
+        return null;
+    };
+    this._findEndTagInLine = function (session, row, tagName, startColumn) {
+        var tokens = session.getTokens(row);
+        var column = 0;
+        for (var i = 0; i < tokens.length; i++) {
+            var token = tokens[i];
+            column += token.value.length;
+            if (column < startColumn - 1)
+                continue;
+            if (is(token, "end-tag-open")) {
+                token = tokens[i + 1];
+                if (is(token, "tag-name") && token.value === "") {
+                    token = tokens[i + 2];
+                }
+                if (token && token.value == tagName)
+                    return true;
+            }
+        }
+        return false;
+    };
+    this.getFoldWidgetRange = function (session, foldStyle, row) {
+        var tags = session.getMatchingTags({ row: row, column: 0 });
+        if (tags) {
+            return new Range(tags.openTag.end.row, tags.openTag.end.column, tags.closeTag.start.row, tags.closeTag.start.column);
+        }
+        else {
+            return this.getCommentFoldWidget(session, row)
+                && session.getCommentFoldRange(row, session.getLine(row).length);
+        }
+    };
+}).call(FoldMode.prototype);
+
+});
+
+ace.define("ace/mode/folding/html",["require","exports","module","ace/lib/oop","ace/mode/folding/mixed","ace/mode/folding/xml","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+var oop = require("../../lib/oop");
+var MixedFoldMode = require("./mixed").FoldMode;
+var XmlFoldMode = require("./xml").FoldMode;
+var CStyleFoldMode = require("./cstyle").FoldMode;
+var FoldMode = exports.FoldMode = function (voidElements, optionalTags) {
+    MixedFoldMode.call(this, new XmlFoldMode(voidElements, optionalTags), {
+        "js-": new CStyleFoldMode(),
+        "css-": new CStyleFoldMode()
+    });
+};
+oop.inherits(FoldMode, MixedFoldMode);
 
 });
 
@@ -13072,116 +13187,6 @@ var JavaScriptBehaviour = function () {
 };
 oop.inherits(JavaScriptBehaviour, CstyleBehaviour);
 exports.JavaScriptBehaviour = JavaScriptBehaviour;
-
-});
-
-ace.define("ace/mode/folding/xml",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
-var oop = require("../../lib/oop");
-var Range = require("../../range").Range;
-var BaseFoldMode = require("./fold_mode").FoldMode;
-var FoldMode = exports.FoldMode = function (voidElements, optionalEndTags) {
-    BaseFoldMode.call(this);
-    this.voidElements = voidElements || {};
-    this.optionalEndTags = oop.mixin({}, this.voidElements);
-    if (optionalEndTags)
-        oop.mixin(this.optionalEndTags, optionalEndTags);
-};
-oop.inherits(FoldMode, BaseFoldMode);
-var Tag = function () {
-    this.tagName = "";
-    this.closing = false;
-    this.selfClosing = false;
-    this.start = { row: 0, column: 0 };
-    this.end = { row: 0, column: 0 };
-};
-function is(token, type) {
-    return token.type.lastIndexOf(type + ".xml") > -1;
-}
-(function () {
-    this.getFoldWidget = function (session, foldStyle, row) {
-        var tag = this._getFirstTagInLine(session, row);
-        if (!tag)
-            return this.getCommentFoldWidget(session, row);
-        if (tag.closing || (!tag.tagName && tag.selfClosing))
-            return foldStyle === "markbeginend" ? "end" : "";
-        if (!tag.tagName || tag.selfClosing || this.voidElements.hasOwnProperty(tag.tagName.toLowerCase()))
-            return "";
-        if (this._findEndTagInLine(session, row, tag.tagName, tag.end.column))
-            return "";
-        return "start";
-    };
-    this.getCommentFoldWidget = function (session, row) {
-        if (/comment/.test(session.getState(row)) && /<!-/.test(session.getLine(row)))
-            return "start";
-        return "";
-    };
-    this._getFirstTagInLine = function (session, row) {
-        var tokens = session.getTokens(row);
-        var tag = new Tag();
-        for (var i = 0; i < tokens.length; i++) {
-            var token = tokens[i];
-            if (is(token, "tag-open")) {
-                tag.end.column = tag.start.column + token.value.length;
-                tag.closing = is(token, "end-tag-open");
-                token = tokens[++i];
-                if (!token)
-                    return null;
-                tag.tagName = token.value;
-                if (token.value === "") { //skip empty tag name token for fragment
-                    token = tokens[++i];
-                    if (!token)
-                        return null;
-                    tag.tagName = token.value;
-                }
-                tag.end.column += token.value.length;
-                for (i++; i < tokens.length; i++) {
-                    token = tokens[i];
-                    tag.end.column += token.value.length;
-                    if (is(token, "tag-close")) {
-                        tag.selfClosing = token.value == '/>';
-                        break;
-                    }
-                }
-                return tag;
-            }
-            else if (is(token, "tag-close")) {
-                tag.selfClosing = token.value == '/>';
-                return tag;
-            }
-            tag.start.column += token.value.length;
-        }
-        return null;
-    };
-    this._findEndTagInLine = function (session, row, tagName, startColumn) {
-        var tokens = session.getTokens(row);
-        var column = 0;
-        for (var i = 0; i < tokens.length; i++) {
-            var token = tokens[i];
-            column += token.value.length;
-            if (column < startColumn - 1)
-                continue;
-            if (is(token, "end-tag-open")) {
-                token = tokens[i + 1];
-                if (is(token, "tag-name") && token.value === "") {
-                    token = tokens[i + 2];
-                }
-                if (token && token.value == tagName)
-                    return true;
-            }
-        }
-        return false;
-    };
-    this.getFoldWidgetRange = function (session, foldStyle, row) {
-        var tags = session.getMatchingTags({ row: row, column: 0 });
-        if (tags) {
-            return new Range(tags.openTag.end.row, tags.openTag.end.column, tags.closeTag.start.row, tags.closeTag.start.column);
-        }
-        else {
-            return this.getCommentFoldWidget(session, row)
-                && session.getCommentFoldRange(row, session.getLine(row).length);
-        }
-    };
-}).call(FoldMode.prototype);
 
 });
 
@@ -13589,21 +13594,6 @@ exports.Mode = Mode;
 
 });
 
-ace.define("ace/mode/folding/html",["require","exports","module","ace/lib/oop","ace/mode/folding/mixed","ace/mode/folding/xml","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
-var oop = require("../../lib/oop");
-var MixedFoldMode = require("./mixed").FoldMode;
-var XmlFoldMode = require("./xml").FoldMode;
-var CStyleFoldMode = require("./cstyle").FoldMode;
-var FoldMode = exports.FoldMode = function (voidElements, optionalTags) {
-    MixedFoldMode.call(this, new XmlFoldMode(voidElements, optionalTags), {
-        "js-": new CStyleFoldMode(),
-        "css-": new CStyleFoldMode()
-    });
-};
-oop.inherits(FoldMode, MixedFoldMode);
-
-});
-
 ace.define("ace/mode/html_completions",["require","exports","module","ace/token_iterator"], function(require, exports, module){"use strict";
 var TokenIterator = require("../token_iterator").TokenIterator;
 var commonAttributes = [
@@ -13963,7 +13953,7 @@ exports.Mode = Mode;
 
 });
 
-ace.define("ace/mode/php",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/php_highlight_rules","ace/mode/php_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/php_completions","ace/mode/folding/php","ace/unicode","ace/mode/html","ace/mode/javascript","ace/mode/css"], function(require, exports, module){"use strict";
+ace.define("ace/mode/php",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/php_highlight_rules","ace/mode/php_highlight_rules","ace/mode/matching_brace_outdent","ace/worker/worker_client","ace/mode/php_completions","ace/mode/folding/php","ace/unicode","ace/mode/folding/mixed","ace/mode/folding/html","ace/mode/folding/cstyle","ace/mode/html","ace/mode/javascript","ace/mode/css"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var PhpHighlightRules = require("./php_highlight_rules").PhpHighlightRules;
@@ -13973,6 +13963,9 @@ var WorkerClient = require("../worker/worker_client").WorkerClient;
 var PhpCompletions = require("./php_completions").PhpCompletions;
 var PhpFoldMode = require("./folding/php").FoldMode;
 var unicode = require("../unicode");
+var MixedFoldMode = require("./folding/mixed").FoldMode;
+var HtmlFoldMode = require("./folding/html").FoldMode;
+var CstyleFoldMode = require("./folding/cstyle").FoldMode;
 var HtmlMode = require("./html").Mode;
 var JavaScriptMode = require("./javascript").Mode;
 var CssMode = require("./css").Mode;
@@ -13981,7 +13974,11 @@ var PhpMode = function (opts) {
     this.$outdent = new MatchingBraceOutdent();
     this.$behaviour = this.$defaultBehaviour;
     this.$completer = new PhpCompletions();
-    this.foldingRules = new PhpFoldMode();
+    this.foldingRules = new MixedFoldMode(new HtmlFoldMode(), {
+        "js-": new CstyleFoldMode(),
+        "css-": new CstyleFoldMode(),
+        "php-": new PhpFoldMode()
+    });
 };
 oop.inherits(PhpMode, TextMode);
 (function () {
@@ -14042,7 +14039,11 @@ var Mode = function (opts) {
         "css-": CssMode,
         "php-": PhpMode
     });
-    this.foldingRules = new PhpFoldMode();
+    this.foldingRules = new MixedFoldMode(new HtmlFoldMode(), {
+        "js-": new CstyleFoldMode(),
+        "css-": new CstyleFoldMode(),
+        "php-": new PhpFoldMode()
+    });
 };
 oop.inherits(Mode, HtmlMode);
 (function () {
