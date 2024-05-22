@@ -1304,7 +1304,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.33.3";
+exports.version = "1.34.0";
 
 });
 
@@ -2115,7 +2115,12 @@ TextInput = function (parentNode, host) {
             text.setAttribute("aria-roledescription", nls("text-input.aria-roledescription", "editor"));
             if (host.session) {
                 var row = host.session.selection.cursor.row;
-                text.setAttribute("aria-label", nls("text-input.aria-label", "Cursor at row $0", [row + 1]));
+                var arialLabel = "";
+                if (host.$textInputAriaLabel) {
+                    arialLabel += "".concat(host.$textInputAriaLabel, ", ");
+                }
+                arialLabel += nls("text-input.aria-label", "Cursor at row $0", [row + 1]);
+                text.setAttribute("aria-label", arialLabel);
             }
         }
     };
@@ -15680,6 +15685,10 @@ config.defineOptions(Editor.prototype, "editor", {
             }
         },
         initialValue: false
+    },
+    textInputAriaLabel: {
+        set: function (val) { this.$textInputAriaLabel = val; },
+        initialValue: ""
     },
     customScrollbar: "renderer",
     hScrollBarAlwaysVisible: "renderer",

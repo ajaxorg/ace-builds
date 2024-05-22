@@ -236,6 +236,7 @@ export namespace Ace {
     relativeLineNumbers: boolean;
     enableMultiselect: boolean;
     enableKeyboardAccessibility: boolean;
+    textInputAriaLabel: string;
   }
 
   export interface SearchOptions {
