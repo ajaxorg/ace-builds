@@ -82,7 +82,7 @@ var JsDocCommentHighlightRules = function () {
             },
             JsDocCommentHighlightRules.getTagRule(),
             {
-                defaultToken: "comment.doc",
+                defaultToken: "comment.doc.body",
                 caseInsensitive: true
             }
         ],
@@ -106,7 +106,7 @@ JsDocCommentHighlightRules.getTagRule = function (start) {
 JsDocCommentHighlightRules.getStartRule = function (start) {
     return {
         token: "comment.doc", // doc comment
-        regex: "\\/\\*(?=\\*)",
+        regex: /\/\*\*(?!\/)/,
         next: start
     };
 };

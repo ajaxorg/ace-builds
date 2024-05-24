@@ -422,13 +422,13 @@ function is(token, type) {
         return false;
     };
     this.getFoldWidgetRange = function (session, foldStyle, row) {
+        var firstTag = this._getFirstTagInLine(session, row);
+        if (!firstTag) {
+            return this.getCommentFoldWidget(session, row) && session.getCommentFoldRange(row, session.getLine(row).length);
+        }
         var tags = session.getMatchingTags({ row: row, column: 0 });
         if (tags) {
             return new Range(tags.openTag.end.row, tags.openTag.end.column, tags.closeTag.start.row, tags.closeTag.start.column);
-        }
-        else {
-            return this.getCommentFoldWidget(session, row)
-                && session.getCommentFoldRange(row, session.getLine(row).length);
         }
     };
 }).call(FoldMode.prototype);
@@ -553,7 +553,7 @@ var JsDocCommentHighlightRules = function () {
             },
             JsDocCommentHighlightRules.getTagRule(),
             {
-                defaultToken: "comment.doc",
+                defaultToken: "comment.doc.body",
                 caseInsensitive: true
             }
         ],
@@ -577,7 +577,7 @@ JsDocCommentHighlightRules.getTagRule = function (start) {
 JsDocCommentHighlightRules.getStartRule = function (start) {
     return {
         token: "comment.doc", // doc comment
-        regex: "\\/\\*(?=\\*)",
+        regex: /\/\*\*(?!\/)/,
         next: start
     };
 };
