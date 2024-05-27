@@ -1304,7 +1304,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.34.1";
+exports.version = "1.34.2";
 
 });
 
@@ -18277,6 +18277,12 @@ var VirtualRenderer = /** @class */ (function () {
         var el = this.container;
         if (!height)
             height = el.clientHeight || el.scrollHeight;
+        if (!height && this.$maxLines && this.lineHeight > 1) {
+            if (!el.style.height || el.style.height == "0px") {
+                el.style.height = "1px";
+                height = el.clientHeight || el.scrollHeight;
+            }
+        }
         if (!width)
             width = el.clientWidth || el.scrollWidth;
         var changes = this.$updateCachedSize(force, gutterWidth, width, height);
