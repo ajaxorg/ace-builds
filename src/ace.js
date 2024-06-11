@@ -1068,10 +1068,12 @@ function warn(message) {
         console.warn.apply(console, arguments);
 }
 var messages;
+var nlsPlaceholders;
 var AppConfig = /** @class */ (function () {
     function AppConfig() {
         this.$defaultOptions = {};
         messages = defaultEnglishMessages;
+        nlsPlaceholders = "dollarSigns";
     }
     AppConfig.prototype.defineOptions = function (obj, path, options) {
         if (!obj.$options)
@@ -1116,8 +1118,11 @@ var AppConfig = /** @class */ (function () {
             this.setDefaultValue(path, key, optionHash[key]);
         }, this);
     };
-    AppConfig.prototype.setMessages = function (value) {
+    AppConfig.prototype.setMessages = function (value, options) {
         messages = value;
+        if (options && options.placeholders) {
+            nlsPlaceholders = options.placeholders;
+        }
     };
     AppConfig.prototype.nls = function (key, defaultString, params) {
         if (!messages[key]) {
@@ -1128,11 +1133,18 @@ var AppConfig = /** @class */ (function () {
         }
         var translated = messages[key] || messages[defaultString] || defaultString;
         if (params) {
-            translated = translated.replace(/\$(\$|[\d]+)/g, function (_, name) {
-                if (name == "$")
-                    return "$";
-                return params[name];
-            });
+            if (nlsPlaceholders === "dollarSigns") {
+                translated = translated.replace(/\$(\$|[\d]+)/g, function (_, dollarMatch) {
+                    if (dollarMatch == "$")
+                        return "$";
+                    return params[dollarMatch];
+                });
+            }
+            if (nlsPlaceholders === "curlyBrackets") {
+                translated = translated.replace(/\{([^\}]+)\}/g, function (_, curlyBracketMatch) {
+                    return params[curlyBracketMatch];
+                });
+            }
         }
         return translated;
     };
@@ -1304,7 +1316,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.34.2";
+exports.version = "1.35.0";
 
 });
 
