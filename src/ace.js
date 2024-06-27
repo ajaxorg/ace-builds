@@ -1316,7 +1316,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.35.0";
+exports.version = "1.35.1";
 
 });
 
@@ -3528,6 +3528,7 @@ var GutterTooltip = /** @class */ (function (_super) {
         configurable: true
     });
     GutterTooltip.prototype.showTooltip = function (row) {
+        var _a;
         var gutter = this.editor.renderer.$gutterLayer;
         var annotationsInRow = gutter.$annotations[row];
         var annotation;
@@ -3566,12 +3567,23 @@ var GutterTooltip = /** @class */ (function (_super) {
         var annotationMessages = { error: [], warning: [], info: [] };
         var iconClassName = gutter.$useSvgGutterIcons ? "ace_icon_svg" : "ace_icon";
         for (var i = 0; i < annotation.text.length; i++) {
-            var line = "<span class='ace_".concat(annotation.type[i], " ").concat(iconClassName, "' aria-label='").concat(GutterTooltip.annotationLabels[annotation.type[i].replace("_fold", "")].singular, "' role=img> </span> ").concat(annotation.text[i]);
-            annotationMessages[annotation.type[i].replace("_fold", "")].push(line);
+            var lineElement = dom.createElement("span");
+            var iconElement = dom.createElement("span");
+            (_a = iconElement.classList).add.apply(_a, ["ace_".concat(annotation.type[i]), iconClassName]);
+            iconElement.setAttribute("aria-label", "".concat(GutterTooltip.annotationLabels[annotation.type[i].replace("_fold", "")].singular));
+            iconElement.setAttribute("role", "img");
+            iconElement.appendChild(dom.createTextNode(" "));
+            lineElement.appendChild(iconElement);
+            lineElement.appendChild(dom.createTextNode("".concat(annotation.text[i])));
+            lineElement.appendChild(dom.createElement("br"));
+            annotationMessages[annotation.type[i].replace("_fold", "")].push(lineElement);
         }
-        var tooltipContent = [].concat(annotationMessages.error, annotationMessages.warning, annotationMessages.info).join("<br>");
-        this.setHtml(tooltipContent);
-        this.$element.setAttribute("aria-live", "polite");
+        var tooltipElement = this.getElement();
+        dom.removeChildren(tooltipElement);
+        annotationMessages.error.forEach(function (el) { return tooltipElement.appendChild(el); });
+        annotationMessages.warning.forEach(function (el) { return tooltipElement.appendChild(el); });
+        annotationMessages.info.forEach(function (el) { return tooltipElement.appendChild(el); });
+        tooltipElement.setAttribute("aria-live", "polite");
         if (!this.isOpen) {
             this.setTheme(this.editor.renderer.theme);
             this.setClassName("ace_gutter-tooltip");
@@ -4043,14 +4055,17 @@ exports.addTouchListeners = function (el, editor) {
             var selected = editor.getCopyText();
             var hasUndo = editor.session.getUndoManager().hasUndo();
             contextMenu.replaceChild(dom.buildDom(isOpen ? ["span",
-                !selected && ["span", { class: "ace_mobile-button", action: "selectall" }, "Select All"],
-                selected && ["span", { class: "ace_mobile-button", action: "copy" }, "Copy"],
-                selected && ["span", { class: "ace_mobile-button", action: "cut" }, "Cut"],
-                clipboard && ["span", { class: "ace_mobile-button", action: "paste" }, "Paste"],
-                hasUndo && ["span", { class: "ace_mobile-button", action: "undo" }, "Undo"],
-                ["span", { class: "ace_mobile-button", action: "find" }, "Find"],
-                ["span", { class: "ace_mobile-button", action: "openCommandPalette" }, "Palette"]
+                !selected && canExecuteCommand("selectall") && ["span", { class: "ace_mobile-button", action: "selectall" }, "Select All"],
+                selected && canExecuteCommand("copy") && ["span", { class: "ace_mobile-button", action: "copy" }, "Copy"],
+                selected && canExecuteCommand("cut") && ["span", { class: "ace_mobile-button", action: "cut" }, "Cut"],
+                clipboard && canExecuteCommand("paste") && ["span", { class: "ace_mobile-button", action: "paste" }, "Paste"],
+                hasUndo && canExecuteCommand("undo") && ["span", { class: "ace_mobile-button", action: "undo" }, "Undo"],
+                canExecuteCommand("find") && ["span", { class: "ace_mobile-button", action: "find" }, "Find"],
+                canExecuteCommand("openCommandPalette") && ["span", { class: "ace_mobile-button", action: "openCommandPalette" }, "Palette"]
             ] : ["span"]), contextMenu.firstChild);
+        };
+        var canExecuteCommand = function (/** @type {string} */ cmd) {
+            return editor.commands.canExecute(cmd, editor);
         };
         var handleClick = function (e) {
             var action = e.target.getAttribute("action");
@@ -4098,6 +4113,12 @@ exports.addTouchListeners = function (el, editor) {
         ], editor.container);
     }
     function showContextMenu() {
+        if (!editor.getOption("enableMobileMenu")) {
+            if (contextMenu) {
+                hideContextMenu();
+            }
+            return;
+        }
         if (!contextMenu)
             createContextMenu();
         var cursor = editor.selection.cursor;
@@ -6699,14 +6720,47 @@ CstyleBehaviour = function (options) {
         this.add("doc comment end", "insertion", function (state, action, editor, session, text) {
             if (state === "doc-start" && (text === "\n" || text === "\r\n") && editor.selection.isEmpty()) {
                 var cursor = editor.getCursorPosition();
+                if (cursor.column === 0) {
+                    return;
+                }
                 var line = session.doc.getLine(cursor.row);
                 var nextLine = session.doc.getLine(cursor.row + 1);
+                var tokens = session.getTokens(cursor.row);
+                var index = 0;
+                for (var i = 0; i < tokens.length; i++) {
+                    index += tokens[i].value.length;
+                    var currentToken = tokens[i];
+                    if (index >= cursor.column) {
+                        if (index === cursor.column) {
+                            if (!/\.doc/.test(currentToken.type)) {
+                                return;
+                            }
+                            if (/\*\//.test(currentToken.value)) {
+                                var nextToken = tokens[i + 1];
+                                if (!nextToken || !/\.doc/.test(nextToken.type)) {
+                                    return;
+                                }
+                            }
+                        }
+                        var cursorPosInToken = cursor.column - (index - currentToken.value.length);
+                        var closeDocPos = currentToken.value.indexOf("*/");
+                        var openDocPos = currentToken.value.indexOf("/**", closeDocPos > -1 ? closeDocPos + 2 : 0);
+                        if (openDocPos !== -1 && cursorPosInToken > openDocPos && cursorPosInToken < openDocPos + 3) {
+                            return;
+                        }
+                        if (closeDocPos !== -1 && openDocPos !== -1 && cursorPosInToken >= closeDocPos
+                            && cursorPosInToken <= openDocPos || !/\.doc/.test(currentToken.type)) {
+                            return;
+                        }
+                        break;
+                    }
+                }
                 var indent = this.$getIndent(line);
                 if (/\s*\*/.test(nextLine)) {
                     if (/^\s*\*/.test(line)) {
                         return {
                             text: text + indent + "* ",
-                            selection: [1, 3 + indent.length, 1, 3 + indent.length]
+                            selection: [1, 2 + indent.length, 1, 2 + indent.length]
                         };
                     }
                     else {
@@ -12102,16 +12156,24 @@ var CommandManager = /** @class */ (function (_super) {
         }
         if (typeof command === "string")
             command = this.commands[command];
+        if (!this.canExecute(command, editor)) {
+            return false;
+        }
+        var e = { editor: editor, command: command, args: args };
+        e.returnValue = this._emit("exec", e);
+        this._signal("afterExec", e);
+        return e.returnValue === false ? false : true;
+    };
+    CommandManager.prototype.canExecute = function (command, editor) {
+        if (typeof command === "string")
+            command = this.commands[command];
         if (!command)
             return false;
         if (editor && editor.$readOnly && !command.readOnly)
             return false;
         if (this.$checkCommandState != false && command.isAvailable && !command.isAvailable(editor))
             return false;
-        var e = { editor: editor, command: command, args: args };
-        e.returnValue = this._emit("exec", e);
-        this._signal("afterExec", e);
-        return e.returnValue === false ? false : true;
+        return true;
     };
     CommandManager.prototype.toggleRecording = function (editor) {
         if (this.$inReplay)
@@ -15703,6 +15765,10 @@ config.defineOptions(Editor.prototype, "editor", {
         set: function (val) { this.$textInputAriaLabel = val; },
         initialValue: ""
     },
+    enableMobileMenu: {
+        set: function (val) { this.$enableMobileMenu = val; },
+        initialValue: true
+    },
     customScrollbar: "renderer",
     hScrollBarAlwaysVisible: "renderer",
     vScrollBarAlwaysVisible: "renderer",
@@ -17884,7 +17950,7 @@ var FontMetrics = /** @class */ (function () {
     FontMetrics.prototype.$getZoom = function (element) {
         if (!element || !element.parentElement)
             return 1;
-        return (window.getComputedStyle(element)["zoom"] || 1) * this.$getZoom(element.parentElement);
+        return (Number(window.getComputedStyle(element)["zoom"]) || 1) * this.$getZoom(element.parentElement);
     };
     FontMetrics.prototype.$initTransformMeasureNodes = function () {
         var t = function (t, l) {
@@ -19147,12 +19213,17 @@ var VirtualRenderer = /** @class */ (function () {
                 column: insertPosition.column
             }
         };
+        var widgetDiv = dom.createElement("div");
         if (textChunks.length > 1) {
-            var divs = textChunks.slice(1).map(function (el) {
-                return "<div".concat(el.wrapped ? ' class="ghost_text_line_wrapped"' : "", ">").concat(el.text, "</div>");
+            textChunks.slice(1).forEach(function (el) {
+                var chunkDiv = dom.createElement("div");
+                if (el.wrapped)
+                    chunkDiv.className = "ghost_text_line_wrapped";
+                chunkDiv.appendChild(dom.createTextNode(el.text));
+                widgetDiv.appendChild(chunkDiv);
             });
             this.$ghostTextWidget = {
-                html: divs.join(""),
+                el: widgetDiv,
                 row: insertPosition.row,
                 column: insertPosition.column,
                 className: "ace_ghost_text"
@@ -19271,6 +19342,10 @@ var VirtualRenderer = /** @class */ (function () {
             }
             _self._dispatchEvent('themeLoaded', { theme: module });
             cb && cb();
+            if (useragent.isSafari && _self.scroller) {
+                _self.scroller.style.background = "red";
+                _self.scroller.style.background = "";
+            }
         }
     };
     VirtualRenderer.prototype.getTheme = function () {

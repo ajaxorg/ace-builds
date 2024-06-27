@@ -236,6 +236,7 @@ ace.config.setModuleLoader('ace/theme/dreamweaver', () => import('./src-noconfli
 ace.config.setModuleLoader('ace/theme/eclipse', () => import('./src-noconflict/theme-eclipse.js'));
 ace.config.setModuleLoader('ace/theme/github', () => import('./src-noconflict/theme-github.js'));
 ace.config.setModuleLoader('ace/theme/github_dark', () => import('./src-noconflict/theme-github_dark.js'));
+ace.config.setModuleLoader('ace/theme/github_light_default', () => import('./src-noconflict/theme-github_light_default.js'));
 ace.config.setModuleLoader('ace/theme/gob', () => import('./src-noconflict/theme-gob.js'));
 ace.config.setModuleLoader('ace/theme/gruvbox', () => import('./src-noconflict/theme-gruvbox.js'));
 ace.config.setModuleLoader('ace/theme/gruvbox_dark_hard', () => import('./src-noconflict/theme-gruvbox_dark_hard.js'));

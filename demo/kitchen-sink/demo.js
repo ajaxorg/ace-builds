@@ -3793,7 +3793,8 @@ var themeData = [
     ["Dawn"],
     ["Dreamweaver"],
     ["Eclipse"],
-    ["GitHub"],
+    ["GitHub Light Default"],
+    ["GitHub (Legacy)", "github", "light"],
     ["IPlastic"],
     ["Solarized Light"],
     ["TextMate"],
@@ -8373,89 +8374,6 @@ function loadLanguageProvider(editor) {
         });
         window.languageProvider = languageProvider;
         languageProvider.registerEditor(editor);
-        if (languageProvider.$hoverTooltip)
-            editor.off("mousemove", languageProvider.$hoverTooltip.onMouseMove);
-        languageProvider.$messageController.$worker.addEventListener("message", function(e) {
-            var id = e.data.sessionId.split(".")[0];
-            var session = languageProvider.$getSessionLanguageProvider({id: id})?.session;
-            if (e.data.type == 6) {
-                e.stopPropagation();
-                if (session) {
-                    showAnnotations(session, e.data.value);
-                }
-            } else if (e.data.type == 14) {
-                if (session) showOccurrenceMarkers(session, e.data.value);
-            }
-        }, true);
-        function showOccurrenceMarkers(session, positions) {
-            if (!session.state.occurrenceMarkers) {
-                session.state.occurrenceMarkers = new MarkerGroup(session);
-            }
-            session.state.occurrenceMarkers.setMarkers(positions.map(function(el) {
-                var r = el.range;
-                return {
-                    range: new Range(r.start.line, r.start.character, r.end.line, r.end.character),
-                    className: el.kind == 2
-                        ? "language_highlight_read"
-                        : el.kind == 3
-                        ? "language_highlight_write"
-                        : "language_highlight_text"
-                };
-            }));
-        }
-        function showAnnotations(session, diagnostics) {
-            session.clearAnnotations();
-            let annotations = diagnostics.map((el) => {
-                return {
-                    row: el.range.start.line,
-                    column: el.range.start.character,
-                    text: el.message,
-                    type: el.severity === 1 ? "error" : el.severity === 2 ? "warning" : "info"
-                };
-            });
-            if (annotations && annotations.length > 0) {
-                session.setAnnotations(annotations);
-            }
-            
-            if (!session.state) session.state = {}
-            if (!session.state.diagnosticMarkers) {
-                session.state.diagnosticMarkers = new MarkerGroup(session);
-            }
-            session.state.diagnosticMarkers.setMarkers(diagnostics.map(function(el) {
-                var r = el.range;
-                return {
-                    range: new Range(r.start.line, r.start.character, r.end.line, r.end.character),
-                    tooltipText: el.message,
-                    className:  "language_highlight_error"
-                };
-            }));
-        };
-        
-        docTooltip.setDataProvider(function(e, editor) {
-            let session = editor.session;
-            let docPos = e.getDocumentPosition();
-
-            languageProvider.doHover(session, docPos, function(hover) {
-                var errorMarker = session.state?.diagnosticMarkers.getMarkerAtPosition(docPos);
-
-                if (!errorMarker && !hover?.content) return;
-
-                var range = hover?.range || errorMarker?.range;
-                range = range ? Range.fromPoints(range.start, range.end) : session.getWordRange(docPos.row, docPos.column);
-                var hoverNode = hover && dom.buildDom(["div", {}]);
-                if (hoverNode) {
-                    hoverNode.innerHTML = languageProvider.getTooltipText(hover);
-                };
-                
-                var domNode = dom.buildDom(["div", {},
-                    errorMarker && ["div", {}, errorMarker.tooltipText.trim()],
-                    hoverNode
-                ]);
-                docTooltip.showForRange(editor, range, domNode, e);
-            });
-        });
-        
-        docTooltip.addToEditor(editor)
     });
 }
 

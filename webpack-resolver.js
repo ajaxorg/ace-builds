@@ -238,6 +238,7 @@ ace.config.setModuleUrl('ace/theme/dreamweaver', require('file-loader?esModule=f
 ace.config.setModuleUrl('ace/theme/eclipse', require('file-loader?esModule=false!./src-noconflict/theme-eclipse.js'));
 ace.config.setModuleUrl('ace/theme/github', require('file-loader?esModule=false!./src-noconflict/theme-github.js'));
 ace.config.setModuleUrl('ace/theme/github_dark', require('file-loader?esModule=false!./src-noconflict/theme-github_dark.js'));
+ace.config.setModuleUrl('ace/theme/github_light_default', require('file-loader?esModule=false!./src-noconflict/theme-github_light_default.js'));
 ace.config.setModuleUrl('ace/theme/gob', require('file-loader?esModule=false!./src-noconflict/theme-gob.js'));
 ace.config.setModuleUrl('ace/theme/gruvbox', require('file-loader?esModule=false!./src-noconflict/theme-gruvbox.js'));
 ace.config.setModuleUrl('ace/theme/gruvbox_dark_hard', require('file-loader?esModule=false!./src-noconflict/theme-gruvbox_dark_hard.js'));
