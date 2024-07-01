@@ -1316,7 +1316,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.35.1";
+exports.version = "1.35.2";
 
 });
 
@@ -3356,7 +3356,7 @@ exports.HoverTooltip = HoverTooltip;
 
 });
 
-ace.define("ace/mouse/default_gutter_handler",["require","exports","module","ace/lib/dom","ace/lib/event","ace/tooltip","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/mouse/default_gutter_handler",["require","exports","module","ace/lib/dom","ace/lib/event","ace/tooltip","ace/config","ace/lib/lang"], function(require, exports, module){"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -3387,6 +3387,7 @@ var dom = require("../lib/dom");
 var event = require("../lib/event");
 var Tooltip = require("../tooltip").Tooltip;
 var nls = require("../config").nls;
+var lang = require("../lib/lang");
 function GutterHandler(mouseHandler) {
     var editor = mouseHandler.editor;
     var gutter = editor.renderer.$gutterLayer;
@@ -3533,9 +3534,9 @@ var GutterTooltip = /** @class */ (function (_super) {
         var annotationsInRow = gutter.$annotations[row];
         var annotation;
         if (annotationsInRow)
-            annotation = { text: Array.from(annotationsInRow.text), type: Array.from(annotationsInRow.type) };
+            annotation = { displayText: Array.from(annotationsInRow.displayText), type: Array.from(annotationsInRow.type) };
         else
-            annotation = { text: [], type: [] };
+            annotation = { displayText: [], type: [] };
         var fold = gutter.session.getFoldLine(row);
         if (fold && gutter.$showFoldedAnnotations) {
             var annotationsInFold = { error: [], warning: [], info: [] };
@@ -3558,15 +3559,15 @@ var GutterTooltip = /** @class */ (function (_super) {
             }
             if (mostSevereAnnotationInFoldType === "error_fold" || mostSevereAnnotationInFoldType === "warning_fold") {
                 var summaryFoldedAnnotations = "".concat(GutterTooltip.annotationsToSummaryString(annotationsInFold), " in folded code.");
-                annotation.text.push(summaryFoldedAnnotations);
+                annotation.displayText.push(summaryFoldedAnnotations);
                 annotation.type.push(mostSevereAnnotationInFoldType);
             }
         }
-        if (annotation.text.length === 0)
+        if (annotation.displayText.length === 0)
             return this.hide();
         var annotationMessages = { error: [], warning: [], info: [] };
         var iconClassName = gutter.$useSvgGutterIcons ? "ace_icon_svg" : "ace_icon";
-        for (var i = 0; i < annotation.text.length; i++) {
+        for (var i = 0; i < annotation.displayText.length; i++) {
             var lineElement = dom.createElement("span");
             var iconElement = dom.createElement("span");
             (_a = iconElement.classList).add.apply(_a, ["ace_".concat(annotation.type[i]), iconClassName]);
@@ -3574,7 +3575,7 @@ var GutterTooltip = /** @class */ (function (_super) {
             iconElement.setAttribute("role", "img");
             iconElement.appendChild(dom.createTextNode(" "));
             lineElement.appendChild(iconElement);
-            lineElement.appendChild(dom.createTextNode("".concat(annotation.text[i])));
+            lineElement.appendChild(dom.createTextNode(annotation.displayText[i]));
             lineElement.appendChild(dom.createElement("br"));
             annotationMessages[annotation.type[i].replace("_fold", "")].push(lineElement);
         }
@@ -15986,13 +15987,16 @@ var Gutter = /** @class */ (function () {
             var row = annotation.row;
             var rowInfo = this.$annotations[row];
             if (!rowInfo)
-                rowInfo = this.$annotations[row] = { text: [], type: [] };
+                rowInfo = this.$annotations[row] = { text: [], type: [], displayText: [] };
             var annoText = annotation.text;
+            var displayAnnoText = annotation.text;
             var annoType = annotation.type;
             annoText = annoText ? lang.escapeHTML(annoText) : annotation.html || "";
+            displayAnnoText = displayAnnoText ? displayAnnoText : annotation.html || "";
             if (rowInfo.text.indexOf(annoText) === -1) {
                 rowInfo.text.push(annoText);
                 rowInfo.type.push(annoType);
+                rowInfo.displayText.push(displayAnnoText);
             }
             var className = annotation.className;
             if (className)
