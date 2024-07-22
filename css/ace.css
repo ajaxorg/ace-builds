@@ -602,7 +602,7 @@ z-index: 1;
 opacity: 0.5;
 font-style: italic;
 }
-.ace_ghost_text > div {
+.ace_ghost_text_container > div {
 white-space: pre;
 }
 .ghost_text_line_wrapped::after {
@@ -619,6 +619,9 @@ top:auto;
 width:1px;
 height:1px;
 overflow:hidden;
+}
+.ace_hidden_token {
+display: none;
 }
 /*ace-tm*/
 .ace-tm .ace_gutter {
