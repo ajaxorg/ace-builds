@@ -3474,7 +3474,9 @@ exports.TokenTooltip = TokenTooltip;
 
 define("ace/marker_group",["require","exports","module"], function(require, exports, module){"use strict";
 var MarkerGroup = /** @class */ (function () {
-    function MarkerGroup(session) {
+    function MarkerGroup(session, options) {
+        if (options)
+            this.markerType = options.markerType;
         this.markers = [];
         this.session = session;
         session.addDynamicMarker(this);
@@ -3527,11 +3529,17 @@ var MarkerGroup = /** @class */ (function () {
                 }
                 continue;
             }
-            if (screenRange.isMultiLine()) {
-                markerLayer.drawTextMarker(html, screenRange, marker.className, config);
+            if (this.markerType === "fullLine") {
+                markerLayer.drawFullLineMarker(html, screenRange, marker.className, config);
+            }
+            else if (screenRange.isMultiLine()) {
+                if (this.markerType === "line")
+                    markerLayer.drawMultiLineMarker(html, screenRange, marker.className, config);
+                else
+                    markerLayer.drawTextMarker(html, screenRange, marker.className, config);
             }
             else {
-                markerLayer.drawSingleLineMarker(html, screenRange, marker.className, config);
+                markerLayer.drawSingleLineMarker(html, screenRange, marker.className + " ace_br15", config);
             }
         }
     };
