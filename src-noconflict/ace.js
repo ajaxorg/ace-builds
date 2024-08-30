@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.36.1";
+exports.version = "1.36.2";
 
 });
 
@@ -16551,7 +16551,7 @@ var Marker = /** @class */ (function () {
             this.drawBidiSingleLineMarker(stringBuilder, range1, clazz + " ace_br1 ace_start", config, null, extraStyle);
         }
         else {
-            this.elt(clazz + " ace_br1 ace_start", "height:" + height + "px;" + "right:0;" + "top:" + top + "px;left:" + left + "px;" + (extraStyle || ""));
+            this.elt(clazz + " ace_br1 ace_start", "height:" + height + "px;" + "right:" + padding + "px;" + "top:" + top + "px;left:" + left + "px;" + (extraStyle || ""));
         }
         if (this.session.$bidiHandler.isBidiRow(range.end.row)) {
             var range1 = range.clone();
@@ -16573,7 +16573,7 @@ var Marker = /** @class */ (function () {
         top = this.$getTop(range.start.row + 1, config);
         var radiusClass = (range.start.column ? 1 : 0) | (range.end.column ? 0 : 8);
         this.elt(clazz + (radiusClass ? " ace_br" + radiusClass : ""), "height:" + height + "px;" +
-            "right:0;" +
+            "right:" + padding + "px;" +
             "top:" + top + "px;" +
             "left:" + padding + "px;" + (extraStyle || ""));
     };
