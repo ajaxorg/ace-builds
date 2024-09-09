@@ -1343,9 +1343,6 @@ var JinjaHighlightRules = function () {
                 ],
                 regex: /(\.)([a-zA-Z_][a-zA-Z0-9_]*)/
             }, {
-                token: "variable.other.jinja",
-                regex: /[a-zA-Z_][a-zA-Z0-9_]*/
-            }, {
                 token: "punctuation.other.jinja",
                 regex: /\[/,
                 push: [{
