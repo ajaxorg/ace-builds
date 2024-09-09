@@ -1,4 +1,4 @@
-ace.define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/doc_comment_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var DocCommentHighlightRules = function () {
@@ -39,7 +39,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
 });
 
-ace.define("ace/mode/sac_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/sac_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -205,7 +205,7 @@ exports.sacHighlightRules = sacHighlightRules;
 
 });
 
-ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/cstyle",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
@@ -321,7 +321,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/sac",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/sac_highlight_rules","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+ace.define("ace/mode/sac",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var SaCHighlightRules = require("./sac_highlight_rules").sacHighlightRules;

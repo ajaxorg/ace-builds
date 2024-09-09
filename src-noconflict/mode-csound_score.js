@@ -1,4 +1,4 @@
-ace.define("ace/mode/csound_preprocessor_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/csound_preprocessor_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var CsoundPreprocessorHighlightRules = function (embeddedRulePrefix) {
@@ -255,7 +255,7 @@ exports.CsoundPreprocessorHighlightRules = CsoundPreprocessorHighlightRules;
 
 });
 
-ace.define("ace/mode/csound_score_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/csound_preprocessor_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/csound_score_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var CsoundPreprocessorHighlightRules = require("./csound_preprocessor_highlight_rules").CsoundPreprocessorHighlightRules;
 var CsoundScoreHighlightRules = function (embeddedRulePrefix) {
@@ -384,7 +384,7 @@ exports.CsoundScoreHighlightRules = CsoundScoreHighlightRules;
 
 });
 
-ace.define("ace/mode/csound_score",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/csound_score_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/csound_score",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var CsoundScoreHighlightRules = require("./csound_score_highlight_rules").CsoundScoreHighlightRules;

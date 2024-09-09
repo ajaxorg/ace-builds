@@ -1,4 +1,4 @@
-ace.define("ace/mode/mixal_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/mixal_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var MixalHighlightRules = function () {
@@ -86,7 +86,7 @@ exports.MixalHighlightRules = MixalHighlightRules;
 
 });
 
-ace.define("ace/mode/mixal",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/mixal_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/mixal",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var MixalHighlightRules = require("./mixal_highlight_rules").MixalHighlightRules;

@@ -1,4 +1,4 @@
-ace.define("ace/mode/mediawiki_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/mediawiki_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var MediaWikiHighlightRules = function () {
@@ -555,7 +555,7 @@ exports.MediaWikiHighlightRules = MediaWikiHighlightRules;
 
 });
 
-ace.define("ace/mode/mediawiki",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/mediawiki_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/mediawiki",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var MediaWikiHighlightRules = require("./mediawiki_highlight_rules").MediaWikiHighlightRules;

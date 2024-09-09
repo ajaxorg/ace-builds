@@ -1,4 +1,4 @@
-ace.define("ace/ext/linking",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){var Editor = require("../editor").Editor;
+ace.define("ace/ext/linking",[], function(require, exports, module){var Editor = require("../editor").Editor;
 require("../config").defineOptions(Editor.prototype, "editor", {
     enableLinking: {
         set: function (val) {

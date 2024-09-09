@@ -1,4 +1,4 @@
-ace.define("ace/ext/code_lens",["require","exports","module","ace/line_widgets","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/code_lens",[], function(require, exports, module){"use strict";
 var LineWidgets = require("../line_widgets").LineWidgets;
 var event = require("../lib/event");
 var lang = require("../lib/lang");

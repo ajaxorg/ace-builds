@@ -1,4 +1,4 @@
-ace.define("ace/mode/lsl_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/lsl_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 oop.inherits(LSLHighlightRules, TextHighlightRules);
@@ -86,7 +86,7 @@ exports.LSLHighlightRules = LSLHighlightRules;
 
 });
 
-ace.define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module){"use strict";
+ace.define("ace/mode/matching_brace_outdent",[], function(require, exports, module){"use strict";
 var Range = require("../range").Range;
 var MatchingBraceOutdent = function () { };
 (function () {
@@ -115,7 +115,7 @@ exports.MatchingBraceOutdent = MatchingBraceOutdent;
 
 });
 
-ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/cstyle",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
@@ -231,7 +231,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/lsl",["require","exports","module","ace/mode/lsl_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/text","ace/mode/folding/cstyle","ace/lib/oop"], function(require, exports, module){"use strict";
+ace.define("ace/mode/lsl",[], function(require, exports, module){"use strict";
 var Rules = require("./lsl_highlight_rules").LSLHighlightRules;
 var Outdent = require("./matching_brace_outdent").MatchingBraceOutdent;
 var TextMode = require("./text").Mode;

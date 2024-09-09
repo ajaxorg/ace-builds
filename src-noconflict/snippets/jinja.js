@@ -1,0 +1,12 @@
+ace.define("ace/snippets/jinja",[], function(require, exports, module) {"use strict";
+
+exports.snippetText =undefined;
+exports.scope = "";
+});                (function() {
+                    ace.require(["ace/snippets/jinja"], function(m) {
+                        if (typeof module == "object" && typeof exports == "object" && module) {
+                            module.exports = m;
+                        }
+                    });
+                })();
+            

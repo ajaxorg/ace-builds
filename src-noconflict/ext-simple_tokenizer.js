@@ -1,4 +1,4 @@
-ace.define("ace/ext/simple_tokenizer",["require","exports","module","ace/tokenizer","ace/layer/text_util"], function(require, exports, module){"use strict";
+ace.define("ace/ext/simple_tokenizer",[], function(require, exports, module){"use strict";
 var Tokenizer = require("../tokenizer").Tokenizer;
 var isTextToken = require("../layer/text_util").isTextToken;
 var SimpleTokenizer = /** @class */ (function () {

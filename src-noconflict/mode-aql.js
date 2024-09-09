@@ -1,4 +1,4 @@
-ace.define("ace/mode/aql_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/aql_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var AqlHighlightRules = function () {
@@ -67,7 +67,7 @@ exports.AqlHighlightRules = AqlHighlightRules;
 
 });
 
-ace.define("ace/mode/aql",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/aql_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/aql",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var AqlHighlightRules = require("./aql_highlight_rules").AqlHighlightRules;

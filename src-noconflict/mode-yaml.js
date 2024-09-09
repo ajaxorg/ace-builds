@@ -1,4 +1,4 @@
-ace.define("ace/mode/yaml_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/yaml_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var YamlHighlightRules = function () {
@@ -140,7 +140,7 @@ exports.YamlHighlightRules = YamlHighlightRules;
 
 });
 
-ace.define("ace/mode/matching_brace_outdent",["require","exports","module","ace/range"], function(require, exports, module){"use strict";
+ace.define("ace/mode/matching_brace_outdent",[], function(require, exports, module){"use strict";
 var Range = require("../range").Range;
 var MatchingBraceOutdent = function () { };
 (function () {
@@ -169,7 +169,7 @@ exports.MatchingBraceOutdent = MatchingBraceOutdent;
 
 });
 
-ace.define("ace/mode/folding/coffee",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode","ace/range"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/coffee",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
 var Range = require("../../range").Range;
@@ -246,7 +246,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/folding/yaml",["require","exports","module","ace/lib/oop","ace/mode/folding/coffee","ace/range"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/yaml",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var CoffeeFoldMode = require("./coffee").FoldMode;
 var Range = require("../../range").Range;
@@ -338,7 +338,7 @@ oop.inherits(FoldMode, CoffeeFoldMode);
 
 });
 
-ace.define("ace/mode/yaml",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/yaml_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/folding/yaml","ace/worker/worker_client"], function(require, exports, module){"use strict";
+ace.define("ace/mode/yaml",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var YamlHighlightRules = require("./yaml_highlight_rules").YamlHighlightRules;

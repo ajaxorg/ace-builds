@@ -1,4 +1,4 @@
-ace.define("ace/mode/gherkin_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){var oop = require("../lib/oop");
+ace.define("ace/mode/gherkin_highlight_rules",[], function(require, exports, module){var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var stringEscape = "\\\\(x[0-9A-Fa-f]{2}|[0-7]{3}|[\\\\abfnrtv'\"]|U[0-9A-Fa-f]{8}|u[0-9A-Fa-f]{4})";
 var GherkinHighlightRules = function () {
@@ -106,7 +106,7 @@ exports.GherkinHighlightRules = GherkinHighlightRules;
 
 });
 
-ace.define("ace/mode/gherkin",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/gherkin_highlight_rules"], function(require, exports, module){var oop = require("../lib/oop");
+ace.define("ace/mode/gherkin",[], function(require, exports, module){var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var GherkinHighlightRules = require("./gherkin_highlight_rules").GherkinHighlightRules;
 var Mode = function () {

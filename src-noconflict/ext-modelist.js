@@ -1,4 +1,4 @@
-ace.define("ace/ext/modelist",["require","exports","module"], function(require, exports, module){"use strict";
+ace.define("ace/ext/modelist",[], function(require, exports, module){"use strict";
 var modes = [];
 function getModeForPath(path) {
     var mode = modesByName.text;
@@ -109,6 +109,7 @@ var supportedModes = {
     Java: ["java"],
     JavaScript: ["js|jsm|cjs|mjs"],
     JEXL: ["jexl"],
+    jinja: [""],
     JSON: ["json"],
     JSON5: ["json5"],
     JSONiq: ["jq"],

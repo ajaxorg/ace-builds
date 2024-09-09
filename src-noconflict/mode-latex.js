@@ -1,4 +1,4 @@
-ace.define("ace/mode/latex_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/latex_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var LatexHighlightRules = function () {
@@ -87,7 +87,7 @@ exports.LatexHighlightRules = LatexHighlightRules;
 
 });
 
-ace.define("ace/mode/folding/latex",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode","ace/range","ace/token_iterator"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/latex",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
 var Range = require("../../range").Range;
@@ -209,7 +209,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/latex",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/latex_highlight_rules","ace/mode/behaviour/cstyle","ace/mode/folding/latex"], function(require, exports, module){"use strict";
+ace.define("ace/mode/latex",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var LatexHighlightRules = require("./latex_highlight_rules").LatexHighlightRules;

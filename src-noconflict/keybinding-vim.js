@@ -1,4 +1,4 @@
-ace.define("ace/ext/hardwrap",["require","exports","module","ace/range","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/hardwrap",[], function(require, exports, module){"use strict";
 var Range = require("../range").Range;
 function hardWrap(editor, options) {
     var max = options.column || editor.getOption("printMarginColumn");
@@ -108,7 +108,7 @@ exports.hardWrap = hardWrap;
 
 });
 
-ace.define("ace/keyboard/vim",["require","exports","module","ace/range","ace/lib/event_emitter","ace/lib/dom","ace/lib/oop","ace/lib/keys","ace/lib/event","ace/search","ace/lib/useragent","ace/search_highlight","ace/commands/multi_select_commands","ace/mode/text","ace/ext/hardwrap","ace/multi_select"], function(require, exports, module){// CodeMirror, copyright (c) by Marijn Haverbeke and others
+ace.define("ace/keyboard/vim",[], function(require, exports, module){// CodeMirror, copyright (c) by Marijn Haverbeke and others
 'use strict';
 function log() {
     var d = "";

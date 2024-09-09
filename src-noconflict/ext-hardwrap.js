@@ -1,4 +1,4 @@
-ace.define("ace/ext/hardwrap",["require","exports","module","ace/range","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/hardwrap",[], function(require, exports, module){"use strict";
 var Range = require("../range").Range;
 function hardWrap(editor, options) {
     var max = options.column || editor.getOption("printMarginColumn");

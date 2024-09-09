@@ -1,4 +1,4 @@
-ace.define("ace/ext/textarea",["require","exports","module","ace/lib/event","ace/lib/useragent","ace/ace"], function(require, exports, module){"use strict";
+ace.define("ace/ext/textarea",[], function(require, exports, module){"use strict";
 var event = require("../lib/event");
 var UA = require("../lib/useragent");
 var ace = require("../ace");

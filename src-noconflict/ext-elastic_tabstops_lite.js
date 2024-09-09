@@ -1,4 +1,4 @@
-ace.define("ace/ext/elastic_tabstops_lite",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/elastic_tabstops_lite",[], function(require, exports, module){"use strict";
 var ElasticTabstopsLite = /** @class */ (function () {
     function ElasticTabstopsLite(editor) {
         this.$editor = editor;

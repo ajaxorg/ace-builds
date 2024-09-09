@@ -1,4 +1,4 @@
-ace.define("ace/mode/rst_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/rst_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -220,7 +220,7 @@ exports.RSTHighlightRules = RSTHighlightRules;
 
 });
 
-ace.define("ace/mode/rst",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/rst_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/rst",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var RSTHighlightRules = require("./rst_highlight_rules").RSTHighlightRules;

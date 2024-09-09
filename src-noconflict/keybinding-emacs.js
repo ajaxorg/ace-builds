@@ -1,4 +1,4 @@
-ace.define("ace/occur",["require","exports","module","ace/lib/oop","ace/search","ace/edit_session","ace/search_highlight","ace/lib/dom"], function(require, exports, module){"use strict";
+ace.define("ace/occur",[], function(require, exports, module){"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -112,7 +112,7 @@ exports.Occur = Occur;
 
 });
 
-ace.define("ace/commands/occur_commands",["require","exports","module","ace/config","ace/occur","ace/keyboard/hash_handler","ace/lib/oop"], function(require, exports, module){var config = require("../config"), Occur = require("../occur").Occur;
+ace.define("ace/commands/occur_commands",[], function(require, exports, module){var config = require("../config"), Occur = require("../occur").Occur;
 var occurStartCommand = {
     name: "occur",
     exec: function (editor, options) {
@@ -179,7 +179,7 @@ exports.occurStartCommand = occurStartCommand;
 
 });
 
-ace.define("ace/commands/incremental_search_commands",["require","exports","module","ace/config","ace/lib/oop","ace/keyboard/hash_handler","ace/commands/occur_commands"], function(require, exports, module){var config = require("../config");
+ace.define("ace/commands/incremental_search_commands",[], function(require, exports, module){var config = require("../config");
 var oop = require("../lib/oop");
 var HashHandler = require("../keyboard/hash_handler").HashHandler;
 var occurStartCommand = require("./occur_commands").occurStartCommand;
@@ -351,7 +351,7 @@ exports.IncrementalSearchKeyboardHandler = IncrementalSearchKeyboardHandler;
 
 });
 
-ace.define("ace/incremental_search",["require","exports","module","ace/range","ace/search","ace/search_highlight","ace/commands/incremental_search_commands","ace/lib/dom","ace/commands/command_manager","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/incremental_search",[], function(require, exports, module){"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -562,7 +562,7 @@ require("./config").defineOptions(Editor.prototype, "editor", {
 
 });
 
-ace.define("ace/keyboard/emacs",["require","exports","module","ace/lib/dom","ace/incremental_search","ace/commands/incremental_search_commands","ace/keyboard/hash_handler","ace/lib/keys"], function(require, exports, module){"use strict";
+ace.define("ace/keyboard/emacs",[], function(require, exports, module){"use strict";
 var dom = require("../lib/dom");
 require("../incremental_search");
 var iSearchCommandModule = require("../commands/incremental_search_commands");

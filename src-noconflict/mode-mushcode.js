@@ -1,4 +1,4 @@
-ace.define("ace/mode/mushcode_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){/*
+ace.define("ace/mode/mushcode_highlight_rules",[], function(require, exports, module){/*
  * MUSHCodeMode
  */
 "use strict";
@@ -550,7 +550,7 @@ exports.MushCodeRules = MushCodeRules;
 
 });
 
-ace.define("ace/mode/folding/pythonic",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/pythonic",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
 var FoldMode = exports.FoldMode = function (markers) {
@@ -573,7 +573,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/mushcode",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/mushcode_highlight_rules","ace/mode/folding/pythonic","ace/range"], function(require, exports, module){"use strict";
+ace.define("ace/mode/mushcode",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var MushCodeRules = require("./mushcode_highlight_rules").MushCodeRules;

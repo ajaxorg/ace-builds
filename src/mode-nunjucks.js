@@ -2331,6 +2331,81 @@ exports.Mode = Mode;
 
 });
 
+define("ace/mode/nunjucks_completions",["require","exports","module","ace/token_iterator"], function(require, exports, module){"use strict";
+var TokenIterator = require("../token_iterator").TokenIterator;
+var nunjucksKeywords = [
+    "if", "else", "elif", "endif", "for", "endfor", "in", "is", "not",
+    "block", "endblock", "extends", "include", "import", "from", "as",
+    "macro", "endmacro", "call", "endcall", "filter", "endfilter",
+    "set", "raw", "endraw", "trans", "endtrans", "with", "endwith"
+];
+var nunjucksFilters = [
+    "abs", "batch", "capitalize", "center", "default", "dictsort",
+    "escape", "first", "float", "forceescape", "format", "groupby",
+    "indent", "int", "join", "last", "length", "list", "lower",
+    "map", "max", "min", "pprint", "random", "rejectattr", "replace",
+    "reverse", "round", "safe", "selectattr", "slice", "sort", "string",
+    "striptags", "sum", "title", "trim", "truncate", "upper", "urlencode",
+    "urlize", "wordcount"
+];
+var NunjucksCompletions = function () {
+};
+(function () {
+    this.getCompletions = function (state, session, pos, prefix) {
+        var token = session.getTokenAt(pos.row, pos.column);
+        if (!token)
+            return [];
+        if (this.isNunjucksKeyword(token)) {
+            return this.getKeywordCompletions(state, session, pos, prefix);
+        }
+        if (this.isNunjucksFilter(token)) {
+            return this.getFilterCompletions(state, session, pos, prefix);
+        }
+        if (this.isNunjucksVariable(token)) {
+            return this.getVariableCompletions(state, session, pos, prefix);
+        }
+        return [];
+    };
+    this.isNunjucksKeyword = function (token) {
+        return token.type === "keyword.control";
+    };
+    this.isNunjucksFilter = function (token) {
+        return token.type === "keyword" && token.value === "|";
+    };
+    this.isNunjucksVariable = function (token) {
+        return token.type === "variable";
+    };
+    this.getKeywordCompletions = function (state, session, pos, prefix) {
+        return nunjucksKeywords.map(function (keyword) {
+            return {
+                caption: keyword,
+                snippet: keyword,
+                meta: "keyword",
+                score: 1000000
+            };
+        });
+    };
+    this.getFilterCompletions = function (state, session, pos, prefix) {
+        return nunjucksFilters.map(function (filter) {
+            return {
+                caption: filter,
+                snippet: filter + "($0)",
+                meta: "filter",
+                score: 1000000
+            };
+        });
+    };
+    this.getVariableCompletions = function (state, session, pos, prefix) {
+        return [
+            { caption: "loop", snippet: "loop", meta: "Nunjucks loop object", score: 1000000 },
+            { caption: "super", snippet: "super()", meta: "Nunjucks super function", score: 1000000 }
+        ];
+    };
+}).call(NunjucksCompletions.prototype);
+exports.NunjucksCompletions = NunjucksCompletions;
+
+});
+
 define("ace/mode/nunjucks_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules","ace/mode/html_highlight_rules"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -2413,10 +2488,14 @@ var NunjucksHighlightRules = function () {
             }],
         "statement": [{
                 token: "keyword.control",
-                regex: /\b(block|endblock|extends|endif|elif|for|endfor|asyncEach|endeach|include|asyncAll|endall|macro|endmacro|set|endset|ignore missing|as|from|raw|verbatim|filter|endfilter)\b/
-            },
-            { include: "expression" }
-        ],
+                regex: /\b(block|endblock|extends|endif|elif|for|endfor|asyncEach|endeach|include|asyncAll|endall|macro|endmacro|set|endset|ignore missing|as|from|raw|verbatim|filter|endfilter)\b/,
+                next: [
+                    { include: "expression" }
+                ]
+            }, {
+                token: "keyword.control",
+                regex: /\b\w+\b/,
+            }],
         "expression": [{
                 token: "constant.language",
                 regex: /\b(true|false|none)\b/
@@ -2489,17 +2568,20 @@ var NunjucksHighlightRules = function () {
             }]
     });
     this.normalizeRules();
+    console.log(this.$rules);
 };
 oop.inherits(NunjucksHighlightRules, TextHighlightRules);
 exports.NunjucksHighlightRules = NunjucksHighlightRules;
 
 });
 
-define("ace/mode/nunjucks",["require","exports","module","ace/lib/oop","ace/mode/html","ace/mode/nunjucks_highlight_rules"], function(require, exports, module){"use strict";
+define("ace/mode/nunjucks",["require","exports","module","ace/lib/oop","ace/mode/html","ace/mode/nunjucks_completions","ace/mode/nunjucks_highlight_rules"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var HtmlMode = require("./html").Mode;
+var NunjucksCompletions = require("./nunjucks_completions").NunjucksCompletions;
 var NunjucksHighlightRules = require("./nunjucks_highlight_rules").NunjucksHighlightRules;
 var Mode = function () {
+    this.$completer = new NunjucksCompletions();
     this.HighlightRules = NunjucksHighlightRules;
 };
 oop.inherits(Mode, HtmlMode);

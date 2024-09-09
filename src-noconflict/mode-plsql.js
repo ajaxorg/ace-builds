@@ -1,4 +1,4 @@
-ace.define("ace/mode/plsql_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){/* ***** BEGIN LICENSE BLOCK *****
+ace.define("ace/mode/plsql_highlight_rules",[], function(require, exports, module){/* ***** BEGIN LICENSE BLOCK *****
  * Distributed under the BSD license:
  *
  * Copyright (c) 2012, Ajax.org B.V.
@@ -86,7 +86,7 @@ exports.plsqlHighlightRules = plsqlHighlightRules;
 
 });
 
-ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/cstyle",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
@@ -202,7 +202,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/folding/sql",["require","exports","module","ace/lib/oop","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/sql",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./cstyle").FoldMode;
 var FoldMode = exports.FoldMode = function () { };
@@ -212,7 +212,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/plsql",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/plsql_highlight_rules","ace/mode/folding/sql"], function(require, exports, module){/* ***** BEGIN LICENSE BLOCK *****
+ace.define("ace/mode/plsql",[], function(require, exports, module){/* ***** BEGIN LICENSE BLOCK *****
  * Distributed under the BSD license:
  *
  * Copyright (c) 2012, Ajax.org B.V.

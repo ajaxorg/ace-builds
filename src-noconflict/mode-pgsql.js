@@ -1,4 +1,4 @@
-ace.define("ace/mode/doc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/doc_comment_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var DocCommentHighlightRules = function () {
@@ -39,7 +39,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
 
 });
 
-ace.define("ace/mode/perl_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/perl_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var PerlHighlightRules = function () {
@@ -159,7 +159,7 @@ exports.PerlHighlightRules = PerlHighlightRules;
 
 });
 
-ace.define("ace/mode/python_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){/*
+ace.define("ace/mode/python_highlight_rules",[], function(require, exports, module){/*
  * TODO: python delimiters
  */
 "use strict";
@@ -539,7 +539,7 @@ exports.PythonHighlightRules = PythonHighlightRules;
 
 });
 
-ace.define("ace/mode/json_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/json_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var JsonHighlightRules = function () {
@@ -613,7 +613,7 @@ exports.JsonHighlightRules = JsonHighlightRules;
 
 });
 
-ace.define("ace/mode/jsdoc_comment_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/jsdoc_comment_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var JsDocCommentHighlightRules = function () {
@@ -736,7 +736,7 @@ exports.JsDocCommentHighlightRules = JsDocCommentHighlightRules;
 
 });
 
-ace.define("ace/mode/javascript_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/jsdoc_comment_highlight_rules","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/javascript_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var DocCommentHighlightRules = require("./jsdoc_comment_highlight_rules").JsDocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -1267,7 +1267,7 @@ exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
 
 });
 
-ace.define("ace/mode/pgsql_highlight_rules",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/mode/doc_comment_highlight_rules","ace/mode/text_highlight_rules","ace/mode/perl_highlight_rules","ace/mode/python_highlight_rules","ace/mode/json_highlight_rules","ace/mode/javascript_highlight_rules"], function(require, exports, module){var oop = require("../lib/oop");
+ace.define("ace/mode/pgsql_highlight_rules",[], function(require, exports, module){var oop = require("../lib/oop");
 var lang = require("../lib/lang");
 var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -1827,7 +1827,7 @@ exports.PgsqlHighlightRules = PgsqlHighlightRules;
 
 });
 
-ace.define("ace/mode/pgsql",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/pgsql_highlight_rules"], function(require, exports, module){var oop = require("../lib/oop");
+ace.define("ace/mode/pgsql",[], function(require, exports, module){var oop = require("../lib/oop");
 var TextMode = require("../mode/text").Mode;
 var PgsqlHighlightRules = require("./pgsql_highlight_rules").PgsqlHighlightRules;
 var Mode = function () {

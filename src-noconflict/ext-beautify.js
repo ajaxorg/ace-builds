@@ -1,4 +1,4 @@
-ace.define("ace/ext/beautify",["require","exports","module","ace/token_iterator"], function(require, exports, module){// [WIP]
+ace.define("ace/ext/beautify",[], function(require, exports, module){// [WIP]
 "use strict";
 var TokenIterator = require("../token_iterator").TokenIterator;
 function is(token, type) {

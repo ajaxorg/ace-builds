@@ -1,4 +1,4 @@
-ace.define("ace/autocomplete/popup",["require","exports","module","ace/virtual_renderer","ace/editor","ace/range","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/config","ace/lib/useragent"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete/popup",[], function(require, exports, module){"use strict";
 var Renderer = require("../virtual_renderer").VirtualRenderer;
 var Editor = require("../editor").Editor;
 var Range = require("../range").Range;
@@ -347,7 +347,7 @@ exports.getAriaId = getAriaId;
 
 });
 
-ace.define("ace/snippets",["require","exports","module","ace/lib/dom","ace/lib/oop","ace/lib/event_emitter","ace/lib/lang","ace/range","ace/range_list","ace/keyboard/hash_handler","ace/tokenizer","ace/clipboard","ace/editor"], function(require, exports, module){"use strict";
+ace.define("ace/snippets",[], function(require, exports, module){"use strict";
 var dom = require("./lib/dom");
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
@@ -1332,7 +1332,7 @@ var Editor = require("./editor").Editor;
 
 });
 
-ace.define("ace/autocomplete/inline_screenreader",["require","exports","module"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete/inline_screenreader",[], function(require, exports, module){"use strict";
 var AceInlineScreenReader = /** @class */ (function () {
     function AceInlineScreenReader(editor) {
         this.editor = editor;
@@ -1384,7 +1384,7 @@ exports.AceInlineScreenReader = AceInlineScreenReader;
 
 });
 
-ace.define("ace/autocomplete/inline",["require","exports","module","ace/snippets","ace/autocomplete/inline_screenreader"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete/inline",[], function(require, exports, module){"use strict";
 var snippetManager = require("../snippets").snippetManager;
 var AceInlineScreenReader = require("./inline_screenreader").AceInlineScreenReader;
 var AceInline = /** @class */ (function () {
@@ -1446,7 +1446,7 @@ exports.AceInline = AceInline;
 
 });
 
-ace.define("ace/autocomplete/util",["require","exports","module"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete/util",[], function(require, exports, module){"use strict";
 exports.parForEach = function (array, fn, callback) {
     var completed = 0;
     var arLength = array.length;
@@ -1510,7 +1510,7 @@ exports.triggerAutocomplete = function (editor, previousChar) {
 
 });
 
-ace.define("ace/autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/popup","ace/autocomplete/inline","ace/autocomplete/popup","ace/autocomplete/util","ace/lib/lang","ace/lib/dom","ace/snippets","ace/config","ace/lib/event","ace/lib/scroll"], function(require, exports, module){"use strict";
+ace.define("ace/autocomplete",[], function(require, exports, module){"use strict";
 var HashHandler = require("./keyboard/hash_handler").HashHandler;
 var AcePopup = require("./autocomplete/popup").AcePopup;
 var AceInline = require("./autocomplete/inline").AceInline;
@@ -2322,11 +2322,11 @@ exports.FilteredList = FilteredList;
 
 });
 
-ace.define("ace/ext/menu_tools/settings_menu.css",["require","exports","module"], function(require, exports, module){module.exports = "#ace_settingsmenu, #kbshortcutmenu {\n    background-color: #F7F7F7;\n    color: black;\n    box-shadow: -5px 4px 5px rgba(126, 126, 126, 0.55);\n    padding: 1em 0.5em 2em 1em;\n    overflow: auto;\n    position: absolute;\n    margin: 0;\n    bottom: 0;\n    right: 0;\n    top: 0;\n    z-index: 9991;\n    cursor: default;\n}\n\n.ace_dark #ace_settingsmenu, .ace_dark #kbshortcutmenu {\n    box-shadow: -20px 10px 25px rgba(126, 126, 126, 0.25);\n    background-color: rgba(255, 255, 255, 0.6);\n    color: black;\n}\n\n.ace_optionsMenuEntry:hover {\n    background-color: rgba(100, 100, 100, 0.1);\n    transition: all 0.3s\n}\n\n.ace_closeButton {\n    background: rgba(245, 146, 146, 0.5);\n    border: 1px solid #F48A8A;\n    border-radius: 50%;\n    padding: 7px;\n    position: absolute;\n    right: -8px;\n    top: -8px;\n    z-index: 100000;\n}\n.ace_closeButton{\n    background: rgba(245, 146, 146, 0.9);\n}\n.ace_optionsMenuKey {\n    color: darkslateblue;\n    font-weight: bold;\n}\n.ace_optionsMenuCommand {\n    color: darkcyan;\n    font-weight: normal;\n}\n.ace_optionsMenuEntry input, .ace_optionsMenuEntry button {\n    vertical-align: middle;\n}\n\n.ace_optionsMenuEntry button[ace_selected_button=true] {\n    background: #e7e7e7;\n    box-shadow: 1px 0px 2px 0px #adadad inset;\n    border-color: #adadad;\n}\n.ace_optionsMenuEntry button {\n    background: white;\n    border: 1px solid lightgray;\n    margin: 0px;\n}\n.ace_optionsMenuEntry button:hover{\n    background: #f0f0f0;\n}";
+ace.define("ace/ext/menu_tools/settings_menu.css",[], function(require, exports, module){module.exports = "#ace_settingsmenu, #kbshortcutmenu {\n    background-color: #F7F7F7;\n    color: black;\n    box-shadow: -5px 4px 5px rgba(126, 126, 126, 0.55);\n    padding: 1em 0.5em 2em 1em;\n    overflow: auto;\n    position: absolute;\n    margin: 0;\n    bottom: 0;\n    right: 0;\n    top: 0;\n    z-index: 9991;\n    cursor: default;\n}\n\n.ace_dark #ace_settingsmenu, .ace_dark #kbshortcutmenu {\n    box-shadow: -20px 10px 25px rgba(126, 126, 126, 0.25);\n    background-color: rgba(255, 255, 255, 0.6);\n    color: black;\n}\n\n.ace_optionsMenuEntry:hover {\n    background-color: rgba(100, 100, 100, 0.1);\n    transition: all 0.3s\n}\n\n.ace_closeButton {\n    background: rgba(245, 146, 146, 0.5);\n    border: 1px solid #F48A8A;\n    border-radius: 50%;\n    padding: 7px;\n    position: absolute;\n    right: -8px;\n    top: -8px;\n    z-index: 100000;\n}\n.ace_closeButton{\n    background: rgba(245, 146, 146, 0.9);\n}\n.ace_optionsMenuKey {\n    color: darkslateblue;\n    font-weight: bold;\n}\n.ace_optionsMenuCommand {\n    color: darkcyan;\n    font-weight: normal;\n}\n.ace_optionsMenuEntry input, .ace_optionsMenuEntry button {\n    vertical-align: middle;\n}\n\n.ace_optionsMenuEntry button[ace_selected_button=true] {\n    background: #e7e7e7;\n    box-shadow: 1px 0px 2px 0px #adadad inset;\n    border-color: #adadad;\n}\n.ace_optionsMenuEntry button {\n    background: white;\n    border: 1px solid lightgray;\n    margin: 0px;\n}\n.ace_optionsMenuEntry button:hover{\n    background: #f0f0f0;\n}";
 
 });
 
-ace.define("ace/ext/menu_tools/overlay_page",["require","exports","module","ace/lib/dom","ace/ext/menu_tools/settings_menu.css"], function(require, exports, module){/*jslint indent: 4, maxerr: 50, white: true, browser: true, vars: true*/
+ace.define("ace/ext/menu_tools/overlay_page",[], function(require, exports, module){/*jslint indent: 4, maxerr: 50, white: true, browser: true, vars: true*/
 'use strict';
 var dom = require("../../lib/dom");
 var cssText = require("./settings_menu.css");
@@ -2383,7 +2383,7 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, callba
 
 });
 
-ace.define("ace/ext/modelist",["require","exports","module"], function(require, exports, module){"use strict";
+ace.define("ace/ext/modelist",[], function(require, exports, module){"use strict";
 var modes = [];
 function getModeForPath(path) {
     var mode = modesByName.text;
@@ -2494,6 +2494,7 @@ var supportedModes = {
     Java: ["java"],
     JavaScript: ["js|jsm|cjs|mjs"],
     JEXL: ["jexl"],
+    jinja: [""],
     JSON: ["json"],
     JSON5: ["json5"],
     JSONiq: ["jq"],
@@ -2641,7 +2642,7 @@ module.exports = {
 
 });
 
-ace.define("ace/ext/prompt",["require","exports","module","ace/config","ace/range","ace/lib/dom","ace/autocomplete","ace/autocomplete/popup","ace/autocomplete/popup","ace/undomanager","ace/tokenizer","ace/ext/menu_tools/overlay_page","ace/ext/modelist"], function(require, exports, module){/**
+ace.define("ace/ext/prompt",[], function(require, exports, module){/**
  * @typedef {import("../editor").Editor} Editor
  */
 "use strict";

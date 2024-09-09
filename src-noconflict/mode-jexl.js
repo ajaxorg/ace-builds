@@ -1,4 +1,4 @@
-ace.define("ace/mode/jexl_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/jexl_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var JexlHighlightRules = function () {
@@ -126,7 +126,7 @@ exports.JexlHighlightRules = JexlHighlightRules;
 
 });
 
-ace.define("ace/mode/folding/cstyle",["require","exports","module","ace/lib/oop","ace/range","ace/mode/folding/fold_mode"], function(require, exports, module){"use strict";
+ace.define("ace/mode/folding/cstyle",[], function(require, exports, module){"use strict";
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
@@ -242,7 +242,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/jexl",["require","exports","module","ace/lib/oop","ace/mode/jexl_highlight_rules","ace/mode/text","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+ace.define("ace/mode/jexl",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var JexlHighlightRules = require("./jexl_highlight_rules").JexlHighlightRules;
 var TextMode = require("./text").Mode;

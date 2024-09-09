@@ -1,4 +1,4 @@
-ace.define("ace/ext/themelist",["require","exports","module"], function(require, exports, module){/**
+ace.define("ace/ext/themelist",[], function(require, exports, module){/**
  * Generates a list of themes available when ace was built.
  * @fileOverview Generates a list of themes available when ace was built.
  * @author <a href="mailto:matthewkastor@gmail.com">

@@ -1,4 +1,4 @@
-ace.define("ace/mode/haskell_cabal_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){/**
+ace.define("ace/mode/haskell_cabal_highlight_rules",[], function(require, exports, module){/**
  * Haskell Cabal files highlighter (https://www.haskell.org/cabal/users-guide/developing-packages.html)
  **/
 "use strict";
@@ -31,7 +31,7 @@ exports.CabalHighlightRules = CabalHighlightRules;
 
 });
 
-ace.define("ace/mode/folding/haskell_cabal",["require","exports","module","ace/lib/oop","ace/mode/folding/fold_mode","ace/range"], function(require, exports, module){/*
+ace.define("ace/mode/folding/haskell_cabal",[], function(require, exports, module){/*
 * Folding mode for Cabal files (Haskell): allow folding each seaction, including
 * the initial general section.
 */
@@ -104,7 +104,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/haskell_cabal",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/haskell_cabal_highlight_rules","ace/mode/folding/haskell_cabal"], function(require, exports, module){/**
+ace.define("ace/mode/haskell_cabal",[], function(require, exports, module){/**
 * Haskell Cabal files mode (https://www.haskell.org/cabal/users-guide/developing-packages.html)
 **/
 "use strict";

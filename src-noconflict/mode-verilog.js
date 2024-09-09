@@ -1,4 +1,4 @@
-ace.define("ace/mode/verilog_highlight_rules",["require","exports","module","ace/lib/oop","ace/mode/text_highlight_rules"], function(require, exports, module){"use strict";
+ace.define("ace/mode/verilog_highlight_rules",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 var VerilogHighlightRules = function () {
@@ -70,7 +70,7 @@ exports.VerilogHighlightRules = VerilogHighlightRules;
 
 });
 
-ace.define("ace/mode/verilog",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/verilog_highlight_rules","ace/range"], function(require, exports, module){"use strict";
+ace.define("ace/mode/verilog",[], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var VerilogHighlightRules = require("./verilog_highlight_rules").VerilogHighlightRules;

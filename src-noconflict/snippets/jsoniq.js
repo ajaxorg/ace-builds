@@ -1,4 +1,4 @@
-ace.define("ace/snippets/jsoniq.snippets",["require","exports","module"], function(require, exports, module) {module.exports = 'snippet for\n\
+ace.define("ace/snippets/jsoniq.snippets",[], function(require, exports, module) {module.exports = 'snippet for\n\
 	for \$\${1:item} in \${2:expr}\n\
 snippet return\n\
 	return \${1:expr}\n\
@@ -63,7 +63,7 @@ snippet module\n\
 
 });
 
-ace.define("ace/snippets/jsoniq",["require","exports","module","ace/snippets/jsoniq.snippets"], function(require, exports, module) {"use strict";
+ace.define("ace/snippets/jsoniq",[], function(require, exports, module) {"use strict";
 
 exports.snippetText = require("./jsoniq.snippets");
 exports.scope = "jsoniq";

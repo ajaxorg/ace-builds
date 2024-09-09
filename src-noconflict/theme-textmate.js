@@ -1,4 +1,4 @@
-ace.define("ace/theme/textmate",["require","exports","module","ace/theme/textmate-css","ace/lib/dom"], function(require, exports, module){"use strict";
+ace.define("ace/theme/textmate",[], function(require, exports, module){"use strict";
 exports.isDark = false;
 exports.cssClass = "ace-tm";
 exports.cssText = require("./textmate-css");
