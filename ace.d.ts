@@ -507,6 +507,13 @@ export namespace Ace {
 
   export interface EditSession extends EventEmitter, OptionsProvider, Folding {
     selection: Selection;
+    curOp?: {
+      docChanged?: boolean;
+      selectionChanged?: boolean;
+      command?: {
+          name?: string;
+      };
+  };
 
     // TODO: define BackgroundTokenizer
 
@@ -518,7 +525,7 @@ export namespace Ace {
        callback: (obj: { data: { first: number, last: number } }) => void): Function;
     on(name: 'change', callback: () => void): Function;
     on(name: 'changeTabSize', callback: () => void): Function;
-
+    on(name: "beforeEndOperation", callback: () => void): Function;
 
     setOption<T extends keyof EditSessionOptions>(name: T, value: EditSessionOptions[T]): void;
     getOption<T extends keyof EditSessionOptions>(name: T): EditSessionOptions[T];
@@ -626,6 +633,8 @@ export namespace Ace {
     documentToScreenRow(docRow: number, docColumn: number): number;
     getScreenLength(): number;
     getPrecedingCharacter(): string;
+    startOperation(commandEvent: {command: {name: string}}): void;
+    endOperation(): void;
     toJSON(): Object;
     destroy(): void;
   }

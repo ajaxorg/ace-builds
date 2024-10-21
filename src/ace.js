@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.36.2";
+exports.version = "1.36.3";
 
 });
 
@@ -9988,6 +9988,7 @@ var EditSession = /** @class */ (function () {
         this.$backMarkers = {};
         this.$markerId = 1;
         this.$undoSelect = true;
+        this.prevOp = {};
         this.$foldData = [];
         this.id = "session" + (++EditSession.$uid);
         this.$foldData.toString = function () {
@@ -10004,12 +10005,73 @@ var EditSession = /** @class */ (function () {
             text = new Document(/**@type{string}*/ (text));
         this.setDocument(text);
         this.selection = new Selection(this);
+        this.$onSelectionChange = this.onSelectionChange.bind(this);
+        this.selection.on("changeSelection", this.$onSelectionChange);
+        this.selection.on("changeCursor", this.$onSelectionChange);
         this.$bidiHandler = new BidiHandler(this);
         config.resetOptions(this);
         this.setMode(mode);
         config._signal("session", this);
         this.destroyed = false;
+        this.$initOperationListeners();
     }
+    EditSession.prototype.$initOperationListeners = function () {
+        var _this = this;
+        this.curOp = null;
+        this.on("change", function () {
+            if (!_this.curOp) {
+                _this.startOperation();
+                _this.curOp.selectionBefore = _this.$lastSel;
+            }
+            _this.curOp.docChanged = true;
+        }, true);
+        this.on("changeSelection", function () {
+            if (!_this.curOp) {
+                _this.startOperation();
+                _this.curOp.selectionBefore = _this.$lastSel;
+            }
+            _this.curOp.selectionChanged = true;
+        }, true);
+        this.$operationResetTimer = lang.delayedCall(this.endOperation.bind(this, true));
+    };
+    EditSession.prototype.startOperation = function (commandEvent) {
+        if (this.curOp) {
+            if (!commandEvent || this.curOp.command) {
+                return;
+            }
+            this.prevOp = this.curOp;
+        }
+        if (!commandEvent) {
+            commandEvent = {};
+        }
+        this.$operationResetTimer.schedule();
+        this.curOp = {
+            command: commandEvent.command || {},
+            args: commandEvent.args
+        };
+        this.curOp.selectionBefore = this.selection.toJSON();
+        this._signal("startOperation", commandEvent);
+    };
+    EditSession.prototype.endOperation = function (e) {
+        if (this.curOp) {
+            if (e && e.returnValue === false) {
+                this.curOp = null;
+                this._signal("endOperation", e);
+                return;
+            }
+            if (e == true && this.curOp.command && this.curOp.command.name == "mouse") {
+                return;
+            }
+            var currentSelection = this.selection.toJSON();
+            this.curOp.selectionAfter = currentSelection;
+            this.$lastSel = this.selection.toJSON();
+            this.getUndoManager().addSelection(currentSelection);
+            this._signal("beforeEndOperation");
+            this.prevOp = this.curOp;
+            this.curOp = null;
+            this._signal("endOperation", e);
+        }
+    };
     EditSession.prototype.setDocument = function (doc) {
         if (this.doc)
             this.doc.off("change", this.$onChange);
@@ -10080,6 +10142,9 @@ var EditSession = /** @class */ (function () {
         }
         this.bgTokenizer.$updateOnChange(delta);
         this._signal("change", delta);
+    };
+    EditSession.prototype.onSelectionChange = function () {
+        this._signal("changeSelection");
     };
     EditSession.prototype.setValue = function (text) {
         this.doc.setValue(text);
@@ -11423,10 +11488,15 @@ var EditSession = /** @class */ (function () {
             this.bgTokenizer.cleanup();
             this.destroyed = true;
         }
+        this.endOperation();
         this.$stopWorker();
         this.removeAllListeners();
         if (this.doc) {
             this.doc.off("change", this.$onChange);
+        }
+        if (this.selection) {
+            this.selection.off("changeCursor", this.$onSelectionChange);
+            this.selection.off("changeSelection", this.$onSelectionChange);
         }
         this.selection.detach();
     };
@@ -13885,46 +13955,27 @@ var Editor = /** @class */ (function () {
     Editor.prototype.$initOperationListeners = function () {
         this.commands.on("exec", this.startOperation.bind(this), true);
         this.commands.on("afterExec", this.endOperation.bind(this), true);
-        this.$opResetTimer = lang.delayedCall(this.endOperation.bind(this, true));
-        this.on("change", function () {
-            if (!this.curOp) {
-                this.startOperation();
-                this.curOp.selectionBefore = this.$lastSel;
-            }
-            this.curOp.docChanged = true;
-        }.bind(this), true);
-        this.on("changeSelection", function () {
-            if (!this.curOp) {
-                this.startOperation();
-                this.curOp.selectionBefore = this.$lastSel;
-            }
-            this.curOp.selectionChanged = true;
-        }.bind(this), true);
     };
     Editor.prototype.startOperation = function (commandEvent) {
-        if (this.curOp) {
-            if (!commandEvent || this.curOp.command)
-                return;
-            this.prevOp = this.curOp;
-        }
-        if (!commandEvent) {
-            this.previousCommand = null;
-            commandEvent = {};
-        }
-        this.$opResetTimer.schedule();
-        this.curOp = this.session.curOp = {
-            command: commandEvent.command || {},
-            args: commandEvent.args,
-            scrollTop: this.renderer.scrollTop
-        };
-        this.curOp.selectionBefore = this.selection.toJSON();
+        this.session.startOperation(commandEvent);
     };
     Editor.prototype.endOperation = function (e) {
+        this.session.endOperation(e);
+    };
+    Editor.prototype.onStartOperation = function (commandEvent) {
+        this.curOp = this.session.curOp;
+        this.curOp.scrollTop = this.renderer.scrollTop;
+        this.prevOp = this.session.prevOp;
+        if (!commandEvent) {
+            this.previousCommand = null;
+        }
+    };
+    Editor.prototype.onEndOperation = function (e) {
         if (this.curOp && this.session) {
-            if (e && e.returnValue === false || !this.session)
-                return (this.curOp = null);
-            if (e == true && this.curOp.command && this.curOp.command.name == "mouse")
+            if (e && e.returnValue === false) {
+                this.curOp = null;
                 return;
+            }
             this._signal("beforeEndOperation");
             if (!this.curOp)
                 return;
@@ -13954,10 +14005,7 @@ var Editor = /** @class */ (function () {
                 if (scrollIntoView == "animate")
                     this.renderer.animateScrolling(this.curOp.scrollTop);
             }
-            var sel = this.selection.toJSON();
-            this.curOp.selectionAfter = sel;
-            this.$lastSel = this.selection.toJSON();
-            this.session.getUndoManager().addSelection(sel);
+            this.$lastSel = this.session.selection.toJSON();
             this.prevOp = this.curOp;
             this.curOp = null;
         }
@@ -14031,6 +14079,8 @@ var Editor = /** @class */ (function () {
             this.session.off("changeOverwrite", this.$onCursorChange);
             this.session.off("changeScrollTop", this.$onScrollTopChange);
             this.session.off("changeScrollLeft", this.$onScrollLeftChange);
+            this.session.off("startOperation", this.$onStartOperation);
+            this.session.off("endOperation", this.$onEndOperation);
             var selection = this.session.getSelection();
             selection.off("changeCursor", this.$onCursorChange);
             selection.off("changeSelection", this.$onSelectionChange);
@@ -14070,6 +14120,10 @@ var Editor = /** @class */ (function () {
             this.selection.on("changeCursor", this.$onCursorChange);
             this.$onSelectionChange = this.onSelectionChange.bind(this);
             this.selection.on("changeSelection", this.$onSelectionChange);
+            this.$onStartOperation = this.onStartOperation.bind(this);
+            this.session.on("startOperation", this.$onStartOperation);
+            this.$onEndOperation = this.onEndOperation.bind(this);
+            this.session.on("endOperation", this.$onEndOperation);
             this.onChangeMode();
             this.onCursorChange();
             this.onScrollTopChange();
