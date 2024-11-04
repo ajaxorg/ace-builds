@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.36.3";
+exports.version = "1.36.4";
 
 });
 
@@ -2115,6 +2115,17 @@ TextInput = function (parentNode, host) {
         }
         numberOfExtraLines = number;
     };
+    this.setAriaLabel = function () {
+        var ariaLabel = "";
+        if (host.$textInputAriaLabel) {
+            ariaLabel += "".concat(host.$textInputAriaLabel, ", ");
+        }
+        if (host.session) {
+            var row = host.session.selection.cursor.row;
+            ariaLabel += nls("text-input.aria-label", "Cursor at row $0", [row + 1]);
+        }
+        text.setAttribute("aria-label", ariaLabel);
+    };
     this.setAriaOptions = function (options) {
         if (options.activeDescendant) {
             text.setAttribute("aria-haspopup", "true");
@@ -2131,15 +2142,7 @@ TextInput = function (parentNode, host) {
         }
         if (options.setLabel) {
             text.setAttribute("aria-roledescription", nls("text-input.aria-roledescription", "editor"));
-            var arialLabel = "";
-            if (host.$textInputAriaLabel) {
-                arialLabel += "".concat(host.$textInputAriaLabel, ", ");
-            }
-            if (host.session) {
-                var row = host.session.selection.cursor.row;
-                arialLabel += nls("text-input.aria-label", "Cursor at row $0", [row + 1]);
-            }
-            text.setAttribute("aria-label", arialLabel);
+            this.setAriaLabel();
         }
     };
     this.setAriaOptions({ role: "textbox" });
@@ -2224,6 +2227,7 @@ TextInput = function (parentNode, host) {
         }
         resetSelection();
     });
+    host.on("changeSelection", this.setAriaLabel);
     var positionToSelection = function (row, column) {
         var selection = column;
         for (var i = 1; i <= row - rowStart && i < 2 * numberOfExtraLines + 1; i++) {
@@ -16932,7 +16936,7 @@ var Text = /** @class */ (function () {
     };
     Text.prototype.$renderToken = function (parent, screenColumn, token, value) {
         var self = this;
-        var re = /(\t)|( +)|([\x00-\x1f\x80-\xa0\xad\u1680\u180E\u2000-\u200f\u2028\u2029\u202F\u205F\uFEFF\uFFF9-\uFFFC\u2066\u2067\u2068\u202A\u202B\u202D\u202E\u202C\u2069]+)|(\u3000)|([\u1100-\u115F\u11A3-\u11A7\u11FA-\u11FF\u2329-\u232A\u2E80-\u2E99\u2E9B-\u2EF3\u2F00-\u2FD5\u2FF0-\u2FFB\u3001-\u303E\u3041-\u3096\u3099-\u30FF\u3105-\u312D\u3131-\u318E\u3190-\u31BA\u31C0-\u31E3\u31F0-\u321E\u3220-\u3247\u3250-\u32FE\u3300-\u4DBF\u4E00-\uA48C\uA490-\uA4C6\uA960-\uA97C\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFAFF\uFE10-\uFE19\uFE30-\uFE52\uFE54-\uFE66\uFE68-\uFE6B\uFF01-\uFF60\uFFE0-\uFFE6]|[\uD800-\uDBFF][\uDC00-\uDFFF])/g;
+        var re = /(\t)|( +)|([\x00-\x1f\x80-\xa0\xad\u1680\u180E\u2000-\u200f\u2028\u2029\u202F\u205F\uFEFF\uFFF9-\uFFFC\u2066\u2067\u2068\u202A\u202B\u202D\u202E\u202C\u2069\u2060\u2061\u2062\u2063\u2064\u206A\u206B\u206B\u206C\u206D\u206E\u206F]+)|(\u3000)|([\u1100-\u115F\u11A3-\u11A7\u11FA-\u11FF\u2329-\u232A\u2E80-\u2E99\u2E9B-\u2EF3\u2F00-\u2FD5\u2FF0-\u2FFB\u3001-\u303E\u3041-\u3096\u3099-\u30FF\u3105-\u312D\u3131-\u318E\u3190-\u31BA\u31C0-\u31E3\u31F0-\u321E\u3220-\u3247\u3250-\u32FE\u3300-\u4DBF\u4E00-\uA48C\uA490-\uA4C6\uA960-\uA97C\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFAFF\uFE10-\uFE19\uFE30-\uFE52\uFE54-\uFE66\uFE68-\uFE6B\uFF01-\uFF60\uFFE0-\uFFE6]|[\uD800-\uDBFF][\uDC00-\uDFFF])/g;
         var valueFragment = this.dom.createFragment(this.element);
         var m;
         var i = 0;
@@ -21416,7 +21420,8 @@ exports.Editor = Editor;
 exports.EditSession = EditSession;
 exports.UndoManager = UndoManager;
 exports.VirtualRenderer = Renderer;
-exports.version = exports.config.version;
+var version = exports.config.version;
+exports.version = version;
 
 });            (function() {
                 ace.require(["ace/ace"], function(a) {

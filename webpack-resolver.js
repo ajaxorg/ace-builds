@@ -43,6 +43,7 @@ ace.config.setModuleUrl('ace/mode/assembly_arm32', require('file-loader?esModule
 ace.config.setModuleUrl('ace/mode/assembly_x86', require('file-loader?esModule=false!./src-noconflict/mode-assembly_x86.js'));
 ace.config.setModuleUrl('ace/mode/astro', require('file-loader?esModule=false!./src-noconflict/mode-astro.js'));
 ace.config.setModuleUrl('ace/mode/autohotkey', require('file-loader?esModule=false!./src-noconflict/mode-autohotkey.js'));
+ace.config.setModuleUrl('ace/mode/basic', require('file-loader?esModule=false!./src-noconflict/mode-basic.js'));
 ace.config.setModuleUrl('ace/mode/batchfile', require('file-loader?esModule=false!./src-noconflict/mode-batchfile.js'));
 ace.config.setModuleUrl('ace/mode/bibtex', require('file-loader?esModule=false!./src-noconflict/mode-bibtex.js'));
 ace.config.setModuleUrl('ace/mode/c9search', require('file-loader?esModule=false!./src-noconflict/mode-c9search.js'));
@@ -294,6 +295,7 @@ ace.config.setModuleUrl('ace/snippets/assembly_arm32', require('file-loader?esMo
 ace.config.setModuleUrl('ace/snippets/assembly_x86', require('file-loader?esModule=false!./src-noconflict/snippets/assembly_x86.js'));
 ace.config.setModuleUrl('ace/snippets/astro', require('file-loader?esModule=false!./src-noconflict/snippets/astro.js'));
 ace.config.setModuleUrl('ace/snippets/autohotkey', require('file-loader?esModule=false!./src-noconflict/snippets/autohotkey.js'));
+ace.config.setModuleUrl('ace/snippets/basic', require('file-loader?esModule=false!./src-noconflict/snippets/basic.js'));
 ace.config.setModuleUrl('ace/snippets/batchfile', require('file-loader?esModule=false!./src-noconflict/snippets/batchfile.js'));
 ace.config.setModuleUrl('ace/snippets/bibtex', require('file-loader?esModule=false!./src-noconflict/snippets/bibtex.js'));
 ace.config.setModuleUrl('ace/snippets/c9search', require('file-loader?esModule=false!./src-noconflict/snippets/c9search.js'));

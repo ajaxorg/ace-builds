@@ -2047,6 +2047,25 @@ var Autocomplete = /** @class */ (function () {
         }
         this.inlineRenderer = this.popup = this.editor = null;
     };
+    Autocomplete.for = function (editor) {
+        if (editor.completer instanceof Autocomplete) {
+            return editor.completer;
+        }
+        if (editor.completer) {
+            editor.completer.destroy();
+            editor.completer = null;
+        }
+        if (config.get("sharedPopups")) {
+            if (!Autocomplete["$sharedInstance"])
+                Autocomplete["$sharedInstance"] = new Autocomplete();
+            editor.completer = Autocomplete["$sharedInstance"];
+        }
+        else {
+            editor.completer = new Autocomplete();
+            editor.once("destroy", destroyCompleter);
+        }
+        return editor.completer;
+    };
     return Autocomplete;
 }());
 Autocomplete.prototype.commands = {
@@ -2072,25 +2091,6 @@ Autocomplete.prototype.commands = {
     },
     "PageUp": function (editor) { editor.completer.popup.gotoPageUp(); },
     "PageDown": function (editor) { editor.completer.popup.gotoPageDown(); }
-};
-Autocomplete.for = function (editor) {
-    if (editor.completer instanceof Autocomplete) {
-        return editor.completer;
-    }
-    if (editor.completer) {
-        editor.completer.destroy();
-        editor.completer = null;
-    }
-    if (config.get("sharedPopups")) {
-        if (!Autocomplete["$sharedInstance"])
-            Autocomplete["$sharedInstance"] = new Autocomplete();
-        editor.completer = Autocomplete["$sharedInstance"];
-    }
-    else {
-        editor.completer = new Autocomplete();
-        editor.once("destroy", destroyCompleter);
-    }
-    return editor.completer;
 };
 Autocomplete.startCommand = {
     name: "startAutocomplete",
@@ -2434,6 +2434,7 @@ var supportedModes = {
     Astro: ["astro"],
     AutoHotKey: ["ahk"],
     BatchFile: ["bat|cmd"],
+    Basic: ["bas|bak"],
     BibTeX: ["bib"],
     C_Cpp: ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search: ["c9search_results"],
