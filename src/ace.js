@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.36.4";
+exports.version = "1.36.5";
 
 });
 
@@ -7203,6 +7203,345 @@ exports.Mode = Mode;
 
 });
 
+define("ace/line_widgets",["require","exports","module","ace/lib/dom"], function(require, exports, module){"use strict";
+var dom = require("./lib/dom");
+var LineWidgets = /** @class */ (function () {
+    function LineWidgets(session) {
+        this.session = session;
+        this.session.widgetManager = this;
+        this.session.getRowLength = this.getRowLength;
+        this.session.$getWidgetScreenLength = this.$getWidgetScreenLength;
+        this.updateOnChange = this.updateOnChange.bind(this);
+        this.renderWidgets = this.renderWidgets.bind(this);
+        this.measureWidgets = this.measureWidgets.bind(this);
+        this.session._changedWidgets = [];
+        this.$onChangeEditor = this.$onChangeEditor.bind(this);
+        this.session.on("change", this.updateOnChange);
+        this.session.on("changeFold", this.updateOnFold);
+        this.session.on("changeEditor", this.$onChangeEditor);
+    }
+    LineWidgets.prototype.getRowLength = function (row) {
+        var h;
+        if (this.lineWidgets)
+            h = this.lineWidgets[row] && this.lineWidgets[row].rowCount || 0;
+        else
+            h = 0;
+        if (!this["$useWrapMode"] || !this["$wrapData"][row]) {
+            return 1 + h;
+        }
+        else {
+            return this["$wrapData"][row].length + 1 + h;
+        }
+    };
+    LineWidgets.prototype.$getWidgetScreenLength = function () {
+        var screenRows = 0;
+        this.lineWidgets.forEach(function (w) {
+            if (w && w.rowCount && !w.hidden)
+                screenRows += w.rowCount;
+        });
+        return screenRows;
+    };
+    LineWidgets.prototype.$onChangeEditor = function (e) {
+        this.attach(e.editor);
+    };
+    LineWidgets.prototype.attach = function (editor) {
+        if (editor && editor.widgetManager && editor.widgetManager != this)
+            editor.widgetManager.detach();
+        if (this.editor == editor)
+            return;
+        this.detach();
+        this.editor = editor;
+        if (editor) {
+            editor.widgetManager = this;
+            editor.renderer.on("beforeRender", this.measureWidgets);
+            editor.renderer.on("afterRender", this.renderWidgets);
+        }
+    };
+    LineWidgets.prototype.detach = function (e) {
+        var editor = this.editor;
+        if (!editor)
+            return;
+        this.editor = null;
+        editor.widgetManager = null;
+        editor.renderer.off("beforeRender", this.measureWidgets);
+        editor.renderer.off("afterRender", this.renderWidgets);
+        var lineWidgets = this.session.lineWidgets;
+        lineWidgets && lineWidgets.forEach(function (w) {
+            if (w && w.el && w.el.parentNode) {
+                w._inDocument = false;
+                w.el.parentNode.removeChild(w.el);
+            }
+        });
+    };
+    LineWidgets.prototype.updateOnFold = function (e, session) {
+        var lineWidgets = session.lineWidgets;
+        if (!lineWidgets || !e.action)
+            return;
+        var fold = e.data;
+        var start = fold.start.row;
+        var end = fold.end.row;
+        var hide = e.action == "add";
+        for (var i = start + 1; i < end; i++) {
+            if (lineWidgets[i])
+                lineWidgets[i].hidden = hide;
+        }
+        if (lineWidgets[end]) {
+            if (hide) {
+                if (!lineWidgets[start])
+                    lineWidgets[start] = lineWidgets[end];
+                else
+                    lineWidgets[end].hidden = hide;
+            }
+            else {
+                if (lineWidgets[start] == lineWidgets[end])
+                    lineWidgets[start] = undefined;
+                lineWidgets[end].hidden = hide;
+            }
+        }
+    };
+    LineWidgets.prototype.updateOnChange = function (delta) {
+        var lineWidgets = this.session.lineWidgets;
+        if (!lineWidgets)
+            return;
+        var startRow = delta.start.row;
+        var len = delta.end.row - startRow;
+        if (len === 0) {
+        }
+        else if (delta.action == "remove") {
+            var removed = lineWidgets.splice(startRow + 1, len);
+            if (!lineWidgets[startRow] && removed[removed.length - 1]) {
+                lineWidgets[startRow] = removed.pop();
+            }
+            removed.forEach(function (w) {
+                w && this.removeLineWidget(w);
+            }, this);
+            this.$updateRows();
+        }
+        else {
+            var args = new Array(len);
+            if (lineWidgets[startRow] && lineWidgets[startRow].column != null) {
+                if (delta.start.column > lineWidgets[startRow].column)
+                    startRow++;
+            }
+            args.unshift(startRow, 0);
+            lineWidgets.splice.apply(lineWidgets, args);
+            this.$updateRows();
+        }
+    };
+    LineWidgets.prototype.$updateRows = function () {
+        var lineWidgets = this.session.lineWidgets;
+        if (!lineWidgets)
+            return;
+        var noWidgets = true;
+        lineWidgets.forEach(function (w, i) {
+            if (w) {
+                noWidgets = false;
+                w.row = i;
+                while (w.$oldWidget) {
+                    w.$oldWidget.row = i;
+                    w = w.$oldWidget;
+                }
+            }
+        });
+        if (noWidgets)
+            this.session.lineWidgets = null;
+    };
+    LineWidgets.prototype.$registerLineWidget = function (w) {
+        if (!this.session.lineWidgets)
+            this.session.lineWidgets = new Array(this.session.getLength());
+        var old = this.session.lineWidgets[w.row];
+        if (old) {
+            w.$oldWidget = old;
+            if (old.el && old.el.parentNode) {
+                old.el.parentNode.removeChild(old.el);
+                old._inDocument = false;
+            }
+        }
+        this.session.lineWidgets[w.row] = w;
+        return w;
+    };
+    LineWidgets.prototype.addLineWidget = function (w) {
+        this.$registerLineWidget(w);
+        w.session = this.session;
+        if (!this.editor)
+            return w;
+        var renderer = this.editor.renderer;
+        if (w.html && !w.el) {
+            w.el = dom.createElement("div");
+            w.el.innerHTML = w.html;
+        }
+        if (w.text && !w.el) {
+            w.el = dom.createElement("div");
+            w.el.textContent = w.text;
+        }
+        if (w.el) {
+            dom.addCssClass(w.el, "ace_lineWidgetContainer");
+            if (w.className) {
+                dom.addCssClass(w.el, w.className);
+            }
+            w.el.style.position = "absolute";
+            w.el.style.zIndex = "5";
+            renderer.container.appendChild(w.el);
+            w._inDocument = true;
+            if (!w.coverGutter) {
+                w.el.style.zIndex = "3";
+            }
+            if (w.pixelHeight == null) {
+                w.pixelHeight = w.el.offsetHeight;
+            }
+        }
+        if (w.rowCount == null) {
+            w.rowCount = w.pixelHeight / renderer.layerConfig.lineHeight;
+        }
+        var fold = this.session.getFoldAt(w.row, 0);
+        w.$fold = fold;
+        if (fold) {
+            var lineWidgets = this.session.lineWidgets;
+            if (w.row == fold.end.row && !lineWidgets[fold.start.row])
+                lineWidgets[fold.start.row] = w;
+            else
+                w.hidden = true;
+        }
+        this.session._emit("changeFold", { data: { start: { row: w.row } } });
+        this.$updateRows();
+        this.renderWidgets(null, renderer);
+        this.onWidgetChanged(w);
+        return w;
+    };
+    LineWidgets.prototype.removeLineWidget = function (w) {
+        w._inDocument = false;
+        w.session = null;
+        if (w.el && w.el.parentNode)
+            w.el.parentNode.removeChild(w.el);
+        if (w.editor && w.editor.destroy)
+            try {
+                w.editor.destroy();
+            }
+            catch (e) { }
+        if (this.session.lineWidgets) {
+            var w1 = this.session.lineWidgets[w.row];
+            if (w1 == w) {
+                this.session.lineWidgets[w.row] = w.$oldWidget;
+                if (w.$oldWidget)
+                    this.onWidgetChanged(w.$oldWidget);
+            }
+            else {
+                while (w1) {
+                    if (w1.$oldWidget == w) {
+                        w1.$oldWidget = w.$oldWidget;
+                        break;
+                    }
+                    w1 = w1.$oldWidget;
+                }
+            }
+        }
+        this.session._emit("changeFold", { data: { start: { row: w.row } } });
+        this.$updateRows();
+    };
+    LineWidgets.prototype.getWidgetsAtRow = function (row) {
+        var lineWidgets = this.session.lineWidgets;
+        var w = lineWidgets && lineWidgets[row];
+        var list = [];
+        while (w) {
+            list.push(w);
+            w = w.$oldWidget;
+        }
+        return list;
+    };
+    LineWidgets.prototype.onWidgetChanged = function (w) {
+        this.session._changedWidgets.push(w);
+        this.editor && this.editor.renderer.updateFull();
+    };
+    LineWidgets.prototype.measureWidgets = function (e, renderer) {
+        var changedWidgets = this.session._changedWidgets;
+        var config = renderer.layerConfig;
+        if (!changedWidgets || !changedWidgets.length)
+            return;
+        var min = Infinity;
+        for (var i = 0; i < changedWidgets.length; i++) {
+            var w = changedWidgets[i];
+            if (!w || !w.el)
+                continue;
+            if (w.session != this.session)
+                continue;
+            if (!w._inDocument) {
+                if (this.session.lineWidgets[w.row] != w)
+                    continue;
+                w._inDocument = true;
+                renderer.container.appendChild(w.el);
+            }
+            w.h = w.el.offsetHeight;
+            if (!w.fixedWidth) {
+                w.w = w.el.offsetWidth;
+                w.screenWidth = Math.ceil(w.w / config.characterWidth);
+            }
+            var rowCount = w.h / config.lineHeight;
+            if (w.coverLine) {
+                rowCount -= this.session.getRowLineCount(w.row);
+                if (rowCount < 0)
+                    rowCount = 0;
+            }
+            if (w.rowCount != rowCount) {
+                w.rowCount = rowCount;
+                if (w.row < min)
+                    min = w.row;
+            }
+        }
+        if (min != Infinity) {
+            this.session._emit("changeFold", { data: { start: { row: min } } });
+            this.session.lineWidgetWidth = null;
+        }
+        this.session._changedWidgets = [];
+    };
+    LineWidgets.prototype.renderWidgets = function (e, renderer) {
+        var config = renderer.layerConfig;
+        var lineWidgets = this.session.lineWidgets;
+        if (!lineWidgets)
+            return;
+        var first = Math.min(this.firstRow, config.firstRow);
+        var last = Math.max(this.lastRow, config.lastRow, lineWidgets.length);
+        while (first > 0 && !lineWidgets[first])
+            first--;
+        this.firstRow = config.firstRow;
+        this.lastRow = config.lastRow;
+        renderer.$cursorLayer.config = config;
+        for (var i = first; i <= last; i++) {
+            var w = lineWidgets[i];
+            if (!w || !w.el)
+                continue;
+            if (w.hidden) {
+                w.el.style.top = -100 - (w.pixelHeight || 0) + "px";
+                continue;
+            }
+            if (!w._inDocument) {
+                w._inDocument = true;
+                renderer.container.appendChild(w.el);
+            }
+            var top = renderer.$cursorLayer.getPixelPosition({ row: i, column: 0 }, true).top;
+            if (!w.coverLine)
+                top += config.lineHeight * this.session.getRowLineCount(w.row);
+            w.el.style.top = top - config.offset + "px";
+            var left = w.coverGutter ? 0 : renderer.gutterWidth;
+            if (!w.fixedWidth)
+                left -= renderer.scrollLeft;
+            w.el.style.left = left + "px";
+            if (w.fullWidth && w.screenWidth) {
+                w.el.style.minWidth = config.width + 2 * config.padding + "px";
+            }
+            if (w.fixedWidth) {
+                w.el.style.right = renderer.scrollBar.getWidth() + "px";
+            }
+            else {
+                w.el.style.right = "";
+            }
+        }
+    };
+    return LineWidgets;
+}());
+exports.LineWidgets = LineWidgets;
+
+});
+
 define("ace/apply_delta",["require","exports","module"], function(require, exports, module){"use strict";
 function throwDeltaError(delta, errorText) {
     console.log("Invalid Delta:", delta);
@@ -9971,7 +10310,7 @@ exports.BracketMatch = BracketMatch;
 
 });
 
-define("ace/edit_session",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/bidihandler","ace/config","ace/lib/event_emitter","ace/selection","ace/mode/text","ace/range","ace/document","ace/background_tokenizer","ace/search_highlight","ace/undomanager","ace/edit_session/folding","ace/edit_session/bracket_match"], function(require, exports, module){"use strict";
+define("ace/edit_session",["require","exports","module","ace/lib/oop","ace/lib/lang","ace/bidihandler","ace/config","ace/lib/event_emitter","ace/selection","ace/mode/text","ace/range","ace/line_widgets","ace/document","ace/background_tokenizer","ace/search_highlight","ace/undomanager","ace/edit_session/folding","ace/edit_session/bracket_match"], function(require, exports, module){"use strict";
 var oop = require("./lib/oop");
 var lang = require("./lib/lang");
 var BidiHandler = require("./bidihandler").BidiHandler;
@@ -9980,6 +10319,7 @@ var EventEmitter = require("./lib/event_emitter").EventEmitter;
 var Selection = require("./selection").Selection;
 var TextMode = require("./mode/text").Mode;
 var Range = require("./range").Range;
+var LineWidgets = require("./line_widgets").LineWidgets;
 var Document = require("./document").Document;
 var BackgroundTokenizer = require("./background_tokenizer").BackgroundTokenizer;
 var SearchHighlight = require("./search_highlight").SearchHighlight;
@@ -9992,6 +10332,7 @@ var EditSession = /** @class */ (function () {
         this.$backMarkers = {};
         this.$markerId = 1;
         this.$undoSelect = true;
+        this.$editor = null;
         this.prevOp = {};
         this.$foldData = [];
         this.id = "session" + (++EditSession.$uid);
@@ -10087,6 +10428,25 @@ var EditSession = /** @class */ (function () {
     EditSession.prototype.getDocument = function () {
         return this.doc;
     };
+    Object.defineProperty(EditSession.prototype, "widgetManager", {
+        get: function () {
+            var widgetManager = new LineWidgets(this);
+            this.widgetManager = widgetManager;
+            if (this.$editor)
+                widgetManager.attach(this.$editor);
+            return widgetManager;
+        },
+        set: function (value) {
+            Object.defineProperty(this, "widgetManager", {
+                writable: true,
+                enumerable: true,
+                configurable: true,
+                value: value,
+            });
+        },
+        enumerable: false,
+        configurable: true
+    });
     EditSession.prototype.$resetRowCache = function (docRow) {
         if (!docRow) {
             this.$docRowCache = [];
@@ -13185,345 +13545,6 @@ for (var i = 1; i < 9; i++) {
 
 });
 
-define("ace/line_widgets",["require","exports","module","ace/lib/dom"], function(require, exports, module){"use strict";
-var dom = require("./lib/dom");
-var LineWidgets = /** @class */ (function () {
-    function LineWidgets(session) {
-        this.session = session;
-        this.session.widgetManager = this;
-        this.session.getRowLength = this.getRowLength;
-        this.session.$getWidgetScreenLength = this.$getWidgetScreenLength;
-        this.updateOnChange = this.updateOnChange.bind(this);
-        this.renderWidgets = this.renderWidgets.bind(this);
-        this.measureWidgets = this.measureWidgets.bind(this);
-        this.session._changedWidgets = [];
-        this.$onChangeEditor = this.$onChangeEditor.bind(this);
-        this.session.on("change", this.updateOnChange);
-        this.session.on("changeFold", this.updateOnFold);
-        this.session.on("changeEditor", this.$onChangeEditor);
-    }
-    LineWidgets.prototype.getRowLength = function (row) {
-        var h;
-        if (this.lineWidgets)
-            h = this.lineWidgets[row] && this.lineWidgets[row].rowCount || 0;
-        else
-            h = 0;
-        if (!this["$useWrapMode"] || !this["$wrapData"][row]) {
-            return 1 + h;
-        }
-        else {
-            return this["$wrapData"][row].length + 1 + h;
-        }
-    };
-    LineWidgets.prototype.$getWidgetScreenLength = function () {
-        var screenRows = 0;
-        this.lineWidgets.forEach(function (w) {
-            if (w && w.rowCount && !w.hidden)
-                screenRows += w.rowCount;
-        });
-        return screenRows;
-    };
-    LineWidgets.prototype.$onChangeEditor = function (e) {
-        this.attach(e.editor);
-    };
-    LineWidgets.prototype.attach = function (editor) {
-        if (editor && editor.widgetManager && editor.widgetManager != this)
-            editor.widgetManager.detach();
-        if (this.editor == editor)
-            return;
-        this.detach();
-        this.editor = editor;
-        if (editor) {
-            editor.widgetManager = this;
-            editor.renderer.on("beforeRender", this.measureWidgets);
-            editor.renderer.on("afterRender", this.renderWidgets);
-        }
-    };
-    LineWidgets.prototype.detach = function (e) {
-        var editor = this.editor;
-        if (!editor)
-            return;
-        this.editor = null;
-        editor.widgetManager = null;
-        editor.renderer.off("beforeRender", this.measureWidgets);
-        editor.renderer.off("afterRender", this.renderWidgets);
-        var lineWidgets = this.session.lineWidgets;
-        lineWidgets && lineWidgets.forEach(function (w) {
-            if (w && w.el && w.el.parentNode) {
-                w._inDocument = false;
-                w.el.parentNode.removeChild(w.el);
-            }
-        });
-    };
-    LineWidgets.prototype.updateOnFold = function (e, session) {
-        var lineWidgets = session.lineWidgets;
-        if (!lineWidgets || !e.action)
-            return;
-        var fold = e.data;
-        var start = fold.start.row;
-        var end = fold.end.row;
-        var hide = e.action == "add";
-        for (var i = start + 1; i < end; i++) {
-            if (lineWidgets[i])
-                lineWidgets[i].hidden = hide;
-        }
-        if (lineWidgets[end]) {
-            if (hide) {
-                if (!lineWidgets[start])
-                    lineWidgets[start] = lineWidgets[end];
-                else
-                    lineWidgets[end].hidden = hide;
-            }
-            else {
-                if (lineWidgets[start] == lineWidgets[end])
-                    lineWidgets[start] = undefined;
-                lineWidgets[end].hidden = hide;
-            }
-        }
-    };
-    LineWidgets.prototype.updateOnChange = function (delta) {
-        var lineWidgets = this.session.lineWidgets;
-        if (!lineWidgets)
-            return;
-        var startRow = delta.start.row;
-        var len = delta.end.row - startRow;
-        if (len === 0) {
-        }
-        else if (delta.action == "remove") {
-            var removed = lineWidgets.splice(startRow + 1, len);
-            if (!lineWidgets[startRow] && removed[removed.length - 1]) {
-                lineWidgets[startRow] = removed.pop();
-            }
-            removed.forEach(function (w) {
-                w && this.removeLineWidget(w);
-            }, this);
-            this.$updateRows();
-        }
-        else {
-            var args = new Array(len);
-            if (lineWidgets[startRow] && lineWidgets[startRow].column != null) {
-                if (delta.start.column > lineWidgets[startRow].column)
-                    startRow++;
-            }
-            args.unshift(startRow, 0);
-            lineWidgets.splice.apply(lineWidgets, args);
-            this.$updateRows();
-        }
-    };
-    LineWidgets.prototype.$updateRows = function () {
-        var lineWidgets = this.session.lineWidgets;
-        if (!lineWidgets)
-            return;
-        var noWidgets = true;
-        lineWidgets.forEach(function (w, i) {
-            if (w) {
-                noWidgets = false;
-                w.row = i;
-                while (w.$oldWidget) {
-                    w.$oldWidget.row = i;
-                    w = w.$oldWidget;
-                }
-            }
-        });
-        if (noWidgets)
-            this.session.lineWidgets = null;
-    };
-    LineWidgets.prototype.$registerLineWidget = function (w) {
-        if (!this.session.lineWidgets)
-            this.session.lineWidgets = new Array(this.session.getLength());
-        var old = this.session.lineWidgets[w.row];
-        if (old) {
-            w.$oldWidget = old;
-            if (old.el && old.el.parentNode) {
-                old.el.parentNode.removeChild(old.el);
-                old._inDocument = false;
-            }
-        }
-        this.session.lineWidgets[w.row] = w;
-        return w;
-    };
-    LineWidgets.prototype.addLineWidget = function (w) {
-        this.$registerLineWidget(w);
-        w.session = this.session;
-        if (!this.editor)
-            return w;
-        var renderer = this.editor.renderer;
-        if (w.html && !w.el) {
-            w.el = dom.createElement("div");
-            w.el.innerHTML = w.html;
-        }
-        if (w.text && !w.el) {
-            w.el = dom.createElement("div");
-            w.el.textContent = w.text;
-        }
-        if (w.el) {
-            dom.addCssClass(w.el, "ace_lineWidgetContainer");
-            if (w.className) {
-                dom.addCssClass(w.el, w.className);
-            }
-            w.el.style.position = "absolute";
-            w.el.style.zIndex = "5";
-            renderer.container.appendChild(w.el);
-            w._inDocument = true;
-            if (!w.coverGutter) {
-                w.el.style.zIndex = "3";
-            }
-            if (w.pixelHeight == null) {
-                w.pixelHeight = w.el.offsetHeight;
-            }
-        }
-        if (w.rowCount == null) {
-            w.rowCount = w.pixelHeight / renderer.layerConfig.lineHeight;
-        }
-        var fold = this.session.getFoldAt(w.row, 0);
-        w.$fold = fold;
-        if (fold) {
-            var lineWidgets = this.session.lineWidgets;
-            if (w.row == fold.end.row && !lineWidgets[fold.start.row])
-                lineWidgets[fold.start.row] = w;
-            else
-                w.hidden = true;
-        }
-        this.session._emit("changeFold", { data: { start: { row: w.row } } });
-        this.$updateRows();
-        this.renderWidgets(null, renderer);
-        this.onWidgetChanged(w);
-        return w;
-    };
-    LineWidgets.prototype.removeLineWidget = function (w) {
-        w._inDocument = false;
-        w.session = null;
-        if (w.el && w.el.parentNode)
-            w.el.parentNode.removeChild(w.el);
-        if (w.editor && w.editor.destroy)
-            try {
-                w.editor.destroy();
-            }
-            catch (e) { }
-        if (this.session.lineWidgets) {
-            var w1 = this.session.lineWidgets[w.row];
-            if (w1 == w) {
-                this.session.lineWidgets[w.row] = w.$oldWidget;
-                if (w.$oldWidget)
-                    this.onWidgetChanged(w.$oldWidget);
-            }
-            else {
-                while (w1) {
-                    if (w1.$oldWidget == w) {
-                        w1.$oldWidget = w.$oldWidget;
-                        break;
-                    }
-                    w1 = w1.$oldWidget;
-                }
-            }
-        }
-        this.session._emit("changeFold", { data: { start: { row: w.row } } });
-        this.$updateRows();
-    };
-    LineWidgets.prototype.getWidgetsAtRow = function (row) {
-        var lineWidgets = this.session.lineWidgets;
-        var w = lineWidgets && lineWidgets[row];
-        var list = [];
-        while (w) {
-            list.push(w);
-            w = w.$oldWidget;
-        }
-        return list;
-    };
-    LineWidgets.prototype.onWidgetChanged = function (w) {
-        this.session._changedWidgets.push(w);
-        this.editor && this.editor.renderer.updateFull();
-    };
-    LineWidgets.prototype.measureWidgets = function (e, renderer) {
-        var changedWidgets = this.session._changedWidgets;
-        var config = renderer.layerConfig;
-        if (!changedWidgets || !changedWidgets.length)
-            return;
-        var min = Infinity;
-        for (var i = 0; i < changedWidgets.length; i++) {
-            var w = changedWidgets[i];
-            if (!w || !w.el)
-                continue;
-            if (w.session != this.session)
-                continue;
-            if (!w._inDocument) {
-                if (this.session.lineWidgets[w.row] != w)
-                    continue;
-                w._inDocument = true;
-                renderer.container.appendChild(w.el);
-            }
-            w.h = w.el.offsetHeight;
-            if (!w.fixedWidth) {
-                w.w = w.el.offsetWidth;
-                w.screenWidth = Math.ceil(w.w / config.characterWidth);
-            }
-            var rowCount = w.h / config.lineHeight;
-            if (w.coverLine) {
-                rowCount -= this.session.getRowLineCount(w.row);
-                if (rowCount < 0)
-                    rowCount = 0;
-            }
-            if (w.rowCount != rowCount) {
-                w.rowCount = rowCount;
-                if (w.row < min)
-                    min = w.row;
-            }
-        }
-        if (min != Infinity) {
-            this.session._emit("changeFold", { data: { start: { row: min } } });
-            this.session.lineWidgetWidth = null;
-        }
-        this.session._changedWidgets = [];
-    };
-    LineWidgets.prototype.renderWidgets = function (e, renderer) {
-        var config = renderer.layerConfig;
-        var lineWidgets = this.session.lineWidgets;
-        if (!lineWidgets)
-            return;
-        var first = Math.min(this.firstRow, config.firstRow);
-        var last = Math.max(this.lastRow, config.lastRow, lineWidgets.length);
-        while (first > 0 && !lineWidgets[first])
-            first--;
-        this.firstRow = config.firstRow;
-        this.lastRow = config.lastRow;
-        renderer.$cursorLayer.config = config;
-        for (var i = first; i <= last; i++) {
-            var w = lineWidgets[i];
-            if (!w || !w.el)
-                continue;
-            if (w.hidden) {
-                w.el.style.top = -100 - (w.pixelHeight || 0) + "px";
-                continue;
-            }
-            if (!w._inDocument) {
-                w._inDocument = true;
-                renderer.container.appendChild(w.el);
-            }
-            var top = renderer.$cursorLayer.getPixelPosition({ row: i, column: 0 }, true).top;
-            if (!w.coverLine)
-                top += config.lineHeight * this.session.getRowLineCount(w.row);
-            w.el.style.top = top - config.offset + "px";
-            var left = w.coverGutter ? 0 : renderer.gutterWidth;
-            if (!w.fixedWidth)
-                left -= renderer.scrollLeft;
-            w.el.style.left = left + "px";
-            if (w.fullWidth && w.screenWidth) {
-                w.el.style.minWidth = config.width + 2 * config.padding + "px";
-            }
-            if (w.fixedWidth) {
-                w.el.style.right = renderer.scrollBar.getWidth() + "px";
-            }
-            else {
-                w.el.style.right = "";
-            }
-        }
-    };
-    return LineWidgets;
-}());
-exports.LineWidgets = LineWidgets;
-
-});
-
 define("ace/keyboard/gutter_handler",["require","exports","module","ace/lib/keys","ace/mouse/default_gutter_handler"], function(require, exports, module){"use strict";
 var keys = require('../lib/keys');
 var GutterTooltip = require("../mouse/default_gutter_handler").GutterTooltip;
@@ -13888,7 +13909,7 @@ exports.GutterKeyboardEvent = GutterKeyboardEvent;
 
 });
 
-define("ace/editor",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/useragent","ace/keyboard/textinput","ace/mouse/mouse_handler","ace/mouse/fold_handler","ace/keyboard/keybinding","ace/edit_session","ace/search","ace/range","ace/lib/event_emitter","ace/commands/command_manager","ace/commands/default_commands","ace/config","ace/token_iterator","ace/line_widgets","ace/keyboard/gutter_handler","ace/config","ace/clipboard","ace/lib/keys"], function(require, exports, module){"use strict";
+define("ace/editor",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/useragent","ace/keyboard/textinput","ace/mouse/mouse_handler","ace/mouse/fold_handler","ace/keyboard/keybinding","ace/edit_session","ace/search","ace/range","ace/lib/event_emitter","ace/commands/command_manager","ace/commands/default_commands","ace/config","ace/token_iterator","ace/keyboard/gutter_handler","ace/config","ace/clipboard","ace/lib/keys"], function(require, exports, module){"use strict";
 var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
@@ -13916,7 +13937,6 @@ var CommandManager = require("./commands/command_manager").CommandManager;
 var defaultCommands = require("./commands/default_commands").commands;
 var config = require("./config");
 var TokenIterator = require("./token_iterator").TokenIterator;
-var LineWidgets = require("./line_widgets").LineWidgets;
 var GutterKeyboardHandler = require("./keyboard/gutter_handler").GutterKeyboardHandler;
 var nls = require("./config").nls;
 var clipboard = require("./clipboard");
@@ -14150,7 +14170,11 @@ var Editor = /** @class */ (function () {
         });
         this.curOp = null;
         oldSession && oldSession._signal("changeEditor", { oldEditor: this });
+        if (oldSession)
+            oldSession.$editor = null;
         session && session._signal("changeEditor", { editor: this });
+        if (session)
+            session.$editor = this;
         if (session && !session.destroyed)
             session.bgTokenizer.scheduleStart();
     };
@@ -14776,15 +14800,9 @@ var Editor = /** @class */ (function () {
         this.moveCursorToPosition(cursor);
     };
     Editor.prototype.setGhostText = function (text, position) {
-        if (!this.session.widgetManager) {
-            this.session.widgetManager = new LineWidgets(this.session);
-            this.session.widgetManager.attach(this);
-        }
         this.renderer.setGhostText(text, position);
     };
     Editor.prototype.removeGhostText = function () {
-        if (!this.session.widgetManager)
-            return;
         this.renderer.removeGhostText();
     };
     Editor.prototype.transposeLetters = function () {
@@ -21216,8 +21234,7 @@ var FoldMode = exports.FoldMode = function () { };
 
 });
 
-define("ace/ext/error_marker",["require","exports","module","ace/line_widgets","ace/lib/dom","ace/range","ace/config"], function(require, exports, module){"use strict";
-var LineWidgets = require("../line_widgets").LineWidgets;
+define("ace/ext/error_marker",["require","exports","module","ace/lib/dom","ace/range","ace/config"], function(require, exports, module){"use strict";
 var dom = require("../lib/dom");
 var Range = require("../range").Range;
 var nls = require("../config").nls;
@@ -21267,10 +21284,6 @@ function findAnnotations(session, row, dir) {
 }
 exports.showErrorMarker = function (editor, dir) {
     var session = editor.session;
-    if (!session.widgetManager) {
-        session.widgetManager = new LineWidgets(session);
-        session.widgetManager.attach(editor);
-    }
     var pos = editor.getCursorPosition();
     var row = pos.row;
     var oldWidget = session.widgetManager.getWidgetsAtRow(row).filter(function (w) {
