@@ -1132,7 +1132,7 @@ var AppConfig = /** @class */ (function () {
     };
     AppConfig.prototype.nls = function (key, defaultString, params) {
         if (!messages[key]) {
-            warn("No message found for the key '" + key + "' in the provided messages, trying to find a translation for the default string '" + defaultString + "'.");
+            warn("No message found for the key '" + key + "' in messages with id " + messages.$id + ", trying to find a translation for the default string '" + defaultString + "'.");
             if (!messages[defaultString]) {
                 warn("No message found for the default string '" + defaultString + "' in the provided messages. Falling back to the default English message.");
             }
@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.36.5";
+exports.version = "1.37.0";
 
 });
 
@@ -1803,7 +1803,7 @@ EventListener.prototype.destroy = function () {
     removeListener(this.elem, this.type, this.callback);
     this.elem = this.type = this.callback = undefined;
 };
-var addListener = exports.addListener = function (elem, type, callback, /**@type{any?}*/ destroyer) {
+var addListener = exports.addListener = function (elem, type, callback, destroyer) {
     elem.addEventListener(type, callback, getListenerOptions());
     if (destroyer)
         destroyer.$toDestroy.push(new EventListener(elem, type, callback));

@@ -1307,6 +1307,7 @@ var WollokHighlightRules = require("./wollok_highlight_rules").WollokHighlightRu
 var Mode = function () {
     JavaScriptMode.call(this);
     this.HighlightRules = WollokHighlightRules;
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, JavaScriptMode);
 (function () {

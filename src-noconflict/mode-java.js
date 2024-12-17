@@ -1535,6 +1535,7 @@ var Mode = function () {
     JavaScriptMode.call(this);
     this.HighlightRules = JavaHighlightRules;
     this.foldingRules = new JavaFoldMode();
+    this.$behaviour = this.$defaultBehaviour;
 };
 oop.inherits(Mode, JavaScriptMode);
 (function () {
