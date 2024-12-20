@@ -371,7 +371,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.36.5";
+        version: "1.37.1";
     };
     export = _exports;
 }
@@ -890,7 +890,7 @@ declare module "ace-builds-internal/virtual_renderer" {
          * @param {EditSession} session The session to associate with
          **/
         setSession(session: EditSession): void;
-        session: import("ace-builds-internal/edit_session").EditSession;
+        session: import("ace-builds").Ace.EditSession;
         /**
          * Triggers a partial update of the text, from the range given by the two parameters.
          * @param {Number} firstRow The first row to update
@@ -1702,6 +1702,7 @@ declare module "ace-builds-internal/mouse/default_gutter_handler" {
         static annotationsToSummaryString(annotations: any): string;
         constructor(editor: any);
         editor: any;
+        visibleTooltipRow: number | undefined;
         setPosition(x: any, y: any): void;
         showTooltip(row: any): void;
         hideTooltip(): void;

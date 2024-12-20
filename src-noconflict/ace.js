@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.37.0";
+exports.version = "1.37.1";
 
 });
 
@@ -3501,6 +3501,7 @@ var GutterTooltip = /** @class */ (function (_super) {
     function GutterTooltip(editor) {
         var _this = _super.call(this, editor.container) || this;
         _this.editor = editor;
+        _this.visibleTooltipRow;
         return _this;
     }
     GutterTooltip.prototype.setPosition = function (x, y) {
@@ -3582,7 +3583,7 @@ var GutterTooltip = /** @class */ (function (_super) {
             }
         }
         if (annotation.displayText.length === 0)
-            return this.hide();
+            return this.hideTooltip();
         var annotationMessages = { error: [], security: [], warning: [], info: [], hint: [] };
         var iconClassName = gutter.$useSvgGutterIcons ? "ace_icon_svg" : "ace_icon";
         for (var i = 0; i < annotation.displayText.length; i++) {
@@ -3610,11 +3611,16 @@ var GutterTooltip = /** @class */ (function (_super) {
             this.setClassName("ace_gutter-tooltip");
         }
         this.show();
+        this.visibleTooltipRow = row;
         this.editor._signal("showGutterTooltip", this);
     };
     GutterTooltip.prototype.hideTooltip = function () {
+        if (!this.isOpen) {
+            return;
+        }
         this.$element.removeAttribute("aria-live");
         this.hide();
+        this.visibleTooltipRow = undefined;
         this.editor._signal("hideGutterTooltip", this);
     };
     GutterTooltip.annotationsToSummaryString = function (annotations) {
