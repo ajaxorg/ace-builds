@@ -400,7 +400,7 @@ declare module "ace-builds/src-noconflict/ext-modelist" {
         mode: string;
         extensions: string;
         extRe: RegExp;
-        supportsFile(filename: string): RegExpMatchArray;
+        supportsFile(filename: string): RegExpMatchArray | null;
     }
 }
 declare module "ace-builds/src-noconflict/ext-themelist" {
