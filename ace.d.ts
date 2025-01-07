@@ -36,6 +36,8 @@ declare module "ace-builds" {
         type DragdropHandler = import("ace-builds-internal/mouse/dragdrop_handler").DragdropHandler;
         type AppConfig = import("ace-builds-internal/lib/app_config").AppConfig;
         type Config = typeof import("ace-builds-internal/config");
+        type GutterTooltip = typeof import("ace-builds-internal/mouse/default_gutter_handler").GutterTooltip;
+        type GutterKeyboardEvent = typeof import("ace-builds-internal/keyboard/gutter_handler").GutterKeyboardEvent;
         type AfterLoadCallback = (err: Error | null, module: unknown) => void;
         type LoaderFunction = (moduleName: string, afterLoad: AfterLoadCallback) => void;
         export interface ConfigOptions {
@@ -437,6 +439,10 @@ declare module "ace-builds" {
             //from code_lens extension
             "codeLensClick": (e: any) => void;
             "select": () => void;
+            "gutterkeydown": (e: GutterKeyboardEvent) => void;
+            "gutterclick": (e: MouseEvent) => void;
+            "showGutterTooltip": (e: GutterTooltip) => void;
+            "hideGutterTooltip": (e: GutterTooltip) => void;
         }
         interface AcePopupEvents {
             "click": (e: MouseEvent) => void;
@@ -972,7 +978,7 @@ declare module "ace-builds" {
     import { Range } from "ace-builds-internal/range";
     import { UndoManager } from "ace-builds-internal/undomanager";
     import { VirtualRenderer as Renderer } from "ace-builds-internal/virtual_renderer";
-    export var version: "1.37.2";
+    export var version: "1.37.3";
     export { Range, Editor, EditSession, UndoManager, Renderer as VirtualRenderer };
 }
 
