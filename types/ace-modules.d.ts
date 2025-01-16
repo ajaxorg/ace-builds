@@ -371,7 +371,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.37.4";
+        version: "1.37.5";
     };
     export = _exports;
 }
@@ -890,7 +890,7 @@ declare module "ace-builds-internal/virtual_renderer" {
          * @param {EditSession} session The session to associate with
          **/
         setSession(session: EditSession): void;
-        session: import("ace-builds").Ace.EditSession;
+        session: import("ace-builds-internal/edit_session").EditSession;
         /**
          * Triggers a partial update of the text, from the range given by the two parameters.
          * @param {Number} firstRow The first row to update
@@ -1819,7 +1819,7 @@ declare module "ace-builds-internal/search" {
          * Searches for `options.needle`. If found, this method returns the [[Range `Range`]] where the text first occurs. If `options.backwards` is `true`, the search goes backwards in the session.
          * @param {EditSession} session The session to search with
          **/
-        find(session: EditSession): Range | false;
+        find(session: EditSession): Range | null | false;
         /**
          * Searches for all occurrances `options.needle`. If found, this method returns an array of [[Range `Range`s]] where the text first occurs. If `options.backwards` is `true`, the search goes backwards in the session.
          * @param {EditSession} session The session to search with

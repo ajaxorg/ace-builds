@@ -972,7 +972,7 @@ ace.define("ace/lib/default_english_messages",["require","exports","module"], fu
     "autocomplete.loading": "Loading...",
     "editor.scroller.aria-roledescription": "editor",
     "editor.scroller.aria-label": "Editor content, press Enter to start editing, press Escape to exit",
-    "editor.gutter.aria-roledescription": "editor",
+    "editor.gutter.aria-roledescription": "editor gutter",
     "editor.gutter.aria-label": "Editor gutter, press Enter to interact with controls using arrow keys, press Escape to exit",
     "error-marker.good-state": "Looks good!",
     "prompt.recently-used": "Recently used",
@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.37.4";
+exports.version = "1.37.5";
 
 });
 
@@ -15825,7 +15825,7 @@ config.defineOptions(Editor.prototype, "editor", {
                 this.renderer.$gutter.setAttribute("tabindex", 0);
                 this.renderer.$gutter.setAttribute("aria-hidden", false);
                 this.renderer.$gutter.setAttribute("role", "group");
-                this.renderer.$gutter.setAttribute("aria-roledescription", nls("editor.gutter.aria-roledescription", "editor"));
+                this.renderer.$gutter.setAttribute("aria-roledescription", nls("editor.gutter.aria-roledescription", "editor gutter"));
                 this.renderer.$gutter.setAttribute("aria-label", nls("editor.gutter.aria-label", "Editor gutter, press Enter to interact with controls using arrow keys, press Escape to exit"));
                 this.renderer.$gutter.classList.add(this.renderer.keyboardFocusClassName);
                 this.renderer.content.setAttribute("aria-hidden", true);
