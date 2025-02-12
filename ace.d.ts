@@ -422,7 +422,10 @@ declare module "ace-builds" {
             /**
              * Emitted when text is pasted.
              **/
-            "paste": (text: string, event: any) => void;
+            "paste": (e: {
+                text: string;
+                event?: ClipboardEvent;
+            }) => void;
             /**
              * Emitted when the selection style changes, via [[Editor.setSelectionStyle]].
              * @param data Contains one property, `data`, which indicates the new selection style
@@ -443,6 +446,7 @@ declare module "ace-builds" {
             "gutterclick": (e: MouseEvent) => void;
             "showGutterTooltip": (e: GutterTooltip) => void;
             "hideGutterTooltip": (e: GutterTooltip) => void;
+            "compositionStart": () => void;
         }
         interface AcePopupEvents {
             "click": (e: MouseEvent) => void;
@@ -978,7 +982,7 @@ declare module "ace-builds" {
     import { Range } from "ace-builds-internal/range";
     import { UndoManager } from "ace-builds-internal/undomanager";
     import { VirtualRenderer as Renderer } from "ace-builds-internal/virtual_renderer";
-    export var version: "1.37.5";
+    export var version: "1.38.0";
     export { Range, Editor, EditSession, UndoManager, Renderer as VirtualRenderer };
 }
 

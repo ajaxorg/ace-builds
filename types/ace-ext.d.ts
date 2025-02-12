@@ -252,7 +252,7 @@ declare module "ace-builds/src-noconflict/ext-code_lens" {
 }
 declare module "ace-builds/src-noconflict/ext-emmet" {
     export const commands: HashHandler;
-    export function runEmmetCommand(editor: Editor): number | boolean;
+    export function runEmmetCommand(editor: Editor): ReturnType<typeof setTimeout> | boolean;
     export function updateCommands(editor: Editor, enabled?: boolean): void;
     export function isSupportedMode(mode: any): boolean;
     export function isAvailable(editor: Editor, command: string): boolean;
@@ -404,13 +404,28 @@ declare module "ace-builds/src-noconflict/ext-modelist" {
     }
 }
 declare module "ace-builds/src-noconflict/ext-themelist" {
-    export const themesByName: {};
-    export const themes: {
+    export const themesByName: {
+        [x: string]: Theme;
+    };
+    export const themes: Theme[];
+    export type Theme = {
+        /**
+         * - The display caption of the theme.
+         */
         caption: string;
+        /**
+         * - The path or identifier for the ACE theme.
+         */
         theme: string;
+        /**
+         * - Indicates whether the theme is dark or light.
+         */
         isDark: boolean;
+        /**
+         * - The normalized name used as the key.
+         */
         name: string;
-    }[];
+    };
 }
 declare module "ace-builds/src-noconflict/ext-options" {
     export class OptionPanel {

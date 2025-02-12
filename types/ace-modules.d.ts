@@ -371,7 +371,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.37.5";
+        version: "1.38.0";
     };
     export = _exports;
 }
@@ -536,7 +536,7 @@ declare module "ace-builds-internal/layer/cursor" {
         hideCursor(): void;
         showCursor(): void;
         restartTimer(): void;
-        intervalId: number;
+        intervalId: ReturnType<typeof setInterval>;
         getPixelPosition(position?: import("ace-builds").Ace.Point, onScreen?: boolean): {
             left: number;
             top: number;
@@ -1625,7 +1625,7 @@ declare module "ace-builds-internal/mouse/default_handlers" {
 declare module "ace-builds-internal/tooltip" {
     export class HoverTooltip extends Tooltip {
         constructor(parentNode?: HTMLElement);
-        timeout: number;
+        timeout: ReturnType<typeof setTimeout> | undefined;
         lastT: number;
         idleTime: number;
         lastEvent: import("ace-builds-internal/mouse/mouse_event").MouseEvent;
@@ -1740,7 +1740,7 @@ declare module "ace-builds-internal/mouse/mouse_handler" {
         }): void;
         setState(state: any): void;
         state: any;
-        captureMouse(ev: any, mouseMoveHandler: any): number;
+        captureMouse(ev: MouseEvent, mouseMoveHandler?: any): ReturnType<typeof setTimeout> | undefined;
         x: any;
         y: any;
         isMousePressed: boolean;
@@ -3225,6 +3225,10 @@ declare module "ace-builds-internal/autocomplete" {
          */
         completerId?: string;
         /**
+         * - a boolean value to decide if the popup item is going to skip the filtering process done using prefix text.
+         */
+        skipFilter?: boolean;
+        /**
          * - An object specifying the range of text to be replaced with the new completion value (experimental)
          */
         range?: import("ace-builds").Ace.IRange;
@@ -3582,7 +3586,7 @@ declare module "ace-builds-internal/background_tokenizer" {
          * @param {EditSession} [session] The editor session to associate with
          **/
         constructor(tokenizer: Tokenizer, session?: EditSession);
-        running: false | number;
+        running: false | ReturnType<typeof setTimeout>;
         lines: any[];
         states: string[] | string[][];
         currentLine: number;

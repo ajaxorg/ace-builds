@@ -1198,29 +1198,41 @@ var AcePopup = /** @class */ (function () {
             }
         });
         popup.renderer.on("afterRender", function () {
+            var t = popup.renderer.$textLayer;
+            for (var row = t.config.firstRow, l = t.config.lastRow; row <= l; row++) {
+                var popupRowElement = /** @type {HTMLElement|null} */ (t.element.childNodes[row - t.config.firstRow]);
+                var rowData = popup.getData(row);
+                var ariaLabel = "".concat(rowData.caption || rowData.value).concat(rowData.meta ? ", ".concat(rowData.meta) : '');
+                popupRowElement.setAttribute("role", optionAriaRole);
+                popupRowElement.setAttribute("aria-roledescription", nls("autocomplete.popup.item.aria-roledescription", "item"));
+                popupRowElement.setAttribute("aria-label", ariaLabel);
+                popupRowElement.setAttribute("aria-setsize", popup.data.length);
+                popupRowElement.setAttribute("aria-describedby", "doc-tooltip");
+                popupRowElement.setAttribute("aria-posinset", row + 1);
+                var highlightedSpans = popupRowElement.querySelectorAll(".ace_completion-highlight");
+                highlightedSpans.forEach(function (span) {
+                    span.setAttribute("role", "mark");
+                });
+            }
+        });
+        popup.renderer.on("afterRender", function () {
             var row = popup.getRow();
             var t = popup.renderer.$textLayer;
             var selected = /** @type {HTMLElement|null} */ (t.element.childNodes[row - t.config.firstRow]);
             var el = document.activeElement; // Active element is textarea of main editor
             if (selected !== popup.selectedNode && popup.selectedNode) {
                 dom.removeCssClass(popup.selectedNode, "ace_selected");
-                el.removeAttribute("aria-activedescendant");
                 popup.selectedNode.removeAttribute(ariaActiveState);
                 popup.selectedNode.removeAttribute("id");
             }
+            el.removeAttribute("aria-activedescendant");
             popup.selectedNode = selected;
             if (selected) {
-                dom.addCssClass(selected, "ace_selected");
                 var ariaId = getAriaId(row);
+                dom.addCssClass(selected, "ace_selected");
                 selected.id = ariaId;
                 t.element.setAttribute("aria-activedescendant", ariaId);
                 el.setAttribute("aria-activedescendant", ariaId);
-                selected.setAttribute("role", optionAriaRole);
-                selected.setAttribute("aria-roledescription", nls("autocomplete.popup.item.aria-roledescription", "item"));
-                selected.setAttribute("aria-label", popup.getData(row).caption || popup.getData(row).value);
-                selected.setAttribute("aria-setsize", popup.data.length);
-                selected.setAttribute("aria-posinset", row + 1);
-                selected.setAttribute("aria-describedby", "doc-tooltip");
                 selected.setAttribute(ariaActiveState, "true");
             }
         });
@@ -2273,6 +2285,10 @@ var FilteredList = /** @class */ (function () {
         var upper = needle.toUpperCase();
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
+            if (item.skipFilter) {
+                results.push(item);
+                continue;
+            }
             var caption = (!this.ignoreCaption && item.caption) || item.value || item.snippet;
             if (!caption)
                 continue;

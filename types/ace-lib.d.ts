@@ -106,9 +106,9 @@ declare module "ace-builds-internal/lib/event" {
     export function addCommandKeyListener(el: EventTarget, callback: (e: KeyboardEvent, hashId: number, keyCode: number) => void, destroyer?: any): void;
     export function nextTick(callback: any, win: any): void;
     export const $idleBlocked: boolean;
-    export function onIdle(cb: any, timeout: any): number;
-    export const $idleBlockId: number;
-    export function blockIdle(delay: any): void;
+    export function onIdle(cb: CallableFunction, timeout: number): ReturnType<typeof setTimeout>;
+    export const $idleBlockId: null | ReturnType<typeof setTimeout>;
+    export function blockIdle(delay?: null | number): void;
     export const nextFrame: any;
 }
 declare module "ace-builds-internal/lib/event_emitter" {

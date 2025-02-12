@@ -31,9 +31,7 @@ function tokenize(content, highlightRules) {
     }
     return result;
 }
-module.exports = {
-    tokenize: tokenize
-};
+exports.tokenize = tokenize;
 
 });                (function() {
                     window.require(["ace/ext/simple_tokenizer"], function(m) {

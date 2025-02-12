@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.37.5";
+exports.version = "1.38.0";
 
 });
 
@@ -2077,7 +2077,7 @@ var isIOS = useragent.isIOS;
 var valueResetRegex = isIOS ? /\s/ : /\n/;
 var isMobile = useragent.isMobile;
 var TextInput;
-TextInput = function (parentNode, host) {
+TextInput = function (/**@type{HTMLTextAreaElement} */ parentNode, /**@type{import("../editor").Editor} */ host) {
     var text = dom.createElement("textarea");
     text.className = "ace_text-input";
     text.setAttribute("wrap", "off");
@@ -2085,8 +2085,7 @@ TextInput = function (parentNode, host) {
     text.setAttribute("autocapitalize", "off");
     text.setAttribute("spellcheck", "false");
     text.style.opacity = "0";
-    parentNode.insertBefore(text, parentNode.firstChild);
-    var copied = false;
+    parentNode.insertBefore(text, parentNode.firstChild); var copied = false;
     var pasted = false;
     var inComposition = false;
     var sendingText = false;
@@ -2106,7 +2105,7 @@ TextInput = function (parentNode, host) {
         var isFocused = document.activeElement === text;
     }
     catch (e) { }
-    this.setNumberOfExtraLines = function (number) {
+    this.setNumberOfExtraLines = function (/**@type{number}*/ number) {
         rowStart = Number.MAX_SAFE_INTEGER;
         rowEnd = Number.MIN_SAFE_INTEGER;
         if (number < 0) {
@@ -2647,7 +2646,7 @@ TextInput = function (parentNode, host) {
         var rect = host.container.getBoundingClientRect();
         var style = dom.computedStyle(host.container);
         var top = rect.top + (parseInt(style.borderTopWidth) || 0);
-        var left = rect.left + (parseInt(rect.borderLeftWidth) || 0);
+        var left = rect.left + (parseInt(style.borderLeftWidth) || 0);
         var maxTop = rect.bottom - top - text.clientHeight - 2;
         var move = function (e) {
             dom.translate(text, e.clientX - left - 2, Math.min(e.clientY - top - 2, maxTop));
@@ -10841,6 +10840,9 @@ var EditSession = /** @class */ (function () {
         }
         this.$modeId = path;
         config.loadModule(["mode", path], function (m) {
+            if (this.destroyed) {
+                return;
+            }
             if (this.$modeId !== path)
                 return cb && cb();
             if (this.$modes[path] && !options) {
@@ -17080,7 +17082,7 @@ var Text = /** @class */ (function () {
             var ranges = this.session.$bracketHighlight.ranges;
             for (var i = 0; i < ranges.length; i++) {
                 if (cursor.row !== ranges[i].start.row) {
-                    this.$highlightIndentGuideMarker.end = ranges[i].start.row;
+                    this.$highlightIndentGuideMarker.end = ranges[i].start.row + 1;
                     if (cursor.row > ranges[i].start.row) {
                         this.$highlightIndentGuideMarker.dir = -1;
                     }
@@ -17108,24 +17110,24 @@ var Text = /** @class */ (function () {
         this.$renderHighlightIndentGuide();
     };
     Text.prototype.$clearActiveIndentGuide = function () {
-        var cells = this.$lines.cells;
-        for (var i = 0; i < cells.length; i++) {
-            var cell = cells[i];
-            var childNodes = cell.element.childNodes;
-            if (childNodes.length > 0) {
-                for (var j = 0; j < childNodes.length; j++) {
-                    if (childNodes[j].classList && childNodes[j].classList.contains("ace_indent-guide-active")) {
-                        childNodes[j].classList.remove("ace_indent-guide-active");
-                        break;
-                    }
-                }
-            }
-        }
+        var activeIndentGuides = this.element.querySelectorAll(".ace_indent-guide-active");
+        activeIndentGuides.forEach(function (el) {
+            el.classList.remove("ace_indent-guide-active");
+        });
     };
     Text.prototype.$setIndentGuideActive = function (cell, indentLevel) {
         var line = this.session.doc.getLine(cell.row);
         if (line !== "") {
-            var childNodes = cell.element.childNodes;
+            var element = cell.element;
+            if (cell.element.classList && cell.element.classList.contains("ace_line_group")) {
+                if (cell.element.childNodes.length > 0) {
+                    element = cell.element.childNodes[0];
+                }
+                else {
+                    return;
+                }
+            }
+            var childNodes = element.childNodes;
             if (childNodes) {
                 var node = childNodes[indentLevel - 1];
                 if (node && node.classList && node.classList.contains("ace_indent-guide"))
@@ -17155,7 +17157,7 @@ var Text = /** @class */ (function () {
                 for (var i = cells.length - 1; i >= 0; i--) {
                     var cell = cells[i];
                     if (this.$highlightIndentGuideMarker.end && cell.row < this.$highlightIndentGuideMarker.start) {
-                        if (cell.row <= this.$highlightIndentGuideMarker.end)
+                        if (cell.row < this.$highlightIndentGuideMarker.end)
                             break;
                         this.$setIndentGuideActive(cell, indentLevel);
                     }
@@ -18954,8 +18956,10 @@ var VirtualRenderer = /** @class */ (function () {
             this.scrollBarH.setVisible(horizScroll);
         }
         var vScrollBefore = this.$vScroll; // autosize can change vscroll value in which case we need to update longestLine
-        if (this.$maxLines && this.lineHeight > 1)
+        if (this.$maxLines && this.lineHeight > 1) {
             this.$autosize();
+            hideScrollbars = size.height <= 2 * this.lineHeight;
+        }
         var minHeight = size.scrollerHeight + this.lineHeight;
         var scrollPastEnd = !this.$maxLines && this.$scrollPastEnd
             ? (size.scrollerHeight - this.lineHeight) * this.$scrollPastEnd

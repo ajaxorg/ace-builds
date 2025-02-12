@@ -24,7 +24,7 @@ var Mode = /** @class */ (function () {
             }) + "$";
         }
         else {
-            re = "^.*\\.(" + extensions + ")$";
+            re = "\\.(" + extensions + ")$";
         }
         this.extRe = new RegExp(re, "gi");
     }
