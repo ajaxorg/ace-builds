@@ -1608,6 +1608,7 @@ var supportedModes = {
     Csound_Orchestra: ["orc"],
     Csound_Score: ["sco"],
     CSS: ["css"],
+    CSV: ["csv"],
     Curly: ["curly"],
     Cuttlefish: ["conf"],
     D: ["d|di"],
@@ -1750,6 +1751,7 @@ var supportedModes = {
     Text: ["txt"],
     Textile: ["textile"],
     Toml: ["toml"],
+    TSV: ["tsv"],
     TSX: ["tsx"],
     Turtle: ["ttl"],
     Twig: ["twig|swig"],
@@ -4333,14 +4335,16 @@ var AcePopup = /** @class */ (function () {
             var t = popup.renderer.$textLayer;
             for (var row = t.config.firstRow, l = t.config.lastRow; row <= l; row++) {
                 var popupRowElement = /** @type {HTMLElement|null} */ (t.element.childNodes[row - t.config.firstRow]);
-                var rowData = popup.getData(row);
-                var ariaLabel = "".concat(rowData.caption || rowData.value).concat(rowData.meta ? ", ".concat(rowData.meta) : '');
                 popupRowElement.setAttribute("role", optionAriaRole);
                 popupRowElement.setAttribute("aria-roledescription", nls("autocomplete.popup.item.aria-roledescription", "item"));
-                popupRowElement.setAttribute("aria-label", ariaLabel);
                 popupRowElement.setAttribute("aria-setsize", popup.data.length);
                 popupRowElement.setAttribute("aria-describedby", "doc-tooltip");
                 popupRowElement.setAttribute("aria-posinset", row + 1);
+                var rowData = popup.getData(row);
+                if (rowData) {
+                    var ariaLabel = "".concat(rowData.caption || rowData.value).concat(rowData.meta ? ", ".concat(rowData.meta) : '');
+                    popupRowElement.setAttribute("aria-label", ariaLabel);
+                }
                 var highlightedSpans = popupRowElement.querySelectorAll(".ace_completion-highlight");
                 highlightedSpans.forEach(function (span) {
                     span.setAttribute("role", "mark");
@@ -6517,6 +6521,7 @@ var FilteredList = /** @class */ (function () {
         var lower = needle.toLowerCase();
         loop: for (var i = 0, item; item = items[i]; i++) {
             if (item.skipFilter) {
+                item.$score = item.score;
                 results.push(item);
                 continue;
             }

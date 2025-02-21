@@ -4,7 +4,10 @@ declare module "ace-builds-internal/layer/font_metrics" {
     export class FontMetrics {
         constructor(parentEl: HTMLElement);
         el: HTMLDivElement;
-        checkForSizeChanges(size: any): void;
+        checkForSizeChanges(size?: {
+            height: number;
+            width: number;
+        } | null): void;
         charSizes: any;
         allowBoldFonts: boolean;
         setPolling(val: boolean): void;
@@ -17,8 +20,9 @@ declare module "ace-builds-internal/layer/font_metrics" {
         type EventEmitter<T extends {
             [K in keyof T]: (...args: any[]) => any;
         }> = import("ace-builds").Ace.EventEmitter<T>;
+        type FontMetricsEvents = import("ace-builds").Ace.FontMetricsEvents;
     }
-    export interface FontMetrics extends Ace.EventEmitter<any> {
+    export interface FontMetrics extends Ace.EventEmitter<Ace.FontMetricsEvents> {
     }
 }
 declare module "ace-builds-internal/apply_delta" {
@@ -371,7 +375,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.38.0";
+        version: "1.39.0";
     };
     export = _exports;
 }
@@ -655,10 +659,11 @@ declare module "ace-builds-internal/scrollbar" {
         type EventEmitter<T extends {
             [K in keyof T]: (...args: any[]) => any;
         }> = import("ace-builds").Ace.EventEmitter<T>;
+        type ScrollbarEvents = import("ace-builds").Ace.ScrollbarEvents;
     }
-    export interface VScrollBar extends Ace.EventEmitter<any> {
+    export interface VScrollBar extends Ace.EventEmitter<Ace.ScrollbarEvents> {
     }
-    export interface HScrollBar extends Ace.EventEmitter<any> {
+    export interface HScrollBar extends Ace.EventEmitter<Ace.ScrollbarEvents> {
     }
 }
 declare module "ace-builds-internal/scrollbar_custom" {
@@ -785,10 +790,11 @@ declare module "ace-builds-internal/scrollbar_custom" {
         type EventEmitter<T extends {
             [K in keyof T]: (...args: any[]) => any;
         }> = import("ace-builds").Ace.EventEmitter<T>;
+        type ScrollbarEvents = import("ace-builds").Ace.ScrollbarEvents;
     }
-    export interface VScrollBar extends Ace.EventEmitter<any> {
+    export interface VScrollBar extends Ace.EventEmitter<Ace.ScrollbarEvents> {
     }
-    export interface HScrollBar extends Ace.EventEmitter<any> {
+    export interface HScrollBar extends Ace.EventEmitter<Ace.ScrollbarEvents> {
     }
 }
 declare module "ace-builds-internal/renderloop" {
@@ -1841,14 +1847,15 @@ declare module "ace-builds-internal/search" {
 declare module "ace-builds-internal/keyboard/hash_handler" {
     export type Command = import("ace-builds").Ace.Command;
     export type CommandLike = import("ace-builds").Ace.CommandLike;
+    export type Platform = "win" | "mac";
     export class HashHandler extends MultiHashHandler {
     }
     export namespace HashHandler {
         function call(thisArg: any, config: any, platform: any): void;
     }
     export class MultiHashHandler {
-        constructor(config?: Record<string, CommandLike> | Command[], platform?: string);
-        platform: string;
+        constructor(config?: Record<string, CommandLike> | Command[], platform?: Platform);
+        platform: Platform;
         commands: Record<string, Command>;
         commandKeyBinding: {};
         addCommand(command: Command): void;
@@ -1884,10 +1891,10 @@ declare module "ace-builds-internal/commands/command_manager" {
     export class CommandManager extends MultiHashHandler {
         /**
          * new CommandManager(platform, commands)
-         * @param {String} platform Identifier for the platform; must be either `"mac"` or `"win"`
+         * @param {import("ace-builds-internal/keyboard/hash_handler").Platform} platform Identifier for the platform; must be either `"mac"` or `"win"`
          * @param {any[]} commands A list of commands
          **/
-        constructor(platform: string, commands: any[]);
+        constructor(platform: import("ace-builds-internal/keyboard/hash_handler").Platform, commands: any[]);
         byName: Record<string, import("ace-builds").Ace.Command>;
         exec(command: string | string[] | import("ace-builds").Ace.Command, editor: Editor, args: any): boolean;
         canExecute(command: string | import("ace-builds").Ace.Command, editor: Editor): boolean;
@@ -1904,8 +1911,9 @@ declare module "ace-builds-internal/commands/command_manager" {
         type EventEmitter<T extends {
             [K in keyof T]: (...args: any[]) => any;
         }> = import("ace-builds").Ace.EventEmitter<T>;
+        type CommandManagerEvents = import("ace-builds").Ace.CommandManagerEvents;
     }
-    export interface CommandManager extends Ace.EventEmitter<any> {
+    export interface CommandManager extends Ace.EventEmitter<Ace.CommandManagerEvents> {
     }
 }
 declare module "ace-builds-internal/commands/default_commands" {

@@ -7,6 +7,7 @@
 /// <reference path="./types/ace-snippets.d.ts" />
 /// <reference path="./ace-modes.d.ts" />
 declare module "ace-builds" {
+    export function require(name: string): any;
     export namespace Ace {
         type Anchor = import("ace-builds-internal/anchor").Anchor;
         type Editor = import("ace-builds-internal/editor").Editor;
@@ -759,8 +760,8 @@ declare module "ace-builds" {
             args: any[];
         }) => void;
         interface CommandManagerEvents {
-            on(name: "exec", callback: execEventHandler): Function;
-            on(name: "afterExec", callback: execEventHandler): Function;
+            "exec": execEventHandler;
+            "afterExec": execEventHandler;
         }
         type CommandManager = import("ace-builds-internal/commands/command_manager").CommandManager;
         interface SavedSelection {
@@ -970,6 +971,30 @@ declare module "ace-builds" {
             docChanged?: boolean;
             selectionChanged?: boolean;
         }
+        export interface CommandBarEvents {
+            "hide": () => void;
+            "show": () => void;
+            "alwaysShow": (e: boolean) => void;
+        }
+        export interface FontMetricsEvents {
+            "changeCharacterSize": (e: {
+                data: {
+                    height: number;
+                    width: number;
+                };
+            }) => void;
+        }
+        export interface OptionPanelEvents {
+            "setOption": (e: {
+                name: string;
+                value: any;
+            }) => void;
+        }
+        export interface ScrollbarEvents {
+            "scroll": (e: {
+                data: number;
+            }) => void;
+        }
     }
     export const config: typeof import("ace-builds-internal/config");
     export function edit(el?: string | (HTMLElement & {
@@ -982,7 +1007,7 @@ declare module "ace-builds" {
     import { Range } from "ace-builds-internal/range";
     import { UndoManager } from "ace-builds-internal/undomanager";
     import { VirtualRenderer as Renderer } from "ace-builds-internal/virtual_renderer";
-    export var version: "1.38.0";
+    export var version: "1.39.0";
     export { Range, Editor, EditSession, UndoManager, Renderer as VirtualRenderer };
 }
 

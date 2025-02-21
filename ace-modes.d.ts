@@ -303,6 +303,14 @@ declare module "ace-builds/src-noconflict/mode-css" {
     export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
 }
 
+declare module "ace-builds/src-noconflict/mode-csv_highlight_rules" {
+    export const CsvHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
+}
+
+declare module "ace-builds/src-noconflict/mode-csv" {
+    export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
+}
+
 declare module "ace-builds/src-noconflict/mode-curly_highlight_rules" {
     export const CurlyHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
 }
@@ -1576,6 +1584,14 @@ declare module "ace-builds/src-noconflict/mode-toml_highlight_rules" {
 }
 
 declare module "ace-builds/src-noconflict/mode-toml" {
+    export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
+}
+
+declare module "ace-builds/src-noconflict/mode-tsv_highlight_rules" {
+    export const TsvHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
+}
+
+declare module "ace-builds/src-noconflict/mode-tsv" {
     export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
 }
 

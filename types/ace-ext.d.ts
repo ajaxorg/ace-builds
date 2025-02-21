@@ -74,8 +74,9 @@ declare module "ace-builds/src-noconflict/ext-command_bar" {
         type EventEmitter<T extends {
             [K in keyof T]: (...args: any[]) => any;
         }> = import("ace-builds").Ace.EventEmitter<T>;
+        type CommandBarEvents = import("ace-builds").Ace.CommandBarEvents;
     }
-    export interface CommandBarTooltip extends Ace.EventEmitter<any> {
+    export interface CommandBarTooltip extends Ace.EventEmitter<Ace.CommandBarEvents> {
     }
 }
 declare module "ace-builds/src-noconflict/ext-language_tools" {
@@ -449,8 +450,9 @@ declare module "ace-builds/src-noconflict/ext-options" {
         type EventEmitter<T extends {
             [K in keyof T]: (...args: any[]) => any;
         }> = import("ace-builds").Ace.EventEmitter<T>;
+        type OptionPanelEvents = import("ace-builds").Ace.OptionPanelEvents;
     }
-    export interface OptionPanel extends Ace.EventEmitter<any> {
+    export interface OptionPanel extends Ace.EventEmitter<Ace.OptionPanelEvents> {
     }
 }
 declare module "ace-builds/src-noconflict/ext-prompt" {

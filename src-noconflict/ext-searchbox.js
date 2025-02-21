@@ -41,6 +41,7 @@ var SearchBox = /** @class */ (function () {
         ], div);
         this.element = div.firstChild;
         this.setSession = this.setSession.bind(this);
+        this.$onEditorInput = this.onEditorInput.bind(this);
         this.$init();
         this.setEditor(editor);
         dom.importCssString(searchboxCss, "ace_searchbox", editor.container);
@@ -53,6 +54,9 @@ var SearchBox = /** @class */ (function () {
     SearchBox.prototype.setSession = function (e) {
         this.searchRange = null;
         this.$syncOptions(true);
+    };
+    SearchBox.prototype.onEditorInput = function () {
+        this.find(false, false, true);
     };
     SearchBox.prototype.$initElements = function (sb) {
         this.searchBox = sb.querySelector(".ace_search_form");
@@ -161,6 +165,10 @@ var SearchBox = /** @class */ (function () {
             var value = this.searchRange
                 ? editor.session.getTextRange(this.searchRange)
                 : editor.getValue();
+            if (editor.$search.$isMultilineSearch(editor.getLastSearchOptions())) {
+                value = value.replace(/\r\n|\r|\n/g, "\n");
+                editor.session.doc.$autoNewLine = "\n";
+            }
             var offset = editor.session.doc.positionToIndex(editor.selection.anchor);
             if (this.searchRange)
                 offset -= editor.session.doc.positionToIndex(this.searchRange.start);
@@ -218,6 +226,7 @@ var SearchBox = /** @class */ (function () {
         this.active = false;
         this.setSearchRange(null);
         this.editor.off("changeSession", this.setSession);
+        this.editor.off("input", this.$onEditorInput);
         this.element.style.display = "none";
         this.editor.keyBinding.removeKeyboardHandler(this.$closeSearchBarKb);
         this.editor.focus();
@@ -225,8 +234,11 @@ var SearchBox = /** @class */ (function () {
     SearchBox.prototype.show = function (value, isReplace) {
         this.active = true;
         this.editor.on("changeSession", this.setSession);
+        this.editor.on("input", this.$onEditorInput);
         this.element.style.display = "";
         this.replaceOption.checked = isReplace;
+        if (this.editor.$search.$options.regExp)
+            value = lang.escapeRegExp(value);
         if (value)
             this.searchInput.value = value;
         this.searchInput.focus();

@@ -1322,7 +1322,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.38.0";
+exports.version = "1.39.0";
 
 });
 
@@ -3365,7 +3365,7 @@ exports.HoverTooltip = HoverTooltip;
 
 });
 
-define("ace/mouse/default_gutter_handler",["require","exports","module","ace/lib/dom","ace/lib/event","ace/tooltip","ace/config","ace/lib/lang"], function(require, exports, module){"use strict";
+define("ace/mouse/default_gutter_handler",["require","exports","module","ace/lib/dom","ace/lib/event","ace/tooltip","ace/config"], function(require, exports, module){"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -3396,11 +3396,14 @@ var dom = require("../lib/dom");
 var event = require("../lib/event");
 var Tooltip = require("../tooltip").Tooltip;
 var nls = require("../config").nls;
-var lang = require("../lib/lang");
+var GUTTER_TOOLTIP_LEFT_OFFSET = 5;
+var GUTTER_TOOLTIP_TOP_OFFSET = 3;
+exports.GUTTER_TOOLTIP_LEFT_OFFSET = GUTTER_TOOLTIP_LEFT_OFFSET;
+exports.GUTTER_TOOLTIP_TOP_OFFSET = GUTTER_TOOLTIP_TOP_OFFSET;
 function GutterHandler(mouseHandler) {
     var editor = mouseHandler.editor;
     var gutter = editor.renderer.$gutterLayer;
-    var tooltip = new GutterTooltip(editor);
+    var tooltip = new GutterTooltip(editor, true);
     mouseHandler.editor.setDefaultHandler("guttermousedown", function (e) {
         if (!editor.isFocused() || e.getButton() != 0)
             return;
@@ -3436,6 +3439,8 @@ function GutterHandler(mouseHandler) {
         if (!tooltip.isOpen)
             return;
         editor.on("mousewheel", hideTooltip);
+        editor.on("changeSession", hideTooltip);
+        window.addEventListener("keydown", hideTooltip, true);
         if (mouseHandler.$tooltipFollowsMouse) {
             moveTooltip(mouseEvent);
         }
@@ -3446,20 +3451,26 @@ function GutterHandler(mouseHandler) {
                 var gutterElement = gutterCell.element.querySelector(".ace_gutter_annotation");
                 var rect = gutterElement.getBoundingClientRect();
                 var style = tooltip.getElement().style;
-                style.left = rect.right + "px";
-                style.top = rect.bottom + "px";
+                style.left = (rect.right - GUTTER_TOOLTIP_LEFT_OFFSET) + "px";
+                style.top = (rect.bottom - GUTTER_TOOLTIP_TOP_OFFSET) + "px";
             }
             else {
                 moveTooltip(mouseEvent);
             }
         }
     }
-    function hideTooltip() {
+    function hideTooltip(e) {
+        if (e && e.type === "keydown" && (e.ctrlKey || e.metaKey))
+            return;
+        if (e && e.type === "mouseout" && (!e.relatedTarget || tooltip.getElement().contains(e.relatedTarget)))
+            return;
         if (tooltipTimeout)
             tooltipTimeout = clearTimeout(tooltipTimeout);
         if (tooltip.isOpen) {
             tooltip.hideTooltip();
             editor.off("mousewheel", hideTooltip);
+            editor.off("changeSession", hideTooltip);
+            window.removeEventListener("keydown", hideTooltip, true);
         }
     }
     function moveTooltip(e) {
@@ -3478,31 +3489,44 @@ function GutterHandler(mouseHandler) {
             tooltipTimeout = null;
             if (mouseEvent && !mouseHandler.isMousePressed)
                 showTooltip();
-            else
-                hideTooltip();
         }, 50);
     });
     event.addListener(editor.renderer.$gutter, "mouseout", function (e) {
         mouseEvent = null;
-        if (!tooltip.isOpen || tooltipTimeout)
+        if (!tooltip.isOpen)
             return;
         tooltipTimeout = setTimeout(function () {
             tooltipTimeout = null;
-            hideTooltip();
+            hideTooltip(e);
         }, 50);
     }, editor);
-    editor.on("changeSession", hideTooltip);
-    editor.on("input", hideTooltip);
 }
 exports.GutterHandler = GutterHandler;
 var GutterTooltip = /** @class */ (function (_super) {
     __extends(GutterTooltip, _super);
-    function GutterTooltip(editor) {
+    function GutterTooltip(editor, isHover) {
+        if (isHover === void 0) { isHover = false; }
         var _this = _super.call(this, editor.container) || this;
         _this.editor = editor;
         _this.visibleTooltipRow;
+        var el = _this.getElement();
+        el.setAttribute("role", "tooltip");
+        el.style.pointerEvents = "auto";
+        if (isHover) {
+            _this.onMouseOut = _this.onMouseOut.bind(_this);
+            el.addEventListener("mouseout", _this.onMouseOut);
+        }
         return _this;
     }
+    GutterTooltip.prototype.onMouseOut = function (e) {
+        if (!this.isOpen)
+            return;
+        if (!e.relatedTarget || this.getElement().contains(e.relatedTarget))
+            return;
+        if (e && e.currentTarget.contains(e.relatedTarget))
+            return;
+        this.hideTooltip();
+    };
     GutterTooltip.prototype.setPosition = function (x, y) {
         var windowWidth = window.innerWidth || document.documentElement.clientWidth;
         var windowHeight = window.innerHeight || document.documentElement.clientHeight;
@@ -8197,6 +8221,7 @@ var SearchHighlight = /** @class */ (function () {
         this.setRegexp(regExp);
         this.clazz = clazz;
         this.type = type;
+        this.docLen = 0;
     }
     SearchHighlight.prototype.setRegexp = function (regExp) {
         if (this.regExp + "" == regExp + "")
@@ -8207,19 +8232,38 @@ var SearchHighlight = /** @class */ (function () {
     SearchHighlight.prototype.update = function (html, markerLayer, session, config) {
         if (!this.regExp)
             return;
-        var start = config.firstRow, end = config.lastRow;
+        var start = config.firstRow;
+        var end = config.lastRow;
         var renderedMarkerRanges = {};
+        var _search = session.$editor.$search;
+        var mtSearch = _search.$isMultilineSearch(session.$editor.getLastSearchOptions());
         for (var i = start; i <= end; i++) {
             var ranges = this.cache[i];
-            if (ranges == null) {
-                ranges = lang.getMatchOffsets(session.getLine(i), this.regExp);
-                if (ranges.length > this.MAX_RANGES)
-                    ranges = ranges.slice(0, this.MAX_RANGES);
-                ranges = ranges.map(function (match) {
-                    return new Range(i, match.offset, i, match.offset + match.length);
-                });
+            if (ranges == null || session.getValue().length != this.docLen) {
+                if (mtSearch) {
+                    ranges = [];
+                    var match = _search.$multiLineForward(session, this.regExp, i, end);
+                    if (match) {
+                        var end_row = match.endRow <= end ? match.endRow - 1 : end;
+                        if (end_row > i)
+                            i = end_row;
+                        ranges.push(new Range(match.startRow, match.startCol, match.endRow, match.endCol));
+                    }
+                    if (ranges.length > this.MAX_RANGES)
+                        ranges = ranges.slice(0, this.MAX_RANGES);
+                }
+                else {
+                    ranges = lang.getMatchOffsets(session.getLine(i), this.regExp);
+                    if (ranges.length > this.MAX_RANGES)
+                        ranges = ranges.slice(0, this.MAX_RANGES);
+                    ranges = ranges.map(function (match) {
+                        return new Range(i, match.offset, i, match.offset + match.length);
+                    });
+                }
                 this.cache[i] = ranges.length ? ranges : "";
             }
+            if (ranges.length === 0)
+                continue;
             for (var j = ranges.length; j--;) {
                 var rangeToAddMarkerTo = ranges[j].toScreenRange(session);
                 var rangeAsString = rangeToAddMarkerTo.toString();
@@ -8229,6 +8273,7 @@ var SearchHighlight = /** @class */ (function () {
                 markerLayer.drawSingleLineMarker(html, rangeToAddMarkerTo, this.clazz, config);
             }
         }
+        this.docLen = session.getValue().length;
     };
     return SearchHighlight;
 }());
@@ -12119,11 +12164,23 @@ var Search = /** @class */ (function () {
             }
         }
         else {
-            for (var i = 0; i < lines.length; i++) {
-                var matches = lang.getMatchOffsets(lines[i], re);
-                for (var j = 0; j < matches.length; j++) {
-                    var match = matches[j];
-                    ranges.push(new Range(i, match.offset, i, match.offset + match.length));
+            for (var matches, i = 0; i < lines.length; i++) {
+                if (this.$isMultilineSearch(options)) {
+                    var lng = lines.length - 1;
+                    matches = this.$multiLineForward(session, re, i, lng);
+                    if (matches) {
+                        var end_row = matches.endRow <= lng ? matches.endRow - 1 : lng;
+                        if (end_row > i)
+                            i = end_row;
+                        ranges.push(new Range(matches.startRow, matches.startCol, matches.endRow, matches.endCol));
+                    }
+                }
+                else {
+                    matches = lang.getMatchOffsets(lines[i], re);
+                    for (var j = 0; j < matches.length; j++) {
+                        var match = matches[j];
+                        ranges.push(new Range(i, match.offset, i, match.offset + match.length));
+                    }
                 }
             }
         }
@@ -12144,6 +12201,64 @@ var Search = /** @class */ (function () {
         }
         return ranges;
     };
+    Search.prototype.parseReplaceString = function (replaceString) {
+        var CharCode = {
+            DollarSign: 36,
+            Ampersand: 38,
+            Digit0: 48,
+            Digit1: 49,
+            Digit9: 57,
+            Backslash: 92,
+            n: 110,
+            t: 116
+        };
+        var replacement = '';
+        for (var i = 0, len = replaceString.length; i < len; i++) {
+            var chCode = replaceString.charCodeAt(i);
+            if (chCode === CharCode.Backslash) {
+                i++;
+                if (i >= len) {
+                    replacement += "\\";
+                    break;
+                }
+                var nextChCode = replaceString.charCodeAt(i);
+                switch (nextChCode) {
+                    case CharCode.Backslash:
+                        replacement += "\\";
+                        break;
+                    case CharCode.n:
+                        replacement += "\n";
+                        break;
+                    case CharCode.t:
+                        replacement += "\t";
+                        break;
+                }
+                continue;
+            }
+            if (chCode === CharCode.DollarSign) {
+                i++;
+                if (i >= len) {
+                    replacement += "$";
+                    break;
+                }
+                var nextChCode_1 = replaceString.charCodeAt(i);
+                if (nextChCode_1 === CharCode.DollarSign) {
+                    replacement += "$$";
+                    continue;
+                }
+                if (nextChCode_1 === CharCode.Digit0 || nextChCode_1 === CharCode.Ampersand) {
+                    replacement += "$&";
+                    continue;
+                }
+                if (CharCode.Digit1 <= nextChCode_1 && nextChCode_1 <= CharCode.Digit9) {
+                    replacement += "$" + replaceString[i];
+                    continue;
+                }
+            }
+            replacement += replaceString[i];
+        }
+        return replacement || replaceString;
+    };
     Search.prototype.replace = function (input, replacement) {
         var options = this.$options;
         var re = this.$assembleRegExp(options);
@@ -12151,12 +12266,15 @@ var Search = /** @class */ (function () {
             return replacement;
         if (!re)
             return;
+        var mtSearch = this.$isMultilineSearch(options);
+        if (mtSearch)
+            input = input.replace(/\r\n|\r|\n/g, "\n");
         var match = re.exec(input);
-        if (!match || match[0].length != input.length)
+        if (!match || (!mtSearch && match[0].length != input.length))
             return null;
-        if (!options.regExp) {
-            replacement = replacement.replace(/\$/g, "$$$$");
-        }
+        replacement = options.regExp
+            ? this.parseReplaceString(replacement)
+            : replacement.replace(/\$/g, "$$$$");
         replacement = input.replace(re, replacement);
         if (options.preserveCase) {
             replacement = replacement.split("");
@@ -12213,10 +12331,73 @@ var Search = /** @class */ (function () {
             }
         return re;
     };
+    Search.prototype.$isMultilineSearch = function (options) {
+        return options.re && /\\r\\n|\\r|\\n/.test(options.re.source) && options.regExp && !options.$isMultiLine;
+    };
+    Search.prototype.$multiLineForward = function (session, re, start, last) {
+        var line, chunk = chunkEnd(session, start);
+        for (var row = start; row <= last;) {
+            for (var i = 0; i < chunk; i++) {
+                if (row > last)
+                    break;
+                var next = session.getLine(row++);
+                line = line == null ? next : line + "\n" + next;
+            }
+            var match = re.exec(line);
+            re.lastIndex = 0;
+            if (match) {
+                var beforeMatch = line.slice(0, match.index).split("\n");
+                var matchedText = match[0].split("\n");
+                var startRow = start + beforeMatch.length - 1;
+                var startCol = beforeMatch[beforeMatch.length - 1].length;
+                var endRow = startRow + matchedText.length - 1;
+                var endCol = matchedText.length == 1
+                    ? startCol + matchedText[0].length
+                    : matchedText[matchedText.length - 1].length;
+                return {
+                    startRow: startRow,
+                    startCol: startCol,
+                    endRow: endRow,
+                    endCol: endCol
+                };
+            }
+        }
+        return null;
+    };
+    Search.prototype.$multiLineBackward = function (session, re, endIndex, start, first) {
+        var line, chunk = chunkEnd(session, start), endMargin = session.getLine(start).length - endIndex;
+        for (var row = start; row >= first;) {
+            for (var i = 0; i < chunk && row >= first; i++) {
+                var next = session.getLine(row--);
+                line = line == null ? next : next + "\n" + line;
+            }
+            var match = multiLineBackwardMatch(line, re, endMargin);
+            if (match) {
+                var beforeMatch = line.slice(0, match.index).split("\n");
+                var matchedText = match[0].split("\n");
+                var startRow = row + beforeMatch.length;
+                var startCol = beforeMatch[beforeMatch.length - 1].length;
+                var endRow = startRow + matchedText.length - 1;
+                var endCol = matchedText.length == 1
+                    ? startCol + matchedText[0].length
+                    : matchedText[matchedText.length - 1].length;
+                return {
+                    startRow: startRow,
+                    startCol: startCol,
+                    endRow: endRow,
+                    endCol: endCol
+                };
+            }
+        }
+        return null;
+    };
     Search.prototype.$matchIterator = function (session, options) {
         var re = this.$assembleRegExp(options);
         if (!re)
             return false;
+        var mtSearch = this.$isMultilineSearch(options);
+        var mtForward = this.$multiLineForward;
+        var mtBackward = this.$multiLineBackward;
         var backwards = options.backwards == true;
         var skipCurrent = options.skipCurrent != false;
         var supportsUnicodeFlag = re.unicode;
@@ -12282,45 +12463,68 @@ var Search = /** @class */ (function () {
         }
         else if (backwards) {
             var forEachInLine = function (row, endIndex, callback) {
-                var line = session.getLine(row);
-                var matches = [];
-                var m, last = 0;
-                re.lastIndex = 0;
-                while ((m = re.exec(line))) {
-                    var length = m[0].length;
-                    last = m.index;
-                    if (!length) {
-                        if (last >= line.length)
-                            break;
-                        re.lastIndex = last += lang.skipEmptyMatch(line, last, supportsUnicodeFlag);
-                    }
-                    if (m.index + length > endIndex)
-                        break;
-                    matches.push(m.index, length);
-                }
-                for (var i = matches.length - 1; i >= 0; i -= 2) {
-                    var column = matches[i - 1];
-                    var length = matches[i];
-                    if (callback(row, column, row, column + length))
+                if (mtSearch) {
+                    var pos = mtBackward(session, re, endIndex, row, firstRow);
+                    if (!pos)
+                        return false;
+                    if (callback(pos.startRow, pos.startCol, pos.endRow, pos.endCol))
                         return true;
+                }
+                else {
+                    var line = session.getLine(row);
+                    var matches = [];
+                    var m, last = 0;
+                    re.lastIndex = 0;
+                    while ((m = re.exec(line))) {
+                        var length = m[0].length;
+                        last = m.index;
+                        if (!length) {
+                            if (last >= line.length)
+                                break;
+                            re.lastIndex = last += lang.skipEmptyMatch(line, last, supportsUnicodeFlag);
+                        }
+                        if (m.index + length > endIndex)
+                            break;
+                        matches.push(m.index, length);
+                    }
+                    for (var i = matches.length - 1; i >= 0; i -= 2) {
+                        var column = matches[i - 1];
+                        var length = matches[i];
+                        if (callback(row, column, row, column + length))
+                            return true;
+                    }
                 }
             };
         }
         else {
             var forEachInLine = function (row, startIndex, callback) {
-                var line = session.getLine(row);
-                var last;
-                var m;
                 re.lastIndex = startIndex;
-                while ((m = re.exec(line))) {
-                    var length = m[0].length;
-                    last = m.index;
-                    if (callback(row, last, row, last + length))
+                if (mtSearch) {
+                    var pos = mtForward(session, re, row, lastRow);
+                    if (pos) {
+                        var end_row = pos.endRow <= lastRow ? pos.endRow - 1 : lastRow;
+                        if (end_row > row)
+                            row = end_row;
+                    }
+                    if (!pos)
+                        return false;
+                    if (callback(pos.startRow, pos.startCol, pos.endRow, pos.endCol))
                         return true;
-                    if (!length) {
-                        re.lastIndex = last += lang.skipEmptyMatch(line, last, supportsUnicodeFlag);
-                        if (last >= line.length)
-                            return false;
+                }
+                else {
+                    var line = session.getLine(row);
+                    var last;
+                    var m;
+                    while ((m = re.exec(line))) {
+                        var length = m[0].length;
+                        last = m.index;
+                        if (callback(row, last, row, last + length))
+                            return true;
+                        if (!length) {
+                            re.lastIndex = last += lang.skipEmptyMatch(line, last, supportsUnicodeFlag);
+                            if (last >= line.length)
+                                return false;
+                        }
                     }
                 }
             };
@@ -12348,6 +12552,27 @@ function addWordBoundary(needle, options) {
     var firstChar = needleArray[0];
     var lastChar = needleArray[needleArray.length - 1];
     return wordBoundary(firstChar) + needle + wordBoundary(lastChar, false);
+}
+function multiLineBackwardMatch(line, re, endMargin) {
+    var match = null;
+    var from = 0;
+    while (from <= line.length) {
+        re.lastIndex = from;
+        var newMatch = re.exec(line);
+        if (!newMatch)
+            break;
+        var end = newMatch.index + newMatch[0].length;
+        if (end > line.length - endMargin)
+            break;
+        if (!match || end > match.index + match[0].length)
+            match = newMatch;
+        from = newMatch.index + 1;
+    }
+    return match;
+}
+function chunkEnd(session, start) {
+    var base = 5000, startPosition = { row: start, column: 0 }, startIndex = session.doc.positionToIndex(startPosition), targetIndex = startIndex + base, targetPosition = session.doc.indexToPosition(targetIndex), targetLine = targetPosition.row;
+    return targetLine + 1;
 }
 exports.Search = Search;
 
