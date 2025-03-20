@@ -375,7 +375,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.39.0";
+        version: "1.39.1";
     };
     export = _exports;
 }
@@ -1272,7 +1272,11 @@ declare module "ace-builds-internal/virtual_renderer" {
         textarea: HTMLTextAreaElement;
         enableKeyboardAccessibility?: boolean;
         showInvisibles?: boolean;
-        theme?: any;
+        theme /**
+         * @overload
+         */? /**
+         * @overload
+         */: any;
         destroyed?: boolean;
         session: Ace.EditSession;
         keyboardFocusClassName?: string;
@@ -1640,7 +1644,7 @@ declare module "ace-builds-internal/tooltip" {
         removeFromEditor(editor: Editor): void;
         isOutsideOfText(e: MouseEvent): boolean;
         setDataProvider(value: (event: MouseEvent, editor: Editor) => void): void;
-        showForRange(editor: Editor, range: Range, domNode: HTMLElement, startingEvent: MouseEvent): void;
+        showForRange(editor: Editor, range: Range, domNode: HTMLElement, startingEvent?: MouseEvent): void;
         range: Range;
         addMarker(range: Range, session?: EditSession): void;
         marker: number;
@@ -1682,6 +1686,8 @@ declare module "ace-builds-internal/mouse/default_gutter_handler" {
     export interface GutterHandler {
     }
     export type MouseHandler = import("ace-builds-internal/mouse/mouse_handler").MouseHandler;
+    export const GUTTER_TOOLTIP_LEFT_OFFSET: 5;
+    export const GUTTER_TOOLTIP_TOP_OFFSET: 3;
     export class GutterTooltip extends Tooltip {
         static get annotationLabels(): {
             error: {
@@ -1706,9 +1712,10 @@ declare module "ace-builds-internal/mouse/default_gutter_handler" {
             };
         };
         static annotationsToSummaryString(annotations: any): string;
-        constructor(editor: any);
+        constructor(editor: any, isHover?: boolean);
         editor: any;
         visibleTooltipRow: number | undefined;
+        onMouseOut(e: any): void;
         setPosition(x: any, y: any): void;
         showTooltip(row: any): void;
         hideTooltip(): void;
@@ -1831,6 +1838,7 @@ declare module "ace-builds-internal/search" {
          * @param {EditSession} session The session to search with
         **/
         findAll(session: EditSession): Range[];
+        parseReplaceString(replaceString: any): any;
         /**
          * Searches for `options.needle` in `input`, and, if found, replaces it with `replacement`.
          * @param {String} input The text to search in
@@ -2719,7 +2727,13 @@ declare module "ace-builds-internal/editor" {
         type Completer = import("ace-builds").Ace.Completer;
         type SearchBox = import("ace-builds").Ace.SearchBox;
     }
-    export interface Editor extends Ace.EditorMultiSelectProperties, Ace.OptionsProvider<Ace.EditorOptions>, Ace.EventEmitter<Ace.EditorEvents>, Ace.CodeLenseEditorExtension, Ace.ElasticTabstopsEditorExtension, Ace.TextareaEditorExtension, Ace.PromptEditorExtension, Ace.OptionsEditorExtension {
+    export interface Editor extends Ace.EditorMultiSelectProperties /**
+     * @overload
+     */, /**
+     * @overload
+     */ Ace
+            .OptionsProvider<Ace.EditorOptions>, Ace.
+                EventEmitter<Ace.EditorEvents>, Ace.CodeLenseEditorExtension, Ace.ElasticTabstopsEditorExtension, Ace.TextareaEditorExtension, Ace.PromptEditorExtension, Ace.OptionsEditorExtension {
         session: Ace.EditSession;
         env?: any;
         widgetManager?: Ace.LineWidgets;
@@ -2888,7 +2902,11 @@ declare module "ace-builds-internal/autocomplete/popup" {
         hide: () => void;
         anchor: "top" | "bottom";
         anchorPosition: Ace.Point;
-        tryShow: (pos: any, lineHeight: number, anchor: "top" | "bottom", forceShow?: boolean) => boolean;
+        tryShow: (pos: any, lineHeight: number,
+            /**
+             * @overload
+             */
+            anchor: "top" | "bottom", forceShow?: boolean) => boolean;
         show: (pos: any, lineHeight: number, topdownOnly?: boolean) => void;
         goTo: (where: Ace.AcePopupNavigation) => void;
         getTextLeftOffset: () => number;
@@ -3337,6 +3355,7 @@ declare module "ace-builds-internal/search_highlight" {
         constructor(regExp: any, clazz: string, type?: string);
         clazz: string;
         type: string;
+        docLen: number;
         setRegexp(regExp: any): void;
         regExp: any;
         cache: any[];

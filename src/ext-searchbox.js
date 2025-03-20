@@ -15,8 +15,7 @@ dom.importCssString(searchboxCss, "ace_searchbox", false);
 var SearchBox = /** @class */ (function () {
     function SearchBox(editor, range, showReplaceForm) {
         this.activeInput;
-        var div = dom.createElement("div");
-        dom.buildDom(["div", { class: "ace_search right" },
+        this.element = dom.buildDom(["div", { class: "ace_search right" },
             ["span", { action: "hide", class: "ace_searchbtn_close" }],
             ["div", { class: "ace_search_form" },
                 ["input", { class: "ace_search_field", placeholder: nls("search-box.find.placeholder", "Search for"), spellcheck: "false" }],
@@ -38,13 +37,13 @@ var SearchBox = /** @class */ (function () {
                 ["span", { action: "toggleWholeWords", class: "ace_button", title: nls("search-box.toggle-whole-word.title", "Whole Word Search") }, "\\b"],
                 ["span", { action: "searchInSelection", class: "ace_button", title: nls("search-box.toggle-in-selection.title", "Search In Selection") }, "S"]
             ]
-        ], div);
-        this.element = div.firstChild;
+        ]);
         this.setSession = this.setSession.bind(this);
         this.$onEditorInput = this.onEditorInput.bind(this);
         this.$init();
         this.setEditor(editor);
         dom.importCssString(searchboxCss, "ace_searchbox", editor.container);
+        event.addListener(this.element, "touchstart", function (e) { e.stopPropagation(); }, editor);
     }
     SearchBox.prototype.setEditor = function (editor) {
         editor.searchBox = this;
