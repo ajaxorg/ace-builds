@@ -8361,7 +8361,7 @@ doclist.pickDocument = function(name) {
 
 
 var OptionPanel = require("ace/ext/options").OptionPanel;
-var optionsPanel = new OptionPanel(env.editor);
+var optionsPanel = env.optionsPanel = new OptionPanel(env.editor);
 
 var originalAutocompleteCommand = null;
 
@@ -8457,7 +8457,6 @@ optionsPanel.add({
 var optionsPanelContainer = document.getElementById("optionsPanel");
 optionsPanel.render();
 optionsPanelContainer.insertBefore(optionsPanel.container, optionsPanelContainer.firstChild);
-optionsPanel.container.style.width = "80%";
 optionsPanel.on("setOption", function(e) {
     util.saveOption(e.name, e.value);
 });
@@ -8466,6 +8465,15 @@ function updateUIEditorOptions() {
     optionsPanel.editor = env.editor;
     optionsPanel.render();
 }
+
+env.editor.on("changeSession", function() {
+    for (var i in env.editor.session.$options) {
+        var value = util.getOption(i);
+        if (value != undefined) {
+            env.editor.setOption(i, value);
+        }
+    }
+});
 
 optionsPanel.setOption("doc", util.getOption("doc") || "JavaScript");
 for (var i in optionsPanel.options) {

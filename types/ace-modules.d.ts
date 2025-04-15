@@ -375,7 +375,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.39.1";
+        version: "1.40.0";
     };
     export = _exports;
 }
@@ -3948,6 +3948,28 @@ declare module "ace-builds-internal/edit_session" {
          * @param {String} className The class to add
          **/
         addGutterDecoration(row: number, className: string): void;
+        /**
+         * Replaces the custom icon with the fold widget if present from a specific row in the gutter
+         * @param {number} row The row number for which to hide the custom icon
+         * @experimental
+         */
+        removeGutterCustomWidget(row: number): void;
+        /**
+         * Replaces the fold widget if present with the custom icon from a specific row in the gutter
+         * @param {number} row - The row number where the widget will be displayed
+         * @param {Object} attributes - Configuration attributes for the widget
+         * @param {string} attributes.className - CSS class name for styling the widget
+         * @param {string} attributes.label - Text label to display in the widget
+         * @param {string} attributes.title - Tooltip text for the widget
+         * @param {Object} attributes.callbacks - Event callback functions for the widget e.g onClick;
+         * @experimental
+        */
+        addGutterCustomWidget(row: number, attributes: {
+            className: string;
+            label: string;
+            title: string;
+            callbacks: any;
+        }): void;
         /**
          * Removes `className` from the `row`.
          * @param {Number} row The row number
