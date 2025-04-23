@@ -375,7 +375,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.40.0";
+        version: "1.40.1";
     };
     export = _exports;
 }

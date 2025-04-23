@@ -1321,7 +1321,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.40.0";
+exports.version = "1.40.1";
 
 });
 
@@ -16852,7 +16852,7 @@ var Gutter = /** @class */ (function () {
         var rowCell = cell || this.$getGutterCell(row);
         if (rowCell && rowCell.element) {
             var foldWidget = rowCell.element.childNodes[1];
-            if (foldWidget && this.session.foldWidgets[rowCell.row]) {
+            if (foldWidget && this.session.foldWidgets && this.session.foldWidgets[rowCell.row]) {
                 dom.setStyle(foldWidget.style, "display", "inline-block");
             }
         }
