@@ -1036,8 +1036,7 @@ var optionsProvider = {
             });
         }
         else if (!Array.isArray(optionNames)) {
-            result = optionNames;
-            optionNames = Object.keys(result);
+            optionNames = Object.keys(optionNames);
         }
         optionNames.forEach(function (key) {
             result[key] = this.getOption(key);
@@ -1321,7 +1320,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.40.1";
+exports.version = "1.41.0";
 
 });
 
@@ -2084,7 +2083,10 @@ TextInput = function (/**@type{HTMLTextAreaElement} */ parentNode, /**@type{impo
     text.setAttribute("autocapitalize", "off");
     text.setAttribute("spellcheck", "false");
     text.style.opacity = "0";
-    parentNode.insertBefore(text, parentNode.firstChild); var copied = false;
+    parentNode.insertBefore(text, parentNode.firstChild);
+    this.setHost = function (newHost) {
+        host = newHost;
+    }; var copied = false;
     var pasted = false;
     var inComposition = false;
     var sendingText = false;
@@ -8234,8 +8236,8 @@ var SearchHighlight = /** @class */ (function () {
         var start = config.firstRow;
         var end = config.lastRow;
         var renderedMarkerRanges = {};
-        var _search = session.$editor.$search;
-        var mtSearch = _search.$isMultilineSearch(session.$editor.getLastSearchOptions());
+        var _search = session.$editor && session.$editor.$search;
+        var mtSearch = _search && _search.$isMultilineSearch(session.$editor.getLastSearchOptions());
         for (var i = start; i <= end; i++) {
             var ranges = this.cache[i];
             if (ranges == null || session.getValue().length != this.docLen) {
@@ -14255,12 +14257,12 @@ var keys = require('./lib/keys');
 var event = require("./lib/event");
 var HoverTooltip = require("./tooltip").HoverTooltip;
 var Editor = /** @class */ (function () {
-    function Editor(renderer, session, options) { this.session;
+    function Editor(renderer, session, options) {
+        this.id = "editor" + (++Editor.$uid); this.session;
         this.$toDestroy = [];
         var container = renderer.getContainerElement();
         this.container = container;
         this.renderer = renderer;
-        this.id = "editor" + (++Editor.$uid);
         this.commands = new CommandManager(useragent.isMac ? "mac" : "win", defaultCommands);
         if (typeof document == "object") {
             this.textInput = new TextInput(renderer.getTextAreaContainer(), this);
@@ -14519,8 +14521,8 @@ var Editor = /** @class */ (function () {
     Editor.prototype.getTheme = function () {
         return this.renderer.getTheme();
     };
-    Editor.prototype.setStyle = function (style) {
-        this.renderer.setStyle(style);
+    Editor.prototype.setStyle = function (style, incluude) {
+        this.renderer.setStyle(style, incluude);
     };
     Editor.prototype.unsetStyle = function (style) {
         this.renderer.unsetStyle(style);
@@ -18576,18 +18578,14 @@ var oop = require("../lib/oop");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var Decorator = /** @class */ (function () {
     function Decorator(parent, renderer) {
+        this.parentEl = parent;
         this.canvas = dom.createElement("canvas");
         this.renderer = renderer;
         this.pixelRatio = 1;
         this.maxHeight = renderer.layerConfig.maxHeight;
         this.lineHeight = renderer.layerConfig.lineHeight;
-        this.canvasHeight = parent.parent.scrollHeight;
-        this.heightRatio = this.canvasHeight / this.maxHeight;
-        this.canvasWidth = parent.width;
         this.minDecorationHeight = (2 * this.pixelRatio) | 0;
         this.halfMinDecorationHeight = (this.minDecorationHeight / 2) | 0;
-        this.canvas.width = this.canvasWidth;
-        this.canvas.height = this.canvasHeight;
         this.canvas.style.top = 0 + "px";
         this.canvas.style.right = 0 + "px";
         this.canvas.style.zIndex = 7 + "px";
@@ -18603,22 +18601,12 @@ var Decorator = /** @class */ (function () {
             "warning": "rgb(32,133,72)",
             "info": "rgb(35,68,138)"
         };
+        this.setDimensions();
         parent.element.appendChild(this.canvas);
     }
     Decorator.prototype.$updateDecorators = function (config) {
         var colors = (this.renderer.theme.isDark === true) ? this.colors.dark : this.colors.light;
-        if (config) {
-            this.maxHeight = config.maxHeight;
-            this.lineHeight = config.lineHeight;
-            this.canvasHeight = config.height;
-            var allLineHeight = (config.lastRow + 1) * this.lineHeight;
-            if (allLineHeight < this.canvasHeight) {
-                this.heightRatio = 1;
-            }
-            else {
-                this.heightRatio = this.canvasHeight / this.maxHeight;
-            }
-        }
+        this.setDimensions(config);
         var ctx = this.canvas.getContext("2d");
         function compare(a, b) {
             if (a.priority < b.priority)
@@ -18639,10 +18627,9 @@ var Decorator = /** @class */ (function () {
                 item.priority = priorities[item.type] || null;
             });
             annotations = annotations.sort(compare);
-            var foldData = this.renderer.session.$foldData;
             for (var i = 0; i < annotations.length; i++) {
                 var row = annotations[i].row;
-                var compensateFold = this.compensateFoldRows(row, foldData);
+                var compensateFold = this.compensateFoldRows(row);
                 var currentY = Math.round((row - compensateFold) * this.lineHeight * this.heightRatio);
                 var y1 = Math.round(((row - compensateFold) * this.lineHeight * this.heightRatio));
                 var y2 = Math.round((((row - compensateFold) * this.lineHeight + this.lineHeight) * this.heightRatio));
@@ -18664,13 +18651,14 @@ var Decorator = /** @class */ (function () {
         }
         var cursor = this.renderer.session.selection.getCursor();
         if (cursor) {
-            var compensateFold = this.compensateFoldRows(cursor.row, foldData);
+            var compensateFold = this.compensateFoldRows(cursor.row);
             var currentY = Math.round((cursor.row - compensateFold) * this.lineHeight * this.heightRatio);
             ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
             ctx.fillRect(0, currentY, this.canvasWidth, 2);
         }
     };
-    Decorator.prototype.compensateFoldRows = function (row, foldData) {
+    Decorator.prototype.compensateFoldRows = function (row) {
+        var foldData = this.renderer.session.$foldData;
         var compensateFold = 0;
         if (foldData && foldData.length > 0) {
             for (var j = 0; j < foldData.length; j++) {
@@ -18683,6 +18671,39 @@ var Decorator = /** @class */ (function () {
             }
         }
         return compensateFold;
+    };
+    Decorator.prototype.compensateLineWidgets = function (row) {
+        var widgetManager = this.renderer.session.widgetManager;
+        if (widgetManager) {
+            var delta_1 = 0;
+            widgetManager.lineWidgets.forEach(function (el, index) {
+                if (row > index) {
+                    delta_1 += el.rowCount || 0;
+                }
+            });
+            return delta_1 - 1;
+        }
+        return 0;
+    };
+    Decorator.prototype.setDimensions = function (config) {
+        if (config) {
+            this.maxHeight = config.maxHeight;
+            this.lineHeight = config.lineHeight;
+            this.canvasHeight = config.height;
+            if (this.maxHeight < this.canvasHeight) {
+                this.heightRatio = 1;
+            }
+            else {
+                this.heightRatio = this.canvasHeight / this.maxHeight;
+            }
+        }
+        else {
+            this.canvasHeight = this.parentEl.parent.scrollHeight || this.canvasHeight;
+            this.canvasWidth = this.parentEl.width || this.canvasWidth;
+            this.heightRatio = this.canvasHeight / this.maxHeight;
+            this.canvas.width = this.canvasWidth;
+            this.canvas.height = this.canvasHeight;
+        }
     };
     return Decorator;
 }());

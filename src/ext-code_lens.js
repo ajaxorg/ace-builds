@@ -52,7 +52,7 @@ function renderWidgets(changes, renderer) {
                 el = dom.buildDom(["a"], lensContainer);
             }
             el.textContent = lenses[j].title;
-            el.lensCommand = lenses[j];
+            (el).lensCommand = lenses[j];
         }
         while (lensContainer.childNodes.length > 2 * j - 1)
             lensContainer.lastChild.remove();

@@ -250,6 +250,8 @@ declare module "ace-builds/src-noconflict/ext-code_lens" {
     export type EditSession = import("ace-builds-internal/edit_session").EditSession;
     export type VirtualRenderer = import("ace-builds-internal/virtual_renderer").VirtualRenderer & {
     };
+    export type CodeLenseCommand = import("ace-builds").Ace.CodeLenseCommand;
+    export type CodeLense = import("ace-builds").Ace.CodeLense;
     import { Editor } from "ace-builds-internal/editor";
 }
 declare module "ace-builds/src-noconflict/ext-emmet" {
@@ -640,4 +642,241 @@ declare module "ace-builds/src-noconflict/ext-whitespace" {
         exec: (editor: any, args: any) => void;
     }[];
     export type EditSession = import("ace-builds-internal/edit_session").EditSession;
+}
+declare module "ace-builds/src-noconflict/ext-diff/styles-css" {
+    export const cssText: "\n/*\n * Line Markers\n */\n.ace_diff {\n    position: absolute;\n    z-index: 0;\n}\n.ace_diff.inline {\n    z-index: 20;\n}\n/*\n * Light Colors \n */\n.ace_diff.insert {\n    background-color: #eaffea; /*rgb(74 251 74 / 12%); */\n}\n.ace_diff.delete {\n    background-color: #ffecec; /*rgb(251 74 74 / 12%);*/\n}\n.ace_diff.aligned_diff {\n    background: rgba(206, 194, 191, 0.26);\n    background: repeating-linear-gradient(\n                45deg,\n              rgba(122, 111, 108, 0.26),\n              rgba(122, 111, 108, 0.26) 5px,\n              #FFFFFF 5px,\n              #FFFFFF 10px \n    );\n}\n\n.ace_diff.insert.inline {\n    background-color:  rgb(74 251 74 / 18%); \n}\n.ace_diff.delete.inline {\n    background-color: rgb(251 74 74 / 15%);\n}\n\n.ace_diff.delete.inline.empty {\n    background-color: rgba(255, 128, 79, 0.8);\n    width: 2px !important;\n}\n\n.ace_diff.insert.inline.empty {\n    background-color: rgba(49, 230, 96, 0.8);\n    width: 2px !important;\n}\n\n.ace_diff.selection {\n    border-bottom: 1px solid black;\n    border-top: 1px solid black;\n    background: transparent;\n}\n\n/*\n * Dark Colors \n */\n\n.ace_dark .ace_diff.insert.inline {\n    background-color: rgba(0, 130, 58, 0.45);\n}\n.ace_dark .ace_diff.delete.inline {\n    background-color: rgba(169, 46, 33, 0.55);\n}\n\n.ace_dark .ace_diff.selection {\n    border-bottom: 1px solid white;\n    border-top: 1px solid white;\n    background: transparent;\n}\n \n\n/* gutter changes */\n.ace_mini-diff_gutter-enabled > .ace_gutter-cell {\n    background-color: #f0f0f0;\n    padding-right: 13px;\n}\n\n.ace_mini-diff_gutter-enabled > .mini-diff-added {\n    background-color: #eaffea;\n    border-left: 3px solid #00FF00;\n    padding-left: 0;\n}\n\n.ace_mini-diff_gutter-enabled > .mini-diff-deleted {\n    background-color: #ffecec;\n    border-left: 3px solid #FF0000;\n    padding-left: 0;\n}\n\n\n.ace_mini-diff_gutter-enabled > .mini-diff-added:after {\n    position: absolute;\n    right: 2px;\n    content: \"+\";\n    color: darkgray;\n    background-color: inherit;\n}\n\n.ace_mini-diff_gutter-enabled > .mini-diff-deleted:after {\n    position: absolute;\n    right: 2px;\n    content: \"-\";\n    color: darkgray;\n    background-color: inherit;\n}\n.ace_fade-fold-widgets:hover .mini-diff-added:after {\n    display: none;\n}\n.ace_fade-fold-widgets:hover .mini-diff-deleted:after {\n    display: none;\n}\n\n.ace_diff_other .ace_selection {\n    filter: drop-shadow(1px 2px 3px darkgray);\n}\n\n";
+}
+declare module "ace-builds/src-noconflict/ext-diff/gutter_decorator" {
+    export class MinimalGutterDiffDecorator {
+        constructor(editor: import("ace-builds-internal/editor").Editor, type: number);
+        gutterClass: string;
+        gutterCellsClasses: {
+            add: string;
+            delete: string;
+        };
+        editor: import("ace-builds-internal/editor").Editor;
+        type: number;
+        chunks: any[];
+        attachToEditor(): void;
+        renderGutters(e: any, gutterLayer: any): void;
+        setDecorations(changes: any): void;
+        dispose(): void;
+    }
+}
+declare module "ace-builds/src-noconflict/ext-diff/providers/default" {
+    export function computeDiff(originalLines: any, modifiedLines: any, options: any): any;
+    /**
+     * VSCode’s computeDiff provider
+     */
+    export class DiffProvider {
+        compute(originalLines: any, modifiedLines: any, opts: any): any;
+    }
+}
+declare module "ace-builds/src-noconflict/ext-diff/base_diff_view" {
+    export class BaseDiffView {
+        /**
+         * Constructs a new base DiffView instance.
+         * @param {boolean} [inlineDiffEditor] - Whether to use an inline diff editor.
+         * @param {HTMLElement} [container] - optional container element for the DiffView.
+         */
+        constructor(inlineDiffEditor?: boolean, container?: HTMLElement);
+        onChangeTheme(): void;
+        onInput(): void;
+        onChangeFold(ev: any, session: EditSession): void;
+        realign(): void;
+        onSelect(e: any, selection: any): void;
+        realignPending: boolean;
+        diffSession: {
+            sessionA: EditSession;
+            sessionB: EditSession;
+            chunks: DiffChunk[];
+        };
+        /**@type DiffChunk[]*/ chunks: DiffChunk[];
+        inlineDiffEditor: boolean;
+        currentDiffIndex: number;
+        diffProvider: {
+            compute: (val1: any, val2: any, options: any) => any[];
+        };
+        container: HTMLElement;
+        options: {
+            ignoreTrimWhitespace: boolean;
+            maxComputationTimeMs: number;
+            syncSelections: boolean;
+        };
+        markerB: DiffHighlight;
+        markerA: DiffHighlight;
+        /**
+         * @param {Object} options - The configuration options for the DiffView.
+         * @param {boolean} [options.ignoreTrimWhitespace=true] - Whether to ignore whitespace changes when computing diffs.
+         * @param {boolean} [options.foldUnchanged=false] - Whether to fold unchanged regions in the diff view.
+         * @param {number} [options.maxComputationTimeMs=0] - The maximum time in milliseconds to spend computing diffs (0 means no limit).
+         * @param {boolean} [options.syncSelections=false] - Whether to synchronize selections between the original and edited views.
+         */
+        setOptions(options: {
+            ignoreTrimWhitespace?: boolean;
+            foldUnchanged?: boolean;
+            maxComputationTimeMs?: number;
+            syncSelections?: boolean;
+        }): void;
+        showSideA: boolean;
+        savedOptionsA: Partial<import("ace-builds").Ace.EditorOptions>;
+        savedOptionsB: Partial<import("ace-builds").Ace.EditorOptions>;
+        editorA: any;
+        editorB: any;
+        activeEditor: any;
+        otherSession: EditSession;
+        otherEditor: any;
+        addGutterDecorators(): void;
+        gutterDecoratorA: MinimalGutterDiffDecorator;
+        gutterDecoratorB: MinimalGutterDiffDecorator;
+        foldUnchanged(): void;
+        setDiffSession(session: {
+            sessionA: any;
+            sessionB: EditSession;
+            chunks: DiffChunk[];
+        }): void;
+        sessionA: EditSession;
+        sessionB: EditSession;
+        getDiffSession(): {
+            sessionA: EditSession;
+            sessionB: EditSession;
+            chunks: DiffChunk[];
+        };
+        setTheme(theme: any): void;
+        getTheme(): any;
+        resize(force: any): void;
+        selectionRangeA: any;
+        selectionRangeB: any;
+        setProvider(provider: import("ace-builds/src-noconflict/ext-diff/providers/default").DiffProvider): void;
+        /** scroll locking
+         * @abstract
+         **/
+        align(): void;
+        syncSelect(selection: any): void;
+        updateSelectionMarker(marker: any, session: any, range: any): void;
+        detach(): void;
+        destroy(): void;
+        gotoNext(dir: any): void;
+        firstDiffSelected(): boolean;
+        lastDiffSelected(): boolean;
+        transformRange(range: Range, isOriginal: boolean): Range;
+        transformPosition(pos: import("ace-builds").Ace.Point, isOriginal: boolean): import("ace-builds").Ace.Point;
+        printDiffs(): void;
+        findChunkIndex(chunks: DiffChunk[], row: number, isOriginal: boolean): number;
+        searchHighlight(selection: any): void;
+        initSelectionMarkers(): void;
+        syncSelectionMarkerA: SyncSelectionMarker;
+        syncSelectionMarkerB: SyncSelectionMarker;
+        clearSelectionMarkers(): void;
+    }
+    export class DiffChunk {
+        /**
+         * @param {{originalStartLineNumber: number, originalStartColumn: number,
+         * originalEndLineNumber: number, originalEndColumn: number, modifiedStartLineNumber: number,
+         * modifiedStartColumn: number, modifiedEndLineNumber: number, modifiedEndColumn: number}[]} [charChanges]
+         */
+        constructor(originalRange: Range, modifiedRange: Range, charChanges?: {
+            originalStartLineNumber: number;
+            originalStartColumn: number;
+            originalEndLineNumber: number;
+            originalEndColumn: number;
+            modifiedStartLineNumber: number;
+            modifiedStartColumn: number;
+            modifiedEndLineNumber: number;
+            modifiedEndColumn: number;
+        }[]);
+        old: Range;
+        new: Range;
+        charChanges: DiffChunk[];
+    }
+    export class DiffHighlight {
+        constructor(diffView: import("ace-builds/src-noconflict/ext-diff/base_diff_view").BaseDiffView, type: any);
+        id: number;
+        diffView: BaseDiffView;
+        type: any;
+        update(html: any, markerLayer: any, session: any, config: any): void;
+    }
+    import { EditSession } from "ace-builds-internal/edit_session";
+    import { Editor } from "ace-builds-internal/editor";
+    import { MinimalGutterDiffDecorator } from "ace-builds/src-noconflict/ext-diff/gutter_decorator";
+    import { Range } from "ace-builds-internal/range";
+    class SyncSelectionMarker {
+        id: number;
+        type: string;
+        clazz: string;
+        update(html: any, markerLayer: any, session: any, config: any): void;
+        setRange(range: Range): void;
+        range: Range;
+    }
+}
+declare module "ace-builds/src-noconflict/ext-diff/diff_view" {
+    export class DiffView extends BaseDiffView {
+        /**
+         * Constructs a new side by side DiffView instance.
+         *
+         * @param {Object} [diffModel] - The model for the diff view.
+         * @param {import("ace-builds-internal/editor").Editor} [diffModel.editorA] - The editor for the original view.
+         * @param {import("ace-builds-internal/editor").Editor} [diffModel.editorB] - The editor for the edited view.
+         * @param {import("ace-builds-internal/edit_session").EditSession} [diffModel.sessionA] - The edit session for the original view.
+         * @param {import("ace-builds-internal/edit_session").EditSession} [diffModel.sessionB] - The edit session for the edited view.
+         * @param {string} [diffModel.valueA] - The original content.
+         * @param {string} [diffModel.valueB] - The modified content.
+         */
+        constructor(diffModel?: {
+            editorA?: import("ace-builds-internal/editor").Editor;
+            editorB?: import("ace-builds-internal/editor").Editor;
+            sessionA?: import("ace-builds-internal/edit_session").EditSession;
+            sessionB?: import("ace-builds-internal/edit_session").EditSession;
+            valueA?: string;
+            valueB?: string;
+        });
+        init(diffModel: any): void;
+        onMouseWheel(ev: any): any;
+        onScroll(e: any, session: any): void;
+        syncScroll(renderer: import("ace-builds-internal/virtual_renderer").VirtualRenderer): void;
+        scrollA: any;
+        scrollB: any;
+        scrollSetBy: any;
+        scrollSetAt: number;
+    }
+    import { BaseDiffView } from "ace-builds/src-noconflict/ext-diff/base_diff_view";
+}
+declare module "ace-builds/src-noconflict/ext-diff/inline_diff_view" {
+    export class InlineDiffView extends BaseDiffView {
+        /**
+         * Constructs a new inline DiffView instance.
+         * @param {Object} [diffModel] - The model for the diff view.
+         * @param {import("ace-builds").Editor} [diffModel.editorA] - The editor for the original view.
+         * @param {import("ace-builds").Editor} [diffModel.editorB] - The editor for the edited view.
+         * @param {import("ace-builds").EditSession} [diffModel.sessionA] - The edit session for the original view.
+         * @param {import("ace-builds").EditSession} [diffModel.sessionB] - The edit session for the edited view.
+         * @param {string} [diffModel.valueA] - The original content.
+         * @param {string} [diffModel.valueB] - The modified content.
+         * @param {boolean} [diffModel.showSideA] - Whether to show the original view or modified view.
+         * @param {HTMLElement} [container] - optional container element for the DiffView.
+         */
+        constructor(diffModel?: {
+            editorA?: import("ace-builds").Editor;
+            editorB?: import("ace-builds").Editor;
+            sessionA?: import("ace-builds").EditSession;
+            sessionB?: import("ace-builds").EditSession;
+            valueA?: string;
+            valueB?: string;
+            showSideA?: boolean;
+        }, container?: HTMLElement);
+        init(diffModel: any): void;
+        onAfterRender(changes: number, renderer: import("ace-builds").VirtualRenderer): void;
+        textLayer: any;
+        markerLayer: any;
+        gutterLayer: any;
+        cursorLayer: any;
+        initTextLayer(): void;
+        initTextInput(restore: any): void;
+        othertextInput: any;
+        otherEditorContainer: any;
+        selectEditor(editor: any): void;
+        initMouse(): void;
+        onMouseDetach: () => void;
+    }
+    import { BaseDiffView } from "ace-builds/src-noconflict/ext-diff/base_diff_view";
 }
