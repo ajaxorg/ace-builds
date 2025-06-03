@@ -759,6 +759,7 @@ var OptionPanel = /** @class */ (function () {
 }());
 oop.implement(OptionPanel.prototype, EventEmitter);
 exports.OptionPanel = OptionPanel;
+exports.optionGroups = optionGroups;
 
 });                (function() {
                     ace.require(["ace/ext/options"], function(m) {

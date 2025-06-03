@@ -39,6 +39,9 @@ declare module "ace-builds" {
         type Config = typeof import("ace-builds-internal/config");
         type GutterTooltip = import("ace-builds-internal/mouse/default_gutter_handler").GutterTooltip;
         type GutterKeyboardEvent = import("ace-builds-internal/keyboard/gutter_handler").GutterKeyboardEvent;
+        type HoverTooltip = import("ace-builds-internal/tooltip").HoverTooltip;
+        type Tooltip = import("ace-builds-internal/tooltip").Tooltip;
+        type PopupManager = import("ace-builds-internal/tooltip").PopupManager;
         type AfterLoadCallback = (err: Error | null, module: unknown) => void;
         type LoaderFunction = (moduleName: string, afterLoad: AfterLoadCallback) => void;
         export interface ConfigOptions {
@@ -1042,7 +1045,7 @@ declare module "ace-builds" {
     import { Range } from "ace-builds-internal/range";
     import { UndoManager } from "ace-builds-internal/undomanager";
     import { VirtualRenderer as Renderer } from "ace-builds-internal/virtual_renderer";
-    export var version: "1.41.0";
+    export var version: "1.42.0";
     export { Range, Editor, EditSession, UndoManager, Renderer as VirtualRenderer };
 }
 

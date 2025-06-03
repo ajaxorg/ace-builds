@@ -2363,6 +2363,84 @@ exports.FilteredList = FilteredList;
 
 });
 
+ace.define("ace/marker_group",["require","exports","module"], function(require, exports, module){"use strict";
+var MarkerGroup = /** @class */ (function () {
+    function MarkerGroup(session, options) {
+        if (options)
+            this.markerType = options.markerType;
+        this.markers = [];
+        this.session = session;
+        session.addDynamicMarker(this);
+    }
+    MarkerGroup.prototype.getMarkerAtPosition = function (pos) {
+        return this.markers.find(function (marker) {
+            return marker.range.contains(pos.row, pos.column);
+        });
+    };
+    MarkerGroup.prototype.markersComparator = function (a, b) {
+        return a.range.start.row - b.range.start.row;
+    };
+    MarkerGroup.prototype.setMarkers = function (markers) {
+        this.markers = markers.sort(this.markersComparator).slice(0, this.MAX_MARKERS);
+        this.session._signal("changeBackMarker");
+    };
+    MarkerGroup.prototype.update = function (html, markerLayer, session, config) {
+        if (!this.markers || !this.markers.length)
+            return;
+        var visibleRangeStartRow = config.firstRow, visibleRangeEndRow = config.lastRow;
+        var foldLine;
+        var markersOnOneLine = 0;
+        var lastRow = 0;
+        for (var i = 0; i < this.markers.length; i++) {
+            var marker = this.markers[i];
+            if (marker.range.end.row < visibleRangeStartRow)
+                continue;
+            if (marker.range.start.row > visibleRangeEndRow)
+                continue;
+            if (marker.range.start.row === lastRow) {
+                markersOnOneLine++;
+            }
+            else {
+                lastRow = marker.range.start.row;
+                markersOnOneLine = 0;
+            }
+            if (markersOnOneLine > 200) {
+                continue;
+            }
+            var markerVisibleRange = marker.range.clipRows(visibleRangeStartRow, visibleRangeEndRow);
+            if (markerVisibleRange.start.row === markerVisibleRange.end.row
+                && markerVisibleRange.start.column === markerVisibleRange.end.column) {
+                continue; // visible range is empty
+            }
+            var screenRange = markerVisibleRange.toScreenRange(session);
+            if (screenRange.isEmpty()) {
+                foldLine = session.getNextFoldLine(markerVisibleRange.end.row, foldLine);
+                if (foldLine && foldLine.end.row > markerVisibleRange.end.row) {
+                    visibleRangeStartRow = foldLine.end.row;
+                }
+                continue;
+            }
+            if (this.markerType === "fullLine") {
+                markerLayer.drawFullLineMarker(html, screenRange, marker.className, config);
+            }
+            else if (screenRange.isMultiLine()) {
+                if (this.markerType === "line")
+                    markerLayer.drawMultiLineMarker(html, screenRange, marker.className, config);
+                else
+                    markerLayer.drawTextMarker(html, screenRange, marker.className, config);
+            }
+            else {
+                markerLayer.drawSingleLineMarker(html, screenRange, marker.className + " ace_br15", config);
+            }
+        }
+    };
+    return MarkerGroup;
+}());
+MarkerGroup.prototype.MAX_MARKERS = 10000;
+exports.MarkerGroup = MarkerGroup;
+
+});
+
 ace.define("ace/autocomplete/text_completer",["require","exports","module","ace/range"], function(require, exports, module){var Range = require("../range").Range;
 var splitRegex = /[^a-zA-Z_0-9\$\-\u00C0-\u1FFF\u2C00-\uD7FF\w]+/;
 function getWordIndex(doc, pos) {
@@ -2406,12 +2484,13 @@ exports.getCompletions = function (editor, session, pos, prefix, callback) {
 
 });
 
-ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
 var config = require("../config");
 var lang = require("../lib/lang");
 var util = require("../autocomplete/util");
+var MarkerGroup = require("../marker_group").MarkerGroup;
 var textCompleter = require("../autocomplete/text_completer");
 var keyWordCompleter = {
     getCompletions: function (editor, session, pos, prefix, callback) {
@@ -2563,6 +2642,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     enableBasicAutocompletion: {
         set: function (val) {
             if (val) {
+                Autocomplete.for(this);
                 if (!this.completers)
                     this.completers = Array.isArray(val) ? val : completers;
                 this.commands.addCommand(Autocomplete.startCommand);
@@ -2607,6 +2687,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
+exports.MarkerGroup = MarkerGroup;
 
 });                (function() {
                     ace.require(["ace/ext/language_tools"], function(m) {

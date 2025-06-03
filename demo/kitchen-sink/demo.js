@@ -4230,6 +4230,7 @@ var OptionPanel = /** @class */ (function () {
 }());
 oop.implement(OptionPanel.prototype, EventEmitter);
 exports.OptionPanel = OptionPanel;
+exports.optionGroups = optionGroups;
 
 });
 
@@ -6683,12 +6684,13 @@ exports.getCompletions = function (editor, session, pos, prefix, callback) {
 
 });
 
-define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
+define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
 var config = require("../config");
 var lang = require("../lib/lang");
 var util = require("../autocomplete/util");
+var MarkerGroup = require("../marker_group").MarkerGroup;
 var textCompleter = require("../autocomplete/text_completer");
 var keyWordCompleter = {
     getCompletions: function (editor, session, pos, prefix, callback) {
@@ -6840,6 +6842,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
     enableBasicAutocompletion: {
         set: function (val) {
             if (val) {
+                Autocomplete.for(this);
                 if (!this.completers)
                     this.completers = Array.isArray(val) ? val : completers;
                 this.commands.addCommand(Autocomplete.startCommand);
@@ -6884,6 +6887,7 @@ require("../config").defineOptions(Editor.prototype, "editor", {
         value: false
     }
 });
+exports.MarkerGroup = MarkerGroup;
 
 });
 
