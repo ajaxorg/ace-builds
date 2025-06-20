@@ -2363,7 +2363,17 @@ exports.FilteredList = FilteredList;
 
 });
 
-ace.define("ace/ext/command_bar",["require","exports","module","ace/tooltip","ace/lib/event_emitter","ace/lib/lang","ace/lib/dom","ace/lib/oop","ace/lib/useragent"], function(require, exports, module){var __values = (this && this.__values) || function(o) {
+ace.define("ace/ext/command_bar",["require","exports","module","ace/tooltip","ace/lib/event_emitter","ace/lib/lang","ace/lib/dom","ace/lib/oop","ace/lib/useragent"], function(require, exports, module){/**
+ * ## Command Bar extension.
+ *
+ * Provides an interactive command bar tooltip that displays above the editor's active line. The extension enables
+ * clickable commands with keyboard shortcuts, icons, and various button types including standard buttons, checkboxes,
+ * and text elements. Supports overflow handling with a secondary tooltip for additional commands when space is limited.
+ * The tooltip can be configured to always show or display only on mouse hover over the active line.
+ *
+ * @module
+ */
+var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
     if (o && typeof o.length === "number") return {
@@ -2937,7 +2947,32 @@ exports.getCompletions = function (editor, session, pos, prefix, callback) {
 
 });
 
-ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){/**
+ * ## Language Tools extension for Ace Editor
+ *
+ * Provides autocompletion, snippets, and language intelligence features for the Ace code editor.
+ * This extension integrates multiple completion providers including keyword completion, snippet expansion,
+ * and text-based completion to enhance the coding experience with contextual suggestions and automated code generation.
+ *
+ * **Configuration Options:**
+ * - `enableBasicAutocompletion`: Enable/disable basic completion functionality
+ * - `enableLiveAutocompletion`: Enable/disable real-time completion suggestions
+ * - `enableSnippets`: Enable/disable snippet expansion with Tab key
+ * - `liveAutocompletionDelay`: Delay before showing live completion popup
+ * - `liveAutocompletionThreshold`: Minimum prefix length to trigger completion
+ *
+ * **Usage:**
+ * ```javascript
+ * editor.setOptions({
+ *   enableBasicAutocompletion: true,
+ *   enableLiveAutocompletion: true,
+ *   enableSnippets: true
+ * });
+ * ```
+ *
+ * @module
+ */
+"use strict";
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
 var config = require("../config");
@@ -3144,7 +3179,17 @@ exports.MarkerGroup = MarkerGroup;
 
 });
 
-ace.define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/dom","ace/lib/lang","ace/ext/command_bar","ace/ext/command_bar","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/dom","ace/lib/lang","ace/ext/command_bar","ace/ext/command_bar","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){/**
+ * ## Inline Autocomplete extension
+ *
+ * Provides lightweight, prefix-based autocompletion with inline ghost text rendering and an optional command bar tooltip.
+ * Displays completion suggestions as ghost text directly in the editor with keyboard navigation and interactive controls.
+ *
+ * **Enable:** `editor.setOption("enableInlineAutocompletion", true)`
+ * or configure it during editor initialization in the options object.
+ * @module
+ */
+"use strict";
 var HashHandler = require("../keyboard/hash_handler").HashHandler;
 var AceInline = require("../autocomplete/inline").AceInline;
 var FilteredList = require("../autocomplete").FilteredList;

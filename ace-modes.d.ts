@@ -207,6 +207,14 @@ declare module "ace-builds/src-noconflict/mode-clojure" {
     export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
 }
 
+declare module "ace-builds/src-noconflict/mode-clue_highlight_rules" {
+    export const ClueHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
+}
+
+declare module "ace-builds/src-noconflict/mode-clue" {
+    export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
+}
+
 declare module "ace-builds/src-noconflict/mode-cobol_highlight_rules" {
     export const CobolHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
 }
@@ -505,6 +513,10 @@ declare module "ace-builds-internal/mode/folding/markdown" {
 }
 
 declare module "ace-builds-internal/mode/folding/mixed" {
+    export const FoldMode: new () => import("ace-builds").Ace.Folding;
+}
+
+declare module "ace-builds-internal/mode/folding/nunjucks" {
     export const FoldMode: new () => import("ace-builds").Ace.Folding;
 }
 

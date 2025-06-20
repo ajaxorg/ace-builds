@@ -1,4 +1,30 @@
-define("ace/ext/rtl",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){"use strict";
+define("ace/ext/rtl",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){/**
+ * ## Right-to-Left (RTL) text support extension
+ *
+ * Provides bidirectional text support enabling proper rendering and editing of RTL languages such as Arabic, Hebrew,
+ * and Persian. Handles text direction detection, cursor positioning, and ensures correct visual behavior for mixed
+ * LTR/RTL content. Includes keyboard shortcuts for manual text direction control and automatic
+ * RLE (Right-to-Left Embedding) marker management.
+ *
+ * **Configuration Options:**
+ * - `rtlText`: Enable automatic RTL text detection and handling
+ * - `rtl`: Force RTL direction for the entire editor
+ *
+ * **Keyboard Shortcuts:**
+ * - `Ctrl-Alt-Shift-L` (Win) / `Cmd-Alt-Shift-L` (Mac): Force left-to-right direction
+ * - `Ctrl-Alt-Shift-R` (Win) / `Cmd-Alt-Shift-R` (Mac): Force right-to-left direction
+ *
+ * **Usage:**
+ * ```javascript
+ * editor.setOptions({
+ *   rtlText: true,  // Enable automatic RTL detection
+ *   rtl: false      // Or force RTL direction
+ * });
+ * ```
+ *
+ * @module
+ */
+"use strict";
 var commands = [{
         name: "leftToRight",
         bindKey: { win: "Ctrl-Alt-Shift-L", mac: "Command-Alt-Shift-L" },
@@ -1542,7 +1568,17 @@ exports.addGlobals();
 
 });
 
-define("ace/ext/modelist",["require","exports","module"], function(require, exports, module){"use strict";
+define("ace/ext/modelist",["require","exports","module"], function(require, exports, module){/**
+ * ## File mode detection utility
+ *
+ * Provides automatic detection of editor syntax modes based on file paths and extensions. Maps file extensions to
+ * appropriate Ace Editor syntax highlighting modes for over 100 programming languages and file formats including
+ * JavaScript, TypeScript, HTML, CSS, Python, Java, C++, and many others. Supports complex extension patterns and
+ * provides fallback mechanisms for unknown file types.
+ *
+ * @module
+ */
+"use strict";
 var modes = [];
 function getModeForPath(path) {
     var mode = modesByName.text;
@@ -1592,13 +1628,14 @@ var supportedModes = {
     Assembly_x86: ["asm|a"],
     Astro: ["astro"],
     AutoHotKey: ["ahk"],
-    BatchFile: ["bat|cmd"],
     Basic: ["bas|bak"],
+    BatchFile: ["bat|cmd"],
     BibTeX: ["bib"],
     C_Cpp: ["cpp|c|cc|cxx|h|hh|hpp|ino"],
     C9Search: ["c9search_results"],
     Cirru: ["cirru|cr"],
     Clojure: ["clj|cljs"],
+    Clue: ["clue"],
     Cobol: ["CBL|COB"],
     coffee: ["coffee|cf|cson|^Cakefile"],
     ColdFusion: ["cfm|cfc"],
@@ -1795,11 +1832,9 @@ for (var name in supportedModes) {
     modesByName[filename] = mode;
     modes.push(mode);
 }
-module.exports = {
-    getModeForPath: getModeForPath,
-    modes: modes,
-    modesByName: modesByName
-};
+exports.getModeForPath = getModeForPath;
+exports.modes = modes;
+exports.modesByName = modesByName;
 
 });
 
@@ -1845,7 +1880,16 @@ config.defineOptions(Editor.prototype, "editor", {
 
 });
 
-define("ace/ext/whitespace",["require","exports","module","ace/lib/lang"], function(require, exports, module){"use strict";
+define("ace/ext/whitespace",["require","exports","module","ace/lib/lang"], function(require, exports, module){/**
+ * ## Whitespace management and indentation utilities extension
+ *
+ * Provides whitespace handling capabilities including automatic indentation detection, trailing whitespace trimming,
+ * and indentation format conversion. Analyzes code patterns to determine optimal tab settings and offers commands for
+ * maintaining consistent code formatting across different indentation styles (spaces vs. tabs) and sizes.
+ *
+ * @module
+ */
+"use strict";
 var lang = require("../lib/lang");
 exports.$detectIndentation = function (lines, fallback) {
     var stats = [];
@@ -2565,7 +2609,18 @@ function dropdown(values) {
 
 });
 
-define("ace/ext/elastic_tabstops_lite",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){"use strict";
+define("ace/ext/elastic_tabstops_lite",["require","exports","module","ace/editor","ace/config"], function(require, exports, module){/**
+ * ## Elastic Tabstops Lite extension.
+ *
+ * Automatically adjusts tab spacing to align content in tabular format by calculating optimal column widths
+ * and maintaining consistent vertical alignment across multiple lines. Tracks content changes and dynamically
+ * reprocesses affected rows to ensure proper formatting without manual intervention.
+ *
+ * **Enable:** `editor.setOption("useElasticTabstops", true)`
+ *  or configure it during editor initialization in the options object.
+ * @module
+ */
+"use strict";
 var ElasticTabstopsLite = /** @class */ (function () {
     function ElasticTabstopsLite(editor) {
         this.$editor = editor;
@@ -3734,7 +3789,26 @@ define("ace/ext/menu_tools/settings_menu.css",["require","exports","module"], fu
 
 });
 
-define("ace/ext/menu_tools/overlay_page",["require","exports","module","ace/lib/dom","ace/ext/menu_tools/settings_menu.css"], function(require, exports, module){/*jslint indent: 4, maxerr: 50, white: true, browser: true, vars: true*/
+define("ace/ext/menu_tools/overlay_page",["require","exports","module","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/ext/menu_tools/settings_menu.css"], function(require, exports, module){/**
+ * ## Overlay Page utility
+ *
+ * Provides modal overlay functionality for displaying editor extension interfaces. Creates a full-screen overlay with
+ * configurable backdrop behavior, keyboard navigation (ESC to close), and focus management. Used by various extensions
+ * to display menus, settings panels, and other interactive content over the editor interface.
+ *
+ * **Usage:**
+ * ```javascript
+ * var overlayPage = require('./overlay_page').overlayPage;
+ * var contentElement = document.createElement('div');
+ * contentElement.innerHTML = '<h1>Settings</h1>';
+ *
+ * var overlay = overlayPage(editor, contentElement, function() {
+ *   console.log('Overlay closed');
+ * });
+ * ```
+ *
+ * @module
+ */
 'use strict';
 var dom = require("../../lib/dom");
 var cssText = require("./settings_menu.css");
@@ -3791,12 +3865,59 @@ module.exports.overlayPage = function overlayPage(editor, contentElement, callba
 
 });
 
-define("ace/ext/themelist",["require","exports","module"], function(require, exports, module){/**
- * Generates a list of themes available when ace was built.
- * @fileOverview Generates a list of themes available when ace was built.
+define("ace/ext/settings_menu",["require","exports","module","ace/ext/options","ace/ext/menu_tools/overlay_page","ace/editor"], function(require, exports, module){/**
+ * ## Interactive Settings Menu Extension
+ *
+ * Provides settings interface for the Ace editor that displays dynamically generated configuration options based on
+ * the current editor state. The menu appears as an overlay panel allowing users to modify editor options, themes,
+ * modes, and other settings through an intuitive graphical interface.
+ *
+ * **Usage:**
+ * ```javascript
+ * editor.showSettingsMenu();
+ * ```
+ *
+ * The extension automatically registers the `showSettingsMenu` command and method
+ * on the editor instance when initialized.
+ *
  * @author <a href="mailto:matthewkastor@gmail.com">
  *  Matthew Christopher Kastor-Inare III </a><br />
- *  ☭ Hial Atropa!! ☭
+ *
+ * @module
+ */
+"use strict";
+var OptionPanel = require("./options").OptionPanel;
+var overlayPage = require('./menu_tools/overlay_page').overlayPage;
+function showSettingsMenu(editor) {
+    if (!document.getElementById('ace_settingsmenu')) {
+        var options = new OptionPanel(editor);
+        options.render();
+        options.container.id = "ace_settingsmenu";
+        overlayPage(editor, options.container);
+        options.container.querySelector("select,input,button,checkbox").focus();
+    }
+}
+module.exports.init = function () {
+    var Editor = require("../editor").Editor;
+    Editor.prototype.showSettingsMenu = function () {
+        showSettingsMenu(this);
+    };
+};
+
+});
+
+define("ace/ext/themelist",["require","exports","module"], function(require, exports, module){/**
+ * ## Theme enumeration utility
+ *
+ * Provides theme management for the Ace Editor by generating and organizing available themes into
+ * categorized collections. Automatically maps theme data into structured objects containing theme metadata including
+ * display captions, theme paths, brightness classification (dark/light), and normalized names. Exports both an
+ * indexed theme collection and a complete themes array for easy integration with theme selection components
+ * and configuration systems.
+ *
+ * @author <a href="mailto:matthewkastor@gmail.com">
+ *  Matthew Christopher Kastor-Inare III </a><br />
+ * @module
  */
 "use strict";
 var themeData = [
@@ -3859,7 +3980,24 @@ exports.themes = themeData.map(function (data) {
 
 });
 
-define("ace/ext/options",["require","exports","module","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/lib/oop","ace/config","ace/lib/event_emitter","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module){"use strict";
+define("ace/ext/options",["require","exports","module","ace/ext/settings_menu","ace/ext/menu_tools/overlay_page","ace/lib/dom","ace/lib/oop","ace/config","ace/lib/event_emitter","ace/ext/modelist","ace/ext/themelist"], function(require, exports, module){/**
+ * ## Settings Menu extension
+ *
+ * Provides a settings panel for configuring editor options through an interactive UI.
+ * Creates a tabular interface with grouped configuration options including themes, modes, keybindings,
+ * font settings, display preferences, and advanced editor behaviors. Supports dynamic option rendering
+ * with various input types (dropdowns, checkboxes, number inputs, button bars) and real-time updates.
+ *
+ * **Usage:**
+ * ```javascript
+ * var OptionPanel = require("ace/ext/settings_menu").OptionPanel;
+ * var panel = new OptionPanel(editor);
+ * panel.render();
+ * ```
+ *
+ * @module
+ */
+"use strict";
 require("./menu_tools/overlay_page");
 var dom = require("../lib/dom");
 var oop = require("../lib/oop");
@@ -6599,7 +6737,22 @@ exports.FilteredList = FilteredList;
 
 });
 
-define("ace/ext/statusbar",["require","exports","module","ace/lib/dom","ace/lib/lang"], function(require, exports, module){"use strict";
+define("ace/ext/statusbar",["require","exports","module","ace/ext/statusbar","ace/lib/dom","ace/lib/lang"], function(require, exports, module){/**
+ * ## Status bar extension for displaying editor state information
+ *
+ * Provides a lightweight status indicator that displays real-time information about the editor state including
+ * cursor position, selection details, recording status, and keyboard binding information. The status bar
+ * automatically updates on editor events and renders as an inline element that can be embedded in any parent container.
+ *
+ * **Usage:**
+ * ```javascript
+ * var StatusBar = require("ace/ext/statusbar").StatusBar;
+ * var statusBar = new StatusBar(editor, parentElement);
+ * ```
+ *
+ * @module
+ */
+"use strict";
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
 var StatusBar = /** @class */ (function () {
@@ -6684,7 +6837,32 @@ exports.getCompletions = function (editor, session, pos, prefix, callback) {
 
 });
 
-define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){"use strict";
+define("ace/ext/language_tools",["require","exports","module","ace/snippets","ace/autocomplete","ace/config","ace/lib/lang","ace/autocomplete/util","ace/marker_group","ace/autocomplete/text_completer","ace/editor","ace/config"], function(require, exports, module){/**
+ * ## Language Tools extension for Ace Editor
+ *
+ * Provides autocompletion, snippets, and language intelligence features for the Ace code editor.
+ * This extension integrates multiple completion providers including keyword completion, snippet expansion,
+ * and text-based completion to enhance the coding experience with contextual suggestions and automated code generation.
+ *
+ * **Configuration Options:**
+ * - `enableBasicAutocompletion`: Enable/disable basic completion functionality
+ * - `enableLiveAutocompletion`: Enable/disable real-time completion suggestions
+ * - `enableSnippets`: Enable/disable snippet expansion with Tab key
+ * - `liveAutocompletionDelay`: Delay before showing live completion popup
+ * - `liveAutocompletionThreshold`: Minimum prefix length to trigger completion
+ *
+ * **Usage:**
+ * ```javascript
+ * editor.setOptions({
+ *   enableBasicAutocompletion: true,
+ *   enableLiveAutocompletion: true,
+ *   enableSnippets: true
+ * });
+ * ```
+ *
+ * @module
+ */
+"use strict";
 var snippetManager = require("../snippets").snippetManager;
 var Autocomplete = require("../autocomplete").Autocomplete;
 var config = require("../config");
@@ -6891,7 +7069,17 @@ exports.MarkerGroup = MarkerGroup;
 
 });
 
-define("ace/ext/command_bar",["require","exports","module","ace/tooltip","ace/lib/event_emitter","ace/lib/lang","ace/lib/dom","ace/lib/oop","ace/lib/useragent"], function(require, exports, module){var __values = (this && this.__values) || function(o) {
+define("ace/ext/command_bar",["require","exports","module","ace/tooltip","ace/lib/event_emitter","ace/lib/lang","ace/lib/dom","ace/lib/oop","ace/lib/useragent"], function(require, exports, module){/**
+ * ## Command Bar extension.
+ *
+ * Provides an interactive command bar tooltip that displays above the editor's active line. The extension enables
+ * clickable commands with keyboard shortcuts, icons, and various button types including standard buttons, checkboxes,
+ * and text elements. Supports overflow handling with a secondary tooltip for additional commands when space is limited.
+ * The tooltip can be configured to always show or display only on mouse hover over the active line.
+ *
+ * @module
+ */
+var __values = (this && this.__values) || function(o) {
     var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
     if (m) return m.call(o);
     if (o && typeof o.length === "number") return {
@@ -7344,7 +7532,17 @@ exports.BUTTON_CLASS_NAME = BUTTON_CLASS_NAME;
 
 });
 
-define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/dom","ace/lib/lang","ace/ext/command_bar","ace/ext/command_bar","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){"use strict";
+define("ace/ext/inline_autocomplete",["require","exports","module","ace/keyboard/hash_handler","ace/autocomplete/inline","ace/autocomplete","ace/autocomplete","ace/editor","ace/autocomplete/util","ace/lib/dom","ace/lib/lang","ace/ext/command_bar","ace/ext/command_bar","ace/ext/language_tools","ace/ext/language_tools","ace/ext/language_tools","ace/config"], function(require, exports, module){/**
+ * ## Inline Autocomplete extension
+ *
+ * Provides lightweight, prefix-based autocompletion with inline ghost text rendering and an optional command bar tooltip.
+ * Displays completion suggestions as ghost text directly in the editor with keyboard navigation and interactive controls.
+ *
+ * **Enable:** `editor.setOption("enableInlineAutocompletion", true)`
+ * or configure it during editor initialization in the options object.
+ * @module
+ */
+"use strict";
 var HashHandler = require("../keyboard/hash_handler").HashHandler;
 var AceInline = require("../autocomplete/inline").AceInline;
 var FilteredList = require("../autocomplete").FilteredList;
@@ -7694,7 +7892,20 @@ exports.InlineAutocomplete = InlineAutocomplete;
 
 });
 
-define("ace/ext/beautify",["require","exports","module","ace/token_iterator"], function(require, exports, module){// [WIP]
+define("ace/ext/beautify",["require","exports","module","ace/token_iterator"], function(require, exports, module){/**
+ * ## Code beautification and formatting extension.
+ *
+ * **This extension is considered outdated.** For better formatting support with modern language servers
+ * and advanced formatting capabilities, consider using [ace-linters](https://github.com/mkslanc/ace-linters)
+ * which provides comprehensive language support including formatting, linting, and IntelliSense features.
+ *
+ * This legacy extension provides basic formatting for HTML, CSS, JavaScript, and PHP code with support for
+ * proper indentation, whitespace management, line breaks, and bracket alignment. It handles various language
+ * constructs including HTML tags, CSS selectors, JavaScript operators, control structures, and maintains
+ * consistent code style throughout the document.
+ *
+ * @module
+ */
 "use strict";
 var TokenIterator = require("../token_iterator").TokenIterator;
 function is(token, type) {
@@ -8018,7 +8229,7 @@ exports.commands = [{
 
 });
 
-define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/range","ace/ext/whitespace","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/config","ace/tooltip","ace/marker_group","ace/worker/worker_client","ace/split","ace/ext/options","ace/autocomplete","ace/ext/statusbar","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/inline_autocomplete","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
+define("kitchen-sink/demo",["require","exports","module","ace/ext/rtl","ace/multi_select","kitchen-sink/inline_editor","kitchen-sink/dev_util","kitchen-sink/file_drop","ace/config","ace/lib/dom","ace/lib/net","ace/lib/lang","ace/lib/event","ace/theme/textmate","ace/edit_session","ace/undomanager","ace/keyboard/hash_handler","ace/virtual_renderer","ace/editor","ace/range","ace/ext/whitespace","../src/ext/diff","kitchen-sink/doclist","kitchen-sink/layout","kitchen-sink/util","ace/ext/elastic_tabstops_lite","ace/incremental_search","kitchen-sink/token_tooltip","ace/config","ace/config","ace/tooltip","ace/marker_group","ace/worker/worker_client","ace/split","ace/ext/options","ace/autocomplete","ace/ext/statusbar","ace/placeholder","ace/snippets","ace/ext/language_tools","ace/ext/inline_autocomplete","ace/ext/beautify","ace/keyboard/keybinding","ace/commands/command_manager"], function(require, exports, module) {"use strict";
 
 require("ace/ext/rtl");
 
@@ -8053,6 +8264,7 @@ var Range = require("ace/range").Range;
 
 var whitespace = require("ace/ext/whitespace");
 
+var createDiffView = require("../../src/ext/diff").createDiffView;
 
 
 var doclist = require("./doclist");
@@ -8329,6 +8541,7 @@ function onResize(e, closeSidePanel) {
 
 window.onresize = onResize;
 onResize();
+var diffView;
 doclist.history = doclist.docs.map(function(doc) {
     return doc.name;
 });
@@ -8361,6 +8574,14 @@ doclist.pickDocument = function(name) {
         whitespace.detectIndentation(session);
         optionsPanel.render();
         env.editor.focus();
+        if (diffView) {
+            diffView.detach()
+            diffView = createDiffView({
+                inline: "b",
+                editorB: editor,
+                valueA: editor.getValue()
+            });
+        }
     });
 };
 
@@ -8370,6 +8591,7 @@ var OptionPanel = require("ace/ext/options").OptionPanel;
 var optionsPanel = env.optionsPanel = new OptionPanel(env.editor);
 
 var originalAutocompleteCommand = null;
+
 
 optionsPanel.add({
     Main: {
@@ -8411,6 +8633,31 @@ optionsPanel.add({
                     : sp.getOrientation() == sp.BELOW
                     ? "Below"
                     : "Beside";
+            }
+        },
+        "Show diffs": {
+            position: 0,
+            type: "buttonBar",
+            path: "diffView",
+            values: ["None", "Inline"],
+            onchange: function (value) {
+                    if (value === "Inline" && !diffView) {
+                        diffView = createDiffView({
+                            inline: "b",
+                            editorB: editor,
+                            valueA: editor.getValue()
+                        });
+                    }
+                    else if (value === "None") {
+                        if (diffView) {
+                            diffView.detach();
+                            diffView = null;
+                        }
+                    }
+            },
+            getValue: function() {
+                return !diffView ? "None"
+                    : "Inline";
             }
         }
     },

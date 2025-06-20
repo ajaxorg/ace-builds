@@ -1,4 +1,11 @@
-ace.define("ace/ext/code_lens",["require","exports","module","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/editor","ace/config"], function(require, exports, module){"use strict";
+ace.define("ace/ext/code_lens",["require","exports","module","ace/lib/event","ace/lib/lang","ace/lib/dom","ace/editor","ace/config"], function(require, exports, module){/**
+ * ## Code Lens extension.
+ *
+ * Displaying contextual information and clickable commands above code lines. Supports registering custom providers,
+ * rendering lens widgets with proper positioning and styling, and handling user interactions with lens commands.
+ * @module
+ */
+"use strict";
 var event = require("../lib/event");
 var lang = require("../lib/lang");
 var dom = require("../lib/dom");
