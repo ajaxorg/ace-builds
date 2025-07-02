@@ -375,7 +375,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.43.0";
+        version: "1.43.1";
     };
     export = _exports;
 }
@@ -1788,12 +1788,16 @@ declare module "ace-builds-internal/mouse/default_gutter_handler" {
         };
         static annotationsToSummaryString(annotations: any): string;
         constructor(editor: any, isHover?: boolean);
+        id: string;
         editor: any;
         visibleTooltipRow: number | undefined;
         onMouseOut(e: any): void;
         setPosition(x: any, y: any): void;
         showTooltip(row: any): void;
         hideTooltip(): void;
+    }
+    export namespace GutterTooltip {
+        let $uid: number;
     }
     import { Tooltip } from "ace-builds-internal/tooltip";
     export interface GutterHandler {

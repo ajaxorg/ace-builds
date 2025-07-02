@@ -1320,7 +1320,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.43.0";
+exports.version = "1.43.1";
 
 });
 
@@ -3521,10 +3521,12 @@ var GutterTooltip = /** @class */ (function (_super) {
     function GutterTooltip(editor, isHover) {
         if (isHover === void 0) { isHover = false; }
         var _this = _super.call(this, editor.container) || this;
+        _this.id = "gt" + (++GutterTooltip.$uid);
         _this.editor = editor;
         _this.visibleTooltipRow;
         var el = _this.getElement();
         el.setAttribute("role", "tooltip");
+        el.setAttribute("id", _this.id);
         el.style.pointerEvents = "auto";
         if (isHover) {
             _this.onMouseOut = _this.onMouseOut.bind(_this);
@@ -3647,9 +3649,25 @@ var GutterTooltip = /** @class */ (function (_super) {
             this.setTheme(this.editor.renderer.theme);
             this.setClassName("ace_gutter-tooltip");
         }
+        var annotationNode = this.$findLinkedAnnotationNode(row);
+        if (annotationNode) {
+            annotationNode.setAttribute("aria-describedby", this.id);
+        }
         this.show();
         this.visibleTooltipRow = row;
         this.editor._signal("showGutterTooltip", this);
+    };
+    GutterTooltip.prototype.$findLinkedAnnotationNode = function (row) {
+        var cell = this.$findCellByRow(row);
+        if (cell) {
+            var element = cell.element;
+            if (element.childNodes.length > 2) {
+                return element.childNodes[2];
+            }
+        }
+    };
+    GutterTooltip.prototype.$findCellByRow = function (row) {
+        return this.editor.renderer.$gutterLayer.$lines.cells.find(function (el) { return el.row === row; });
     };
     GutterTooltip.prototype.hideTooltip = function () {
         if (!this.isOpen) {
@@ -3657,6 +3675,12 @@ var GutterTooltip = /** @class */ (function (_super) {
         }
         this.$element.removeAttribute("aria-live");
         this.hide();
+        if (this.visibleTooltipRow != undefined) {
+            var annotationNode = this.$findLinkedAnnotationNode(this.visibleTooltipRow);
+            if (annotationNode) {
+                annotationNode.removeAttribute("aria-describedby");
+            }
+        }
         this.visibleTooltipRow = undefined;
         this.editor._signal("hideGutterTooltip", this);
     };
@@ -3684,6 +3708,7 @@ var GutterTooltip = /** @class */ (function (_super) {
     };
     return GutterTooltip;
 }(Tooltip));
+GutterTooltip.$uid = 0;
 exports.GutterTooltip = GutterTooltip;
 
 });
