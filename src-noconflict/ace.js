@@ -1320,7 +1320,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.43.1";
+exports.version = "1.43.2";
 
 });
 
@@ -15916,11 +15916,12 @@ var Editor = /** @class */ (function () {
         this.renderer.scrollCursorIntoView(null, 0.5);
     };
     Editor.prototype.destroy = function () {
+        this.destroyed = true;
         if (this.$toDestroy) {
             this.$toDestroy.forEach(function (el) {
                 el.destroy();
             });
-            this.$toDestroy = null;
+            this.$toDestroy = [];
         }
         if (this.$mouseHandler)
             this.$mouseHandler.destroy();
@@ -16052,12 +16053,18 @@ config.defineOptions(Editor.prototype, "editor", {
         set: function (/**@type{boolean}*/ readOnly) {
             var _this = this;
             this.textInput.setReadOnly(readOnly);
+            if (this.destroyed)
+                return;
             this.$resetCursorStyle();
             if (!this.$readOnlyCallback) {
                 this.$readOnlyCallback = function (e) {
                     var shouldShow = false;
                     if (e && e.type == "keydown") {
-                        shouldShow = e && e.key && e.key.length == 1 && !e.ctrlKey && !e.metaKey;
+                        if (e && e.key && !e.ctrlKey && !e.metaKey) {
+                            if (e.key == " ")
+                                e.preventDefault();
+                            shouldShow = e.key.length == 1;
+                        }
                         if (!shouldShow)
                             return;
                     }
@@ -17444,7 +17451,9 @@ var Text = /** @class */ (function () {
             }
             if (tab) {
                 var tabSize = self.session.getScreenTabSize(screenColumn + m.index);
-                valueFragment.appendChild(self.$tabStrings[tabSize].cloneNode(true));
+                var text = self.$tabStrings[tabSize].cloneNode(true);
+                text["charCount"] = 1;
+                valueFragment.appendChild(text);
                 screenColumn += tabSize - 1;
             }
             else if (simpleSpace) {
@@ -17662,7 +17671,9 @@ var Text = /** @class */ (function () {
                     chars = splitChars;
                     lineEl = this.$createLineElement();
                     parent.appendChild(lineEl);
-                    lineEl.appendChild(this.dom.createTextNode(lang.stringRepeat("\xa0", splits.indent), this.element));
+                    var text = this.dom.createTextNode(lang.stringRepeat("\xa0", splits.indent), this.element);
+                    text["charCount"] = 0; // not to take into account when we are counting columns
+                    lineEl.appendChild(text);
                     split++;
                     screenColumn = 0;
                     splitChars = splits[split] || Number.MAX_VALUE;

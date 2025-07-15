@@ -241,6 +241,7 @@ var dummyDiffProvider = {
         return [];
     }
 };
+dom.importCssString(css, "diffview.css");
 var BaseDiffView = /** @class */ (function () {
     function BaseDiffView(inlineDiffEditor, container) {
         this.onChangeTheme = this.onChangeTheme.bind(this);
@@ -256,7 +257,6 @@ var BaseDiffView = /** @class */ (function () {
         if (container) {
             this.container = container;
         }
-        dom.importCssString(css, "diffview.css");
         this.$ignoreTrimWhitespace = false;
         this.$maxDiffs = 5000;
         this.$maxComputationTimeMs = 150;

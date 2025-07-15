@@ -164,6 +164,8 @@ var SearchBox = /** @class */ (function () {
         this.editor.renderer.updateBackMarkers();
     };
     SearchBox.prototype.find = function (skipCurrent, backwards, preventScroll) {
+        if (!this.editor.session)
+            return;
         var range = this.editor.find(this.searchInput.value, {
             skipCurrent: skipCurrent,
             backwards: backwards,

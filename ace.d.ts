@@ -1063,7 +1063,7 @@ declare module "ace-builds" {
     import { Range } from "ace-builds-internal/range";
     import { UndoManager } from "ace-builds-internal/undomanager";
     import { VirtualRenderer as Renderer } from "ace-builds-internal/virtual_renderer";
-    export var version: "1.43.1";
+    export var version: "1.43.2";
     export { Range, Editor, EditSession, UndoManager, Renderer as VirtualRenderer };
 }
 

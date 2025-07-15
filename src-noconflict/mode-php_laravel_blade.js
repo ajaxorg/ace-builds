@@ -1942,7 +1942,8 @@ ziparchive_deletename|ziparchive_extractto|ziparchive_getarchivecomment|ziparchi
 ziparchive_getfromindex|ziparchive_getfromname|ziparchive_getnameindex|ziparchive_getstatusstring|ziparchive_getstream|\
 ziparchive_locatename|ziparchive_open|ziparchive_renameindex|ziparchive_renamename|ziparchive_setCommentName|ziparchive_setarchivecomment|\
 ziparchive_setcommentindex|ziparchive_statindex|ziparchive_statname|ziparchive_unchangeall|ziparchive_unchangearchive|\
-ziparchive_unchangeindex|ziparchive_unchangename|zlib_get_coding_type'.split('|'));
+ziparchive_unchangeindex|ziparchive_unchangename|zlib_get_coding_type|array_is_list|fdatasync|fdiv|fsync|get_debug_type|get_resource_id|\
+json_validate|mb_str_pad|mysqli_execute_query|preg_last_error_msg|stream_context_set_options|str_contains|str_ends_with|str_starts_with'.split('|'));
     var keywords = lang.arrayToMap('abstract|and|array|as|break|callable|case|catch|class|clone|const|continue|declare|default|do|else|elseif|enddeclare|endfor|endforeach|\
 endif|endswitch|endwhile|extends|final|finally|for|foreach|function|global|goto|if|implements|instanceof|insteadof|interface|namespace|new|or|private|protected|\
 public|static|switch|throw|trait|try|use|var|while|xor|yield'.split('|'));

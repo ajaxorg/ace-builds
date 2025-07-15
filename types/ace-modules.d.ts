@@ -375,7 +375,7 @@ declare module "ace-builds-internal/config" {
             string
         ], onLoad: (module: any) => void) => void;
         setModuleLoader: (moduleName: any, onLoad: any) => void;
-        version: "1.43.1";
+        version: "1.43.2";
     };
     export = _exports;
 }
@@ -506,6 +506,8 @@ declare module "ace-builds-internal/layer/text" {
     }
     export type LayerConfig = import("ace-builds").Ace.LayerConfig;
     export type EditSession = import("ace-builds-internal/edit_session").EditSession;
+    type TextMarkersMixin = {
+    };
     import dom = require("ace-builds-internal/lib/dom");
     import { Lines } from "ace-builds-internal/layer/lines";
     namespace Ace {
@@ -515,7 +517,7 @@ declare module "ace-builds-internal/layer/text" {
         type TextEvents = import("ace-builds").Ace.TextEvents;
         type LayerConfig = import("ace-builds").Ace.LayerConfig;
     }
-    export interface Text extends Ace.EventEmitter<Ace.TextEvents> {
+    export interface Text extends Ace.EventEmitter<Ace.TextEvents>, TextMarkersMixin {
         config: Ace.LayerConfig;
     }
 }
@@ -2151,9 +2153,9 @@ declare module "ace-builds-internal/editor" {
         getKeyboardHandler(): any;
         /**
          * Sets a new editsession to use. This method also emits the `'changeSession'` event.
-         * @param {EditSession} [session] The new session to use
+         * @param {EditSession|null} [session] The new session to use
          **/
-        setSession(session?: EditSession): void;
+        setSession(session?: EditSession | null): void;
         selection: import("ace-builds-internal/selection").Selection;
         /**
          * Returns the current session being used.
@@ -2756,6 +2758,10 @@ declare module "ace-builds-internal/editor" {
          * Cleans up the entire editor.
          **/
         destroy(): void;
+        /**
+         * true if editor is destroyed
+         */
+        destroyed: boolean;
         /**
          * Enables automatic scrolling of the cursor into view when editor itself is inside scrollable element
          * @param {Boolean} enable default true
@@ -3558,6 +3564,45 @@ declare module "ace-builds-internal/multi_select" {
     export type ScreenCoordinates = import("ace-builds").Ace.ScreenCoordinates;
     export function MultiSelect(editor: Editor): void;
     import { Editor } from "ace-builds-internal/editor";
+}
+declare module "ace-builds-internal/layer/text_markers" {
+    export type TextMarker = {
+        range: import("ace-builds").Ace.IRange;
+        id: number;
+        className: string;
+    };
+    export namespace textMarkerMixin {
+        function $removeClass(this: Text, className: string): void;
+        function $applyTextMarkers(this: Text): void;
+        function $modifyDomForMarkers(this: Text, lineElement: HTMLElement, row: number, marker: TextMarker): void;
+    }
+    export namespace editSessionTextMarkerMixin {
+        /**
+         * Adds a text marker to the current edit session.
+         *
+         * @param {import("ace-builds").Ace.IRange} range - The range to mark in the document
+         * @param {string} className - The CSS class name to apply to the marked text
+         * @returns {number} The unique identifier for the added text marker
+         *
+         */
+        function addTextMarker(this: EditSession, range: import("ace-builds").Ace.IRange, className: string): number;
+        /**
+         * Removes a text marker from the current edit session.
+         *
+         * @param {number} markerId - The unique identifier of the text marker to remove
+         *
+         */
+        function removeTextMarker(this: EditSession, markerId: number): void;
+        /**
+         * Retrieves the text markers associated with the current edit session.
+         *
+         * @returns {TextMarker[]} An array of text markers, or an empty array if no markers exist
+         *
+         */
+        function getTextMarkers(this: EditSession): TextMarker[];
+    }
+    import { Text } from "ace-builds-internal/layer/text";
+    import { EditSession } from "ace-builds-internal/edit_session";
 }
 declare module "ace-builds-internal/edit_session/fold" {
     export class Fold extends RangeList {
@@ -4482,6 +4527,17 @@ declare module "ace-builds-internal/edit_session" {
     export type SyntaxMode = import("ace-builds").Ace.SyntaxMode;
     export type LineWidget = import("ace-builds").Ace.LineWidget;
     export type TextMode = SyntaxMode;
+    type TextMarker = {
+        range: IRange;
+        id: number;
+        className: string;
+    };
+    type TextMarkers = {
+        addTextMarker(this: EditSession, range: IRange, className: string): number;
+        removeTextMarker(this: EditSession, markerId: number): void;
+        getTextMarkers(this: EditSession): TextMarker[];
+    } & {
+    };
     import { Document } from "ace-builds-internal/document";
     import { BackgroundTokenizer } from "ace-builds-internal/background_tokenizer";
     import { Selection } from "ace-builds-internal/selection";
@@ -4506,7 +4562,7 @@ declare module "ace-builds-internal/edit_session" {
         type Operation = import("ace-builds").Ace.Operation;
     }
     export interface EditSession extends Ace.EventEmitter<Ace.EditSessionEvents>, Ace.OptionsProvider<Ace.EditSessionOptions>, Ace.Folding, Ace.
-        BracketMatch {
+        BracketMatch, TextMarkers {
         doc: Ace.Document;
         lineWidgetsWidth?: number;
         gutterRenderer?: any;
