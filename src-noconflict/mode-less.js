@@ -688,8 +688,9 @@ oop.inherits(FoldMode, BaseFoldMode);
 
 });
 
-ace.define("ace/mode/less",["require","exports","module","ace/lib/oop","ace/mode/text","ace/mode/less_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/behaviour/css","ace/mode/css_completions","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
+ace.define("ace/mode/less",["require","exports","module","ace/lib/oop","ace/worker/worker_client","ace/mode/text","ace/mode/less_highlight_rules","ace/mode/matching_brace_outdent","ace/mode/behaviour/css","ace/mode/css_completions","ace/mode/folding/cstyle"], function(require, exports, module){"use strict";
 var oop = require("../lib/oop");
+var WorkerClient = require("../worker/worker_client").WorkerClient;
 var TextMode = require("./text").Mode;
 var LessHighlightRules = require("./less_highlight_rules").LessHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
@@ -727,6 +728,18 @@ oop.inherits(Mode, TextMode);
     };
     this.getCompletions = function (state, session, pos, prefix) {
         return this.$completer.getCompletions("ruleset", session, pos, prefix);
+    };
+    this.createWorker = function (session) {
+        var worker = new WorkerClient(["ace"], "ace/mode/css_worker", "Worker");
+        worker.attachToDocument(session.getDocument());
+        worker.call("setOptions", [{ mode: "less" }]);
+        worker.on("annotate", function (e) {
+            session.setAnnotations(e.data);
+        });
+        worker.on("terminate", function () {
+            session.clearAnnotations();
+        });
+        return worker;
     };
     this.$id = "ace/mode/less";
 }).call(Mode.prototype);

@@ -161,7 +161,7 @@ require("ace/commands/default_commands").commands.push({
             return;
         }
         
-        var rowCount = 10;
+        var rowCount = 5.5;
         var w = {
             row: row, 
             fixedWidth: true,
@@ -1216,6 +1216,9 @@ var supportedModes = {
     FSL: ["fsl"],
     FTL: ["ftl"],
     Gcode: ["gcode"],
+    GDResource: ["tres|tscn"],
+    GDScript: ["gd"],
+    GDShader: ["gdshader|gdshaderinc"],
     Gherkin: ["feature"],
     Gitignore: ["^.gitignore"],
     Glsl: ["glsl|frag|vert"],
@@ -1277,7 +1280,7 @@ var supportedModes = {
     Nginx: ["nginx|conf"],
     Nim: ["nim"],
     Nix: ["nix"],
-    NSIS: ["nsi|nsh"],
+    NSIS: ["nsi|nsh|nsdinc"],
     Nunjucks: ["nunjucks|nunjs|nj|njk"],
     ObjectiveC: ["m|mm"],
     OCaml: ["ml|mli"],
@@ -1830,7 +1833,18 @@ exports.MinimalGutterDiffDecorator = MinimalGutterDiffDecorator;
 
 });
 
-define("ace/ext/diff/base_diff_view",["require","exports","module","ace/lib/oop","ace/range","ace/lib/dom","ace/config","ace/line_widgets","ace/ext/diff/scroll_diff_decorator","ace/ext/diff/styles-css.js","ace/editor","ace/virtual_renderer","ace/undomanager","ace/layer/decorators","ace/theme/textmate","ace/multi_select","ace/edit_session","ace/ext/diff/gutter_decorator"], function(require, exports, module){"use strict";
+define("ace/ext/diff/base_diff_view",["require","exports","module","ace/range","ace/lib/dom","ace/config","ace/line_widgets","ace/ext/diff/scroll_diff_decorator","ace/ext/diff/styles-css.js","ace/editor","ace/virtual_renderer","ace/undomanager","ace/layer/decorators","ace/theme/textmate","ace/multi_select","ace/edit_session","ace/ext/diff/gutter_decorator"], function(require, exports, module){"use strict";
+var __values = (this && this.__values) || function(o) {
+    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+    if (m) return m.call(o);
+    if (o && typeof o.length === "number") return {
+        next: function () {
+            if (o && i >= o.length) o = void 0;
+            return { value: o && o[i++], done: !o };
+        }
+    };
+    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+};
 var __read = (this && this.__read) || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
     if (!m) return o;
@@ -1847,7 +1861,6 @@ var __read = (this && this.__read) || function (o, n) {
     }
     return ar;
 };
-var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
 var dom = require("../../lib/dom");
 var config = require("../../config");
@@ -1888,6 +1901,10 @@ var BaseDiffView = /** @class */ (function () {
         this.$maxComputationTimeMs = 150;
         this.$syncSelections = false;
         this.$foldUnchangedOnInput = false;
+        this.$inlineRefineTimer = null;
+        this.$inlineRefineMaxComputationTimeMs = 25;
+        this.$diffOriginalLines = null;
+        this.$diffModifiedLines = null;
         this.markerB = new DiffHighlight(this, 1);
         this.markerA = new DiffHighlight(this, -1);
     }
@@ -2059,11 +2076,20 @@ var BaseDiffView = /** @class */ (function () {
         var _this = this;
         if (this.$onInputTimer)
             clearTimeout(this.$onInputTimer);
+        if (this.$inlineRefineTimer)
+            clearTimeout(this.$inlineRefineTimer);
+        this.$inlineRefineTimer = null;
         var val1 = this.sessionA.doc.getAllLines();
         var val2 = this.sessionB.doc.getAllLines();
+        this.$diffOriginalLines = val1;
+        this.$diffModifiedLines = val2;
         this.selectionRangeA = null;
         this.selectionRangeB = null;
+        var diffStartTime = Date.now();
         var chunks = this.$diffLines(val1, val2);
+        if (chunks && chunks.length <= this.$maxDiffs) {
+            this.$refineVisibleInlineChunks(chunks, val1, val2, diffStartTime);
+        }
         this.diffSession.chunks = this.chunks = chunks;
         this.gutterDecoratorA && this.gutterDecoratorA.setDecorations(chunks);
         this.gutterDecoratorB && this.gutterDecoratorB.setDecorations(chunks);
@@ -2163,6 +2189,99 @@ var BaseDiffView = /** @class */ (function () {
     };
     BaseDiffView.prototype.setProvider = function (provider) {
         this.diffProvider = provider;
+    };
+    BaseDiffView.prototype.scheduleVisibleInlineRefinement = function () {
+        var _this = this;
+        if (this.$inlineRefineTimer || !this.diffProvider
+            || typeof this.diffProvider.refine !== "function")
+            return;
+        if (!this.$findVisiblePendingChunk())
+            return;
+        this.$inlineRefineTimer = setTimeout(function () {
+            _this.$inlineRefineTimer = null;
+            _this.$refineVisibleInlineChunk();
+        }, 0);
+    };
+    BaseDiffView.prototype.$refineVisibleInlineChunk = function () {
+        if (!this.sessionA || !this.sessionB)
+            return;
+        var chunk = this.$findVisiblePendingChunk();
+        if (!chunk)
+            return;
+        this.$refineInlineChunk(chunk, this.$diffOriginalLines, this.$diffModifiedLines, this.$inlineRefineMaxComputationTimeMs);
+        this.editorA && this.editorA.renderer.updateBackMarkers();
+        this.editorB && this.editorB.renderer.updateBackMarkers();
+    };
+    BaseDiffView.prototype.$refineVisibleInlineChunks = function (chunks, originalLines, modifiedLines, diffStartTime) {
+        if (!chunks || !this.diffProvider
+            || typeof this.diffProvider.refine !== "function")
+            return;
+        var roughDiffTime = Date.now() - diffStartTime;
+        var remainingDiffTime = this.$maxComputationTimeMs === 0
+            ? this.$inlineRefineMaxComputationTimeMs
+            : Math.max(0, this.$maxComputationTimeMs - roughDiffTime);
+        var maxComputationTimeMs = Math.min(this.$inlineRefineMaxComputationTimeMs, remainingDiffTime);
+        if (maxComputationTimeMs <= 0)
+            return;
+        var deadline = Date.now() + maxComputationTimeMs;
+        var chunk;
+        while ((chunk = this.$findVisiblePendingChunk(chunks))) {
+            var remainingTime = deadline - Date.now();
+            if (remainingTime <= 0)
+                break;
+            this.$refineInlineChunk(chunk, originalLines, modifiedLines, remainingTime);
+        }
+    };
+    BaseDiffView.prototype.$refineInlineChunk = function (chunk, originalLines, modifiedLines, maxComputationTimeMs) {
+        chunk.inlinePending = false;
+        var result = this.diffProvider.refine(originalLines, modifiedLines, chunk, {
+            ignoreTrimWhitespace: this.$ignoreTrimWhitespace,
+            maxComputationTimeMs: maxComputationTimeMs
+        });
+        if (!result)
+            return;
+        chunk.charChanges = result.charChanges || [];
+        chunk.inlineRefineHitTimeout = result.hitTimeout === true;
+    };
+    BaseDiffView.prototype.$findVisiblePendingChunk = function (chunks) {
+        var e_1, _a;
+        if (chunks === void 0) { chunks = this.chunks; }
+        if (!chunks)
+            return null;
+        var margin = 10;
+        var isVisible = function (editor, range) {
+            if (!editor || !editor.renderer || !editor.renderer.layerConfig)
+                return false;
+            var firstRow = editor.getFirstVisibleRow() - margin;
+            var lastRow = editor.getLastVisibleRow() + margin;
+            var rangeEndRow = range.end.row > range.start.row
+                ? range.end.row - 1
+                : range.start.row;
+            return rangeEndRow >= firstRow && range.start.row <= lastRow;
+        };
+        try {
+            for (var chunks_1 = __values(chunks), chunks_1_1 = chunks_1.next(); !chunks_1_1.done; chunks_1_1 = chunks_1.next()) {
+                var chunk = chunks_1_1.value;
+                if (!chunk.inlinePending)
+                    continue;
+                if (this.inlineDiffEditor) {
+                    var range = this.showSideA ? chunk.old : chunk.new;
+                    if (isVisible(this.activeEditor, range))
+                        return chunk;
+                }
+                else if (isVisible(this.editorA, chunk.old) || isVisible(this.editorB, chunk.new)) {
+                    return chunk;
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (chunks_1_1 && !chunks_1_1.done && (_a = chunks_1.return)) _a.call(chunks_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return null;
     };
     BaseDiffView.prototype.$addWidget = function (session, w) {
         var lineWidget = session.lineWidgets[w.row];
@@ -2321,6 +2440,10 @@ var BaseDiffView = /** @class */ (function () {
             this.$resetDecorators(this.editorB.renderer);
         }
         clearTimeout(this.$onInputTimer);
+        clearTimeout(this.$inlineRefineTimer);
+        this.$inlineRefineTimer = null;
+        this.$diffOriginalLines = null;
+        this.$diffModifiedLines = null;
     };
     BaseDiffView.prototype.$removeLineWidgets = function (session) {
         session.lineWidgets = [];
@@ -2541,13 +2664,34 @@ var emptyGutterRenderer = {
 };
 exports.BaseDiffView = BaseDiffView;
 var DiffChunk = /** @class */ (function () {
-    function DiffChunk(originalRange, modifiedRange, charChanges) {
+    function DiffChunk(originalRange, modifiedRange, charChanges, inlinePending) {
+        if (inlinePending === void 0) { inlinePending = false; }
         this.old = originalRange;
         this.new = modifiedRange;
+        this.inlinePending = inlinePending;
+        this.inlineRefineHitTimeout = false;
         this.charChanges = charChanges && charChanges.map(function (m) { return new DiffChunk(new Range(m.originalStartLineNumber, m.originalStartColumn, m.originalEndLineNumber, m.originalEndColumn), new Range(m.modifiedStartLineNumber, m.modifiedStartColumn, m.modifiedEndLineNumber, m.modifiedEndColumn)); });
     }
     return DiffChunk;
 }());
+function inlineChangeSpansLineChange(changeRange, lineRange, session) {
+    var normalizeDocumentEnd = function (position) {
+        var lineCount = session.getLength();
+        if (position.row >= lineCount) {
+            var lastRow = Math.max(0, lineCount - 1);
+            return { row: lastRow, column: session.getLine(lastRow).length };
+        }
+        return position;
+    };
+    var changeStart = normalizeDocumentEnd(changeRange.start);
+    var changeEnd = normalizeDocumentEnd(changeRange.end);
+    var lineStart = normalizeDocumentEnd(lineRange.start);
+    var lineEnd = normalizeDocumentEnd(lineRange.end);
+    return changeStart.row === lineStart.row
+        && changeStart.column === lineStart.column
+        && changeEnd.row === lineEnd.row
+        && changeEnd.column === lineEnd.column;
+}
 var DiffHighlight = /** @class */ (function () {
     function DiffHighlight(diffView, type) { this.id;
         this.diffView = diffView;
@@ -2578,8 +2722,9 @@ var DiffHighlight = /** @class */ (function () {
                     var range = new Range(start - lineWidget.rowsAbove, 0, start - 1, Number.MAX_VALUE);
                     markerLayer.drawFullLineMarker(html, range, "ace_diff aligned_diff", config);
                 }
-                var end = start + lineWidget.rowCount - (lineWidget.rowsAbove || 0);
-                var range = new Range(start + 1, 0, end, Number.MAX_VALUE);
+                var offset = session.getRowLength(row) - lineWidget.rowCount;
+                var end = start + offset - 1 + lineWidget.rowCount - (lineWidget.rowsAbove || 0);
+                var range = new Range(start + offset, 0, end, Number.MAX_VALUE);
                 markerLayer.drawFullLineMarker(html, range, "ace_diff aligned_diff", config);
             }
         }
@@ -2595,7 +2740,14 @@ var DiffHighlight = /** @class */ (function () {
             }
             if (lineChange.charChanges) {
                 for (var i = 0; i < lineChange.charChanges.length; i++) {
-                    var changeRange = lineChange.charChanges[i][dir];
+                    var storedChangeRange = lineChange.charChanges[i][dir];
+                    if (storedChangeRange.end.row < config.firstRow || storedChangeRange.start.row > config.lastRow) {
+                        continue;
+                    }
+                    if (inlineChangeSpansLineChange(storedChangeRange, lineChange[dir], session)) {
+                        continue;
+                    }
+                    var changeRange = storedChangeRange.clone();
                     if (changeRange.end.column == 0 && changeRange.end.row > changeRange.start.row && changeRange.end.row == lineChange[dir].end.row) {
                         changeRange.end.row--;
                         changeRange.end.column = Number.MAX_VALUE;
@@ -2634,7 +2786,7 @@ var DiffHighlight = /** @class */ (function () {
                         var range_2 = new Range(changeRange.start.row, changeRange.start.column, changeRange.end.row, changeRange.end.column);
                         var screenRange = range_2.toScreenRange(session);
                         var cssClass = "inline " + operation;
-                        if (range_2.isEmpty() && changeRange.start.column !== 0) {
+                        if (range_2.isEmpty()) {
                             cssClass = "inline empty " + opOperation;
                         }
                         if (screenRange.isMultiLine()) {
@@ -2851,8 +3003,8 @@ var InlineDiffView = /** @class */ (function (_super) {
             var screenPos = ev.editor.renderer.pixelToScreenCoordinates(ev.clientX, ev.clientY);
             var sessionA = _this.activeEditor.session;
             var sessionB = _this.otherEditor.session;
-            var posA = sessionA.screenToDocumentPosition(screenPos.row, screenPos.column, screenPos.offsetX);
-            var posB = sessionB.screenToDocumentPosition(screenPos.row, screenPos.column, screenPos.offsetX);
+            var posA = sessionA.screenToDocumentPosition(screenPos.row, screenPos.column);
+            var posB = sessionB.screenToDocumentPosition(screenPos.row, screenPos.column);
             var posAx = sessionA.documentToScreenPosition(posA);
             var posBx = sessionB.documentToScreenPosition(posB);
             if (ev.editor == _this.activeEditor) {
@@ -3003,17 +3155,18 @@ var InlineDiffView = /** @class */ (function (_super) {
         });
         cloneRenderer.$computeLayerConfig();
         var newConfig = cloneRenderer.layerConfig;
-        this.gutterLayer.update(newConfig);
-        newConfig.firstRowScreen = config.firstRowScreen;
-        cloneRenderer.$cursorLayer.config = newConfig;
-        cloneRenderer.$cursorLayer.update(newConfig);
         if (changes & cloneRenderer.CHANGE_LINES
             || changes & cloneRenderer.CHANGE_FULL
             || changes & cloneRenderer.CHANGE_SCROLL
             || changes & cloneRenderer.CHANGE_TEXT)
             this.textLayer.update(newConfig);
+        this.gutterLayer.update(newConfig);
+        newConfig.firstRowScreen = config.firstRowScreen;
+        cloneRenderer.$cursorLayer.config = newConfig;
+        cloneRenderer.$cursorLayer.update(newConfig);
         this.markerLayer.setMarkers(this.otherSession.getMarkers());
         this.markerLayer.update(newConfig);
+        this.scheduleVisibleInlineRefinement();
     };
     InlineDiffView.prototype.detach = function () {
         _super.prototype.detach.call(this);
@@ -3056,6 +3209,7 @@ var SplitDiffView = /** @class */ (function (_super) {
         this.onChangeTheme = this.onChangeTheme.bind(this);
         this.onMouseWheel = this.onMouseWheel.bind(this);
         this.onScroll = this.onScroll.bind(this);
+        this.onAfterRender = this.onAfterRender.bind(this);
         this.$setupModels(diffModel);
         this.addGutterDecorators();
         this.onChangeTheme();
@@ -3109,6 +3263,9 @@ var SplitDiffView = /** @class */ (function (_super) {
     };
     SplitDiffView.prototype.onScroll = function (e, session) {
         this.syncScroll(this.sessionA === session ? this.editorA.renderer : this.editorB.renderer);
+    };
+    SplitDiffView.prototype.onAfterRender = function () {
+        this.scheduleVisibleInlineRefinement();
     };
     SplitDiffView.prototype.syncScroll = function (renderer) {
         if (this.$syncScroll == false)
@@ -3190,6 +3347,8 @@ var SplitDiffView = /** @class */ (function (_super) {
     SplitDiffView.prototype.$attachEventHandlers = function () {
         this.editorA.renderer.on("themeChange", this.onChangeTheme);
         this.editorB.renderer.on("themeChange", this.onChangeTheme);
+        this.editorA.renderer.on("afterRender", this.onAfterRender);
+        this.editorB.renderer.on("afterRender", this.onAfterRender);
         this.editorA.on("mousewheel", this.onMouseWheel);
         this.editorB.on("mousewheel", this.onMouseWheel);
         this.editorA.on("input", this.onInput);
@@ -3200,6 +3359,8 @@ var SplitDiffView = /** @class */ (function (_super) {
         this.clearSelectionMarkers();
         this.editorA.renderer.off("themeChange", this.onChangeTheme);
         this.editorB.renderer.off("themeChange", this.onChangeTheme);
+        this.editorA.renderer.off("afterRender", this.onAfterRender);
+        this.editorB.renderer.off("afterRender", this.onAfterRender);
         this.$detachEditorEventHandlers(this.editorA);
         this.$detachEditorEventHandlers(this.editorB);
     };
@@ -3213,7 +3374,8 @@ exports.SplitDiffView = SplitDiffView;
 
 });
 
-define("ace/ext/diff/providers/default",["require","exports","module","ace/range","ace/ext/diff/base_diff_view"], function(require, exports, module){'use strict';
+define("ace/ext/diff/providers/default",["require","exports","module","ace/range","ace/ext/diff/base_diff_view"], function(require, exports, module){// autogenerated from vscode-diff-bundle@1.1.1 with command build
+'use strict';
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -3268,7 +3430,22 @@ var __values = (this && this.__values) || function(o) {
     throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
 };
 var _a;
-var _b, _c, _d, _e, _f;
+var _b, _c, _d, _e, _f, _g;
+var LinesDiff = /** @class */ (function () {
+    function LinesDiff(changes, moves, hitTimeout) {
+        this.changes = changes;
+        this.moves = moves;
+        this.hitTimeout = hitTimeout;
+    }
+    return LinesDiff;
+}());
+var MovedText = /** @class */ (function () {
+    function MovedText(lineRangeMapping, changes) {
+        this.lineRangeMapping = lineRangeMapping;
+        this.changes = changes;
+    }
+    return MovedText;
+}());
 function equals(one, other, itemEquals) {
     if (itemEquals === void 0) { itemEquals = function (a, b) { return a === b; }; }
     if (one === other) {
@@ -3290,12 +3467,12 @@ function equals(one, other, itemEquals) {
 function groupAdjacentBy(items, shouldBeGrouped) {
     var currentGroup, last, items_1, items_1_1, item, e_1_1;
     var e_1, _a;
-    return __generator(this, function (_g) {
-        switch (_g.label) {
+    return __generator(this, function (_h) {
+        switch (_h.label) {
             case 0:
-                _g.trys.push([0, 8, 9, 10]);
+                _h.trys.push([0, 8, 9, 10]);
                 items_1 = __values(items), items_1_1 = items_1.next();
-                _g.label = 1;
+                _h.label = 1;
             case 1:
                 if (!!items_1_1.done) return [3 /*break*/, 7];
                 item = items_1_1.value;
@@ -3306,20 +3483,20 @@ function groupAdjacentBy(items, shouldBeGrouped) {
                 if (!currentGroup) return [3 /*break*/, 4];
                 return [4 /*yield*/, currentGroup];
             case 3:
-                _g.sent();
-                _g.label = 4;
+                _h.sent();
+                _h.label = 4;
             case 4:
                 currentGroup = [item];
-                _g.label = 5;
+                _h.label = 5;
             case 5:
                 last = item;
-                _g.label = 6;
+                _h.label = 6;
             case 6:
                 items_1_1 = items_1.next();
                 return [3 /*break*/, 1];
             case 7: return [3 /*break*/, 10];
             case 8:
-                e_1_1 = _g.sent();
+                e_1_1 = _h.sent();
                 e_1 = { error: e_1_1 };
                 return [3 /*break*/, 10];
             case 9:
@@ -3332,8 +3509,8 @@ function groupAdjacentBy(items, shouldBeGrouped) {
                 if (!currentGroup) return [3 /*break*/, 12];
                 return [4 /*yield*/, currentGroup];
             case 11:
-                _g.sent();
-                _g.label = 12;
+                _h.sent();
+                _h.label = 12;
             case 12: return [2 /*return*/];
         }
     });
@@ -3380,10 +3557,11 @@ var BugIndicatingError = /** @class */ (function (_super) {
     }
     return BugIndicatingError;
 }(Error));
-function assert(condition, message) {
-    if (message === void 0) { message = "unexpected state"; }
+function assert(condition, messageOrError) {
+    if (messageOrError === void 0) { messageOrError = "unexpected state"; }
     if (!condition) {
-        throw new BugIndicatingError("Assertion Failed: ".concat(message));
+        var errorToThrow = typeof messageOrError === "string" ? new BugIndicatingError("Assertion Failed: ".concat(messageOrError)) : messageOrError;
+        throw errorToThrow;
     }
 }
 function assertFn(condition) {
@@ -3409,41 +3587,8 @@ var OffsetRange = /** @class */ (function () {
             throw new BugIndicatingError("Invalid range: ".concat(this.toString()));
         }
     }
-    OffsetRange.fromTo = function (start, endExclusive) {
-        return new OffsetRange(start, endExclusive);
-    };
-    OffsetRange.addRange = function (range, sortedRanges) {
-        var i = 0;
-        while (i < sortedRanges.length && sortedRanges[i].endExclusive < range.start) {
-            i++;
-        }
-        var j = i;
-        while (j < sortedRanges.length && sortedRanges[j].start <= range.endExclusive) {
-            j++;
-        }
-        if (i === j) {
-            sortedRanges.splice(i, 0, range);
-        }
-        else {
-            var start = Math.min(range.start, sortedRanges[i].start);
-            var end = Math.max(range.endExclusive, sortedRanges[j - 1].endExclusive);
-            sortedRanges.splice(i, j - i, new OffsetRange(start, end));
-        }
-    };
-    OffsetRange.tryCreate = function (start, endExclusive) {
-        if (start > endExclusive) {
-            return undefined;
-        }
-        return new OffsetRange(start, endExclusive);
-    };
     OffsetRange.ofLength = function (length) {
         return new OffsetRange(0, length);
-    };
-    OffsetRange.ofStartAndLength = function (start, length) {
-        return new OffsetRange(start, start + length);
-    };
-    OffsetRange.emptyAt = function (offset) {
-        return new OffsetRange(offset, offset);
     };
     Object.defineProperty(OffsetRange.prototype, "isEmpty", {
         get: function () {
@@ -3471,15 +3616,6 @@ var OffsetRange = /** @class */ (function () {
     OffsetRange.prototype.toString = function () {
         return "[".concat(this.start, ", ").concat(this.endExclusive, ")");
     };
-    OffsetRange.prototype.equals = function (other) {
-        return this.start === other.start && this.endExclusive === other.endExclusive;
-    };
-    OffsetRange.prototype.containsRange = function (other) {
-        return this.start <= other.start && other.endExclusive <= this.endExclusive;
-    };
-    OffsetRange.prototype.contains = function (offset) {
-        return this.start <= offset && offset < this.endExclusive;
-    };
     OffsetRange.prototype.join = function (other) {
         return new OffsetRange(Math.min(this.start, other.start), Math.max(this.endExclusive, other.endExclusive));
     };
@@ -3491,57 +3627,13 @@ var OffsetRange = /** @class */ (function () {
         }
         return undefined;
     };
-    OffsetRange.prototype.intersectionLength = function (range) {
-        var start = Math.max(this.start, range.start);
-        var end = Math.min(this.endExclusive, range.endExclusive);
-        return Math.max(0, end - start);
-    };
     OffsetRange.prototype.intersects = function (other) {
         var start = Math.max(this.start, other.start);
         var end = Math.min(this.endExclusive, other.endExclusive);
         return start < end;
     };
-    OffsetRange.prototype.intersectsOrTouches = function (other) {
-        var start = Math.max(this.start, other.start);
-        var end = Math.min(this.endExclusive, other.endExclusive);
-        return start <= end;
-    };
-    OffsetRange.prototype.isBefore = function (other) {
-        return this.endExclusive <= other.start;
-    };
-    OffsetRange.prototype.isAfter = function (other) {
-        return this.start >= other.endExclusive;
-    };
     OffsetRange.prototype.slice = function (arr) {
         return arr.slice(this.start, this.endExclusive);
-    };
-    OffsetRange.prototype.substring = function (str) {
-        return str.substring(this.start, this.endExclusive);
-    };
-    OffsetRange.prototype.clip = function (value) {
-        if (this.isEmpty) {
-            throw new BugIndicatingError("Invalid clipping range: ".concat(this.toString()));
-        }
-        return Math.max(this.start, Math.min(this.endExclusive - 1, value));
-    };
-    OffsetRange.prototype.clipCyclic = function (value) {
-        if (this.isEmpty) {
-            throw new BugIndicatingError("Invalid clipping range: ".concat(this.toString()));
-        }
-        if (value < this.start) {
-            return this.endExclusive - (this.start - value) % this.length;
-        }
-        if (value >= this.endExclusive) {
-            return this.start + (value - this.start) % this.length;
-        }
-        return value;
-    };
-    OffsetRange.prototype.map = function (f) {
-        var result = [];
-        for (var i = this.start; i < this.endExclusive; i++) {
-            result.push(f(i));
-        }
-        return result;
     };
     OffsetRange.prototype.forEach = function (f) {
         for (var i = this.start; i < this.endExclusive; i++) {
@@ -3549,6 +3641,222 @@ var OffsetRange = /** @class */ (function () {
         }
     };
     return OffsetRange;
+}());
+function findLastMonotonous(array, predicate) {
+    var idx = findLastIdxMonotonous(array, predicate);
+    return idx === -1 ? undefined : array[idx];
+}
+function findLastIdxMonotonous(array, predicate, startIdx, endIdxEx) {
+    if (startIdx === void 0) { startIdx = 0; }
+    if (endIdxEx === void 0) { endIdxEx = array.length; }
+    var i = startIdx;
+    var j = endIdxEx;
+    while (i < j) {
+        var k = Math.floor((i + j) / 2);
+        if (predicate(array[k])) {
+            i = k + 1;
+        }
+        else {
+            j = k;
+        }
+    }
+    return i - 1;
+}
+function findFirstMonotonous(array, predicate) {
+    var idx = findFirstIdxMonotonousOrArrLen(array, predicate);
+    return idx === array.length ? undefined : array[idx];
+}
+function findFirstIdxMonotonousOrArrLen(array, predicate, startIdx, endIdxEx) {
+    if (startIdx === void 0) { startIdx = 0; }
+    if (endIdxEx === void 0) { endIdxEx = array.length; }
+    var i = startIdx;
+    var j = endIdxEx;
+    while (i < j) {
+        var k = Math.floor((i + j) / 2);
+        if (predicate(array[k])) {
+            j = k;
+        }
+        else {
+            i = k + 1;
+        }
+    }
+    return i;
+}
+var MonotonousArray = /** @class */ (function () {
+    function MonotonousArray(_array) {
+        this._array = _array;
+        this._findLastMonotonousLastIdx = 0;
+    }
+    MonotonousArray.prototype.findLastMonotonous = function (predicate) {
+        var e_3, _a;
+        if (_b.assertInvariants) {
+            if (this._prevFindLastPredicate) {
+                try {
+                    for (var _h = __values(this._array), _j = _h.next(); !_j.done; _j = _h.next()) {
+                        var item = _j.value;
+                        if (this._prevFindLastPredicate(item) && !predicate(item)) {
+                            throw new Error("MonotonousArray: current predicate must be weaker than (or equal to) the previous predicate.");
+                        }
+                    }
+                }
+                catch (e_3_1) { e_3 = { error: e_3_1 }; }
+                finally {
+                    try {
+                        if (_j && !_j.done && (_a = _h.return)) _a.call(_h);
+                    }
+                    finally { if (e_3) throw e_3.error; }
+                }
+            }
+            this._prevFindLastPredicate = predicate;
+        }
+        var idx = findLastIdxMonotonous(this._array, predicate, this._findLastMonotonousLastIdx);
+        this._findLastMonotonousLastIdx = idx + 1;
+        return idx === -1 ? undefined : this._array[idx];
+    };
+    return MonotonousArray;
+}());
+_b = MonotonousArray;
+(function () {
+    _b.assertInvariants = false;
+})();
+var LineRange = /** @class */ (function () {
+    function LineRange(startLineNumber, endLineNumberExclusive) {
+        if (startLineNumber > endLineNumberExclusive) {
+            throw new BugIndicatingError("startLineNumber ".concat(startLineNumber, " cannot be after endLineNumberExclusive ").concat(endLineNumberExclusive));
+        }
+        this.startLineNumber = startLineNumber;
+        this.endLineNumberExclusive = endLineNumberExclusive;
+    }
+    LineRange.join = function (lineRanges) {
+        if (lineRanges.length === 0) {
+            throw new BugIndicatingError("lineRanges cannot be empty");
+        }
+        var startLineNumber = lineRanges[0].startLineNumber;
+        var endLineNumberExclusive = lineRanges[0].endLineNumberExclusive;
+        for (var i = 1; i < lineRanges.length; i++) {
+            startLineNumber = Math.min(startLineNumber, lineRanges[i].startLineNumber);
+            endLineNumberExclusive = Math.max(endLineNumberExclusive, lineRanges[i].endLineNumberExclusive);
+        }
+        return new _c(startLineNumber, endLineNumberExclusive);
+    };
+    Object.defineProperty(LineRange.prototype, "isEmpty", {
+        get: function () {
+            return this.startLineNumber === this.endLineNumberExclusive;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    LineRange.prototype.delta = function (offset) {
+        return new _c(this.startLineNumber + offset, this.endLineNumberExclusive + offset);
+    };
+    Object.defineProperty(LineRange.prototype, "length", {
+        get: function () {
+            return this.endLineNumberExclusive - this.startLineNumber;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    LineRange.prototype.join = function (other) {
+        return new _c(Math.min(this.startLineNumber, other.startLineNumber), Math.max(this.endLineNumberExclusive, other.endLineNumberExclusive));
+    };
+    LineRange.prototype.intersect = function (other) {
+        var startLineNumber = Math.max(this.startLineNumber, other.startLineNumber);
+        var endLineNumberExclusive = Math.min(this.endLineNumberExclusive, other.endLineNumberExclusive);
+        if (startLineNumber <= endLineNumberExclusive) {
+            return new _c(startLineNumber, endLineNumberExclusive);
+        }
+        return undefined;
+    };
+    LineRange.prototype.intersectsOrTouches = function (other) {
+        return this.startLineNumber <= other.endLineNumberExclusive && other.startLineNumber <= this.endLineNumberExclusive;
+    };
+    LineRange.prototype.toOffsetRange = function () {
+        return new OffsetRange(this.startLineNumber - 1, this.endLineNumberExclusive - 1);
+    };
+    return LineRange;
+}());
+_c = LineRange;
+(function () {
+    _c.compareByStart = compareBy(function (l) { return l.startLineNumber; }, numberComparator);
+})();
+var LineRangeSet = /** @class */ (function () {
+    function LineRangeSet(_normalizedRanges) {
+        if (_normalizedRanges === void 0) { _normalizedRanges = []; }
+        this._normalizedRanges = _normalizedRanges;
+    }
+    Object.defineProperty(LineRangeSet.prototype, "ranges", {
+        get: function () {
+            return this._normalizedRanges;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    LineRangeSet.prototype.addRange = function (range) {
+        if (range.length === 0) {
+            return;
+        }
+        var joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(this._normalizedRanges, function (r) { return r.endLineNumberExclusive >= range.startLineNumber; });
+        var joinRangeEndIdxExclusive = findLastIdxMonotonous(this._normalizedRanges, function (r) { return r.startLineNumber <= range.endLineNumberExclusive; }) + 1;
+        if (joinRangeStartIdx === joinRangeEndIdxExclusive) {
+            this._normalizedRanges.splice(joinRangeStartIdx, 0, range);
+        }
+        else if (joinRangeStartIdx === joinRangeEndIdxExclusive - 1) {
+            var joinRange = this._normalizedRanges[joinRangeStartIdx];
+            this._normalizedRanges[joinRangeStartIdx] = joinRange.join(range);
+        }
+        else {
+            var joinRange = this._normalizedRanges[joinRangeStartIdx].join(this._normalizedRanges[joinRangeEndIdxExclusive - 1]).join(range);
+            this._normalizedRanges.splice(joinRangeStartIdx, joinRangeEndIdxExclusive - joinRangeStartIdx, joinRange);
+        }
+    };
+    LineRangeSet.prototype.contains = function (lineNumber) {
+        var rangeThatStartsBeforeEnd = findLastMonotonous(this._normalizedRanges, function (r) { return r.startLineNumber <= lineNumber; });
+        return !!rangeThatStartsBeforeEnd && rangeThatStartsBeforeEnd.endLineNumberExclusive > lineNumber;
+    };
+    LineRangeSet.prototype.subtractFrom = function (range) {
+        var joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(this._normalizedRanges, function (r) { return r.endLineNumberExclusive >= range.startLineNumber; });
+        var joinRangeEndIdxExclusive = findLastIdxMonotonous(this._normalizedRanges, function (r) { return r.startLineNumber <= range.endLineNumberExclusive; }) + 1;
+        if (joinRangeStartIdx === joinRangeEndIdxExclusive) {
+            return new LineRangeSet([range]);
+        }
+        var result = [];
+        var startLineNumber = range.startLineNumber;
+        for (var i = joinRangeStartIdx; i < joinRangeEndIdxExclusive; i++) {
+            var r = this._normalizedRanges[i];
+            if (r.startLineNumber > startLineNumber) {
+                result.push(new LineRange(startLineNumber, r.startLineNumber));
+            }
+            startLineNumber = r.endLineNumberExclusive;
+        }
+        if (startLineNumber < range.endLineNumberExclusive) {
+            result.push(new LineRange(startLineNumber, range.endLineNumberExclusive));
+        }
+        return new LineRangeSet(result);
+    };
+    LineRangeSet.prototype.getIntersection = function (other) {
+        var result = [];
+        var i1 = 0;
+        var i2 = 0;
+        while (i1 < this._normalizedRanges.length && i2 < other._normalizedRanges.length) {
+            var r1 = this._normalizedRanges[i1];
+            var r2 = other._normalizedRanges[i2];
+            var i = r1.intersect(r2);
+            if (i && !i.isEmpty) {
+                result.push(i);
+            }
+            if (r1.endLineNumberExclusive < r2.endLineNumberExclusive) {
+                i1++;
+            }
+            else {
+                i2++;
+            }
+        }
+        return new LineRangeSet(result);
+    };
+    LineRangeSet.prototype.getWithDelta = function (value) {
+        return new LineRangeSet(this._normalizedRanges.map(function (r) { return r.delta(value); }));
+    };
+    return LineRangeSet;
 }());
 var Position = /** @class */ (function () {
     function Position(lineNumber, column) {
@@ -3769,304 +4077,6 @@ var Range = /** @class */ (function () {
     };
     return Range;
 }());
-function findLastMonotonous(array, predicate) {
-    var idx = findLastIdxMonotonous(array, predicate);
-    return idx === -1 ? undefined : array[idx];
-}
-function findLastIdxMonotonous(array, predicate, startIdx, endIdxEx) {
-    if (startIdx === void 0) { startIdx = 0; }
-    if (endIdxEx === void 0) { endIdxEx = array.length; }
-    var i = startIdx;
-    var j = endIdxEx;
-    while (i < j) {
-        var k = Math.floor((i + j) / 2);
-        if (predicate(array[k])) {
-            i = k + 1;
-        }
-        else {
-            j = k;
-        }
-    }
-    return i - 1;
-}
-function findFirstMonotonous(array, predicate) {
-    var idx = findFirstIdxMonotonousOrArrLen(array, predicate);
-    return idx === array.length ? undefined : array[idx];
-}
-function findFirstIdxMonotonousOrArrLen(array, predicate, startIdx, endIdxEx) {
-    if (startIdx === void 0) { startIdx = 0; }
-    if (endIdxEx === void 0) { endIdxEx = array.length; }
-    var i = startIdx;
-    var j = endIdxEx;
-    while (i < j) {
-        var k = Math.floor((i + j) / 2);
-        if (predicate(array[k])) {
-            j = k;
-        }
-        else {
-            i = k + 1;
-        }
-    }
-    return i;
-}
-var MonotonousArray = /** @class */ (function () {
-    function MonotonousArray(_array) {
-        this._array = _array;
-        this._findLastMonotonousLastIdx = 0;
-    }
-    MonotonousArray.prototype.findLastMonotonous = function (predicate) {
-        var e_3, _a;
-        if (_b.assertInvariants) {
-            if (this._prevFindLastPredicate) {
-                try {
-                    for (var _g = __values(this._array), _h = _g.next(); !_h.done; _h = _g.next()) {
-                        var item = _h.value;
-                        if (this._prevFindLastPredicate(item) && !predicate(item)) {
-                            throw new Error("MonotonousArray: current predicate must be weaker than (or equal to) the previous predicate.");
-                        }
-                    }
-                }
-                catch (e_3_1) { e_3 = { error: e_3_1 }; }
-                finally {
-                    try {
-                        if (_h && !_h.done && (_a = _g.return)) _a.call(_g);
-                    }
-                    finally { if (e_3) throw e_3.error; }
-                }
-            }
-            this._prevFindLastPredicate = predicate;
-        }
-        var idx = findLastIdxMonotonous(this._array, predicate, this._findLastMonotonousLastIdx);
-        this._findLastMonotonousLastIdx = idx + 1;
-        return idx === -1 ? undefined : this._array[idx];
-    };
-    return MonotonousArray;
-}());
-_b = MonotonousArray;
-(function () {
-    _b.assertInvariants = false;
-})();
-var LineRange = /** @class */ (function () {
-    function LineRange(startLineNumber, endLineNumberExclusive) {
-        if (startLineNumber > endLineNumberExclusive) {
-            throw new BugIndicatingError("startLineNumber ".concat(startLineNumber, " cannot be after endLineNumberExclusive ").concat(endLineNumberExclusive));
-        }
-        this.startLineNumber = startLineNumber;
-        this.endLineNumberExclusive = endLineNumberExclusive;
-    }
-    LineRange.fromRangeInclusive = function (range) {
-        return new LineRange(range.startLineNumber, range.endLineNumber + 1);
-    };
-    LineRange.join = function (lineRanges) {
-        if (lineRanges.length === 0) {
-            throw new BugIndicatingError("lineRanges cannot be empty");
-        }
-        var startLineNumber = lineRanges[0].startLineNumber;
-        var endLineNumberExclusive = lineRanges[0].endLineNumberExclusive;
-        for (var i = 1; i < lineRanges.length; i++) {
-            startLineNumber = Math.min(startLineNumber, lineRanges[i].startLineNumber);
-            endLineNumberExclusive = Math.max(endLineNumberExclusive, lineRanges[i].endLineNumberExclusive);
-        }
-        return new LineRange(startLineNumber, endLineNumberExclusive);
-    };
-    LineRange.ofLength = function (startLineNumber, length) {
-        return new LineRange(startLineNumber, startLineNumber + length);
-    };
-    Object.defineProperty(LineRange.prototype, "isEmpty", {
-        get: function () {
-            return this.startLineNumber === this.endLineNumberExclusive;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    LineRange.prototype.delta = function (offset) {
-        return new LineRange(this.startLineNumber + offset, this.endLineNumberExclusive + offset);
-    };
-    Object.defineProperty(LineRange.prototype, "length", {
-        get: function () {
-            return this.endLineNumberExclusive - this.startLineNumber;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    LineRange.prototype.join = function (other) {
-        return new LineRange(Math.min(this.startLineNumber, other.startLineNumber), Math.max(this.endLineNumberExclusive, other.endLineNumberExclusive));
-    };
-    LineRange.prototype.intersect = function (other) {
-        var startLineNumber = Math.max(this.startLineNumber, other.startLineNumber);
-        var endLineNumberExclusive = Math.min(this.endLineNumberExclusive, other.endLineNumberExclusive);
-        if (startLineNumber <= endLineNumberExclusive) {
-            return new LineRange(startLineNumber, endLineNumberExclusive);
-        }
-        return undefined;
-    };
-    LineRange.prototype.overlapOrTouch = function (other) {
-        return this.startLineNumber <= other.endLineNumberExclusive && other.startLineNumber <= this.endLineNumberExclusive;
-    };
-    LineRange.prototype.toInclusiveRange = function () {
-        if (this.isEmpty) {
-            return null;
-        }
-        return new Range(this.startLineNumber, 1, this.endLineNumberExclusive - 1, Number.MAX_SAFE_INTEGER);
-    };
-    LineRange.prototype.toOffsetRange = function () {
-        return new OffsetRange(this.startLineNumber - 1, this.endLineNumberExclusive - 1);
-    };
-    return LineRange;
-}());
-var LineRangeSet = /** @class */ (function () {
-    function LineRangeSet(_normalizedRanges) {
-        if (_normalizedRanges === void 0) { _normalizedRanges = []; }
-        this._normalizedRanges = _normalizedRanges;
-    }
-    Object.defineProperty(LineRangeSet.prototype, "ranges", {
-        get: function () {
-            return this._normalizedRanges;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    LineRangeSet.prototype.addRange = function (range) {
-        if (range.length === 0) {
-            return;
-        }
-        var joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(this._normalizedRanges, function (r) { return r.endLineNumberExclusive >= range.startLineNumber; });
-        var joinRangeEndIdxExclusive = findLastIdxMonotonous(this._normalizedRanges, function (r) { return r.startLineNumber <= range.endLineNumberExclusive; }) + 1;
-        if (joinRangeStartIdx === joinRangeEndIdxExclusive) {
-            this._normalizedRanges.splice(joinRangeStartIdx, 0, range);
-        }
-        else if (joinRangeStartIdx === joinRangeEndIdxExclusive - 1) {
-            var joinRange = this._normalizedRanges[joinRangeStartIdx];
-            this._normalizedRanges[joinRangeStartIdx] = joinRange.join(range);
-        }
-        else {
-            var joinRange = this._normalizedRanges[joinRangeStartIdx].join(this._normalizedRanges[joinRangeEndIdxExclusive - 1]).join(range);
-            this._normalizedRanges.splice(joinRangeStartIdx, joinRangeEndIdxExclusive - joinRangeStartIdx, joinRange);
-        }
-    };
-    LineRangeSet.prototype.contains = function (lineNumber) {
-        var rangeThatStartsBeforeEnd = findLastMonotonous(this._normalizedRanges, function (r) { return r.startLineNumber <= lineNumber; });
-        return !!rangeThatStartsBeforeEnd && rangeThatStartsBeforeEnd.endLineNumberExclusive > lineNumber;
-    };
-    LineRangeSet.prototype.subtractFrom = function (range) {
-        var joinRangeStartIdx = findFirstIdxMonotonousOrArrLen(this._normalizedRanges, function (r) { return r.endLineNumberExclusive >= range.startLineNumber; });
-        var joinRangeEndIdxExclusive = findLastIdxMonotonous(this._normalizedRanges, function (r) { return r.startLineNumber <= range.endLineNumberExclusive; }) + 1;
-        if (joinRangeStartIdx === joinRangeEndIdxExclusive) {
-            return new LineRangeSet([range]);
-        }
-        var result = [];
-        var startLineNumber = range.startLineNumber;
-        for (var i = joinRangeStartIdx; i < joinRangeEndIdxExclusive; i++) {
-            var r = this._normalizedRanges[i];
-            if (r.startLineNumber > startLineNumber) {
-                result.push(new LineRange(startLineNumber, r.startLineNumber));
-            }
-            startLineNumber = r.endLineNumberExclusive;
-        }
-        if (startLineNumber < range.endLineNumberExclusive) {
-            result.push(new LineRange(startLineNumber, range.endLineNumberExclusive));
-        }
-        return new LineRangeSet(result);
-    };
-    LineRangeSet.prototype.getIntersection = function (other) {
-        var result = [];
-        var i1 = 0;
-        var i2 = 0;
-        while (i1 < this._normalizedRanges.length && i2 < other._normalizedRanges.length) {
-            var r1 = this._normalizedRanges[i1];
-            var r2 = other._normalizedRanges[i2];
-            var i = r1.intersect(r2);
-            if (i && !i.isEmpty) {
-                result.push(i);
-            }
-            if (r1.endLineNumberExclusive < r2.endLineNumberExclusive) {
-                i1++;
-            }
-            else {
-                i2++;
-            }
-        }
-        return new LineRangeSet(result);
-    };
-    LineRangeSet.prototype.getWithDelta = function (value) {
-        return new LineRangeSet(this._normalizedRanges.map(function (r) { return r.delta(value); }));
-    };
-    return LineRangeSet;
-}());
-var TextLength = /** @class */ (function () {
-    function TextLength(lineCount, columnCount) {
-        this.lineCount = lineCount;
-        this.columnCount = columnCount;
-    }
-    TextLength.prototype.toLineRange = function () {
-        return LineRange.ofLength(1, this.lineCount);
-    };
-    TextLength.prototype.addToPosition = function (position) {
-        if (this.lineCount === 0) {
-            return new Position(position.lineNumber, position.column + this.columnCount);
-        }
-        else {
-            return new Position(position.lineNumber + this.lineCount, this.columnCount + 1);
-        }
-    };
-    return TextLength;
-}());
-_c = TextLength;
-(function () {
-    _c.zero = new _c(0, 0);
-})();
-var LineBasedText = /** @class */ (function () {
-    function LineBasedText(_getLineContent, _lineCount) {
-        assert(_lineCount >= 1);
-        this._getLineContent = _getLineContent;
-        this._lineCount = _lineCount;
-    }
-    LineBasedText.prototype.getValueOfRange = function (range) {
-        if (range.startLineNumber === range.endLineNumber) {
-            return this._getLineContent(range.startLineNumber).substring(range.startColumn - 1, range.endColumn - 1);
-        }
-        var result = this._getLineContent(range.startLineNumber).substring(range.startColumn - 1);
-        for (var i = range.startLineNumber + 1; i < range.endLineNumber; i++) {
-            result += "\n" + this._getLineContent(i);
-        }
-        result += "\n" + this._getLineContent(range.endLineNumber).substring(0, range.endColumn - 1);
-        return result;
-    };
-    LineBasedText.prototype.getLineLength = function (lineNumber) {
-        return this._getLineContent(lineNumber).length;
-    };
-    Object.defineProperty(LineBasedText.prototype, "length", {
-        get: function () {
-            var lastLine = this._getLineContent(this._lineCount);
-            return new TextLength(this._lineCount - 1, lastLine.length);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    return LineBasedText;
-}());
-var ArrayText = /** @class */ (function (_super) {
-    __extends(ArrayText, _super);
-    function ArrayText(lines) {
-        return _super.call(this, function (lineNumber) { return lines[lineNumber - 1]; }, lines.length) || this;
-    }
-    return ArrayText;
-}(LineBasedText));
-var LinesDiff = /** @class */ (function () {
-    function LinesDiff(changes, moves, hitTimeout) {
-        this.changes = changes;
-        this.moves = moves;
-        this.hitTimeout = hitTimeout;
-    }
-    return LinesDiff;
-}());
-var MovedText = /** @class */ (function () {
-    function MovedText(lineRangeMapping, changes) {
-        this.lineRangeMapping = lineRangeMapping;
-        this.changes = changes;
-    }
-    return MovedText;
-}());
 var LineRangeMapping = /** @class */ (function () {
     function LineRangeMapping(originalRange, modifiedRange) {
         this.original = originalRange;
@@ -4074,29 +4084,6 @@ var LineRangeMapping = /** @class */ (function () {
     }
     LineRangeMapping.prototype.join = function (other) {
         return new LineRangeMapping(this.original.join(other.original), this.modified.join(other.modified));
-    };
-    Object.defineProperty(LineRangeMapping.prototype, "changedLineCount", {
-        get: function () {
-            return Math.max(this.original.length, this.modified.length);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    LineRangeMapping.prototype.toRangeMapping = function () {
-        var origInclusiveRange = this.original.toInclusiveRange();
-        var modInclusiveRange = this.modified.toInclusiveRange();
-        if (origInclusiveRange && modInclusiveRange) {
-            return new RangeMapping(origInclusiveRange, modInclusiveRange);
-        }
-        else if (this.original.startLineNumber === 1 || this.modified.startLineNumber === 1) {
-            if (!(this.modified.startLineNumber === 1 && this.original.startLineNumber === 1)) {
-                throw new BugIndicatingError("not a valid diff");
-            }
-            return new RangeMapping(new Range(this.original.startLineNumber, 1, this.original.endLineNumberExclusive, 1), new Range(this.modified.startLineNumber, 1, this.modified.endLineNumberExclusive, 1));
-        }
-        else {
-            return new RangeMapping(new Range(this.original.startLineNumber - 1, Number.MAX_SAFE_INTEGER, this.original.endLineNumberExclusive - 1, Number.MAX_SAFE_INTEGER), new Range(this.modified.startLineNumber - 1, Number.MAX_SAFE_INTEGER, this.modified.endLineNumberExclusive - 1, Number.MAX_SAFE_INTEGER));
-        }
     };
     LineRangeMapping.prototype.toRangeMapping2 = function (original, modified) {
         if (isValidLineNumber(this.original.endLineNumberExclusive, original) && isValidLineNumber(this.modified.endLineNumberExclusive, modified)) {
@@ -4135,18 +4122,6 @@ var DetailedLineRangeMapping = /** @class */ (function (_super) {
         _this.innerChanges = innerChanges;
         return _this;
     }
-    DetailedLineRangeMapping.fromRangeMappings = function (rangeMappings) {
-        var originalRange = LineRange.join(rangeMappings.map(function (r) { return LineRange.fromRangeInclusive(r.originalRange); }));
-        var modifiedRange = LineRange.join(rangeMappings.map(function (r) { return LineRange.fromRangeInclusive(r.modifiedRange); }));
-        return new DetailedLineRangeMapping(originalRange, modifiedRange, rangeMappings);
-    };
-    DetailedLineRangeMapping.prototype.flip = function () {
-        var _a;
-        return new DetailedLineRangeMapping(this.modified, this.original, (_a = this.innerChanges) === null || _a === void 0 ? void 0 : _a.map(function (c) { return c.flip(); }));
-    };
-    DetailedLineRangeMapping.prototype.withInnerChangesFromLineRanges = function () {
-        return new DetailedLineRangeMapping(this.original, this.modified, [this.toRangeMapping()]);
-    };
     return DetailedLineRangeMapping;
 }(LineRangeMapping));
 var RangeMapping = /** @class */ (function () {
@@ -4173,9 +4148,6 @@ var RangeMapping = /** @class */ (function () {
             }
         }
     };
-    RangeMapping.prototype.flip = function () {
-        return new RangeMapping(this.modifiedRange, this.originalRange);
-    };
     RangeMapping.prototype.join = function (other) {
         return new RangeMapping(this.originalRange.plusRange(other.originalRange), this.modifiedRange.plusRange(other.modifiedRange));
     };
@@ -4186,8 +4158,8 @@ function lineRangeMappingFromRangeMappings(alignments, originalLines, modifiedLi
     if (dontAssertStartLine === void 0) { dontAssertStartLine = false; }
     var changes = [];
     try {
-        for (var _g = __values(groupAdjacentBy(alignments.map(function (a) { return getLineRangeMapping(a, originalLines, modifiedLines); }), function (a1, a2) { return a1.original.overlapOrTouch(a2.original) || a1.modified.overlapOrTouch(a2.modified); })), _h = _g.next(); !_h.done; _h = _g.next()) {
-            var g = _h.value;
+        for (var _h = __values(groupAdjacentBy(alignments.map(function (a) { return getLineRangeMapping(a, originalLines, modifiedLines); }), function (a1, a2) { return a1.original.intersectsOrTouches(a2.original) || a1.modified.intersectsOrTouches(a2.modified); })), _j = _h.next(); !_j.done; _j = _h.next()) {
+            var g = _j.value;
             var first = g[0];
             var last = g[g.length - 1];
             changes.push(new DetailedLineRangeMapping(first.original.join(last.original), first.modified.join(last.modified), g.map(function (a) { return a.innerChanges[0]; })));
@@ -4196,7 +4168,7 @@ function lineRangeMappingFromRangeMappings(alignments, originalLines, modifiedLi
     catch (e_4_1) { e_4 = { error: e_4_1 }; }
     finally {
         try {
-            if (_h && !_h.done && (_a = _g.return)) _a.call(_g);
+            if (_j && !_j.done && (_a = _h.return)) _a.call(_h);
         }
         finally { if (e_4) throw e_4.error; }
     }
@@ -4368,11 +4340,6 @@ var DateTimeout = /** @class */ (function () {
         }
         return this.valid;
     };
-    DateTimeout.prototype.disable = function () {
-        this.timeout = Number.MAX_SAFE_INTEGER;
-        this.isValid = function () { return true; };
-        this.valid = true;
-    };
     return DateTimeout;
 }());
 var Array2D = /** @class */ (function () {
@@ -4423,11 +4390,11 @@ var LineRangeFragment = /** @class */ (function () {
         return key;
     };
     LineRangeFragment.prototype.computeSimilarity = function (other) {
-        var _a, _g;
+        var _a, _h;
         var sumDifferences = 0;
         var maxLength = Math.max(this.histogram.length, other.histogram.length);
         for (var i = 0; i < maxLength; i++) {
-            sumDifferences += Math.abs(((_a = this.histogram[i]) !== null && _a !== void 0 ? _a : 0) - ((_g = other.histogram[i]) !== null && _g !== void 0 ? _g : 0));
+            sumDifferences += Math.abs(((_a = this.histogram[i]) !== null && _a !== void 0 ? _a : 0) - ((_h = other.histogram[i]) !== null && _h !== void 0 ? _h : 0));
         }
         return 1 - sumDifferences / (this.totalCount + other.totalCount);
     };
@@ -4659,6 +4626,373 @@ var FastArrayNegativeIndices = /** @class */ (function () {
     };
     return FastArrayNegativeIndices;
 }());
+var LineSequence = /** @class */ (function () {
+    function LineSequence(trimmedHash, lines) {
+        this.trimmedHash = trimmedHash;
+        this.lines = lines;
+    }
+    LineSequence.prototype.getElement = function (offset) {
+        return this.trimmedHash[offset];
+    };
+    Object.defineProperty(LineSequence.prototype, "length", {
+        get: function () {
+            return this.trimmedHash.length;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    LineSequence.prototype.getBoundaryScore = function (length) {
+        var indentationBefore = length === 0 ? 0 : getIndentation(this.lines[length - 1]);
+        var indentationAfter = length === this.lines.length ? 0 : getIndentation(this.lines[length]);
+        return 1e3 - (indentationBefore + indentationAfter);
+    };
+    LineSequence.prototype.getText = function (range) {
+        return this.lines.slice(range.start, range.endExclusive).join("\n");
+    };
+    LineSequence.prototype.isStronglyEqual = function (offset1, offset2) {
+        return this.lines[offset1] === this.lines[offset2];
+    };
+    return LineSequence;
+}());
+function getIndentation(str) {
+    var i = 0;
+    while (i < str.length && (str.charCodeAt(i) === 32 || str.charCodeAt(i) === 9)) {
+        i++;
+    }
+    return i;
+}
+function optimizeSequenceDiffs(sequence1, sequence2, sequenceDiffs) {
+    var result = sequenceDiffs;
+    result = joinSequenceDiffsByShifting(sequence1, sequence2, result);
+    result = joinSequenceDiffsByShifting(sequence1, sequence2, result);
+    result = shiftSequenceDiffs(sequence1, sequence2, result);
+    return result;
+}
+function joinSequenceDiffsByShifting(sequence1, sequence2, sequenceDiffs) {
+    if (sequenceDiffs.length === 0) {
+        return sequenceDiffs;
+    }
+    var result = [];
+    result.push(sequenceDiffs[0]);
+    for (var i = 1; i < sequenceDiffs.length; i++) {
+        var prevResult = result[result.length - 1];
+        var cur = sequenceDiffs[i];
+        if (cur.seq1Range.isEmpty || cur.seq2Range.isEmpty) {
+            var length = cur.seq1Range.start - prevResult.seq1Range.endExclusive;
+            var d = void 0;
+            for (d = 1; d <= length; d++) {
+                if (sequence1.getElement(cur.seq1Range.start - d) !== sequence1.getElement(cur.seq1Range.endExclusive - d) || sequence2.getElement(cur.seq2Range.start - d) !== sequence2.getElement(cur.seq2Range.endExclusive - d)) {
+                    break;
+                }
+            }
+            d--;
+            if (d === length) {
+                result[result.length - 1] = new SequenceDiff(new OffsetRange(prevResult.seq1Range.start, cur.seq1Range.endExclusive - length), new OffsetRange(prevResult.seq2Range.start, cur.seq2Range.endExclusive - length));
+                continue;
+            }
+            cur = cur.delta(-d);
+        }
+        result.push(cur);
+    }
+    var result2 = [];
+    for (var i = 0; i < result.length - 1; i++) {
+        var nextResult = result[i + 1];
+        var cur = result[i];
+        if (cur.seq1Range.isEmpty || cur.seq2Range.isEmpty) {
+            var length = nextResult.seq1Range.start - cur.seq1Range.endExclusive;
+            var d = void 0;
+            for (d = 0; d < length; d++) {
+                if (!sequence1.isStronglyEqual(cur.seq1Range.start + d, cur.seq1Range.endExclusive + d) || !sequence2.isStronglyEqual(cur.seq2Range.start + d, cur.seq2Range.endExclusive + d)) {
+                    break;
+                }
+            }
+            if (d === length) {
+                result[i + 1] = new SequenceDiff(new OffsetRange(cur.seq1Range.start + length, nextResult.seq1Range.endExclusive), new OffsetRange(cur.seq2Range.start + length, nextResult.seq2Range.endExclusive));
+                continue;
+            }
+            if (d > 0) {
+                cur = cur.delta(d);
+            }
+        }
+        result2.push(cur);
+    }
+    if (result.length > 0) {
+        result2.push(result[result.length - 1]);
+    }
+    return result2;
+}
+function shiftSequenceDiffs(sequence1, sequence2, sequenceDiffs) {
+    if (!sequence1.getBoundaryScore || !sequence2.getBoundaryScore) {
+        return sequenceDiffs;
+    }
+    for (var i = 0; i < sequenceDiffs.length; i++) {
+        var prevDiff = i > 0 ? sequenceDiffs[i - 1] : undefined;
+        var diff = sequenceDiffs[i];
+        var nextDiff = i + 1 < sequenceDiffs.length ? sequenceDiffs[i + 1] : undefined;
+        var seq1ValidRange = new OffsetRange(prevDiff ? prevDiff.seq1Range.endExclusive + 1 : 0, nextDiff ? nextDiff.seq1Range.start - 1 : sequence1.length);
+        var seq2ValidRange = new OffsetRange(prevDiff ? prevDiff.seq2Range.endExclusive + 1 : 0, nextDiff ? nextDiff.seq2Range.start - 1 : sequence2.length);
+        if (diff.seq1Range.isEmpty) {
+            sequenceDiffs[i] = shiftDiffToBetterPosition(diff, sequence1, sequence2, seq1ValidRange, seq2ValidRange);
+        }
+        else if (diff.seq2Range.isEmpty) {
+            sequenceDiffs[i] = shiftDiffToBetterPosition(diff.swap(), sequence2, sequence1, seq2ValidRange, seq1ValidRange).swap();
+        }
+    }
+    return sequenceDiffs;
+}
+function shiftDiffToBetterPosition(diff, sequence1, sequence2, seq1ValidRange, seq2ValidRange) {
+    var maxShiftLimit = 100;
+    var deltaBefore = 1;
+    while (diff.seq1Range.start - deltaBefore >= seq1ValidRange.start && diff.seq2Range.start - deltaBefore >= seq2ValidRange.start && sequence2.isStronglyEqual(diff.seq2Range.start - deltaBefore, diff.seq2Range.endExclusive - deltaBefore) && deltaBefore < maxShiftLimit) {
+        deltaBefore++;
+    }
+    deltaBefore--;
+    var deltaAfter = 0;
+    while (diff.seq1Range.start + deltaAfter < seq1ValidRange.endExclusive && diff.seq2Range.endExclusive + deltaAfter < seq2ValidRange.endExclusive && sequence2.isStronglyEqual(diff.seq2Range.start + deltaAfter, diff.seq2Range.endExclusive + deltaAfter) && deltaAfter < maxShiftLimit) {
+        deltaAfter++;
+    }
+    if (deltaBefore === 0 && deltaAfter === 0) {
+        return diff;
+    }
+    var bestDelta = 0;
+    var bestScore = -1;
+    for (var delta = -deltaBefore; delta <= deltaAfter; delta++) {
+        var seq2OffsetStart = diff.seq2Range.start + delta;
+        var seq2OffsetEndExclusive = diff.seq2Range.endExclusive + delta;
+        var seq1Offset = diff.seq1Range.start + delta;
+        var score_1 = sequence1.getBoundaryScore(seq1Offset) + sequence2.getBoundaryScore(seq2OffsetStart) + sequence2.getBoundaryScore(seq2OffsetEndExclusive);
+        if (score_1 > bestScore) {
+            bestScore = score_1;
+            bestDelta = delta;
+        }
+    }
+    return diff.delta(bestDelta);
+}
+function removeShortMatches(sequence1, sequence2, sequenceDiffs) {
+    var e_6, _a;
+    var result = [];
+    try {
+        for (var sequenceDiffs_2 = __values(sequenceDiffs), sequenceDiffs_2_1 = sequenceDiffs_2.next(); !sequenceDiffs_2_1.done; sequenceDiffs_2_1 = sequenceDiffs_2.next()) {
+            var s = sequenceDiffs_2_1.value;
+            var last = result[result.length - 1];
+            if (!last) {
+                result.push(s);
+                continue;
+            }
+            if (s.seq1Range.start - last.seq1Range.endExclusive <= 2 || s.seq2Range.start - last.seq2Range.endExclusive <= 2) {
+                result[result.length - 1] = new SequenceDiff(last.seq1Range.join(s.seq1Range), last.seq2Range.join(s.seq2Range));
+            }
+            else {
+                result.push(s);
+            }
+        }
+    }
+    catch (e_6_1) { e_6 = { error: e_6_1 }; }
+    finally {
+        try {
+            if (sequenceDiffs_2_1 && !sequenceDiffs_2_1.done && (_a = sequenceDiffs_2.return)) _a.call(sequenceDiffs_2);
+        }
+        finally { if (e_6) throw e_6.error; }
+    }
+    return result;
+}
+function extendDiffsToEntireWordIfAppropriate(sequence1, sequence2, sequenceDiffs, findParent, force) {
+    if (force === void 0) { force = false; }
+    var equalMappings = SequenceDiff.invert(sequenceDiffs, sequence1.length);
+    var additional = [];
+    var lastPoint = new OffsetPair(0, 0);
+    function scanWord(pair, equalMapping) {
+        if (pair.offset1 < lastPoint.offset1 || pair.offset2 < lastPoint.offset2) {
+            return;
+        }
+        var w1 = findParent(sequence1, pair.offset1);
+        var w2 = findParent(sequence2, pair.offset2);
+        if (!w1 || !w2) {
+            return;
+        }
+        var w = new SequenceDiff(w1, w2);
+        var equalPart = w.intersect(equalMapping);
+        var equalChars1 = equalPart.seq1Range.length;
+        var equalChars2 = equalPart.seq2Range.length;
+        while (equalMappings.length > 0) {
+            var next = equalMappings[0];
+            var intersects = next.seq1Range.intersects(w.seq1Range) || next.seq2Range.intersects(w.seq2Range);
+            if (!intersects) {
+                break;
+            }
+            var v1 = findParent(sequence1, next.seq1Range.start);
+            var v2 = findParent(sequence2, next.seq2Range.start);
+            var v = new SequenceDiff(v1, v2);
+            var equalPart2 = v.intersect(next);
+            equalChars1 += equalPart2.seq1Range.length;
+            equalChars2 += equalPart2.seq2Range.length;
+            w = w.join(v);
+            if (w.seq1Range.endExclusive >= next.seq1Range.endExclusive) {
+                equalMappings.shift();
+            }
+            else {
+                break;
+            }
+        }
+        if (force && equalChars1 + equalChars2 < w.seq1Range.length + w.seq2Range.length || equalChars1 + equalChars2 < (w.seq1Range.length + w.seq2Range.length) * 2 / 3) {
+            additional.push(w);
+        }
+        lastPoint = w.getEndExclusives();
+    }
+    while (equalMappings.length > 0) {
+        var next = equalMappings.shift();
+        if (next.seq1Range.isEmpty) {
+            continue;
+        }
+        scanWord(next.getStarts(), next);
+        scanWord(next.getEndExclusives().delta(-1), next);
+    }
+    var merged = mergeSequenceDiffs(sequenceDiffs, additional);
+    return merged;
+}
+function mergeSequenceDiffs(sequenceDiffs1, sequenceDiffs2) {
+    var result = [];
+    while (sequenceDiffs1.length > 0 || sequenceDiffs2.length > 0) {
+        var sd1 = sequenceDiffs1[0];
+        var sd2 = sequenceDiffs2[0];
+        var next = void 0;
+        if (sd1 && (!sd2 || sd1.seq1Range.start < sd2.seq1Range.start)) {
+            next = sequenceDiffs1.shift();
+        }
+        else {
+            next = sequenceDiffs2.shift();
+        }
+        if (result.length > 0 && result[result.length - 1].seq1Range.endExclusive >= next.seq1Range.start) {
+            result[result.length - 1] = result[result.length - 1].join(next);
+        }
+        else {
+            result.push(next);
+        }
+    }
+    return result;
+}
+function removeVeryShortMatchingLinesBetweenDiffs(sequence1, _sequence2, sequenceDiffs) {
+    var diffs = sequenceDiffs;
+    if (diffs.length === 0) {
+        return diffs;
+    }
+    var counter = 0;
+    var shouldRepeat;
+    do {
+        shouldRepeat = false;
+        var result = [
+            diffs[0]
+        ];
+        var _loop_1 = function (i) {
+            var shouldJoinDiffs = function (before, after) {
+                var unchangedRange = new OffsetRange(lastResult.seq1Range.endExclusive, cur.seq1Range.start);
+                var unchangedText = sequence1.getText(unchangedRange);
+                var unchangedTextWithoutWs = unchangedText.replace(/\s/g, "");
+                if (unchangedTextWithoutWs.length <= 4 && (before.seq1Range.length + before.seq2Range.length > 5 || after.seq1Range.length + after.seq2Range.length > 5)) {
+                    return true;
+                }
+                return false;
+            };
+            var cur = diffs[i];
+            var lastResult = result[result.length - 1];
+            var shouldJoin = shouldJoinDiffs(lastResult, cur);
+            if (shouldJoin) {
+                shouldRepeat = true;
+                result[result.length - 1] = result[result.length - 1].join(cur);
+            }
+            else {
+                result.push(cur);
+            }
+        };
+        for (var i = 1; i < diffs.length; i++) {
+            _loop_1(i);
+        }
+        diffs = result;
+    } while (counter++ < 10 && shouldRepeat);
+    return diffs;
+}
+function removeVeryShortMatchingTextBetweenLongDiffs(sequence1, sequence2, sequenceDiffs) {
+    var diffs = sequenceDiffs;
+    if (diffs.length === 0) {
+        return diffs;
+    }
+    var counter = 0;
+    var shouldRepeat;
+    do {
+        shouldRepeat = false;
+        var result = [
+            diffs[0]
+        ];
+        var _loop_2 = function (i) {
+            var shouldJoinDiffs = function (before, after) {
+                var unchangedRange = new OffsetRange(lastResult.seq1Range.endExclusive, cur.seq1Range.start);
+                var unchangedLineCount = sequence1.countLinesIn(unchangedRange);
+                if (unchangedLineCount > 5 || unchangedRange.length > 500) {
+                    return false;
+                }
+                var unchangedText = sequence1.getText(unchangedRange).trim();
+                if (unchangedText.length > 20 || unchangedText.split(/\r\n|\r|\n/).length > 1) {
+                    return false;
+                }
+                var beforeLineCount1 = sequence1.countLinesIn(before.seq1Range);
+                var beforeSeq1Length = before.seq1Range.length;
+                var beforeLineCount2 = sequence2.countLinesIn(before.seq2Range);
+                var beforeSeq2Length = before.seq2Range.length;
+                var afterLineCount1 = sequence1.countLinesIn(after.seq1Range);
+                var afterSeq1Length = after.seq1Range.length;
+                var afterLineCount2 = sequence2.countLinesIn(after.seq2Range);
+                var afterSeq2Length = after.seq2Range.length;
+                var max = 2 * 40 + 50;
+                function cap(v) {
+                    return Math.min(v, max);
+                }
+                if (Math.pow(Math.pow(cap(beforeLineCount1 * 40 + beforeSeq1Length), 1.5) + Math.pow(cap(beforeLineCount2 * 40 + beforeSeq2Length), 1.5), 1.5) + Math.pow(Math.pow(cap(afterLineCount1 * 40 + afterSeq1Length), 1.5) + Math.pow(cap(afterLineCount2 * 40 + afterSeq2Length), 1.5), 1.5) > Math.pow((Math.pow(max, 1.5)), 1.5) * 1.3) {
+                    return true;
+                }
+                return false;
+            };
+            var cur = diffs[i];
+            var lastResult = result[result.length - 1];
+            var shouldJoin = shouldJoinDiffs(lastResult, cur);
+            if (shouldJoin) {
+                shouldRepeat = true;
+                result[result.length - 1] = result[result.length - 1].join(cur);
+            }
+            else {
+                result.push(cur);
+            }
+        };
+        for (var i = 1; i < diffs.length; i++) {
+            _loop_2(i);
+        }
+        diffs = result;
+    } while (counter++ < 10 && shouldRepeat);
+    var newDiffs = [];
+    forEachWithNeighbors(diffs, function (prev, cur, next) {
+        var newDiff = cur;
+        function shouldMarkAsChanged(text) {
+            return text.length > 0 && text.trim().length <= 3 && cur.seq1Range.length + cur.seq2Range.length > 100;
+        }
+        var fullRange1 = sequence1.extendToFullLines(cur.seq1Range);
+        var prefix = sequence1.getText(new OffsetRange(fullRange1.start, cur.seq1Range.start));
+        if (shouldMarkAsChanged(prefix)) {
+            newDiff = newDiff.deltaStart(-prefix.length);
+        }
+        var suffix = sequence1.getText(new OffsetRange(cur.seq1Range.endExclusive, fullRange1.endExclusive));
+        if (shouldMarkAsChanged(suffix)) {
+            newDiff = newDiff.deltaEnd(suffix.length);
+        }
+        var availableSpace = SequenceDiff.fromOffsetPairs(prev ? prev.getEndExclusives() : OffsetPair.zero, next ? next.getStarts() : OffsetPair.max);
+        var result = newDiff.intersect(availableSpace);
+        if (newDiffs.length > 0 && result.getStarts().equals(newDiffs[newDiffs.length - 1].getEndExclusives())) {
+            newDiffs[newDiffs.length - 1] = newDiffs[newDiffs.length - 1].join(result);
+        }
+        else {
+            newDiffs.push(result);
+        }
+    });
+    return newDiffs;
+}
 var SetMap = /** @class */ (function () {
     function SetMap() {
         this.map = /* @__PURE__ */ new Map();
@@ -4677,13 +5011,6 @@ var SetMap = /** @class */ (function () {
             return;
         }
         values.forEach(fn);
-    };
-    SetMap.prototype.get = function (key) {
-        var values = this.map.get(key);
-        if (!values) {
-            return /* @__PURE__ */ new Set();
-        }
-        return values;
     };
     return SetMap;
 }());
@@ -4820,9 +5147,9 @@ var LinesSliceCharSequence = /** @class */ (function () {
         return this.elements[offset1] === this.elements[offset2];
     };
     LinesSliceCharSequence.prototype.extendToFullLines = function (range) {
-        var _a, _g;
+        var _a, _h;
         var start = (_a = findLastMonotonous(this.firstElementOffsetByLineIdx, function (x) { return x <= range.start; })) !== null && _a !== void 0 ? _a : 0;
-        var end = (_g = findFirstMonotonous(this.firstElementOffsetByLineIdx, function (x) { return range.endExclusive <= x; })) !== null && _g !== void 0 ? _g : this.elements.length;
+        var end = (_h = findFirstMonotonous(this.firstElementOffsetByLineIdx, function (x) { return range.endExclusive <= x; })) !== null && _h !== void 0 ? _h : this.elements.length;
         return new OffsetRange(start, end);
     };
     return LinesSliceCharSequence;
@@ -4894,7 +5221,7 @@ function computeMovedLines(changes, originalLines, modifiedLines, hashedOriginal
     return moves;
 }
 function countWhere(arr, predicate) {
-    var e_6, _a;
+    var e_7, _a;
     var count = 0;
     try {
         for (var arr_1 = __values(arr), arr_1_1 = arr_1.next(); !arr_1_1.done; arr_1_1 = arr_1.next()) {
@@ -4904,17 +5231,17 @@ function countWhere(arr, predicate) {
             }
         }
     }
-    catch (e_6_1) { e_6 = { error: e_6_1 }; }
+    catch (e_7_1) { e_7 = { error: e_7_1 }; }
     finally {
         try {
             if (arr_1_1 && !arr_1_1.done && (_a = arr_1.return)) _a.call(arr_1);
         }
-        finally { if (e_6) throw e_6.error; }
+        finally { if (e_7) throw e_7.error; }
     }
     return count;
 }
 function computeMovesFromSimpleDeletionsToSimpleInsertions(changes, originalLines, modifiedLines, timeout) {
-    var e_7, _a, e_8, _g;
+    var e_8, _a, e_9, _h;
     var moves = [];
     var deletions = changes.filter(function (c) { return c.modified.isEmpty && c.original.length >= 3; }).map(function (d) { return new LineRangeFragment(d.original, originalLines, d); });
     var insertions = new Set(changes.filter(function (c) { return c.original.isEmpty && c.modified.length >= 3; }).map(function (d) { return new LineRangeFragment(d.modified, modifiedLines, d); }));
@@ -4925,7 +5252,7 @@ function computeMovesFromSimpleDeletionsToSimpleInsertions(changes, originalLine
             var highestSimilarity = -1;
             var best = void 0;
             try {
-                for (var insertions_1 = (e_8 = void 0, __values(insertions)), insertions_1_1 = insertions_1.next(); !insertions_1_1.done; insertions_1_1 = insertions_1.next()) {
+                for (var insertions_1 = (e_9 = void 0, __values(insertions)), insertions_1_1 = insertions_1.next(); !insertions_1_1.done; insertions_1_1 = insertions_1.next()) {
                     var insertion = insertions_1_1.value;
                     var similarity = deletion.computeSimilarity(insertion);
                     if (similarity > highestSimilarity) {
@@ -4934,12 +5261,12 @@ function computeMovesFromSimpleDeletionsToSimpleInsertions(changes, originalLine
                     }
                 }
             }
-            catch (e_8_1) { e_8 = { error: e_8_1 }; }
+            catch (e_9_1) { e_9 = { error: e_9_1 }; }
             finally {
                 try {
-                    if (insertions_1_1 && !insertions_1_1.done && (_g = insertions_1.return)) _g.call(insertions_1);
+                    if (insertions_1_1 && !insertions_1_1.done && (_h = insertions_1.return)) _h.call(insertions_1);
                 }
-                finally { if (e_8) throw e_8.error; }
+                finally { if (e_9) throw e_9.error; }
             }
             if (highestSimilarity > 0.9 && best) {
                 insertions.delete(best);
@@ -4952,17 +5279,17 @@ function computeMovesFromSimpleDeletionsToSimpleInsertions(changes, originalLine
             }
         }
     }
-    catch (e_7_1) { e_7 = { error: e_7_1 }; }
+    catch (e_8_1) { e_8 = { error: e_8_1 }; }
     finally {
         try {
             if (deletions_1_1 && !deletions_1_1.done && (_a = deletions_1.return)) _a.call(deletions_1);
         }
-        finally { if (e_7) throw e_7.error; }
+        finally { if (e_8) throw e_8.error; }
     }
     return { moves: moves, excludedChanges: excludedChanges };
 }
 function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines, originalLines, modifiedLines, timeout) {
-    var e_9, _a, e_10, _g, e_11, _h, e_12, _j;
+    var e_10, _a, e_11, _h, e_12, _j, e_13, _k;
     var moves = [];
     var original3LineHashes = new SetMap();
     try {
@@ -4974,26 +5301,26 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
             }
         }
     }
-    catch (e_9_1) { e_9 = { error: e_9_1 }; }
+    catch (e_10_1) { e_10 = { error: e_10_1 }; }
     finally {
         try {
             if (changes_1_1 && !changes_1_1.done && (_a = changes_1.return)) _a.call(changes_1);
         }
-        finally { if (e_9) throw e_9.error; }
+        finally { if (e_10) throw e_10.error; }
     }
     var possibleMappings = [];
     changes.sort(compareBy(function (c) { return c.modified.startLineNumber; }, numberComparator));
-    var _loop_1 = function (change) {
+    var _loop_3 = function (change) {
         var lastMappings = [];
-        var _loop_3 = function (i) {
+        var _loop_5 = function (i) {
             var key = "".concat(hashedModifiedLines[i - 1], ":").concat(hashedModifiedLines[i + 1 - 1], ":").concat(hashedModifiedLines[i + 2 - 1]);
             var currentModifiedRange = new LineRange(i, i + 3);
             var nextMappings = [];
             original3LineHashes.forEach(key, function (_a) {
-                var e_13, _g;
+                var e_14, _h;
                 var range = _a.range;
                 try {
-                    for (var lastMappings_1 = (e_13 = void 0, __values(lastMappings)), lastMappings_1_1 = lastMappings_1.next(); !lastMappings_1_1.done; lastMappings_1_1 = lastMappings_1.next()) {
+                    for (var lastMappings_1 = (e_14 = void 0, __values(lastMappings)), lastMappings_1_1 = lastMappings_1.next(); !lastMappings_1_1.done; lastMappings_1_1 = lastMappings_1.next()) {
                         var lastMapping = lastMappings_1_1.value;
                         if (lastMapping.originalLineRange.endLineNumberExclusive + 1 === range.endLineNumberExclusive && lastMapping.modifiedLineRange.endLineNumberExclusive + 1 === currentModifiedRange.endLineNumberExclusive) {
                             lastMapping.originalLineRange = new LineRange(lastMapping.originalLineRange.startLineNumber, range.endLineNumberExclusive);
@@ -5003,12 +5330,12 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
                         }
                     }
                 }
-                catch (e_13_1) { e_13 = { error: e_13_1 }; }
+                catch (e_14_1) { e_14 = { error: e_14_1 }; }
                 finally {
                     try {
-                        if (lastMappings_1_1 && !lastMappings_1_1.done && (_g = lastMappings_1.return)) _g.call(lastMappings_1);
+                        if (lastMappings_1_1 && !lastMappings_1_1.done && (_h = lastMappings_1.return)) _h.call(lastMappings_1);
                     }
-                    finally { if (e_13) throw e_13.error; }
+                    finally { if (e_14) throw e_14.error; }
                 }
                 var mapping = {
                     modifiedLineRange: currentModifiedRange,
@@ -5020,7 +5347,7 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
             lastMappings = nextMappings;
         };
         for (var i = change.modified.startLineNumber; i < change.modified.endLineNumberExclusive - 2; i++) {
-            _loop_3(i);
+            _loop_5(i);
         }
         if (!timeout.isValid()) {
             return { value: [] };
@@ -5029,17 +5356,17 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
     try {
         for (var changes_2 = __values(changes), changes_2_1 = changes_2.next(); !changes_2_1.done; changes_2_1 = changes_2.next()) {
             var change = changes_2_1.value;
-            var state_1 = _loop_1(change);
+            var state_1 = _loop_3(change);
             if (typeof state_1 === "object")
                 return state_1.value;
         }
     }
-    catch (e_10_1) { e_10 = { error: e_10_1 }; }
+    catch (e_11_1) { e_11 = { error: e_11_1 }; }
     finally {
         try {
-            if (changes_2_1 && !changes_2_1.done && (_g = changes_2.return)) _g.call(changes_2);
+            if (changes_2_1 && !changes_2_1.done && (_h = changes_2.return)) _h.call(changes_2);
         }
-        finally { if (e_10) throw e_10.error; }
+        finally { if (e_11) throw e_11.error; }
     }
     possibleMappings.sort(reverseOrder(compareBy(function (m) { return m.modifiedLineRange.length; }, numberComparator)));
     var modifiedSet = new LineRangeSet();
@@ -5052,8 +5379,8 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
             var originalTranslatedSections = originalSet.subtractFrom(mapping.originalLineRange).getWithDelta(diffOrigToMod);
             var modifiedIntersectedSections = modifiedSections.getIntersection(originalTranslatedSections);
             try {
-                for (var _k = (e_12 = void 0, __values(modifiedIntersectedSections.ranges)), _l = _k.next(); !_l.done; _l = _k.next()) {
-                    var s = _l.value;
+                for (var _l = (e_13 = void 0, __values(modifiedIntersectedSections.ranges)), _m = _l.next(); !_m.done; _m = _l.next()) {
+                    var s = _m.value;
                     if (s.length < 3) {
                         continue;
                     }
@@ -5064,25 +5391,25 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
                     originalSet.addRange(originalLineRange);
                 }
             }
-            catch (e_12_1) { e_12 = { error: e_12_1 }; }
+            catch (e_13_1) { e_13 = { error: e_13_1 }; }
             finally {
                 try {
-                    if (_l && !_l.done && (_j = _k.return)) _j.call(_k);
+                    if (_m && !_m.done && (_k = _l.return)) _k.call(_l);
                 }
-                finally { if (e_12) throw e_12.error; }
+                finally { if (e_13) throw e_13.error; }
             }
         }
     }
-    catch (e_11_1) { e_11 = { error: e_11_1 }; }
+    catch (e_12_1) { e_12 = { error: e_12_1 }; }
     finally {
         try {
-            if (possibleMappings_1_1 && !possibleMappings_1_1.done && (_h = possibleMappings_1.return)) _h.call(possibleMappings_1);
+            if (possibleMappings_1_1 && !possibleMappings_1_1.done && (_j = possibleMappings_1.return)) _j.call(possibleMappings_1);
         }
-        finally { if (e_11) throw e_11.error; }
+        finally { if (e_12) throw e_12.error; }
     }
     moves.sort(compareBy(function (m) { return m.original.startLineNumber; }, numberComparator));
     var monotonousChanges = new MonotonousArray(changes);
-    var _loop_2 = function (i) {
+    var _loop_4 = function (i) {
         var move = moves[i];
         var firstTouchingChangeOrig = monotonousChanges.findLastMonotonous(function (c) { return c.original.startLineNumber <= move.original.startLineNumber; });
         var firstTouchingChangeMod = findLastMonotonous(changes, function (c) { return c.modified.startLineNumber <= move.modified.startLineNumber; });
@@ -5131,12 +5458,12 @@ function computeUnchangedMoves(changes, hashedOriginalLines, hashedModifiedLines
         }
     };
     for (var i = 0; i < moves.length; i++) {
-        _loop_2(i);
+        _loop_4(i);
     }
     return moves;
 }
 function areLinesSimilar(line1, line2, timeout) {
-    var e_14, _a;
+    var e_15, _a;
     if (line1.trim() === line2.trim()) {
         return true;
     }
@@ -5157,12 +5484,12 @@ function areLinesSimilar(line1, line2, timeout) {
             });
         }
     }
-    catch (e_14_1) { e_14 = { error: e_14_1 }; }
+    catch (e_15_1) { e_15 = { error: e_15_1 }; }
     finally {
         try {
             if (inverted_1_1 && !inverted_1_1.done && (_a = inverted_1.return)) _a.call(inverted_1);
         }
-        finally { if (e_14) throw e_14.error; }
+        finally { if (e_15) throw e_15.error; }
     }
     function countNonWsChars(str) {
         var count = 0;
@@ -5207,373 +5534,63 @@ function removeMovesInSameDiff(changes, moves) {
     });
     return moves;
 }
-function optimizeSequenceDiffs(sequence1, sequence2, sequenceDiffs) {
-    var result = sequenceDiffs;
-    result = joinSequenceDiffsByShifting(sequence1, sequence2, result);
-    result = joinSequenceDiffsByShifting(sequence1, sequence2, result);
-    result = shiftSequenceDiffs(sequence1, sequence2, result);
-    return result;
-}
-function joinSequenceDiffsByShifting(sequence1, sequence2, sequenceDiffs) {
-    if (sequenceDiffs.length === 0) {
-        return sequenceDiffs;
+var TextLength = /** @class */ (function () {
+    function TextLength(lineCount, columnCount) {
+        this.lineCount = lineCount;
+        this.columnCount = columnCount;
     }
-    var result = [];
-    result.push(sequenceDiffs[0]);
-    for (var i = 1; i < sequenceDiffs.length; i++) {
-        var prevResult = result[result.length - 1];
-        var cur = sequenceDiffs[i];
-        if (cur.seq1Range.isEmpty || cur.seq2Range.isEmpty) {
-            var length = cur.seq1Range.start - prevResult.seq1Range.endExclusive;
-            var d = void 0;
-            for (d = 1; d <= length; d++) {
-                if (sequence1.getElement(cur.seq1Range.start - d) !== sequence1.getElement(cur.seq1Range.endExclusive - d) || sequence2.getElement(cur.seq2Range.start - d) !== sequence2.getElement(cur.seq2Range.endExclusive - d)) {
-                    break;
-                }
-            }
-            d--;
-            if (d === length) {
-                result[result.length - 1] = new SequenceDiff(new OffsetRange(prevResult.seq1Range.start, cur.seq1Range.endExclusive - length), new OffsetRange(prevResult.seq2Range.start, cur.seq2Range.endExclusive - length));
-                continue;
-            }
-            cur = cur.delta(-d);
-        }
-        result.push(cur);
+    return TextLength;
+}());
+_g = TextLength;
+(function () {
+    _g.zero = new _g(0, 0);
+})();
+var AbstractText = /** @class */ (function () {
+    function AbstractText() {
     }
-    var result2 = [];
-    for (var i = 0; i < result.length - 1; i++) {
-        var nextResult = result[i + 1];
-        var cur = result[i];
-        if (cur.seq1Range.isEmpty || cur.seq2Range.isEmpty) {
-            var length = nextResult.seq1Range.start - cur.seq1Range.endExclusive;
-            var d = void 0;
-            for (d = 0; d < length; d++) {
-                if (!sequence1.isStronglyEqual(cur.seq1Range.start + d, cur.seq1Range.endExclusive + d) || !sequence2.isStronglyEqual(cur.seq2Range.start + d, cur.seq2Range.endExclusive + d)) {
-                    break;
-                }
-            }
-            if (d === length) {
-                result[i + 1] = new SequenceDiff(new OffsetRange(cur.seq1Range.start + length, nextResult.seq1Range.endExclusive), new OffsetRange(cur.seq2Range.start + length, nextResult.seq2Range.endExclusive));
-                continue;
-            }
-            if (d > 0) {
-                cur = cur.delta(d);
-            }
-        }
-        result2.push(cur);
+    return AbstractText;
+}());
+var LineBasedText = /** @class */ (function (_super) {
+    __extends(LineBasedText, _super);
+    function LineBasedText(_getLineContent, _lineCount) {
+        var _this = this;
+        assert(_lineCount >= 1);
+        _this = _super.call(this) || this;
+        _this._getLineContent = _getLineContent;
+        _this._lineCount = _lineCount;
+        return _this;
     }
-    if (result.length > 0) {
-        result2.push(result[result.length - 1]);
-    }
-    return result2;
-}
-function shiftSequenceDiffs(sequence1, sequence2, sequenceDiffs) {
-    if (!sequence1.getBoundaryScore || !sequence2.getBoundaryScore) {
-        return sequenceDiffs;
-    }
-    for (var i = 0; i < sequenceDiffs.length; i++) {
-        var prevDiff = i > 0 ? sequenceDiffs[i - 1] : undefined;
-        var diff = sequenceDiffs[i];
-        var nextDiff = i + 1 < sequenceDiffs.length ? sequenceDiffs[i + 1] : undefined;
-        var seq1ValidRange = new OffsetRange(prevDiff ? prevDiff.seq1Range.endExclusive + 1 : 0, nextDiff ? nextDiff.seq1Range.start - 1 : sequence1.length);
-        var seq2ValidRange = new OffsetRange(prevDiff ? prevDiff.seq2Range.endExclusive + 1 : 0, nextDiff ? nextDiff.seq2Range.start - 1 : sequence2.length);
-        if (diff.seq1Range.isEmpty) {
-            sequenceDiffs[i] = shiftDiffToBetterPosition(diff, sequence1, sequence2, seq1ValidRange, seq2ValidRange);
+    LineBasedText.prototype.getValueOfRange = function (range) {
+        if (range.startLineNumber === range.endLineNumber) {
+            return this._getLineContent(range.startLineNumber).substring(range.startColumn - 1, range.endColumn - 1);
         }
-        else if (diff.seq2Range.isEmpty) {
-            sequenceDiffs[i] = shiftDiffToBetterPosition(diff.swap(), sequence2, sequence1, seq2ValidRange, seq1ValidRange).swap();
+        var result = this._getLineContent(range.startLineNumber).substring(range.startColumn - 1);
+        for (var i = range.startLineNumber + 1; i < range.endLineNumber; i++) {
+            result += "\n" + this._getLineContent(i);
         }
-    }
-    return sequenceDiffs;
-}
-function shiftDiffToBetterPosition(diff, sequence1, sequence2, seq1ValidRange, seq2ValidRange) {
-    var maxShiftLimit = 100;
-    var deltaBefore = 1;
-    while (diff.seq1Range.start - deltaBefore >= seq1ValidRange.start && diff.seq2Range.start - deltaBefore >= seq2ValidRange.start && sequence2.isStronglyEqual(diff.seq2Range.start - deltaBefore, diff.seq2Range.endExclusive - deltaBefore) && deltaBefore < maxShiftLimit) {
-        deltaBefore++;
-    }
-    deltaBefore--;
-    var deltaAfter = 0;
-    while (diff.seq1Range.start + deltaAfter < seq1ValidRange.endExclusive && diff.seq2Range.endExclusive + deltaAfter < seq2ValidRange.endExclusive && sequence2.isStronglyEqual(diff.seq2Range.start + deltaAfter, diff.seq2Range.endExclusive + deltaAfter) && deltaAfter < maxShiftLimit) {
-        deltaAfter++;
-    }
-    if (deltaBefore === 0 && deltaAfter === 0) {
-        return diff;
-    }
-    var bestDelta = 0;
-    var bestScore = -1;
-    for (var delta = -deltaBefore; delta <= deltaAfter; delta++) {
-        var seq2OffsetStart = diff.seq2Range.start + delta;
-        var seq2OffsetEndExclusive = diff.seq2Range.endExclusive + delta;
-        var seq1Offset = diff.seq1Range.start + delta;
-        var score_1 = sequence1.getBoundaryScore(seq1Offset) + sequence2.getBoundaryScore(seq2OffsetStart) + sequence2.getBoundaryScore(seq2OffsetEndExclusive);
-        if (score_1 > bestScore) {
-            bestScore = score_1;
-            bestDelta = delta;
-        }
-    }
-    return diff.delta(bestDelta);
-}
-function removeShortMatches(sequence1, sequence2, sequenceDiffs) {
-    var e_15, _a;
-    var result = [];
-    try {
-        for (var sequenceDiffs_2 = __values(sequenceDiffs), sequenceDiffs_2_1 = sequenceDiffs_2.next(); !sequenceDiffs_2_1.done; sequenceDiffs_2_1 = sequenceDiffs_2.next()) {
-            var s = sequenceDiffs_2_1.value;
-            var last = result[result.length - 1];
-            if (!last) {
-                result.push(s);
-                continue;
-            }
-            if (s.seq1Range.start - last.seq1Range.endExclusive <= 2 || s.seq2Range.start - last.seq2Range.endExclusive <= 2) {
-                result[result.length - 1] = new SequenceDiff(last.seq1Range.join(s.seq1Range), last.seq2Range.join(s.seq2Range));
-            }
-            else {
-                result.push(s);
-            }
-        }
-    }
-    catch (e_15_1) { e_15 = { error: e_15_1 }; }
-    finally {
-        try {
-            if (sequenceDiffs_2_1 && !sequenceDiffs_2_1.done && (_a = sequenceDiffs_2.return)) _a.call(sequenceDiffs_2);
-        }
-        finally { if (e_15) throw e_15.error; }
-    }
-    return result;
-}
-function extendDiffsToEntireWordIfAppropriate(sequence1, sequence2, sequenceDiffs, findParent, force) {
-    if (force === void 0) { force = false; }
-    var equalMappings = SequenceDiff.invert(sequenceDiffs, sequence1.length);
-    var additional = [];
-    var lastPoint = new OffsetPair(0, 0);
-    function scanWord(pair, equalMapping) {
-        if (pair.offset1 < lastPoint.offset1 || pair.offset2 < lastPoint.offset2) {
-            return;
-        }
-        var w1 = findParent(sequence1, pair.offset1);
-        var w2 = findParent(sequence2, pair.offset2);
-        if (!w1 || !w2) {
-            return;
-        }
-        var w = new SequenceDiff(w1, w2);
-        var equalPart = w.intersect(equalMapping);
-        var equalChars1 = equalPart.seq1Range.length;
-        var equalChars2 = equalPart.seq2Range.length;
-        while (equalMappings.length > 0) {
-            var next = equalMappings[0];
-            var intersects = next.seq1Range.intersects(w.seq1Range) || next.seq2Range.intersects(w.seq2Range);
-            if (!intersects) {
-                break;
-            }
-            var v1 = findParent(sequence1, next.seq1Range.start);
-            var v2 = findParent(sequence2, next.seq2Range.start);
-            var v = new SequenceDiff(v1, v2);
-            var equalPart2 = v.intersect(next);
-            equalChars1 += equalPart2.seq1Range.length;
-            equalChars2 += equalPart2.seq2Range.length;
-            w = w.join(v);
-            if (w.seq1Range.endExclusive >= next.seq1Range.endExclusive) {
-                equalMappings.shift();
-            }
-            else {
-                break;
-            }
-        }
-        if (force && equalChars1 + equalChars2 < w.seq1Range.length + w.seq2Range.length || equalChars1 + equalChars2 < (w.seq1Range.length + w.seq2Range.length) * 2 / 3) {
-            additional.push(w);
-        }
-        lastPoint = w.getEndExclusives();
-    }
-    while (equalMappings.length > 0) {
-        var next = equalMappings.shift();
-        if (next.seq1Range.isEmpty) {
-            continue;
-        }
-        scanWord(next.getStarts(), next);
-        scanWord(next.getEndExclusives().delta(-1), next);
-    }
-    var merged = mergeSequenceDiffs(sequenceDiffs, additional);
-    return merged;
-}
-function mergeSequenceDiffs(sequenceDiffs1, sequenceDiffs2) {
-    var result = [];
-    while (sequenceDiffs1.length > 0 || sequenceDiffs2.length > 0) {
-        var sd1 = sequenceDiffs1[0];
-        var sd2 = sequenceDiffs2[0];
-        var next = void 0;
-        if (sd1 && (!sd2 || sd1.seq1Range.start < sd2.seq1Range.start)) {
-            next = sequenceDiffs1.shift();
-        }
-        else {
-            next = sequenceDiffs2.shift();
-        }
-        if (result.length > 0 && result[result.length - 1].seq1Range.endExclusive >= next.seq1Range.start) {
-            result[result.length - 1] = result[result.length - 1].join(next);
-        }
-        else {
-            result.push(next);
-        }
-    }
-    return result;
-}
-function removeVeryShortMatchingLinesBetweenDiffs(sequence1, _sequence2, sequenceDiffs) {
-    var diffs = sequenceDiffs;
-    if (diffs.length === 0) {
-        return diffs;
-    }
-    var counter = 0;
-    var shouldRepeat;
-    do {
-        shouldRepeat = false;
-        var result = [
-            diffs[0]
-        ];
-        var _loop_4 = function (i) {
-            var shouldJoinDiffs = function (before, after) {
-                var unchangedRange = new OffsetRange(lastResult.seq1Range.endExclusive, cur.seq1Range.start);
-                var unchangedText = sequence1.getText(unchangedRange);
-                var unchangedTextWithoutWs = unchangedText.replace(/\s/g, "");
-                if (unchangedTextWithoutWs.length <= 4 && (before.seq1Range.length + before.seq2Range.length > 5 || after.seq1Range.length + after.seq2Range.length > 5)) {
-                    return true;
-                }
-                return false;
-            };
-            var cur = diffs[i];
-            var lastResult = result[result.length - 1];
-            var shouldJoin = shouldJoinDiffs(lastResult, cur);
-            if (shouldJoin) {
-                shouldRepeat = true;
-                result[result.length - 1] = result[result.length - 1].join(cur);
-            }
-            else {
-                result.push(cur);
-            }
-        };
-        for (var i = 1; i < diffs.length; i++) {
-            _loop_4(i);
-        }
-        diffs = result;
-    } while (counter++ < 10 && shouldRepeat);
-    return diffs;
-}
-function removeVeryShortMatchingTextBetweenLongDiffs(sequence1, sequence2, sequenceDiffs) {
-    var diffs = sequenceDiffs;
-    if (diffs.length === 0) {
-        return diffs;
-    }
-    var counter = 0;
-    var shouldRepeat;
-    do {
-        shouldRepeat = false;
-        var result = [
-            diffs[0]
-        ];
-        var _loop_5 = function (i) {
-            var shouldJoinDiffs = function (before, after) {
-                var unchangedRange = new OffsetRange(lastResult.seq1Range.endExclusive, cur.seq1Range.start);
-                var unchangedLineCount = sequence1.countLinesIn(unchangedRange);
-                if (unchangedLineCount > 5 || unchangedRange.length > 500) {
-                    return false;
-                }
-                var unchangedText = sequence1.getText(unchangedRange).trim();
-                if (unchangedText.length > 20 || unchangedText.split(/\r\n|\r|\n/).length > 1) {
-                    return false;
-                }
-                var beforeLineCount1 = sequence1.countLinesIn(before.seq1Range);
-                var beforeSeq1Length = before.seq1Range.length;
-                var beforeLineCount2 = sequence2.countLinesIn(before.seq2Range);
-                var beforeSeq2Length = before.seq2Range.length;
-                var afterLineCount1 = sequence1.countLinesIn(after.seq1Range);
-                var afterSeq1Length = after.seq1Range.length;
-                var afterLineCount2 = sequence2.countLinesIn(after.seq2Range);
-                var afterSeq2Length = after.seq2Range.length;
-                var max = 2 * 40 + 50;
-                function cap(v) {
-                    return Math.min(v, max);
-                }
-                if (Math.pow(Math.pow(cap(beforeLineCount1 * 40 + beforeSeq1Length), 1.5) + Math.pow(cap(beforeLineCount2 * 40 + beforeSeq2Length), 1.5), 1.5) + Math.pow(Math.pow(cap(afterLineCount1 * 40 + afterSeq1Length), 1.5) + Math.pow(cap(afterLineCount2 * 40 + afterSeq2Length), 1.5), 1.5) > Math.pow((Math.pow(max, 1.5)), 1.5) * 1.3) {
-                    return true;
-                }
-                return false;
-            };
-            var cur = diffs[i];
-            var lastResult = result[result.length - 1];
-            var shouldJoin = shouldJoinDiffs(lastResult, cur);
-            if (shouldJoin) {
-                shouldRepeat = true;
-                result[result.length - 1] = result[result.length - 1].join(cur);
-            }
-            else {
-                result.push(cur);
-            }
-        };
-        for (var i = 1; i < diffs.length; i++) {
-            _loop_5(i);
-        }
-        diffs = result;
-    } while (counter++ < 10 && shouldRepeat);
-    var newDiffs = [];
-    forEachWithNeighbors(diffs, function (prev, cur, next) {
-        var newDiff = cur;
-        function shouldMarkAsChanged(text) {
-            return text.length > 0 && text.trim().length <= 3 && cur.seq1Range.length + cur.seq2Range.length > 100;
-        }
-        var fullRange1 = sequence1.extendToFullLines(cur.seq1Range);
-        var prefix = sequence1.getText(new OffsetRange(fullRange1.start, cur.seq1Range.start));
-        if (shouldMarkAsChanged(prefix)) {
-            newDiff = newDiff.deltaStart(-prefix.length);
-        }
-        var suffix = sequence1.getText(new OffsetRange(cur.seq1Range.endExclusive, fullRange1.endExclusive));
-        if (shouldMarkAsChanged(suffix)) {
-            newDiff = newDiff.deltaEnd(suffix.length);
-        }
-        var availableSpace = SequenceDiff.fromOffsetPairs(prev ? prev.getEndExclusives() : OffsetPair.zero, next ? next.getStarts() : OffsetPair.max);
-        var result = newDiff.intersect(availableSpace);
-        if (newDiffs.length > 0 && result.getStarts().equals(newDiffs[newDiffs.length - 1].getEndExclusives())) {
-            newDiffs[newDiffs.length - 1] = newDiffs[newDiffs.length - 1].join(result);
-        }
-        else {
-            newDiffs.push(result);
-        }
-    });
-    return newDiffs;
-}
-var LineSequence = /** @class */ (function () {
-    function LineSequence(trimmedHash, lines) {
-        this.trimmedHash = trimmedHash;
-        this.lines = lines;
-    }
-    LineSequence.prototype.getElement = function (offset) {
-        return this.trimmedHash[offset];
+        result += "\n" + this._getLineContent(range.endLineNumber).substring(0, range.endColumn - 1);
+        return result;
     };
-    Object.defineProperty(LineSequence.prototype, "length", {
+    LineBasedText.prototype.getLineLength = function (lineNumber) {
+        return this._getLineContent(lineNumber).length;
+    };
+    Object.defineProperty(LineBasedText.prototype, "length", {
         get: function () {
-            return this.trimmedHash.length;
+            var lastLine = this._getLineContent(this._lineCount);
+            return new TextLength(this._lineCount - 1, lastLine.length);
         },
         enumerable: false,
         configurable: true
     });
-    LineSequence.prototype.getBoundaryScore = function (length) {
-        var indentationBefore = length === 0 ? 0 : getIndentation(this.lines[length - 1]);
-        var indentationAfter = length === this.lines.length ? 0 : getIndentation(this.lines[length]);
-        return 1e3 - (indentationBefore + indentationAfter);
-    };
-    LineSequence.prototype.getText = function (range) {
-        return this.lines.slice(range.start, range.endExclusive).join("\n");
-    };
-    LineSequence.prototype.isStronglyEqual = function (offset1, offset2) {
-        return this.lines[offset1] === this.lines[offset2];
-    };
-    return LineSequence;
-}());
-function getIndentation(str) {
-    var i = 0;
-    while (i < str.length && (str.charCodeAt(i) === 32 || str.charCodeAt(i) === 9)) {
-        i++;
+    return LineBasedText;
+}(AbstractText));
+var ArrayText = /** @class */ (function (_super) {
+    __extends(ArrayText, _super);
+    function ArrayText(lines) {
+        return _super.call(this, function (lineNumber) { return lines[lineNumber - 1]; }, lines.length) || this;
     }
-    return i;
-}
+    return ArrayText;
+}(LineBasedText));
 var DefaultLinesDiffComputer = /** @class */ (function () {
     function DefaultLinesDiffComputer() {
         this.dynamicProgrammingDiffing = new DynamicProgrammingDiffing();
@@ -5629,15 +5646,15 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
                 if (originalLines[seq1Offset] !== modifiedLines[seq2Offset]) {
                     var characterDiffs = _this.refineDiff(originalLines, modifiedLines, new SequenceDiff(new OffsetRange(seq1Offset, seq1Offset + 1), new OffsetRange(seq2Offset, seq2Offset + 1)), timeout, considerWhitespaceChanges, options);
                     try {
-                        for (var _g = (e_17 = void 0, __values(characterDiffs.mappings)), _h = _g.next(); !_h.done; _h = _g.next()) {
-                            var a = _h.value;
+                        for (var _h = (e_17 = void 0, __values(characterDiffs.mappings)), _j = _h.next(); !_j.done; _j = _h.next()) {
+                            var a = _j.value;
                             alignments.push(a);
                         }
                     }
                     catch (e_17_1) { e_17 = { error: e_17_1 }; }
                     finally {
                         try {
-                            if (_h && !_h.done && (_a = _g.return)) _a.call(_g);
+                            if (_j && !_j.done && (_a = _h.return)) _a.call(_h);
                         }
                         finally { if (e_17) throw e_17.error; }
                     }
@@ -5650,7 +5667,7 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
         var seq1LastStart = 0;
         var seq2LastStart = 0;
         var _loop_6 = function (diff) {
-            var e_18, _g;
+            var e_18, _h;
             assertFn(function () { return diff.seq1Range.start - seq1LastStart === diff.seq2Range.start - seq2LastStart; });
             var equalLinesCount = diff.seq1Range.start - seq1LastStart;
             scanForWhitespaceChanges(equalLinesCount);
@@ -5661,15 +5678,15 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
                 hitTimeout = true;
             }
             try {
-                for (var _h = (e_18 = void 0, __values(characterDiffs.mappings)), _j = _h.next(); !_j.done; _j = _h.next()) {
-                    var a = _j.value;
+                for (var _j = (e_18 = void 0, __values(characterDiffs.mappings)), _k = _j.next(); !_k.done; _k = _j.next()) {
+                    var a = _k.value;
                     alignments.push(a);
                 }
             }
             catch (e_18_1) { e_18 = { error: e_18_1 }; }
             finally {
                 try {
-                    if (_j && !_j.done && (_g = _h.return)) _g.call(_h);
+                    if (_k && !_k.done && (_h = _j.return)) _h.call(_j);
                 }
                 finally { if (e_18) throw e_18.error; }
             }
@@ -5689,13 +5706,15 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
             finally { if (e_16) throw e_16.error; }
         }
         scanForWhitespaceChanges(originalLines.length - seq1LastStart);
-        var changes = lineRangeMappingFromRangeMappings(alignments, new ArrayText(originalLines), new ArrayText(modifiedLines));
+        var original = new ArrayText(originalLines);
+        var modified = new ArrayText(modifiedLines);
+        var changes = lineRangeMappingFromRangeMappings(alignments, original, modified);
         var moves = [];
         if (options.computeMoves) {
             moves = this.computeMoves(changes, originalLines, modifiedLines, originalLinesHashes, modifiedLinesHashes, timeout, considerWhitespaceChanges, options);
         }
         assertFn(function () {
-            var e_19, _a, e_20, _g;
+            var e_19, _a, e_20, _h;
             function validatePosition(pos, lines) {
                 if (pos.lineNumber < 1 || pos.lineNumber > lines.length) {
                     return false;
@@ -5722,8 +5741,8 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
                         return false;
                     }
                     try {
-                        for (var _h = (e_20 = void 0, __values(c.innerChanges)), _j = _h.next(); !_j.done; _j = _h.next()) {
-                            var ic = _j.value;
+                        for (var _j = (e_20 = void 0, __values(c.innerChanges)), _k = _j.next(); !_k.done; _k = _j.next()) {
+                            var ic = _k.value;
                             var valid = validatePosition(ic.modifiedRange.getStartPosition(), modifiedLines) && validatePosition(ic.modifiedRange.getEndPosition(), modifiedLines) && validatePosition(ic.originalRange.getStartPosition(), originalLines) && validatePosition(ic.originalRange.getEndPosition(), originalLines);
                             if (!valid) {
                                 return false;
@@ -5733,7 +5752,7 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
                     catch (e_20_1) { e_20 = { error: e_20_1 }; }
                     finally {
                         try {
-                            if (_j && !_j.done && (_g = _h.return)) _g.call(_h);
+                            if (_k && !_k.done && (_h = _j.return)) _h.call(_j);
                         }
                         finally { if (e_20) throw e_20.error; }
                     }
@@ -5788,34 +5807,113 @@ var DefaultLinesDiffComputer = /** @class */ (function () {
 function toLineRangeMapping(sequenceDiff) {
     return new LineRangeMapping(new LineRange(sequenceDiff.seq1Range.start + 1, sequenceDiff.seq1Range.endExclusive + 1), new LineRange(sequenceDiff.seq2Range.start + 1, sequenceDiff.seq2Range.endExclusive + 1));
 }
+var DefaultLinesDiffComputerWithSeparateRefinement = /** @class */ (function (_super) {
+    __extends(DefaultLinesDiffComputerWithSeparateRefinement, _super);
+    function DefaultLinesDiffComputerWithSeparateRefinement() {
+        var _this = _super.call(this) || this;
+        _this.lineDynamicProgrammingDiffing = new DynamicProgrammingDiffing();
+        _this.lineMyersDiffingAlgorithm = new MyersDiffAlgorithm();
+        return _this;
+    }
+    DefaultLinesDiffComputerWithSeparateRefinement.prototype.computeDiff = function (originalLines, modifiedLines, options) {
+        var _this = this;
+        if (originalLines.length <= 1 && equals(originalLines, modifiedLines, function (a, b) { return a === b; })) {
+            return new LinesDiff([], [], false);
+        }
+        if (originalLines.length === 1 && originalLines[0].length === 0 || modifiedLines.length === 1 && modifiedLines[0].length === 0) {
+            return new LinesDiff([
+                new DetailedLineRangeMapping(new LineRange(1, originalLines.length + 1), new LineRange(1, modifiedLines.length + 1), undefined)
+            ], [], false);
+        }
+        var timeout = options.maxComputationTimeMs === 0 ? InfiniteTimeout.instance : new DateTimeout(options.maxComputationTimeMs);
+        var perfectHashes = /* @__PURE__ */ new Map();
+        function getOrCreateHash(text) {
+            var hash = perfectHashes.get(text);
+            if (hash === undefined) {
+                hash = perfectHashes.size;
+                perfectHashes.set(text, hash);
+            }
+            return hash;
+        }
+        var getLineKey = options.ignoreTrimWhitespace ? function (line) { return line.trim(); } : function (line) { return line; };
+        var originalLinesHashes = originalLines.map(function (l) { return getOrCreateHash(getLineKey(l)); });
+        var modifiedLinesHashes = modifiedLines.map(function (l) { return getOrCreateHash(getLineKey(l)); });
+        var sequence1 = new LineSequence(originalLinesHashes, originalLines);
+        var sequence2 = new LineSequence(modifiedLinesHashes, modifiedLines);
+        var lineAlignmentResult = (function () {
+            if (sequence1.length + sequence2.length < 1700) {
+                return _this.lineDynamicProgrammingDiffing.compute(sequence1, sequence2, timeout, function (offset1, offset2) { return originalLines[offset1] === modifiedLines[offset2] ? modifiedLines[offset2].length === 0 ? 0.1 : 1 + Math.log(1 + modifiedLines[offset2].length) : 0.99; });
+            }
+            return _this.lineMyersDiffingAlgorithm.compute(sequence1, sequence2, timeout);
+        })();
+        var lineAlignments = lineAlignmentResult.diffs;
+        lineAlignments = optimizeSequenceDiffs(sequence1, sequence2, lineAlignments);
+        lineAlignments = removeVeryShortMatchingLinesBetweenDiffs(sequence1, sequence2, lineAlignments);
+        var changes = lineAlignments.map(toDetailedLineRangeMapping);
+        var moves = [];
+        if (options.computeMoves && !lineAlignmentResult.hitTimeout) {
+            var lineMoves = computeMovedLines(changes, originalLines, modifiedLines, originalLinesHashes, modifiedLinesHashes, timeout);
+            moves = lineMoves.map(function (move) { return new MovedText(move, []); });
+        }
+        assertFn(function () {
+            var e_21, _a;
+            function validateRange(range, lines) {
+                if (range.startLineNumber < 1 || range.startLineNumber > lines.length + 1) {
+                    return false;
+                }
+                if (range.endLineNumberExclusive < 1 || range.endLineNumberExclusive > lines.length + 1) {
+                    return false;
+                }
+                return true;
+            }
+            try {
+                for (var changes_4 = __values(changes), changes_4_1 = changes_4.next(); !changes_4_1.done; changes_4_1 = changes_4.next()) {
+                    var c = changes_4_1.value;
+                    if (!validateRange(c.modified, modifiedLines) || !validateRange(c.original, originalLines)) {
+                        return false;
+                    }
+                }
+            }
+            catch (e_21_1) { e_21 = { error: e_21_1 }; }
+            finally {
+                try {
+                    if (changes_4_1 && !changes_4_1.done && (_a = changes_4.return)) _a.call(changes_4);
+                }
+                finally { if (e_21) throw e_21.error; }
+            }
+            return true;
+        });
+        return new LinesDiff(changes, moves, lineAlignmentResult.hitTimeout);
+    };
+    return DefaultLinesDiffComputerWithSeparateRefinement;
+}(DefaultLinesDiffComputer));
+function toDetailedLineRangeMapping(sequenceDiff) {
+    return new DetailedLineRangeMapping(new LineRange(sequenceDiff.seq1Range.start + 1, sequenceDiff.seq1Range.endExclusive + 1), new LineRange(sequenceDiff.seq2Range.start + 1, sequenceDiff.seq2Range.endExclusive + 1), undefined);
+}
+function rangeMappingToCharChange(mapping) {
+    return {
+        originalStartLineNumber: mapping.originalRange.startLineNumber - 1,
+        originalStartColumn: mapping.originalRange.startColumn - 1,
+        originalEndLineNumber: mapping.originalRange.endLineNumber - 1,
+        originalEndColumn: mapping.originalRange.endColumn - 1,
+        modifiedStartLineNumber: mapping.modifiedRange.startLineNumber - 1,
+        modifiedStartColumn: mapping.modifiedRange.startColumn - 1,
+        modifiedEndLineNumber: mapping.modifiedRange.endLineNumber - 1,
+        modifiedEndColumn: mapping.modifiedRange.endColumn - 1
+    };
+}
 function computeDiff(originalLines, modifiedLines, options) {
-    var diffComputer = new DefaultLinesDiffComputer();
+    var diffComputer = new DefaultLinesDiffComputerWithSeparateRefinement();
     var result = diffComputer.computeDiff(originalLines, modifiedLines, options);
-    return result === null || result === void 0 ? void 0 : result.changes.map(function (changes) {
-        var originalStartLineNumber;
-        var originalEndLineNumber;
-        var modifiedStartLineNumber;
-        var modifiedEndLineNumber;
-        var innerChanges = changes.innerChanges;
-        originalStartLineNumber = changes.original.startLineNumber - 1;
-        originalEndLineNumber = changes.original.endLineNumberExclusive - 1;
-        modifiedStartLineNumber = changes.modified.startLineNumber - 1;
-        modifiedEndLineNumber = changes.modified.endLineNumberExclusive - 1;
+    return result.changes.map(function (change) {
+        var _a;
         return {
-            origStart: originalStartLineNumber,
-            origEnd: originalEndLineNumber,
-            editStart: modifiedStartLineNumber,
-            editEnd: modifiedEndLineNumber,
-            charChanges: innerChanges === null || innerChanges === void 0 ? void 0 : innerChanges.map(function (m) { return ({
-                originalStartLineNumber: m.originalRange.startLineNumber - 1,
-                originalStartColumn: m.originalRange.startColumn - 1,
-                originalEndLineNumber: m.originalRange.endLineNumber - 1,
-                originalEndColumn: m.originalRange.endColumn - 1,
-                modifiedStartLineNumber: m.modifiedRange.startLineNumber - 1,
-                modifiedStartColumn: m.modifiedRange.startColumn - 1,
-                modifiedEndLineNumber: m.modifiedRange.endLineNumber - 1,
-                modifiedEndColumn: m.modifiedRange.endColumn - 1
-            }); })
+            origStart: change.original.startLineNumber - 1,
+            origEnd: change.original.endLineNumberExclusive - 1,
+            editStart: change.modified.startLineNumber - 1,
+            editEnd: change.modified.endLineNumberExclusive - 1,
+            charChanges: (_a = change.innerChanges) === null || _a === void 0 ? void 0 : _a.map(rangeMappingToCharChange),
+            inlinePending: !result.hitTimeout && change.original.length > 0 && change.modified.length > 0
         };
     });
 }
@@ -5826,12 +5924,27 @@ var DiffProvider = /** @class */ (function () {
     function DiffProvider() {
     }
     DiffProvider.prototype.compute = function (originalLines, modifiedLines, opts) {
-        if (!opts)
-            opts = {};
-        if (!opts.maxComputationTimeMs)
+        opts = Object.assign({}, opts);
+        if (opts.maxComputationTimeMs == null)
             opts.maxComputationTimeMs = 500;
         var chunks = computeDiff(originalLines, modifiedLines, opts) || [];
-        return chunks.map(function (c) { return new DiffChunk(new AceRange(c.origStart, 0, c.origEnd, 0), new AceRange(c.editStart, 0, c.editEnd, 0), c.charChanges); });
+        return chunks.map(function (c) { return new DiffChunk(new AceRange(c.origStart, 0, c.origEnd, 0), new AceRange(c.editStart, 0, c.editEnd, 0), c.charChanges, c.inlinePending); });
+    };
+    DiffProvider.prototype.refine = function (originalLines, modifiedLines, chunk, opts) {
+        opts = Object.assign({}, opts);
+        if (opts.maxComputationTimeMs == null)
+            opts.maxComputationTimeMs = 25;
+        var timeout = opts.maxComputationTimeMs === 0
+            ? InfiniteTimeout.instance
+            : new DateTimeout(opts.maxComputationTimeMs);
+        var computer = new DefaultLinesDiffComputerWithSeparateRefinement();
+        var result = computer.refineDiff(originalLines, modifiedLines, new SequenceDiff(new OffsetRange(chunk.old.start.row, chunk.old.end.row), new OffsetRange(chunk.new.start.row, chunk.new.end.row)), timeout, !opts.ignoreTrimWhitespace, opts);
+        var charChanges = result.mappings.map(rangeMappingToCharChange);
+        var refinedChunk = new DiffChunk(chunk.old, chunk.new, charChanges);
+        return {
+            charChanges: refinedChunk.charChanges,
+            hitTimeout: result.hitTimeout
+        };
     };
     return DiffProvider;
 }());
@@ -7346,8 +7459,9 @@ var textMarkerMixin = {
                     if (/^\s+$/.test(segment)) {
                         span = this.dom.createElement("span");
                         span.className = marker.className;
-                        var symbol = node["charCount"] ? this.TAB_CHAR : this.SPACE_CHAR;
-                        span.textContent = lang.stringRepeat(symbol, segment.length);
+                        span.textContent =
+                            node["charCount"] ? this.TAB_CHAR.repeat(segment.length)
+                                : segment.replace(/\u3000/g, this.CJK_SPACE_CHAR).replace(/ /g, this.SPACE_CHAR);
                         span.setAttribute("data-whitespace", segment);
                         fragment.appendChild(span);
                     }
@@ -13019,6 +13133,38 @@ optionsPanelContainer.insertBefore(
             "Open Dialog ",
             ["button",  {onclick: openTestDialog.bind(null, false)}, "Scale"],
             ["button",  {onclick: openTestDialog.bind(null, true)}, "Height"]
+        ],
+        ["div", {},
+            ["button",  {onclick: function() {
+                editor.setOption("fontFamily", "cursive");
+                session.setValue( session.getValue() + "שלום עולם בעברית123" +"\n" + "ジャパン + 八洲\n" + "𒐫𒈙⸻ဪ", 1);
+            }}, "cursive"],
+            ["button",  {onclick: function() {
+                editor.setOption("fontFamily", "Tahoma");
+                session.setValue( session.getValue() + "שלום עולם בעברית123" +"\n" + "ジャパン + 八洲", 1);
+            }}, "Tahoma"],
+            ["button",  {onclick: function() {
+                var transforms = [
+                    '', 
+                    "scale(0.5)", 
+                    "translate(100%, 100%) rotate(180deg)", 
+                    "rotate(18deg)",
+                    "rotate(-18deg)",
+                    "scale(0.5, 0.9)", 
+                    'matrix3d(\
+                        1.8, 0.3, 0, 0.001,\
+                        -0.2, 2.1, 0, 0.003,\
+                        0, 0, 1, 0,\
+                        10, 20, 0, 1\
+                    )',
+                ];
+                var transform = editor.container.parentElement.style.transform;
+                var i = transforms.indexOf(transform);
+                transform = transforms[(i + 1) % transforms.length];
+                editor.container.parentElement.style.transform = transform;
+                editor.container.parentElement.style.transformOrigin = "0 0 0";
+                editor.setOption("hasCssTransforms", true);
+            }}, "Transform"],
         ]
     ]),
     optionsPanelContainer.children[1]

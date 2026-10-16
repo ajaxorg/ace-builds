@@ -1,0 +1,44 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=3]
+
+[sub_resource type="GDScript" id="GDScript_demo"]
+  script/source = "extends Resource
+
+const MESSAGE = \"Hello from embedded GDScript\"
+const QUOTED = \"He said \\\"hello\\\"\"
+const FORMAT = \"value: %s {name}\"
+const RAW = r\"raw string\"
+const MULTILINE = \"\"\"first line
+second line\"\"\"
+
+func greet() -> void:
+	print(\"Hello from embedded GDScript\")
+"
+
+[sub_resource type="Shader" id="Shader_demo"]
+code = "shader_type spatial;
+render_mode unshaded;
+
+uniform vec4 base_color : source_color = vec4(0.15, 0.45, 0.85, 1.0);
+uniform float pulse_speed : hint_range(0.0, 8.0, 0.1) = 2.0;
+uniform int palette : hint_enum(\"Ocean\", \"Sunset:2\", \"Forest\") = 0;
+
+struct SurfaceData {
+	vec3 albedo;
+	float emission;
+};
+
+void fragment() {
+	float pulse = sin(TIME * pulse_speed) * 0.5 + 0.5;
+	SurfaceData surface = SurfaceData(
+		mix(base_color.rgb, vec3(1.0), pulse * 0.2),
+		pulse * 0.15
+	);
+
+	ALBEDO = surface.albedo;
+	EMISSION = surface.albedo * surface.emission;
+}
+"
+
+[resource]
+script = SubResource("GDScript_demo")
+shader = SubResource("Shader_demo")

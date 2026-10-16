@@ -1356,7 +1356,7 @@ var reportErrorIfPathIsNotConfigured = function () {
         reportErrorIfPathIsNotConfigured = function () { };
     }
 };
-exports.version = "1.44.0";
+exports.version = "1.45.0";
 
 });
 
@@ -4503,14 +4503,15 @@ var MouseHandler = /** @class */ (function () {
             var character = editor.renderer.screenToTextCoordinates(e.x, e.y);
             var range = editor.session.selection.getRange();
             var renderer = editor.renderer;
+            if (renderer.scroller.style.cursor == "crosshair")
+                return;
             if (!range.isEmpty() && range.insideStart(character.row, character.column)) {
                 renderer.setCursorStyle("default");
             }
             else {
                 renderer.setCursorStyle("");
             }
-        }, //@ts-expect-error TODO: seems mistyping - should be boolean
-        editor);
+        });
     }
     MouseHandler.prototype.onMouseEvent = function (name, e) {
         if (!this.editor.session)
@@ -5131,12 +5132,7 @@ var BidiHandler = /** @class */ (function () {
     BidiHandler.prototype.isBidiRow = function (screenRow, docRow, splitIndex) {
         if (!this.seenBidi)
             return false;
-        if (screenRow !== this.currentRow) {
-            this.currentRow = screenRow;
-            this.updateRowLine(docRow, splitIndex);
-            this.updateBidiMap();
-        }
-        return this.bidiMap.bidiLevels;
+        return true;
     };
     BidiHandler.prototype.onChange = function (delta) {
         if (!this.seenBidi) {
@@ -5177,72 +5173,7 @@ var BidiHandler = /** @class */ (function () {
         }
         return splitIndex;
     };
-    BidiHandler.prototype.updateRowLine = function (docRow, splitIndex) {
-        if (docRow === undefined)
-            docRow = this.getDocumentRow();
-        var isLastRow = (docRow === this.session.getLength() - 1), endOfLine = isLastRow ? this.EOF : this.EOL;
-        this.wrapIndent = 0;
-        this.line = this.session.getLine(docRow);
-        this.isRtlDir = this.$isRtl || this.line.charAt(0) === this.RLE;
-        if (this.session.$useWrapMode) {
-            var splits = this.session.$wrapData[docRow];
-            if (splits) {
-                if (splitIndex === undefined)
-                    splitIndex = this.getSplitIndex();
-                if (splitIndex > 0 && splits.length) {
-                    this.wrapIndent = splits.indent;
-                    this.wrapOffset = this.wrapIndent * this.charWidths[bidiUtil.L];
-                    this.line = (splitIndex < splits.length) ?
-                        this.line.substring(splits[splitIndex - 1], splits[splitIndex]) :
-                        this.line.substring(splits[splits.length - 1]);
-                }
-                else {
-                    this.line = this.line.substring(0, splits[splitIndex]);
-                }
-                if (splitIndex == splits.length) {
-                    this.line += (this.showInvisibles) ? endOfLine : bidiUtil.DOT;
-                }
-            }
-        }
-        else {
-            this.line += this.showInvisibles ? endOfLine : bidiUtil.DOT;
-        }
-        var session = this.session, shift = 0, size;
-        this.line = this.line.replace(/\t|[\u1100-\u2029, \u202F-\uFFE6]/g, function (ch, i) {
-            if (ch === '\t' || session.isFullWidth(ch.charCodeAt(0))) {
-                size = (ch === '\t') ? session.getScreenTabSize(i + shift) : 2;
-                shift += size - 1;
-                return lang.stringRepeat(bidiUtil.DOT, size);
-            }
-            return ch;
-        });
-        if (this.isRtlDir) {
-            this.fontMetrics.$main.textContent = (this.line.charAt(this.line.length - 1) == bidiUtil.DOT) ? this.line.substr(0, this.line.length - 1) : this.line;
-            this.rtlLineOffset = this.contentWidth - this.fontMetrics.$main.getBoundingClientRect().width;
-        }
-    };
-    BidiHandler.prototype.updateBidiMap = function () {
-        var textCharTypes = [];
-        if (bidiUtil.hasBidiCharacters(this.line, textCharTypes) || this.isRtlDir) {
-            this.bidiMap = bidiUtil.doBidiReorder(this.line, textCharTypes, this.isRtlDir);
-        }
-        else {
-            this.bidiMap = {};
-        }
-    };
     BidiHandler.prototype.markAsDirty = function () {
-        this.currentRow = null;
-    };
-    BidiHandler.prototype.updateCharacterWidths = function (fontMetrics) {
-        if (this.characterWidth === fontMetrics.$characterSize.width)
-            return;
-        this.fontMetrics = fontMetrics;
-        var characterWidth = this.characterWidth = fontMetrics.$characterSize.width;
-        var bidiCharWidth = fontMetrics.$measureCharWidth("\u05d4");
-        this.charWidths[bidiUtil.L] = this.charWidths[bidiUtil.EN] = this.charWidths[bidiUtil.ON_R] = characterWidth;
-        this.charWidths[bidiUtil.R] = this.charWidths[bidiUtil.AN] = bidiCharWidth;
-        this.charWidths[bidiUtil.R_H] = bidiCharWidth * 0.45;
-        this.charWidths[bidiUtil.B] = this.charWidths[bidiUtil.RLE] = 0;
         this.currentRow = null;
     };
     BidiHandler.prototype.setShowInvisibles = function (showInvisibles) {
@@ -5271,87 +5202,6 @@ var BidiHandler = /** @class */ (function () {
             else if (isRtlDir && editor.session.getLine(row).charAt(0) !== editor.session.$bidiHandler.RLE)
                 editor.session.doc.insert({ column: 0, row: row }, editor.session.$bidiHandler.RLE);
         }
-    };
-    BidiHandler.prototype.getPosLeft = function (col) {
-        col -= this.wrapIndent;
-        var leftBoundary = (this.line.charAt(0) === this.RLE) ? 1 : 0;
-        var logicalIdx = (col > leftBoundary) ? (this.session.getOverwrite() ? col : col - 1) : leftBoundary;
-        var visualIdx = bidiUtil.getVisualFromLogicalIdx(logicalIdx, this.bidiMap), levels = this.bidiMap.bidiLevels, left = 0;
-        if (!this.session.getOverwrite() && col <= leftBoundary && levels[visualIdx] % 2 !== 0)
-            visualIdx++;
-        for (var i = 0; i < visualIdx; i++) {
-            left += this.charWidths[levels[i]];
-        }
-        if (!this.session.getOverwrite() && (col > leftBoundary) && (levels[visualIdx] % 2 === 0))
-            left += this.charWidths[levels[visualIdx]];
-        if (this.wrapIndent)
-            left += this.isRtlDir ? (-1 * this.wrapOffset) : this.wrapOffset;
-        if (this.isRtlDir)
-            left += this.rtlLineOffset;
-        return left;
-    };
-    BidiHandler.prototype.getSelections = function (startCol, endCol) {
-        var map = this.bidiMap, levels = map.bidiLevels, level, selections = [], offset = 0, selColMin = Math.min(startCol, endCol) - this.wrapIndent, selColMax = Math.max(startCol, endCol) - this.wrapIndent, isSelected = false, isSelectedPrev = false, selectionStart = 0;
-        if (this.wrapIndent)
-            offset += this.isRtlDir ? (-1 * this.wrapOffset) : this.wrapOffset;
-        for (var logIdx, visIdx = 0; visIdx < levels.length; visIdx++) {
-            logIdx = map.logicalFromVisual[visIdx];
-            level = levels[visIdx];
-            isSelected = (logIdx >= selColMin) && (logIdx < selColMax);
-            if (isSelected && !isSelectedPrev) {
-                selectionStart = offset;
-            }
-            else if (!isSelected && isSelectedPrev) {
-                selections.push({ left: selectionStart, width: offset - selectionStart });
-            }
-            offset += this.charWidths[level];
-            isSelectedPrev = isSelected;
-        }
-        if (isSelected && (visIdx === levels.length)) {
-            selections.push({ left: selectionStart, width: offset - selectionStart });
-        }
-        if (this.isRtlDir) {
-            for (var i = 0; i < selections.length; i++) {
-                selections[i].left += this.rtlLineOffset;
-            }
-        }
-        return selections;
-    };
-    BidiHandler.prototype.offsetToCol = function (posX) {
-        if (this.isRtlDir)
-            posX -= this.rtlLineOffset;
-        var logicalIdx = 0, posX = Math.max(posX, 0), offset = 0, visualIdx = 0, levels = this.bidiMap.bidiLevels, charWidth = this.charWidths[levels[visualIdx]];
-        if (this.wrapIndent)
-            posX -= this.isRtlDir ? (-1 * this.wrapOffset) : this.wrapOffset;
-        while (posX > offset + charWidth / 2) {
-            offset += charWidth;
-            if (visualIdx === levels.length - 1) {
-                charWidth = 0;
-                break;
-            }
-            charWidth = this.charWidths[levels[++visualIdx]];
-        }
-        if (visualIdx > 0 && (levels[visualIdx - 1] % 2 !== 0) && (levels[visualIdx] % 2 === 0)) {
-            if (posX < offset)
-                visualIdx--;
-            logicalIdx = this.bidiMap.logicalFromVisual[visualIdx];
-        }
-        else if (visualIdx > 0 && (levels[visualIdx - 1] % 2 === 0) && (levels[visualIdx] % 2 !== 0)) {
-            logicalIdx = 1 + ((posX > offset) ? this.bidiMap.logicalFromVisual[visualIdx]
-                : this.bidiMap.logicalFromVisual[visualIdx - 1]);
-        }
-        else if ((this.isRtlDir && visualIdx === levels.length - 1 && charWidth === 0 && (levels[visualIdx - 1] % 2 === 0))
-            || (!this.isRtlDir && visualIdx === 0 && (levels[visualIdx] % 2 !== 0))) {
-            logicalIdx = 1 + this.bidiMap.logicalFromVisual[visualIdx];
-        }
-        else {
-            if (visualIdx > 0 && (levels[visualIdx - 1] % 2 !== 0) && charWidth !== 0)
-                visualIdx--;
-            logicalIdx = this.bidiMap.logicalFromVisual[visualIdx];
-        }
-        if (logicalIdx === 0 && this.isRtlDir)
-            logicalIdx++;
-        return (logicalIdx + this.wrapIndent);
     };
     return BidiHandler;
 }());
@@ -5784,15 +5634,13 @@ var Selection = /** @class */ (function () {
     Selection.prototype.moveCursorBy = function (rows, chars) {
         var screenPos = this.session.documentToScreenPosition(this.lead.row, this.lead.column);
         var offsetX;
+        var fontMetrics = this.session.$fontMetrics;
+        var useFontMetrics = chars === 0 && rows !== 0 && fontMetrics;
         if (chars === 0) {
-            if (rows !== 0) {
-                if (this.session.$bidiHandler.isBidiRow(screenPos.row, this.lead.row)) {
-                    offsetX = this.session.$bidiHandler.getPosLeft(screenPos.column);
-                    screenPos.column = Math.round(offsetX / this.session.$bidiHandler.charWidths[0]);
-                }
-                else {
-                    offsetX = screenPos.column * this.session.$bidiHandler.charWidths[0];
-                }
+            if (useFontMetrics && this.$desiredColumn == null) {
+                offsetX = fontMetrics.textWidth(screenPos.row, screenPos.column);
+                if (isFinite(offsetX))
+                    this.$desiredColumn = offsetX / fontMetrics.config.characterWidth;
             }
             if (this.$desiredColumn)
                 screenPos.column = this.$desiredColumn;
@@ -5806,9 +5654,13 @@ var Selection = /** @class */ (function () {
             else if (rows > 0)
                 rows += widget.rowCount - (widget.rowsAbove || 0);
         }
-        var docPos = this.session.screenToDocumentPosition(screenPos.row + rows, screenPos.column, offsetX);
-        if (rows !== 0 && chars === 0 && docPos.row === this.lead.row && docPos.column === this.lead.column) {
+        var targetScreenRow = screenPos.row + rows;
+        if (useFontMetrics && this.$desiredColumn != null) {
+            offsetX = this.$desiredColumn * fontMetrics.config.characterWidth;
+            var blockCursor = fontMetrics.renderer && fontMetrics.renderer.$blockCursor;
+            screenPos.column = fontMetrics.$pixelToColumn(targetScreenRow, screenPos.column, offsetX, blockCursor, true);
         }
+        var docPos = this.session.screenToDocumentPosition(targetScreenRow, screenPos.column);
         this.moveCursorTo(docPos.row, docPos.column + chars, chars === 0);
     };
     Selection.prototype.moveCursorToPosition = function (position) {
@@ -6078,6 +5930,37 @@ var Tokenizer = /** @class */ (function () {
             });
             if (lastCapture.end != null && /^\)*$/.test(src.substr(lastCapture.end)))
                 src = src.substring(0, lastCapture.start) + src.substr(lastCapture.end);
+        }
+        var leadingLookbehind;
+        while ((leadingLookbehind = /^(?:\((?:\?:)?)*\(\?<[=!]/.exec(src))) {
+            var start = leadingLookbehind[0].length - 4;
+            var end = -1;
+            var depth = 0;
+            var inClass = false;
+            var re = /\\.|[\[\]()]/g;
+            re.lastIndex = start;
+            var m;
+            while ((m = re.exec(src))) {
+                var ch = m[0];
+                if (ch.length > 1)
+                    continue;
+                if (inClass) {
+                    inClass = ch != "]";
+                }
+                else if (ch == "[") {
+                    inClass = true;
+                }
+                else if (ch == "(") {
+                    depth++;
+                }
+                else if (ch == ")" && --depth == 0) {
+                    end = m.index + 1;
+                    break;
+                }
+            }
+            if (end == -1)
+                break;
+            src = src.substring(0, start) + src.substr(end);
         }
         if (src.charAt(0) != "^")
             src = "^" + src;
@@ -8303,9 +8186,11 @@ var SearchHighlight = /** @class */ (function () {
         var renderedMarkerRanges = {};
         var _search = session.$editor && session.$editor.$search;
         var mtSearch = _search && _search.$isMultilineSearch(session.$editor.getLastSearchOptions());
+        var docLen = session.getValue().length;
+        var cacheInvalid = docLen != this.docLen;
         for (var i = start; i <= end; i++) {
             var ranges = this.cache[i];
-            if (ranges == null || session.getValue().length != this.docLen) {
+            if (ranges == null || cacheInvalid) {
                 if (mtSearch) {
                     ranges = [];
                     var match = _search.$multiLineForward(session, this.regExp, i, end);
@@ -8339,7 +8224,7 @@ var SearchHighlight = /** @class */ (function () {
                 markerLayer.drawSingleLineMarker(html, rangeToAddMarkerTo, this.clazz, config);
             }
         }
-        this.docLen = session.getValue().length;
+        this.docLen = docLen;
     };
     return SearchHighlight;
 }());
@@ -8523,8 +8408,10 @@ var UndoManager = /** @class */ (function () {
     };
     UndoManager.prototype.fromJSON = function (json) {
         this.reset();
-        this.$undoStack = json.$undoStack;
-        this.$redoStack = json.$redoStack;
+        if (!json)
+            return;
+        this.$undoStack = json.$undoStack || [];
+        this.$redoStack = json.$redoStack || [];
     };
     UndoManager.prototype.$prettyPrint = function (delta) {
         if (delta)
@@ -10646,10 +10533,12 @@ var EditSession = /** @class */ (function () {
         if (typeof session == "string")
             session = JSON.parse(session);
         var undoManager = new UndoManager();
-        undoManager.$undoStack = session.history.$undoStack;
-        undoManager.$redoStack = session.history.$redoStack;
-        undoManager.mark = session.history.mark;
-        undoManager.$rev = session.history.rev;
+        if (session.history) {
+            undoManager.$undoStack = session.history.$undoStack || [];
+            undoManager.$redoStack = session.history.$redoStack || [];
+            undoManager.mark = session.history.mark || 0;
+            undoManager.$rev = session.history.rev || 0;
+        }
         var editSession = new EditSession(session.value);
         session.folds.forEach(function (fold) {
             editSession.addFold("...", Range.fromPoints(fold.start, fold.end));
@@ -11693,9 +11582,6 @@ var EditSession = /** @class */ (function () {
             if (c == 9) {
                 screenColumn += this.getScreenTabSize(screenColumn);
             }
-            else if (c >= 0x1100 && isFullWidth(c)) {
-                screenColumn += 2;
-            }
             else {
                 screenColumn += 1;
             }
@@ -11761,7 +11647,7 @@ var EditSession = /** @class */ (function () {
     EditSession.prototype.screenToDocumentColumn = function (screenRow, screenColumn) {
         return this.screenToDocumentPosition(screenRow, screenColumn).column;
     };
-    EditSession.prototype.screenToDocumentPosition = function (screenRow, screenColumn, offsetX) {
+    EditSession.prototype.screenToDocumentPosition = function (screenRow, screenColumn) {
         if (screenRow < 0)
             return { row: 0, column: 0 };
         var line;
@@ -11829,8 +11715,6 @@ var EditSession = /** @class */ (function () {
                 }
             }
         }
-        if (offsetX !== undefined && this.$bidiHandler.isBidiRow(row + splitIndex, docRow, splitIndex))
-            screenColumn = this.$bidiHandler.offsetToCol(offsetX);
         docColumn += this.$getStringScreenWidth(line, screenColumn - wrapIndent)[1];
         if (this.$useWrapMode && docColumn >= column)
             docColumn = column - 1;
@@ -14481,6 +14365,7 @@ var Editor = /** @class */ (function () {
             this.session.off("startOperation", this.$onStartOperation);
             this.session.off("endOperation", this.$onEndOperation);
             var selection = this.session.getSelection();
+            this.session.$fontMetrics = null;
             selection.off("changeCursor", this.$onCursorChange);
             selection.off("changeSelection", this.$onSelectionChange);
         }
@@ -14489,6 +14374,7 @@ var Editor = /** @class */ (function () {
             this.$onDocumentChange = this.onDocumentChange.bind(this);
             session.on("change", this.$onDocumentChange);
             this.renderer.setSession(session);
+            session.$fontMetrics = this.renderer.$fontMetrics;
             this.$onChangeMode = this.onChangeMode.bind(this);
             session.on("changeMode", this.$onChangeMode);
             this.$onTokenizerUpdate = this.onTokenizerUpdate.bind(this);
@@ -16384,6 +16270,24 @@ var Lines = /** @class */ (function () {
         var lineTop = session.documentToScreenRow(row, 0) * config.lineHeight;
         return lineTop - (screenPage * this.canvasHeight);
     };
+    Lines.prototype.$getCellByScreenRow = function (screenRow, config) {
+        var screenTop = config.firstRowScreen * config.lineHeight;
+        var screenPage = Math.floor(screenTop / this.canvasHeight);
+        var lineTop = screenRow * config.lineHeight - (screenPage * this.canvasHeight);
+        for (var i = this.cells.length - 1; i >= 0; i--) {
+            var cell = this.cells[i];
+            var top = parseInt(cell.element.style.top);
+            var height = parseInt(cell.element.style.height);
+            if (top <= lineTop) {
+                if (top + height < lineTop) {
+                    return null;
+                }
+                var offset = lineTop - top;
+                return { cell: cell, offset: offset };
+            }
+        }
+        return null;
+    };
     Lines.prototype.computeLineHeight = function (row, config, session) {
         return config.lineHeight * session.getRowLineCount(row);
     };
@@ -17095,6 +16999,7 @@ var Marker = /** @class */ (function () {
         if (!config)
             return;
         this.config = config;
+        this.element.style.display = "none";
         this.i = 0;
         var html;
         for (var key in this.markers) {
@@ -17109,7 +17014,7 @@ var Marker = /** @class */ (function () {
             range = range.toScreenRange(this.session);
             if (marker.renderer) {
                 var top = this.$getTop(range.start.row, config);
-                var left = this.$padding + range.start.column * config.characterWidth;
+                var left = this.$padding + config.fontMetrics.textWidth(range.start.row, range.start.column);
                 marker.renderer(html, range, left, top, config);
             }
             else if (marker.type == "fullLine") {
@@ -17132,6 +17037,7 @@ var Marker = /** @class */ (function () {
             while (this.i < this.element.childElementCount)
                 this.element.removeChild(this.element.lastChild);
         }
+        this.element.style.display = "";
     };
     Marker.prototype.$getTop = function (row, layerConfig) {
         return (row - layerConfig.firstRowScreen) * layerConfig.lineHeight;
@@ -17160,12 +17066,12 @@ var Marker = /** @class */ (function () {
         var padding = this.$padding;
         var height = config.lineHeight;
         var top = this.$getTop(range.start.row, config);
-        var left = padding + range.start.column * config.characterWidth;
+        var left = padding + config.fontMetrics.textWidth(range.start.row, range.start.column);
         extraStyle = extraStyle || "";
         if (this.session.$bidiHandler.isBidiRow(range.start.row)) {
             var range1 = range.clone();
             range1.end.row = range1.start.row;
-            range1.end.column = this.session.getLine(range1.start.row).length;
+            range1.end.column = Number.MAX_VALUE;
             this.drawBidiSingleLineMarker(stringBuilder, range1, clazz + " ace_br1 ace_start", config, null, extraStyle);
         }
         else {
@@ -17179,7 +17085,7 @@ var Marker = /** @class */ (function () {
         }
         else {
             top = this.$getTop(range.end.row, config);
-            var width = range.end.column * config.characterWidth;
+            var width = config.fontMetrics.textWidth(range.end.row, range.end.column);
             this.elt(clazz + " ace_br12", "height:" + height + "px;" +
                 "width:" + width + "px;" +
                 "top:" + top + "px;" +
@@ -17199,22 +17105,22 @@ var Marker = /** @class */ (function () {
         if (this.session.$bidiHandler.isBidiRow(range.start.row))
             return this.drawBidiSingleLineMarker(stringBuilder, range, clazz, config, extraLength, extraStyle);
         var height = config.lineHeight;
-        var width = (range.end.column + (extraLength || 0) - range.start.column) * config.characterWidth;
+        var right = config.fontMetrics.textWidth(range.start.row, range.end.column) + (extraLength || 0) * config.characterWidth;
         var top = this.$getTop(range.start.row, config);
-        var left = this.$padding + range.start.column * config.characterWidth;
+        var left = config.fontMetrics.textWidth(range.start.row, range.start.column);
         this.elt(clazz, "height:" + height + "px;" +
-            "width:" + width + "px;" +
+            "width:" + (right - left) + "px;" +
             "top:" + top + "px;" +
-            "left:" + left + "px;" + (extraStyle || ""));
+            "left:" + (this.$padding + left) + "px;" + (extraStyle || ""));
     };
     Marker.prototype.drawBidiSingleLineMarker = function (stringBuilder, range, clazz, config, extraLength, extraStyle) {
         var height = config.lineHeight, top = this.$getTop(range.start.row, config), padding = this.$padding;
-        var selections = this.session.$bidiHandler.getSelections(range.start.column, range.end.column);
-        selections.forEach(function (selection) {
+        var rects = this.config.fontMetrics.getRects(range.start, range.end);
+        rects.forEach(function (rect) {
             this.elt(clazz, "height:" + height + "px;" +
-                "width:" + (selection.width + (extraLength || 0)) + "px;" +
+                "width:" + (rect.width + (extraLength || 0)) + "px;" +
                 "top:" + top + "px;" +
-                "left:" + (padding + selection.left) + "px;" + (extraStyle || ""));
+                "left:" + (padding + rect.left) + "px;" + (extraStyle || ""));
         }, this);
     };
     Marker.prototype.drawFullLineMarker = function (stringBuilder, range, clazz, config, extraStyle) {
@@ -17496,7 +17402,7 @@ var Text = /** @class */ (function () {
     };
     Text.prototype.$renderToken = function (parent, screenColumn, token, value) {
         var self = this;
-        var re = /(\t)|( +)|([\x00-\x1f\x80-\xa0\xad\u1680\u180E\u2000-\u200f\u2028\u2029\u202F\u205F\uFEFF\uFFF9-\uFFFC\u2066\u2067\u2068\u202A\u202B\u202D\u202E\u202C\u2069\u2060\u2061\u2062\u2063\u2064\u206A\u206B\u206B\u206C\u206D\u206E\u206F]+)|(\u3000)|([\u1100-\u115F\u11A3-\u11A7\u11FA-\u11FF\u2329-\u232A\u2E80-\u2E99\u2E9B-\u2EF3\u2F00-\u2FD5\u2FF0-\u2FFB\u3001-\u303E\u3041-\u3096\u3099-\u30FF\u3105-\u312D\u3131-\u318E\u3190-\u31BA\u31C0-\u31E3\u31F0-\u321E\u3220-\u3247\u3250-\u32FE\u3300-\u4DBF\u4E00-\uA48C\uA490-\uA4C6\uA960-\uA97C\uAC00-\uD7A3\uD7B0-\uD7C6\uD7CB-\uD7FB\uF900-\uFAFF\uFE10-\uFE19\uFE30-\uFE52\uFE54-\uFE66\uFE68-\uFE6B\uFF01-\uFF60\uFFE0-\uFFE6]|[\uD800-\uDBFF][\uDC00-\uDFFF])/g;
+        var re = /(\t)|( +)|([\x00-\x1f\x80-\xa0\xad\u1680\u180E\u2000-\u200C\u200E\u200f\u2028\u2029\u202F\u205F\uFEFF\uFFF9-\uFFFC\u2066\u2067\u2068\u202A\u202B\u202D\u202E\u202C\u2069\u2060\u2061\u2062\u2063\u2064\u206A\u206B\u206B\u206C\u206D\u206E\u206F]+)|(\u3000+)/g;
         var valueFragment = this.dom.createFragment(this.element);
         var m;
         var i = 0;
@@ -17505,7 +17411,6 @@ var Text = /** @class */ (function () {
             var simpleSpace = m[2];
             var controlCharacter = m[3];
             var cjkSpace = m[4];
-            var cjk = m[5];
             if (!self.showSpaces && simpleSpace)
                 continue;
             var before = i != m.index ? value.slice(i, m.index) : "";
@@ -17538,23 +17443,26 @@ var Text = /** @class */ (function () {
                 valueFragment.appendChild(span);
             }
             else if (cjkSpace) {
-                screenColumn += 1;
-                var span = this.dom.createElement("span");
-                span.style.width = (self.config.characterWidth * 2) + "px";
-                span.className = self.showSpaces ? "ace_cjk ace_invisible ace_invisible_space" : "ace_cjk";
-                span.textContent = self.showSpaces ? self.SPACE_CHAR : cjkSpace;
-                valueFragment.appendChild(span);
-            }
-            else if (cjk) {
-                screenColumn += 1;
-                var span = this.dom.createElement("span");
-                span.style.width = (self.config.characterWidth * 2) + "px";
-                span.className = "ace_cjk";
-                span.textContent = cjk;
-                valueFragment.appendChild(span);
+                if (self.showSpaces) {
+                    var span = this.dom.createElement("span");
+                    span.className = "ace_invisible ace_invisible_space";
+                    span.textContent = lang.stringRepeat(self.CJK_SPACE_CHAR, cjkSpace.length);
+                    valueFragment.appendChild(span);
+                }
+                else {
+                    valueFragment.appendChild(this.dom.createTextNode(cjkSpace, this.element));
+                }
             }
         }
-        valueFragment.appendChild(this.dom.createTextNode(i ? value.slice(i) : value, this.element));
+        var trimmedValue = i ? value.slice(i) : value;
+        if (trimmedValue.length > 256) {
+            for (var j = 0; j < trimmedValue.length;) {
+                valueFragment.appendChild(this.dom.createTextNode(trimmedValue.slice(j, j += 256), this.element));
+            }
+        }
+        else {
+            valueFragment.appendChild(this.dom.createTextNode(trimmedValue, this.element));
+        }
         if (!isTextToken(token.type)) {
             var classes = "ace_" + token.type.replace(/\./g, " ace_");
             var span = this.dom.createElement("span");
@@ -17875,6 +17783,7 @@ Text.prototype.EOL_CHAR_CRLF = "\xa4";
 Text.prototype.EOL_CHAR = Text.prototype.EOL_CHAR_LF;
 Text.prototype.TAB_CHAR = "\u2014"; //"\u21E5";
 Text.prototype.SPACE_CHAR = "\xB7";
+Text.prototype.CJK_SPACE_CHAR = "\u30FB";
 Text.prototype.$padding = 0;
 Text.prototype.MAX_LINE_LENGTH = 10000;
 Text.prototype.showInvisibles = false;
@@ -18017,16 +17926,16 @@ var Cursor = /** @class */ (function () {
     };
     Cursor.prototype.getPixelPosition = function (position, onScreen) {
         if (!this.config || !this.session)
-            return { left: 0, top: 0 };
+            return { left: 0, top: 0, width: 0 };
         if (!position)
             position = this.session.selection.getCursor();
         var pos = this.session.documentToScreenPosition(position);
-        var cursorLeft = this.$padding + (this.session.$bidiHandler.isBidiRow(pos.row, position.row)
-            ? this.session.$bidiHandler.getPosLeft(pos.column)
-            : pos.column * this.config.characterWidth);
+        var textWidth = this.config.fontMetrics.textWidth(pos.row, pos.column);
+        var cursorLeft = this.$padding + textWidth;
         var cursorTop = (pos.row - (onScreen ? this.config.firstRowScreen : 0)) *
             this.config.lineHeight;
-        return { left: cursorLeft, top: cursorTop };
+        var cursorWidth = this.config.fontMetrics.textWidth(pos.row, pos.column + 1) - textWidth;
+        return { left: cursorLeft, top: cursorTop, width: Math.abs(cursorWidth) || this.config.characterWidth };
     };
     Cursor.prototype.isCursorInView = function (pixelPos, config) {
         return pixelPos.top >= 0 && pixelPos.top < config.maxHeight;
@@ -18053,7 +17962,7 @@ var Cursor = /** @class */ (function () {
                 else {
                     dom.setStyle(style, "display", "block");
                     dom.translate(element, pixelPos.left, pixelPos.top);
-                    dom.setStyle(style, "width", Math.round(config.characterWidth) + "px");
+                    dom.setStyle(style, "width", Math.round(pixelPos.width) + "px");
                     dom.setStyle(style, "height", config.lineHeight + "px");
                 }
             }
@@ -18514,17 +18423,36 @@ exports.RenderLoop = RenderLoop;
 
 });
 
-define("ace/layer/font_metrics",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/event","ace/lib/useragent","ace/lib/event_emitter"], function(require, exports, module){var oop = require("../lib/oop");
+define("ace/layer/font_metrics",["require","exports","module","ace/lib/oop","ace/lib/dom","ace/lib/lang","ace/lib/event","ace/lib/event_emitter"], function(require, exports, module){var __read = (this && this.__read) || function (o, n) {
+    var m = typeof Symbol === "function" && o[Symbol.iterator];
+    if (!m) return o;
+    var i = m.call(o), r, ar = [], e;
+    try {
+        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+    }
+    catch (error) { e = { error: error }; }
+    finally {
+        try {
+            if (r && !r.done && (m = i["return"])) m.call(i);
+        }
+        finally { if (e) throw e.error; }
+    }
+    return ar;
+};
+var oop = require("../lib/oop");
 var dom = require("../lib/dom");
 var lang = require("../lib/lang");
 var event = require("../lib/event");
-var useragent = require("../lib/useragent");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var CHAR_COUNT = 512;
 var USE_OBSERVER = typeof ResizeObserver == "function";
 var L = 200;
 var FontMetrics = /** @class */ (function () {
-    function FontMetrics(parentEl) {
+    function FontMetrics(parentEl, textLayer, renderer) {
+        this.config = { characterWidth: 1 };
+        this.$characterSize = { width: 0, height: 0 };
+        this.textLayer = textLayer;
+        this.renderer = renderer;
         this.el = dom.createElement("div");
         this.$setMeasureNodeStyles(this.el.style, true);
         this.$main = dom.createElement("div");
@@ -18535,11 +18463,12 @@ var FontMetrics = /** @class */ (function () {
         this.el.appendChild(this.$measureNode);
         parentEl.appendChild(this.el);
         this.$measureNode.textContent = lang.stringRepeat("X", CHAR_COUNT);
-        this.$characterSize = { width: 0, height: 0 };
         if (USE_OBSERVER)
             this.$addObserver();
         else
             this.checkForSizeChanges();
+        this.textLayer.$setFontMetrics(this);
+        this.$scratchRange = document.createRange();
     }
     FontMetrics.prototype.$setMeasureNodeStyles = function (style, isRoot) {
         style.width = style.height = "auto";
@@ -18547,12 +18476,7 @@ var FontMetrics = /** @class */ (function () {
         style.visibility = "hidden";
         style.position = "absolute";
         style.whiteSpace = "pre";
-        if (useragent.isIE < 8) {
-            style["font-family"] = "inherit";
-        }
-        else {
-            style.font = "inherit";
-        }
+        style.font = "inherit";
         style.overflow = isRoot ? "hidden" : "visible";
     };
     FontMetrics.prototype.checkForSizeChanges = function (size) {
@@ -18614,6 +18538,12 @@ var FontMetrics = /** @class */ (function () {
         }
         return w;
     };
+    FontMetrics.prototype.getTextWidth = function (text) {
+        if (!text)
+            return 0;
+        this.$main.textContent = text;
+        return this.$main.clientWidth;
+    };
     FontMetrics.prototype.destroy = function () {
         clearInterval(this.$pollSizeChangesTimer);
         if (this.$observer)
@@ -18621,34 +18551,18 @@ var FontMetrics = /** @class */ (function () {
         if (this.el && this.el.parentNode)
             this.el.parentNode.removeChild(this.el);
     };
-    FontMetrics.prototype.$getZoom = function (element) {
-        if (!element || !element.parentElement)
-            return 1;
-        return (Number(window.getComputedStyle(element)["zoom"]) || 1) * this.$getZoom(element.parentElement);
-    };
     FontMetrics.prototype.$initTransformMeasureNodes = function () {
-        var t = function (t, l) {
+        var t = function (l, t) {
             return ["div", {
-                    style: "position: absolute;top:" + t + "px;left:" + l + "px;"
+                    style: "position: absolute;left:" + l + "px;top:" + t + "px;"
                 }];
         };
         this.els = dom.buildDom([t(0, 0), t(L, 0), t(0, L), t(L, L)], this.el);
     };
-    FontMetrics.prototype.transformCoordinates = function (clientPos, elPos) {
-        if (clientPos) {
-            var zoom = this.$getZoom(this.el);
-            clientPos = mul(1 / zoom, clientPos);
+    FontMetrics.prototype.getTransform = function () {
+        if (this.config.$transformData) {
+            return this.config.$transformData;
         }
-        function solve(l1, l2, r) {
-            var det = l1[1] * l2[0] - l1[0] * l2[1];
-            return [
-                (-l2[1] * r[0] + l2[0] * r[1]) / det,
-                (+l1[1] * r[0] - l1[0] * r[1]) / det
-            ];
-        }
-        function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
-        function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
-        function mul(a, b) { return [a * b[0], a * b[1]]; }
         if (!this.els)
             this.$initTransformMeasureNodes();
         function p(el) {
@@ -18660,23 +18574,400 @@ var FontMetrics = /** @class */ (function () {
         var c = p(this.els[2]);
         var d = p(this.els[3]);
         var h = solve(sub(d, b), sub(d, c), sub(add(b, c), add(d, a)));
-        var m1 = mul(1 + h[0], sub(b, a));
-        var m2 = mul(1 + h[1], sub(c, a));
+        var m1 = mul((1 + h[0]) / L, sub(b, a));
+        var m2 = mul((1 + h[1]) / L, sub(c, a));
+        var M = [
+            m1[0], m2[0], 0,
+            m1[1], m2[1], 0,
+            h[0] / L, h[1] / L, 1
+        ];
+        var detM = 1 / (M[0] * M[4] - M[3] * M[1]);
+        var MInv = [
+            M[4] * detM, -M[1] * detM, 0,
+            -M[3] * detM, M[0] * detM, 0,
+            (M[3] * M[7] - M[4] * M[6]) * detM, (M[1] * M[6] - M[0] * M[7]) * detM, 1
+        ];
+        this.config.$transformData = {
+            M: M,
+            MInv: MInv,
+            t: a
+        };
+        return this.config.$transformData;
+    };
+    FontMetrics.prototype.transformCoordinates = function (clientPos, elPos) {
+        if (!this.config.$transformData)
+            this.getTransform();
+        var tr = this.config.$transformData;
         if (elPos) {
-            var x = elPos;
-            var k = h[0] * x[0] / L + h[1] * x[1] / L + 1;
-            var ut = add(mul(x[0], m1), mul(x[1], m2));
-            return add(mul(1 / k / L, ut), a);
+            return add(project(tr.M, elPos[0], elPos[1]), tr.t);
         }
-        var u = sub(clientPos, a);
-        var f = solve(sub(m1, mul(h[0], u)), sub(m2, mul(h[1], u)), u);
-        return mul(L, f);
+        return project(tr.MInv, clientPos[0] - tr.t[0], clientPos[1] - tr.t[1]);
+    };
+    FontMetrics.prototype.recoverRect = function (transform, bbox) {
+        var M = transform.M;
+        var isAffine = Math.abs(M[6]) < 1e-10 && Math.abs(M[7]) < 1e-10;
+        var left = bbox.left, top = bbox.top, Wt = bbox.width, Ht = bbox.height;
+        left -= transform.t[0];
+        top -= transform.t[1];
+        if (isAffine) {
+            var _a = __read(M, 6), m00 = _a[0], m01 = _a[1], m02 = _a[2], m10 = _a[3], m11 = _a[4], m12 = _a[5];
+            var absM = [Math.abs(m00), Math.abs(m01), Math.abs(m10), Math.abs(m11)];
+            var delta = absM[0] * absM[3] - absM[2] * absM[1];
+            var w = void 0, h = void 0;
+            if (Math.abs(delta) < 1e-10) {
+                h = this.config && this.config.lineHeight || 0;
+                w = (Wt - absM[1] * h) / absM[0];
+            }
+            else {
+                w = (absM[3] * Wt - absM[1] * Ht) / delta;
+                h = (-absM[2] * Wt + absM[0] * Ht) / delta;
+            }
+            var detM = m00 * m11 - m01 * m10;
+            var ctx = left + Wt / 2 - m02;
+            var cty = top + Ht / 2 - m12;
+            var cx = (m11 * ctx - m01 * cty) / detM;
+            var cy = (-m10 * ctx + m00 * cty) / detM;
+            return { left: cx - w / 2, top: cy - h / 2, width: w, height: h, right: cx + w / 2, bottom: cy + h / 2 };
+        }
+        return recoverRect(transform, bbox);
+    };
+    FontMetrics.prototype.$findElementForScreenRow = function (screenRow) {
+        var textLayer = this.textLayer;
+        if (!this.config)
+            return null; // not initialized yet
+        var data = textLayer.$lines.$getCellByScreenRow(screenRow, this.config);
+        var lineElement = data && data.cell.element;
+        if (lineElement && textLayer.$useLineGroups()) {
+            var index = Math.floor(data.offset / this.config.lineHeight);
+            lineElement = lineElement.children[Math.max(index, 0)];
+        }
+        return lineElement;
+    };
+    FontMetrics.prototype.textWidth = function (screenRow, screenColumn) {
+        var lineElement = this.$findElementForScreenRow(screenRow);
+        if (!lineElement || !document.createRange) {
+            return screenColumn * this.config.characterWidth;
+        }
+        return this.$measureLineToColumn(lineElement, screenColumn);
+    };
+    FontMetrics.prototype.$measureLineToColumn = function (lineElement, screenColumn) {
+        var textLayer = this.textLayer;
+        try {
+            var position = this.$findColumnPosition(lineElement, screenColumn);
+            if (!position) {
+                return screenColumn * this.config.characterWidth;
+            }
+            this.$scratchRange.setStart(position.node, position.offset);
+            this.$scratchRange.setEnd(position.node, position.offset);
+            var rangeRect = this.$scratchRange.getBoundingClientRect();
+            if (this.renderer.$hasCssTransforms) {
+                var tr = this.getTransform();
+                var transformed = this.recoverRect(tr, rangeRect);
+                var leftOffset = this.renderer.gutterWidth + this.renderer.margin.left + this.renderer.$padding - this.renderer.scrollLeft;
+                return transformed.left - leftOffset + position.overflow * this.config.characterWidth;
+            }
+            var rect = textLayer.element.getBoundingClientRect();
+            return rangeRect.left - rect.left + position.overflow * this.config.characterWidth;
+        }
+        catch (e) {
+            console.error("Error measuring text width:", e);
+            return screenColumn * this.config.characterWidth;
+        }
+    };
+    FontMetrics.prototype.$findColumnPosition = function (lineElement, screenColumn) {
+        var walker = document.createTreeWalker(lineElement, NodeFilter.SHOW_TEXT, null);
+        var currentColumn = 0;
+        var node, lastNode;
+        while (node = walker.nextNode()) {
+            var nodeText = node.nodeValue;
+            var nodeLength = nodeText.length;
+            if (currentColumn + nodeLength >= screenColumn) {
+                return {
+                    node: node,
+                    offset: screenColumn - currentColumn,
+                    overflow: 0
+                };
+            }
+            currentColumn += nodeLength;
+            lastNode = node;
+        }
+        return lastNode && {
+            node: lastNode,
+            offset: lastNode.nodeValue.length,
+            overflow: screenColumn - currentColumn,
+        };
+    };
+    FontMetrics.prototype.$pixelToColumn = function (screenRow, screenColumnMonospace, x, blockCursor, isTextWidthCoordinate) {
+        var _this = this;
+        var scratchRange = this.$scratchRange;
+        var lineElement = this.$findElementForScreenRow(screenRow);
+        if (!lineElement || screenColumnMonospace < 0)
+            return screenColumnMonospace;
+        var hasCssTransform = this.renderer.$hasCssTransforms;
+        var tr = hasCssTransform && this.getTransform();
+        if (isTextWidthCoordinate) {
+            if (!hasCssTransform) {
+                x += this.textLayer.element.getBoundingClientRect().left;
+            }
+            else {
+                x += this.renderer.gutterWidth + this.renderer.margin.left + this.renderer.$padding - this.renderer.scrollLeft;
+            }
+        }
+        var screenColumn = 0;
+        var getRects = function (node) {
+            var rects = [];
+            if (node.nodeType === Node.TEXT_NODE) {
+                scratchRange.setStart(node, 0);
+                scratchRange.setEnd(node, node.nodeValue.length);
+                rects = Array.from(scratchRange.getClientRects());
+            }
+            else if (node.nodeType === Node.ELEMENT_NODE) {
+                rects = Array.from(node.getClientRects());
+            }
+            if (hasCssTransform) {
+                var fixedRects = [];
+                for (var i = 0; i < rects.length; i++) {
+                    var rect = rects[i];
+                    fixedRects.push(_this.recoverRect(tr, rect));
+                }
+                rects = fixedRects;
+            }
+            return rects;
+        };
+        var self = this;
+        function search(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+                var textLength = node.nodeValue.length;
+                var maxDistance = Number.MAX_VALUE;
+                var index = -1;
+                var lastSignedDistance = undefined;
+                var value = node.nodeValue;
+                for (var j = 0; j <= textLength; j++) {
+                    scratchRange.setStart(node, j);
+                    scratchRange.setEnd(node, j);
+                    if (j > 0 && j < textLength && /[\uDC00-\uDFFF]/.test(value.charAt(j)) &&
+                        /[\uD800-\uDBFF]/.test(value.charAt(j - 1))) {
+                        continue;
+                    }
+                    var rect = /** @type {ReturnType<FontMetrics['recoverRect']>}*/ (scratchRange.getBoundingClientRect());
+                    if (hasCssTransform) {
+                        rect = self.recoverRect(tr, rect);
+                    }
+                    var signedDistance = x - rect.left;
+                    var d = Math.abs(signedDistance);
+                    if (d < maxDistance) {
+                        index = j;
+                        maxDistance = d;
+                        lastSignedDistance = signedDistance;
+                    }
+                }
+                if (blockCursor) {
+                    if (lastSignedDistance < 0) {
+                        index = Math.max(0, index - 1);
+                    }
+                }
+                return screenColumn = screenColumn + index;
+            }
+            else if (node.nodeType === Node.ELEMENT_NODE) {
+                var childNodes = node.childNodes;
+                for (var i = 0; i < childNodes.length; i++) {
+                    var child = childNodes[i];
+                    var rects = getRects(child);
+                    for (var j = 0; j < rects.length; j++) {
+                        var rect = rects[j];
+                        if (rect.left <= x && x <= rect.left + rect.width) {
+                            search(child);
+                            return screenColumn;
+                        }
+                    }
+                    screenColumn += child.nodeType === Node.TEXT_NODE ? child.nodeValue.length : child.textContent.length;
+                }
+            }
+        }
+        search(lineElement);
+        return screenColumn;
+    };
+    FontMetrics.prototype.getRects = function (startScreenPos, endScreenPos) {
+        var row = startScreenPos.row;
+        var textLayer = this.textLayer;
+        var lineElement = this.$findElementForScreenRow(row);
+        if (lineElement) {
+            try {
+                var p1 = this.$findColumnPosition(lineElement, startScreenPos.column);
+                var p2 = this.$findColumnPosition(lineElement, endScreenPos.column);
+                if (p1 && p2) {
+                    this.$scratchRange.setStart(p1.node, p1.offset);
+                    this.$scratchRange.setEnd(p2.node, p2.offset);
+                    var rangeRects = this.$scratchRange.getClientRects();
+                    var hasCssTransform = this.renderer && this.renderer.$hasCssTransforms;
+                    if (hasCssTransform) {
+                        var tr = this.getTransform();
+                        var rects = [];
+                        for (var i = 0; i < rangeRects.length; i++) {
+                            var rangeRect = this.recoverRect(tr, rangeRects[i]);
+                            rangeRect.right = rangeRect.left + rangeRect.width;
+                            rects.push(rangeRect);
+                        }
+                        var leftOffset = this.renderer.gutterWidth + this.renderer.margin.left + this.renderer.$padding - this.renderer.scrollLeft;
+                        var merged = mergeTouchingRects(rects).map(function (r) {
+                            return {
+                                left: r.left - leftOffset,
+                                width: r.right - r.left,
+                            };
+                        });
+                        return merged;
+                    }
+                    var rect = textLayer.element.getBoundingClientRect();
+                    var merged = mergeTouchingRects(rangeRects).map(function (r) {
+                        return {
+                            left: r.left - rect.left,
+                            width: r.right - r.left,
+                        };
+                    });
+                    return merged;
+                }
+            }
+            catch (e) {
+                console.error("Error measuring text width:", e);
+            }
+        }
+        return [{
+                left: startScreenPos.column * this.config.characterWidth,
+                width: (endScreenPos.column - startScreenPos.column) * this.config.characterWidth,
+            }];
     };
     return FontMetrics;
 }());
-FontMetrics.prototype.$characterSize = { width: 0, height: 0 };
+function mergeTouchingRects(rects) {
+    var merged = [];
+    for (var i = 0; i < rects.length; i++) {
+        var rect = rects[i];
+        var found = false;
+        for (var j = 0; j < merged.length; j++) {
+            var m = merged[j];
+            if ((m.left <= rect.left && rect.left <= m.right) ||
+                (m.left <= rect.right && rect.right <= m.right) ||
+                (rect.left <= m.left && m.right <= rect.right)) {
+                m.left = Math.min(m.left, rect.left);
+                m.right = Math.max(m.right, rect.right);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            merged.push({
+                left: rect.left,
+                right: rect.right,
+                top: rect.top,
+                height: rect.height,
+            });
+        }
+    }
+    return merged;
+}
+function solve(l1, l2, r) {
+    var det = l1[1] * l2[0] - l1[0] * l2[1];
+    return [
+        (-l2[1] * r[0] + l2[0] * r[1]) / det,
+        (+l1[1] * r[0] - l1[0] * r[1]) / det
+    ];
+}
+function sub(a, b) { return [a[0] - b[0], a[1] - b[1]]; }
+function add(a, b) { return [a[0] + b[0], a[1] + b[1]]; }
+function mul(a, b) { return [a * b[0], a * b[1]]; }
 oop.implement(FontMetrics.prototype, EventEmitter);
 exports.FontMetrics = FontMetrics;
+function recoverRect(transform, bbox) {
+    var left = bbox.left, top = bbox.top, width = bbox.width, height = bbox.height;
+    var M = transform.M;
+    left -= transform.t[0];
+    top -= transform.t[1];
+    bbox = { left: left, top: top, width: width, height: height };
+    var targets = [top, left + width, top + height, left]; // minY, maxX, maxY, minX
+    var isYAxis = [true, false, true, false]; // minY=Y, maxX=X, maxY=Y, minX=X
+    var corners = [
+        [0, 0], [1, 0], [1, 1], [0, 1]
+    ];
+    var result = null;
+    var mainMappings = [27, 57, 23, 53, 43, 9, 10, 11, 14, 37, 31, 56, 40, 41, 47];
+    for (var i = -mainMappings.length; i < 256; i++) {
+        var index = i < 0 ? mainMappings[mainMappings.length + i] : i;
+        var mappingIdx = [
+            (index >> 0) & 3,
+            (index >> 2) & 3,
+            (index >> 4) & 3,
+            (index >> 6) & 3
+        ];
+        var mapping = mappingIdx.map(function (idx) { return corners[idx]; });
+        var rows = mapping.map(function (c, j) {
+            var _a = __read(c, 2), dx = _a[0], dy = _a[1];
+            var target = targets[j];
+            var m = isYAxis[j] ? M.slice(3, 6) : M.slice(0, 3);
+            var mp = M.slice(6, 9);
+            var ax = m[0] - target * mp[0];
+            var ay = m[1] - target * mp[1];
+            return [ax, ay, dx * ax, dy * ay, target * mp[2] - m[2]];
+        });
+        var res = solve4x4(rows);
+        var result;
+        if (res) {
+            var _a = __read(res, 4), x0 = _a[0], y0 = _a[1], w = _a[2], h = _a[3];
+            if (w < 0) {
+                x0 += w;
+                w = -w;
+            }
+            if (h < 0) {
+                y0 += h;
+                h = -h;
+            }
+            if (validateSolution(M, x0, y0, w, h, bbox)) {
+                result = { left: x0, top: y0, width: w, height: h, right: x0 + w, bottom: y0 + h, mappingIdx: i };
+                break;
+            }
+        }
+    }
+    if (!result)
+        console.warn("No valid mapping found in 256 combinations.");
+    return result;
+}
+var project = function (m, px, py) {
+    var k = m[6] * px + m[7] * py + m[8];
+    return [(m[0] * px + m[1] * py + m[2]) / k, (m[3] * px + m[4] * py + m[5]) / k];
+};
+function validateSolution(M, x, y, w, h, targetBbox) {
+    var pts = [
+        [x, y], [x + w, y], [x + w, y + h], [x, y + h]
+    ];
+    return pts.every(function (p) {
+        var mapped = project(M, p[0], p[1]);
+        return targetBbox.left - 0.5 <= mapped[0] && mapped[0] <= targetBbox.left + targetBbox.width + 0.5
+            && targetBbox.top - 0.5 <= mapped[1] && mapped[1] <= targetBbox.top + targetBbox.height + 0.5;
+    });
+}
+function solve4x4(m) {
+    var _a;
+    var n = 4;
+    for (var i = 0; i < n; i++) {
+        var max = i;
+        for (var j = i + 1; j < n; j++)
+            if (Math.abs(m[j][i]) > Math.abs(m[max][i]))
+                max = j;
+        _a = __read([m[max], m[i]], 2), m[i] = _a[0], m[max] = _a[1];
+        var p = m[i][i];
+        if (Math.abs(p) < 1e-10)
+            return null;
+        for (var j = i; j <= n; j++)
+            m[i][j] /= p;
+        for (var k = 0; k < n; k++) {
+            if (k !== i) {
+                var f = m[k][i];
+                for (var j = i; j <= n; j++)
+                    m[k][j] -= f * m[i][j];
+            }
+        }
+    }
+    return m.map(function (row) { return row[n]; });
+}
 
 });
 
@@ -18891,8 +19182,7 @@ var VirtualRenderer = /** @class */ (function () {
             row: 0,
             column: 0
         };
-        this.$fontMetrics = new FontMetrics(this.container);
-        this.$textLayer.$setFontMetrics(this.$fontMetrics);
+        this.$fontMetrics = new FontMetrics(this.container, this.$textLayer, this);
         this.$textLayer.on("changeCharacterSize", function (e) {
             _self.updateCharacterSize();
             _self.onResize(true, _self.gutterWidth, _self.$size.width, _self.$size.height);
@@ -18913,12 +19203,14 @@ var VirtualRenderer = /** @class */ (function () {
             lastRow: 0,
             lineHeight: 0,
             characterWidth: 0,
+            fontMetrics: this.$fontMetrics,
             minHeight: 1,
             maxHeight: 1,
             offset: 0,
             height: 1,
             gutterOffset: 1
         };
+        this.$fontMetrics.config = this.layerConfig;
         this.scrollMargin = {
             left: 0,
             right: 0,
@@ -19239,7 +19531,7 @@ var VirtualRenderer = /** @class */ (function () {
         else {
             if (composition.useTextareaForIME) {
                 var val = this.textarea.value;
-                w = this.characterWidth * (this.session.$getStringScreenWidth(val)[0]);
+                w = this.$fontMetrics.getTextWidth(val) + 1;
             }
             else {
                 posTop += this.lineHeight + 2;
@@ -19354,8 +19646,6 @@ var VirtualRenderer = /** @class */ (function () {
             this.$textLayer.checkForSizeChanges();
         }
         this._signal("beforeRender", changes);
-        if (this.session && this.session.$bidiHandler)
-            this.session.$bidiHandler.updateCharacterWidths(this.$fontMetrics);
         var config = this.layerConfig;
         if (changes & this.CHANGE_FULL ||
             changes & this.CHANGE_SIZE ||
@@ -19373,17 +19663,9 @@ var VirtualRenderer = /** @class */ (function () {
                 }
             }
             config = this.layerConfig;
-            this.$updateScrollBarV();
-            if (changes & this.CHANGE_H_SCROLL)
-                this.$updateScrollBarH();
-            dom.translate(this.content, -this.scrollLeft, -config.offset);
-            var width = config.width + 2 * this.$padding + "px";
-            var height = config.minHeight + "px";
-            dom.setStyle(this.content.style, "width", width);
-            dom.setStyle(this.content.style, "height", height);
         }
         if (changes & this.CHANGE_H_SCROLL) {
-            dom.translate(this.content, -this.scrollLeft, -config.offset);
+            this.$updateContentTransformAndSize(config, changes);
             this.scroller.className = this.scrollLeft <= 0 ? "ace_scroller " : "ace_scroller ace_scroll-left ";
             if (this.enableKeyboardAccessibility)
                 this.scroller.className += this.keyboardFocusClassName;
@@ -19399,6 +19681,7 @@ var VirtualRenderer = /** @class */ (function () {
             this.$markerBack.update(config);
             this.$markerFront.update(config);
             this.$cursorLayer.update(config);
+            this.$updateContentTransformAndSize(config, changes);
             this.$moveTextAreaToCursor();
             this._signal("afterRender", changes);
             return;
@@ -19421,6 +19704,7 @@ var VirtualRenderer = /** @class */ (function () {
             this.$markerBack.update(config);
             this.$markerFront.update(config);
             this.$cursorLayer.update(config);
+            this.$updateContentTransformAndSize(config, changes);
             this.$moveTextAreaToCursor();
             this._signal("afterRender", changes);
             return;
@@ -19433,6 +19717,7 @@ var VirtualRenderer = /** @class */ (function () {
             if (this.$customScrollbar) {
                 this.$scrollDecorator.$updateDecorators(config);
             }
+            this.$updateContentTransformAndSize(config, changes);
         }
         else if (changes & this.CHANGE_LINES) {
             if (this.$updateLines() || (changes & this.CHANGE_GUTTER) && this.$showGutter)
@@ -19490,6 +19775,44 @@ var VirtualRenderer = /** @class */ (function () {
             this._signal("autosize");
         }
     };
+    VirtualRenderer.prototype.$updateContentTransformAndSize = function (config, changes) {
+        var sm = this.scrollMargin;
+        if (this.session && !this.session.getUseWrapMode()) {
+            var longestRendered = this.$getLongestRenderedLine();
+            if (config.width < longestRendered) {
+                config.width = longestRendered;
+            }
+        }
+        if (this.session) {
+            this.session.setScrollLeft(Math.max(-sm.left, Math.min(this.scrollLeft, config.width + 2 * this.$padding - this.$size.scrollerWidth + sm.right)));
+        }
+        dom.translate(this.content, -this.scrollLeft, -config.offset);
+        var width = config.width + 2 * this.$padding + "px";
+        var height = config.minHeight + "px";
+        dom.setStyle(this.content.style, "width", width);
+        dom.setStyle(this.content.style, "height", height);
+        this.$updateScrollBarV();
+        if (changes & this.CHANGE_H_SCROLL)
+            this.$updateScrollBarH();
+    };
+    VirtualRenderer.prototype.$getLongestRenderedLine = function () {
+        var max = 0;
+        var transform = this.$hasCssTransforms && this.$fontMetrics.getTransform();
+        var cells = this.$textLayer.$lines.cells;
+        for (var i = 0; i < cells.length; i++) {
+            var lineElement = cells[i].element;
+            this.$fontMetrics.$scratchRange.setStart(lineElement, 0);
+            this.$fontMetrics.$scratchRange.setEnd(lineElement, lineElement.childNodes.length);
+            var rect = /** @type {ReturnType<FontMetrics['recoverRect']>}*/ (this.$fontMetrics.$scratchRange.getBoundingClientRect());
+            if (this.$hasCssTransforms) {
+                rect = this.$fontMetrics.recoverRect(transform, rect) || rect;
+            }
+            var w = rect.width;
+            if (w > max)
+                max = w;
+        }
+        return max;
+    };
     VirtualRenderer.prototype.$computeLayerConfig = function () {
         var session = this.session;
         var size = this.$size;
@@ -19516,7 +19839,6 @@ var VirtualRenderer = /** @class */ (function () {
         maxHeight += scrollPastEnd;
         var sm = this.scrollMargin;
         this.session.setScrollTop(Math.max(-sm.top, Math.min(this.scrollTop, maxHeight - size.scrollerHeight + sm.bottom)));
-        this.session.setScrollLeft(Math.max(-sm.left, Math.min(this.scrollLeft, longestLine + 2 * this.$padding - size.scrollerWidth + sm.right)));
         var vScroll = !hideScrollbars && (this.$vScrollBarAlwaysVisible ||
             size.scrollerHeight - maxHeight + scrollPastEnd < 0 || this.scrollTop > sm.top);
         var vScrollChanged = vScrollBefore !== vScroll;
@@ -19562,12 +19884,14 @@ var VirtualRenderer = /** @class */ (function () {
             lastRow: lastRow,
             lineHeight: lineHeight,
             characterWidth: this.characterWidth,
+            fontMetrics: this.$fontMetrics,
             minHeight: minHeight,
             maxHeight: maxHeight,
             offset: offset,
             gutterOffset: lineHeight ? Math.max(0, Math.ceil((offset + size.height - size.scrollerHeight) / lineHeight)) : 0,
             height: this.$size.scrollerHeight
         };
+        this.$fontMetrics.config = this.layerConfig;
         if (this.session.$bidiHandler)
             this.session.$bidiHandler.setContentWidth(longestLine - this.$padding);
         return changes;
@@ -19806,44 +20130,40 @@ var VirtualRenderer = /** @class */ (function () {
     VirtualRenderer.prototype.pixelToScreenCoordinates = function (x, y) {
         var canvasPos;
         if (this.$hasCssTransforms) {
-            canvasPos = { top: 0, left: 0 };
+            canvasPos = { top: this.margin.top, left: this.gutterWidth + this.margin.left };
             var p = this.$fontMetrics.transformCoordinates([x, y]);
-            x = p[1] - this.gutterWidth - this.margin.left;
-            y = p[0];
+            x = p[0];
+            y = p[1];
         }
         else {
             canvasPos = this.scroller.getBoundingClientRect();
         }
         var offsetX = x + this.scrollLeft - canvasPos.left - this.$padding;
         var offset = offsetX / this.characterWidth;
-        var row = Math.floor((y + this.scrollTop - canvasPos.top) / this.lineHeight);
+        var row = (y + this.scrollTop - canvasPos.top) / this.lineHeight;
         var col = this.$blockCursor ? Math.floor(offset) : Math.round(offset);
+        col = this.$fontMetrics.$pixelToColumn(row, col, x, this.$blockCursor);
         return { row: row, column: col, side: offset - col > 0 ? 1 : -1, offsetX: offsetX };
     };
     VirtualRenderer.prototype.screenToTextCoordinates = function (x, y) {
-        var canvasPos;
-        if (this.$hasCssTransforms) {
-            canvasPos = { top: 0, left: 0 };
-            var p = this.$fontMetrics.transformCoordinates([x, y]);
-            x = p[1] - this.gutterWidth - this.margin.left;
-            y = p[0];
-        }
-        else {
-            canvasPos = this.scroller.getBoundingClientRect();
-        }
-        var offsetX = x + this.scrollLeft - canvasPos.left - this.$padding;
-        var offset = offsetX / this.characterWidth;
-        var col = this.$blockCursor ? Math.floor(offset) : Math.round(offset);
-        var row = (y + this.scrollTop - canvasPos.top) / this.lineHeight;
-        return this.session.screenToDocumentPosition(row, Math.max(col, 0), offsetX);
+        var screenPos = this.pixelToScreenCoordinates(x, y);
+        return this.session.screenToDocumentPosition(screenPos.row, Math.max(screenPos.column, 0));
     };
     VirtualRenderer.prototype.textToScreenCoordinates = function (row, column) {
-        var canvasPos = this.scroller.getBoundingClientRect();
         var pos = this.session.documentToScreenPosition(row, column);
-        var x = this.$padding + (this.session.$bidiHandler.isBidiRow(pos.row, row)
-            ? this.session.$bidiHandler.getPosLeft(pos.column)
-            : Math.round(pos.column * this.characterWidth));
+        var x = this.$padding + this.$fontMetrics.textWidth(pos.row, pos.column);
         var y = pos.row * this.lineHeight;
+        if (this.$hasCssTransforms) {
+            var pagePos = this.$fontMetrics.transformCoordinates(null, [
+                this.gutterWidth + this.margin.left + x - this.scrollLeft,
+                this.margin.top + y - this.scrollTop
+            ]);
+            return {
+                pageX: pagePos[0],
+                pageY: pagePos[1]
+            };
+        }
+        var canvasPos = this.scroller.getBoundingClientRect();
         return {
             pageX: canvasPos.left + x - this.scrollLeft,
             pageY: canvasPos.top + y - this.scrollTop
@@ -20860,7 +21180,7 @@ function onMouseDown(e) {
         var rectSel = [];
         var blockSelect = function () {
             var newCursor = editor.renderer.pixelToScreenCoordinates(mouseX, mouseY);
-            var cursor = session.screenToDocumentPosition(newCursor.row, newCursor.column, newCursor.offsetX);
+            var cursor = session.screenToDocumentPosition(newCursor.row, newCursor.column);
             if (isSamePoint(screenCursor, newCursor) && isSamePoint(cursor, selection.lead))
                 return;
             screenCursor = newCursor;
@@ -21106,7 +21426,8 @@ var EditSession = require("./edit_session").EditSession;
         }
         for (var i = removed.length; i--;) {
             var index = this.ranges.indexOf(removed[i]);
-            this.ranges.splice(index, 1);
+            if (index != -1)
+                this.ranges.splice(index, 1);
         }
         this._signal("removeRange", { ranges: removed });
         if (this.rangeCount === 0 && this.inMultiSelectMode) {
@@ -21180,14 +21501,10 @@ var EditSession = require("./edit_session").EditSession;
         if (xBackwards) {
             var startColumn = screenCursor.column;
             var endColumn = screenAnchor.column;
-            var startOffsetX = screenCursor.offsetX;
-            var endOffsetX = screenAnchor.offsetX;
         }
         else {
             var startColumn = screenAnchor.column;
             var endColumn = screenCursor.column;
-            var startOffsetX = screenAnchor.offsetX;
-            var endOffsetX = screenCursor.offsetX;
         }
         var yBackwards = screenCursor.row < screenAnchor.row;
         if (yBackwards) {
@@ -21206,7 +21523,7 @@ var EditSession = require("./edit_session").EditSession;
             includeEmptyLines = true;
         var docEnd;
         for (var row = startRow; row <= endRow; row++) {
-            var range = Range.fromPoints(this.session.screenToDocumentPosition(row, startColumn, startOffsetX), this.session.screenToDocumentPosition(row, endColumn, endOffsetX));
+            var range = Range.fromPoints(this.session.screenToDocumentPosition(row, startColumn), this.session.screenToDocumentPosition(row, endColumn));
             if (range.isEmpty()) {
                 if (docEnd && isSamePoint(range.end, docEnd))
                     break;
@@ -21343,32 +21660,36 @@ var Editor = require("./editor").Editor;
         selection._eventRegistry = {};
         var tmpSel = new Selection(session);
         this.inVirtualSelectionMode = true;
-        for (var i = ranges.length; i--;) {
-            if ($byLines) {
-                while (i > 0 && ranges[i].start.row == ranges[i - 1].end.row)
-                    i--;
+        try {
+            for (var i = ranges.length; i--;) {
+                if ($byLines) {
+                    while (i > 0 && ranges[i].start.row == ranges[i - 1].end.row)
+                        i--;
+                }
+                tmpSel.fromOrientedRange(ranges[i]);
+                tmpSel.index = i;
+                this.selection = session.selection = tmpSel;
+                var cmdResult = cmd.exec ? cmd.exec(this, args || {}) : cmd(this, args || {});
+                if (!result && cmdResult !== undefined)
+                    result = cmdResult;
+                tmpSel.toOrientedRange(ranges[i]);
             }
-            tmpSel.fromOrientedRange(ranges[i]);
-            tmpSel.index = i;
-            this.selection = session.selection = tmpSel;
-            var cmdResult = cmd.exec ? cmd.exec(this, args || {}) : cmd(this, args || {});
-            if (!result && cmdResult !== undefined)
-                result = cmdResult;
-            tmpSel.toOrientedRange(ranges[i]);
+            tmpSel.detach();
         }
-        tmpSel.detach();
-        this.selection = session.selection = selection;
-        this.inVirtualSelectionMode = false;
-        selection._eventRegistry = reg;
-        selection.mergeOverlappingRanges();
-        if (selection.ranges[0])
-            selection.fromOrientedRange(selection.ranges[0]);
-        var anim = this.renderer.$scrollAnimation;
-        this.onCursorChange();
-        this.onSelectionChange();
-        if (anim && anim.from == anim.to)
-            this.renderer.animateScrolling(anim.from);
-        return result;
+        finally {
+            this.selection = session.selection = selection;
+            this.inVirtualSelectionMode = false;
+            selection._eventRegistry = reg;
+            selection.mergeOverlappingRanges();
+            if (selection.ranges[0])
+                selection.fromOrientedRange(selection.ranges[0]);
+            var anim = this.renderer.$scrollAnimation;
+            this.onCursorChange();
+            this.onSelectionChange();
+            if (anim && anim.from == anim.to)
+                this.renderer.animateScrolling(anim.from);
+            return result;
+        }
     };
     this.exitMultiSelectMode = function () {
         if (!this.inMultiSelectMode || this.inVirtualSelectionMode)
@@ -21396,6 +21717,8 @@ var Editor = require("./editor").Editor;
     this.$checkMultiselectChange = function (e, anchor) {
         if (this.inMultiSelectMode && !this.inVirtualSelectionMode) {
             var range = this.multiSelect.ranges[0];
+            if (!range)
+                return;
             if (this.multiSelect.isEmpty() && anchor == this.multiSelect.anchor)
                 return;
             var pos = anchor == this.multiSelect.anchor

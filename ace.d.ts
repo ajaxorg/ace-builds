@@ -85,6 +85,16 @@ declare module "ace-builds" {
             offset: number;
             height: number;
             gutterOffset: number;
+            fontMetrics: {
+                textWidth: (row: number, column: number) => number;
+                getRects: (start: Position, end: Position) => Rect[];
+            };
+        }
+        interface Rect {
+            left: number;
+            top: number;
+            width: number;
+            height: number;
         }
         interface HardWrapOptions {
             /** First row of the range to process */
@@ -646,6 +656,11 @@ declare module "ace-builds" {
             clazz: string;
             inFront?: boolean;
             id?: number;
+            /**
+             * Renders a dynamic marker. The `draw*Marker` methods of the marker layer
+             * expect ranges in screen coordinates, so convert document ranges with
+             * `range.toScreenRange(session)` first.
+             */
             update?: (html: string[],
                 // TODO maybe define Marker class
                 marker: any, session: EditSession, config: any) => void;
@@ -1060,13 +1075,13 @@ declare module "ace-builds" {
         env?: any;
         value?: any;
     }) | null, options?: Partial<import("ace-builds").Ace.EditorOptions>): Editor;
-    export function createEditSession(text: import("ace-builds-internal/document").Document | string, mode?: import("ace-builds").Ace.SyntaxMode): EditSession;
+    export function createEditSession(text: import("ace-builds-internal/document").Document | string, mode?: import("ace-builds").Ace.SyntaxMode | string): EditSession;
     import { Editor } from "ace-builds-internal/editor";
     import { EditSession } from "ace-builds-internal/edit_session";
     import { Range } from "ace-builds-internal/range";
     import { UndoManager } from "ace-builds-internal/undomanager";
     import { VirtualRenderer as Renderer } from "ace-builds-internal/virtual_renderer";
-    export var version: "1.44.0";
+    export var version: "1.45.0";
     export { Range, Editor, EditSession, UndoManager, Renderer as VirtualRenderer };
 }
 

@@ -6867,7 +6867,7 @@ exports.handler = {
     $id: "ace/keyboard/vim",
     drawCursor: function (element, pixelPos, config, sel, session) {
         var vim = this.state.vim || {};
-        var w = config.characterWidth;
+        var w = pixelPos.width || config.characterWidth;
         var h = config.lineHeight;
         var top = pixelPos.top;
         var left = pixelPos.left;

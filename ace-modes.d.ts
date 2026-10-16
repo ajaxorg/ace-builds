@@ -620,6 +620,30 @@ declare module "ace-builds/src-noconflict/mode-gcode" {
     export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
 }
 
+declare module "ace-builds/src-noconflict/mode-gdresource_highlight_rules" {
+    export const GDResourceHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
+}
+
+declare module "ace-builds/src-noconflict/mode-gdresource" {
+    export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
+}
+
+declare module "ace-builds/src-noconflict/mode-gdscript_highlight_rules" {
+    export const GDScriptHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
+}
+
+declare module "ace-builds/src-noconflict/mode-gdscript" {
+    export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
+}
+
+declare module "ace-builds/src-noconflict/mode-gdshader_highlight_rules" {
+    export const GDShaderHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
+}
+
+declare module "ace-builds/src-noconflict/mode-gdshader" {
+    export const Mode: new () => import("ace-builds").Ace.SyntaxMode;
+}
+
 declare module "ace-builds/src-noconflict/mode-gherkin_highlight_rules" {
     export const GherkinHighlightRules: new () => import("ace-builds").Ace.HighlightRules;
 }
