@@ -14868,7 +14868,7 @@ var Editor = /** @class */ (function () {
             }
             this.selection.setRange(r);
             if (!text && !r.isEmpty())
-                this.remove();
+                this.execCommand(composition.extendLeft ? "backspace" : "del");
         }
         if (text || !this.selection.isEmpty())
             this.insert(text, true);
@@ -19725,6 +19725,7 @@ var VirtualRenderer = /** @class */ (function () {
             if (this.$customScrollbar) {
                 this.$scrollDecorator.$updateDecorators(config);
             }
+            this.$updateContentTransformAndSize(config, changes);
         }
         else if (changes & this.CHANGE_TEXT || changes & this.CHANGE_GUTTER) {
             if (this.$showGutter)
